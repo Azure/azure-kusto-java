@@ -26,7 +26,7 @@ public class BlobDescription {
     {
         m_blobSize = blobSize;
     }
-    
+
     public UUID getSourceId()
     {
         return m_sourceId;

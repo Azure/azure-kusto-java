@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -62,7 +63,7 @@ public class AzureStorageHelper {
         queue.addMessage(message);
     }
 
-    public static void postMessageToQueue2(String queueName, String content, int invisibleTimeInSeconds) {
+    public static void postMessageToQueue2(String queueName, String content, int invisibleTimeInSeconds) throws Exception {
 
         try {
 
@@ -80,7 +81,7 @@ public class AzureStorageHelper {
             e.printStackTrace();
         }
     }
-    
+
     public static void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
@@ -99,27 +100,11 @@ public class AzureStorageHelper {
             CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
             File sourceFile = new File(filePath);
 
-            //Getting a blob reference
-            CloudBlockBlob blob;
+            CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
 
-            if(!isCompressed)
-            {
-                blob = container.getBlockBlobReference(blobName+".gz");
-                InputStream fin = Files.newInputStream(Paths.get(filePath));
-                BlobOutputStream bos = blob.openOutputStream();
-                GZIPOutputStream gzout = new GZIPOutputStream(bos);
-
-                byte[] buffer = new byte[GZIP_BUFFER_SIZE];
-                int length;
-                while ((length = fin.read(buffer)) > 0) {
-                    gzout.write(buffer, 0, length);
-                }
-
-                gzout.close();
-                fin.close();
-
+            if(!isCompressed){
+                compressAndUploadFile(filePath, blob);
             } else {
-                blob = container.getBlockBlobReference(blobName);
                 blob.uploadFromFile(sourceFile.getAbsolutePath());
             }
 
@@ -130,11 +115,27 @@ public class AzureStorageHelper {
             log.error(String.format("uploadLocalFileToBlob: Error returned from the service. Http code: %d and error code: %s", se.getHttpStatusCode(), se.getErrorCode()), se);
             throw se;
         }
+
         catch (Exception ex)
         {
             log.error(String.format("uploadLocalFileToBlob: Error while uploading file to blob."), ex);
             throw ex;
         }
+    }
+
+    private static void compressAndUploadFile(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
+        InputStream fin = Files.newInputStream(Paths.get(filePath));
+        BlobOutputStream bos = blob.openOutputStream();
+        GZIPOutputStream gzout = new GZIPOutputStream(bos);
+
+        byte[] buffer = new byte[GZIP_BUFFER_SIZE];
+        int length;
+        while ((length = fin.read(buffer)) > 0) {
+            gzout.write(buffer, 0, length);
+        }
+
+        gzout.close();
+        fin.close();
     }
 
     public static String getBlobPathWithSas(CloudBlockBlob blob) {

@@ -1,97 +1,76 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.KustoClient;
+import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
+import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
+import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.net.URI;
 import java.sql.Date;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.KustoResults;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
 
 public class KustoIngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final Logger log = LoggerFactory.getLogger(KustoIngestClient.class);
-    private KustoClient m_kustoClient;
-    private ResourceManager m_resourceManager;
+    private ResourceManager resourceManager;
 
     public KustoIngestClient(KustoConnectionStringBuilder kcsb) throws Exception {
-        log.info("Creating a new com.microsoft.azure.kusto.ingest.KustoIngestClient");
-        m_kustoClient = new KustoClient(kcsb);
-        m_resourceManager = new ResourceManager(m_kustoClient);
+        log.info("Creating a new KustoIngestClient");
+        KustoClient kustoClient = new KustoClient(kcsb);
+        resourceManager = new ResourceManager(kustoClient);
     }
 
     /*
      * public Future ingestFromMultipleBlobsPaths(List<String> blobPaths, Boolean
-     * deleteSourceOnSuccess, com.microsoft.azure.kusto.ingest.KustoIngestionProperties ingestionProperties){
-     * 
+     * deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties){
+     *
      * ExecutorService executorService = Executors.newSingleThreadExecutor();
-     * 
-     * return executorService.submit(new com.microsoft.azure.kusto.ingest.IngestFromMultipleBlobsCallable(blobPaths,
+     *
+     * return executorService.submit(new IngestFromMultipleBlobsCallable(blobPaths,
      * deleteSourceOnSuccess, ingestionProperties, c_ingestionQueueUri)); }
      */
-    
+
     public IKustoIngestionResult ingestFromMultipleBlobsPaths(List<String> blobPaths, Boolean deleteSourceOnSuccess,
-            KustoIngestionProperties ingestionProperties) throws Exception {
+                                                              KustoIngestionProperties ingestionProperties) throws Exception {
 
         // ingestFromMultipleBlobsAsync(blobPaths, deleteSourceOnSuccess,
         // ingestionProperties).get();
         List<BlobDescription> blobDescriptions = blobPaths.stream().map(b -> new BlobDescription(b, null))
                 .collect(Collectors.toList());
-        return ingestFromMultipleBlobsImpl(blobDescriptions, deleteSourceOnSuccess, ingestionProperties);
+        return ingestFromMultipleBlobs(blobDescriptions, deleteSourceOnSuccess, ingestionProperties);
     }
 
     /*
      * public Future ingestFromSingleBlob(String blobPath, Boolean deleteSourceOnSuccess,
-            com.microsoft.azure.kusto.ingest.KustoIngestionProperties ingestionProperties, Long rawDataSize){
-     * 
+            KustoIngestionProperties ingestionProperties, Long rawDataSize){
+     *
      * ExecutorService executorService = Executors.newSingleThreadExecutor();
-     * 
-     * return executorService.submit(new com.microsoft.azure.kusto.ingest.IngestFromMultipleBlobsCallable(blobPaths,
+     *
+     * return executorService.submit(new IngestFromMultipleBlobsCallable(blobPaths,
      * deleteSourceOnSuccess, ingestionProperties, c_ingestionQueueUri)); }
      */
 
     public IKustoIngestionResult ingestFromSingleBlob(String blobPath, Boolean deleteSourceOnSuccess,
-            KustoIngestionProperties ingestionProperties, Long rawDataSize) throws Exception {
+                                                      KustoIngestionProperties ingestionProperties, Long rawDataSize) throws Exception {
 
         BlobDescription blobDescription = new BlobDescription(blobPath, rawDataSize);
-        return ingestFromMultipleBlobsImpl(new ArrayList(Arrays.asList(blobDescription)), deleteSourceOnSuccess, ingestionProperties);
+        return ingestFromMultipleBlobs(new ArrayList(Arrays.asList(blobDescription)), deleteSourceOnSuccess, ingestionProperties);
     }
 
     public IKustoIngestionResult ingestFromMultipleBlobs(List<BlobDescription> blobDescriptions,
-            Boolean deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties) throws Exception {
-        return ingestFromMultipleBlobsImpl(blobDescriptions, deleteSourceOnSuccess, ingestionProperties);
-    }
-
-    private IKustoIngestionResult ingestFromMultipleBlobsImpl(List<BlobDescription> blobDescriptions,
-            Boolean deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties) throws Exception {
-
-        // ingestFromMultipleBlobsAsync(blobPaths, deleteSourceOnSuccess,
-        // ingestionProperties).get();
+                                                         Boolean deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties) throws Exception {
         if (blobDescriptions == null || blobDescriptions.size() == 0) {
             throw new KustoClientException("blobs must have at least 1 path");
         }
 
-        ingestionProperties.setAuthorizationContextToken(m_resourceManager.getKustoIdentityToken());
+        ingestionProperties.setAuthorizationContextToken(resourceManager.getKustoIdentityToken());
 
         List<KustoClientException> ingestionErrors = new LinkedList();
         List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
@@ -113,7 +92,7 @@ public class KustoIngestClient {
                 }
 
                 if (ingestionProperties.getReportMethod() != KustoIngestionProperties.IngestionReportMethod.Queue) {
-                    String tableStatusUri = GetTableStatus();
+                    String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE);
                     ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
                     ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
                     ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
@@ -134,7 +113,7 @@ public class KustoIngestClient {
                 ObjectMapper objectMapper = new ObjectMapper();
                 String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-                AzureStorageHelper.postMessageToQueue(m_resourceManager.getAggregationQueue(), serializedIngestionBlobInfo);
+                postMessageToQueue(resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE), serializedIngestionBlobInfo);
             } catch (Exception ex) {
                 ingestionErrors.add(
                         new KustoClientException(blobDescription.getBlobPath(), "fail to post message to queue", ex));
@@ -148,10 +127,14 @@ public class KustoIngestClient {
         return new TableReportKustoIngestionResult(tableStatuses);
     }
 
+    public void postMessageToQueue(String ingestionResource, String serializedIngestionBlobInfo) throws Exception {
+        AzureStorageHelper.postMessageToQueue(ingestionResource,serializedIngestionBlobInfo);
+    }
+
     public void ingestFromSingleFile(String filePath, KustoIngestionProperties ingestionProperties) throws Exception {
         try {
             String blobName = genBlobName(filePath, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = AzureStorageHelper.uploadLocalFileToBlob(filePath,blobName, m_resourceManager.getStorageUri());
+            CloudBlockBlob blob = uploadLocalFileToBlob(filePath,blobName, resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = estimateLocalFileSize(filePath);
 
@@ -163,59 +146,24 @@ public class KustoIngestClient {
         }
     }
 
-    public List<IngestionBlobInfo> GetAndDiscardTopIngestionFailures() throws Exception {
-        // Get ingestion queues from DM
-        KustoResults failedIngestionsQueues = m_kustoClient
-                .execute(Commands.IngestionResourcesShowCommand);
-        String failedIngestionsQueue = failedIngestionsQueues.getValues().get(0)
-                .get(failedIngestionsQueues.getIndexByColumnName("Uri"));
-
-        CloudQueue queue = new CloudQueue(new URI(failedIngestionsQueue));
-
-        Iterable<CloudQueueMessage> messages = queue.retrieveMessages(32, 5000, null, null);
-
-        return null;
-    }
-
-
-    private String GetTableStatus() throws Exception {
-        KustoResults result = m_kustoClient.execute(Commands.IngestionResourcesShowCommand);
-        return GetRandomResourceByResourceTypeName(result, "IngestionsStatusTable");
-    }
-
-    private String GetRandomResourceByResourceTypeName(KustoResults kustoResults, String name) {
-        ArrayList<String> results = new ArrayList<String>();
-        for (Iterator<ArrayList<String>> it = kustoResults.getValues().iterator(); it.hasNext();) {
-            ArrayList<String> next = it.next();
-            if (next.get(0).equals(name)) {
-                results.add(next.get(1));
-            }
-        }
-
-        Random randomizer = new Random();
-        return results.get(randomizer.nextInt(results.size()));
+    public CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String ingestionResource) throws Exception {
+        return AzureStorageHelper.uploadLocalFileToBlob(filePath,blobName,ingestionResource);
     }
 
     private Long estimateBlobRawSize(BlobDescription blobDescription) throws Exception {
+        String blobPath = blobDescription.getBlobPath();
+        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
+        blockBlob.downloadAttributes();
+        long length = blockBlob.getProperties().getLength();
 
-        try {
-            String blobPath = blobDescription.getBlobPath();
-            CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-            blockBlob.downloadAttributes();
-            long length = blockBlob.getProperties().getLength();
-
-            if (length == 0) {
-                return null;
-            }
-            if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
-                length = length * COMPRESSED_FILE_MULTIPLIER;
-            }
-
-            return length;
-
-        } catch (Exception e) {
-            throw e;
+        if (length == 0) {
+            return null;
         }
+        if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
+            length = length * COMPRESSED_FILE_MULTIPLIER;
+        }
+
+        return length;
     }
 
     private long estimateLocalFileSize(String filePath){
