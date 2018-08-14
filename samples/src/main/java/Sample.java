@@ -5,7 +5,6 @@ import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.*;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
@@ -75,8 +74,6 @@ public class Sample {
             System.out.print("DONE !!!");
             */
 
-        } catch (IOException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
