@@ -127,7 +127,7 @@ public class ResourceManager {
 
     private void refreshIngestionResources() throws Exception {
         log.info("Refreshing Ingestion Resources");
-        KustoResults ingestionResourcesResults = kustoClient.execute(Commands.IngestionResourcesShowCommand);
+        KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
         ArrayList<ArrayList<String>> values = ingestionResourcesResults.getValues();
 
         clean();
@@ -141,7 +141,7 @@ public class ResourceManager {
 
     private void refreshIngestionAuthToken() throws Exception {
         log.info("Refreshing Ingestion Auth Token");
-        KustoResults identityTokenResult = kustoClient.execute(Commands.KustoIdentityGetCommand);
+        KustoResults identityTokenResult = kustoClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
         identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
     }
 

@@ -12,45 +12,45 @@ import java.util.concurrent.Callable;
 
 public class IngestFromMultipleBlobsCallable implements Callable<Object>  {
 
-    private List<String> m_blobPaths;
-    private Boolean m_deleteSourceOnSuccess;
-    private KustoIngestionProperties m_ingestionProperties;
-    private final String m_ingestionQueueUri;
+    private List<String> blobPaths;
+    private Boolean deleteSourceOnSuccess;
+    private KustoIngestionProperties ingestionProperties;
+    private final String ingestionQueueUri;
 
 
     public IngestFromMultipleBlobsCallable(List<String> blobPaths, Boolean deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties, final String ingestionQueueUri)
     {
-        m_blobPaths = blobPaths;
-        m_deleteSourceOnSuccess = deleteSourceOnSuccess;
-        m_ingestionProperties = ingestionProperties;
-        m_ingestionQueueUri = ingestionQueueUri;
+        this.blobPaths = blobPaths;
+        this.deleteSourceOnSuccess = deleteSourceOnSuccess;
+        this.ingestionProperties = ingestionProperties;
+        this.ingestionQueueUri = ingestionQueueUri;
     }
 
     @Override
     public Object call() throws Exception {
-        if(m_blobPaths == null || m_blobPaths.size() == 0)
+        if(blobPaths == null || blobPaths.size() == 0)
         {
             throw new KustoClientException("blobs must have at least 1 path");
         }
 
         List<KustoClientException> ingestionErrors = new LinkedList<KustoClientException>();
 
-        for (String blobPath : m_blobPaths)
+        for (String blobPath : blobPaths)
         {
             try {
                 // Create the ingestion message
-                IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobPath, m_ingestionProperties.getDatabaseName(), m_ingestionProperties.getTableName());
+                IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobPath, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
                 ingestionBlobInfo.rawDataSize = estimateBlobRawSize(blobPath);
-                ingestionBlobInfo.retainBlobOnSuccess = !m_deleteSourceOnSuccess;
-                ingestionBlobInfo.reportLevel = m_ingestionProperties.getReportLevel();
-                ingestionBlobInfo.reportMethod = m_ingestionProperties.getReportMethod();
-                ingestionBlobInfo.flushImmediately = m_ingestionProperties.getFlushImmediately();
-                ingestionBlobInfo.additionalProperties = m_ingestionProperties.getAdditionalProperties();
+                ingestionBlobInfo.retainBlobOnSuccess = !deleteSourceOnSuccess;
+                ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
+                ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
+                ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
+                ingestionBlobInfo.additionalProperties = ingestionProperties.getAdditionalProperties();
 
                 ObjectMapper objectMapper = new ObjectMapper();
                 String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-                AzureStorageHelper.postMessageToQueue(m_ingestionQueueUri, serializedIngestionBlobInfo);
+                AzureStorageHelper.postMessageToQueue(ingestionQueueUri, serializedIngestionBlobInfo);
             }
             catch (Exception ex)
             {
@@ -67,7 +67,7 @@ public class IngestFromMultipleBlobsCallable implements Callable<Object>  {
 
 
 
-    private Long estimateBlobRawSize(String blobPath) throws Exception{
+    private Long estimateBlobRawSize(String blobPath){
 
         try {
             CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));

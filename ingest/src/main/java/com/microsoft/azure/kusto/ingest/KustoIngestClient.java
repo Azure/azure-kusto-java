@@ -21,7 +21,7 @@ public class KustoIngestClient {
     private final Logger log = LoggerFactory.getLogger(KustoIngestClient.class);
     private ResourceManager resourceManager;
 
-    public KustoIngestClient(KustoConnectionStringBuilder kcsb) throws Exception {
+    public KustoIngestClient(KustoConnectionStringBuilder kcsb) {
         log.info("Creating a new KustoIngestClient");
         KustoClient kustoClient = new KustoClient(kcsb);
         resourceManager = new ResourceManager(kustoClient);
@@ -30,8 +30,6 @@ public class KustoIngestClient {
     public IKustoIngestionResult ingestFromMultipleBlobsPaths(List<String> blobPaths, Boolean deleteSourceOnSuccess,
                                                               KustoIngestionProperties ingestionProperties) throws Exception {
 
-        // ingestFromMultipleBlobsAsync(blobPaths, deleteSourceOnSuccess,
-        // ingestionProperties).get();
         List<BlobDescription> blobDescriptions = blobPaths.stream().map(b -> new BlobDescription(b, null))
                 .collect(Collectors.toList());
         return ingestFromMultipleBlobs(blobDescriptions, deleteSourceOnSuccess, ingestionProperties);

@@ -1,26 +1,26 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.table.CloudTable;
+import com.microsoft.azure.storage.table.TableOperation;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableOperation;
-
 public class TableReportKustoIngestionResult implements IKustoIngestionResult {
 
-    private List<IngestionStatusInTableDescription> m_descriptors;
+    private List<IngestionStatusInTableDescription> descriptors;
 
     public TableReportKustoIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
-        m_descriptors = descriptors;
+        this.descriptors = descriptors;
     }
 
     @Override
     public List<IngestionStatus> GetIngestionStatusCollection() throws StorageException, URISyntaxException {
         List<IngestionStatus> results = new LinkedList<>();
-        for (IngestionStatusInTableDescription descriptor : m_descriptors) {
+        for (IngestionStatusInTableDescription descriptor : descriptors) {
             CloudTable table = new CloudTable(new URI(descriptor.TableConnectionString));
             TableOperation operation = TableOperation.retrieve(descriptor.PartitionKey, descriptor.RowKey,
                     IngestionStatus.class);

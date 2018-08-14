@@ -32,10 +32,10 @@ class ResourceManagerTest {
             KustoResults ingestionResourcesResult = generateIngestionResourcesResult();
             KustoResults ingestionAuthTokenResult = generateIngestionAuthTokenResult();
 
-            when(kustoClientMock.execute(Commands.IngestionResourcesShowCommand))
+            when(kustoClientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                     .thenReturn(ingestionResourcesResult);
 
-            when(kustoClientMock.execute(Commands.KustoIdentityGetCommand))
+            when(kustoClientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
                     .thenReturn(ingestionAuthTokenResult);
 
             resourceManager = new ResourceManager(kustoClientMock);

@@ -4,34 +4,34 @@ import org.json.JSONObject;
 
 public class KustoClient {
 
-    private final String c_adminCommandsPrefix = ".";
-    private final String c_apiVersion = "v1";
-    private final String c_defaultDatabaseName = "NetDefaultDb";
+    private final String adminCommandsPrefix = ".";
+    private final String apiVersion = "v1";
+    private final String defaultDatabaseName = "NetDefaultDb";
 
-    private AadAuthenticationHelper m_aadAuthenticationHelper;
-    private String m_clusterUrl;
+    private AadAuthenticationHelper aadAuthenticationHelper;
+    private String clusterUrl;
 
-    public KustoClient(KustoConnectionStringBuilder kcsb) throws Exception {
-        m_clusterUrl = kcsb.getClusterUrl();
-        m_aadAuthenticationHelper = new AadAuthenticationHelper(kcsb);
+    public KustoClient(KustoConnectionStringBuilder kcsb) {
+        clusterUrl = kcsb.getClusterUrl();
+        aadAuthenticationHelper = new AadAuthenticationHelper(kcsb);
     }
 
     public KustoResults execute(String command) throws Exception {
-        return execute(c_defaultDatabaseName, command);
+        return execute(defaultDatabaseName, command);
     }
 
     public KustoResults execute(String database, String command) throws Exception {
         String clusterEndpoint;
-        if (command.startsWith(c_adminCommandsPrefix)) {
-            clusterEndpoint = String.format("%s/%s/rest/mgmt", m_clusterUrl, c_apiVersion);
+        if (command.startsWith(adminCommandsPrefix)) {
+            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, apiVersion);
         } else {
-            clusterEndpoint = String.format("%s/%s/rest/query", m_clusterUrl, c_apiVersion);
+            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, apiVersion);
         }
         return execute(database, command, clusterEndpoint);
     }
 
     private KustoResults execute(String database, String command, String clusterEndpoint) throws Exception {
-        String aadAccessToken = m_aadAuthenticationHelper.acquireAccessToken();
+        String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
         String jsonString = new JSONObject()
                 .put("db", database)

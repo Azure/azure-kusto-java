@@ -3,38 +3,38 @@ package com.microsoft.azure.kusto.ingest;
 import java.util.UUID;
 
 public class BlobDescription {
-    private String m_blobPath;
-    private Long m_blobSize;
-    private UUID m_sourceId;
+    private String blobPath;
+    private Long blobSize;
+    private UUID sourceId;
 
     public String getBlobPath()
     {
-        return m_blobPath;
+        return blobPath;
     }
 
     public void setBlobPath(String blobPath)
     {
-        m_blobPath = blobPath;
+        this.blobPath = blobPath;
     }
 
     public Long getBlobSize()
     {
-        return m_blobSize;
+        return blobSize;
     }
 
     public void setBlobSize(Long blobSize)
     {
-        m_blobSize = blobSize;
+        this.blobSize = blobSize;
     }
 
     public UUID getSourceId()
     {
-        return m_sourceId;
+        return sourceId;
     }
 
     public void setSourceId(UUID sourceId)
     {
-        m_sourceId = sourceId;
+        this.sourceId = sourceId;
     }
 
     public BlobDescription()
@@ -43,7 +43,7 @@ public class BlobDescription {
 
     public BlobDescription(String blobPath, Long blobSize)
     {
-        m_blobPath = blobPath;
-        m_blobSize = blobSize;
+        this.blobPath = blobPath;
+        this.blobSize = blobSize;
     }
 }
