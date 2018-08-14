@@ -27,16 +27,6 @@ public class KustoIngestClient {
         resourceManager = new ResourceManager(kustoClient);
     }
 
-    /*
-     * public Future ingestFromMultipleBlobsPaths(List<String> blobPaths, Boolean
-     * deleteSourceOnSuccess, KustoIngestionProperties ingestionProperties){
-     *
-     * ExecutorService executorService = Executors.newSingleThreadExecutor();
-     *
-     * return executorService.submit(new IngestFromMultipleBlobsCallable(blobPaths,
-     * deleteSourceOnSuccess, ingestionProperties, c_ingestionQueueUri)); }
-     */
-
     public IKustoIngestionResult ingestFromMultipleBlobsPaths(List<String> blobPaths, Boolean deleteSourceOnSuccess,
                                                               KustoIngestionProperties ingestionProperties) throws Exception {
 
@@ -46,16 +36,6 @@ public class KustoIngestClient {
                 .collect(Collectors.toList());
         return ingestFromMultipleBlobs(blobDescriptions, deleteSourceOnSuccess, ingestionProperties);
     }
-
-    /*
-     * public Future ingestFromSingleBlob(String blobPath, Boolean deleteSourceOnSuccess,
-            KustoIngestionProperties ingestionProperties, Long rawDataSize){
-     *
-     * ExecutorService executorService = Executors.newSingleThreadExecutor();
-     *
-     * return executorService.submit(new IngestFromMultipleBlobsCallable(blobPaths,
-     * deleteSourceOnSuccess, ingestionProperties, c_ingestionQueueUri)); }
-     */
 
     public IKustoIngestionResult ingestFromSingleBlob(String blobPath, Boolean deleteSourceOnSuccess,
                                                       KustoIngestionProperties ingestionProperties, Long rawDataSize) throws Exception {

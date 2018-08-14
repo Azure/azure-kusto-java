@@ -63,25 +63,6 @@ public class AzureStorageHelper {
         queue.addMessage(message);
     }
 
-    public static void postMessageToQueue2(String queueName, String content, int invisibleTimeInSeconds) throws Exception {
-
-        try {
-
-            final String storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=6txkstrldaaoa01;AccountKey=****;EndpointSuffix=core.windows.net";
-            final CloudStorageAccount storageAccount = CloudStorageAccount.parse(storageConnectionString);
-            final CloudQueueClient queueClient = storageAccount.createCloudQueueClient();
-            CloudQueue queue = queueClient.getQueueReference("readyforaggregation");
-
-
-
-            CloudQueueMessage cloudQueueMessage = new CloudQueueMessage("{\"Id\":\"bfe6ae6a-3582-42fd-b871-f2749cda62d7\",\"BlobPath\":\"https://6txkstrldaaoa01.blob.core.windows.net/8up-20171106-temp-e5c334ee145d4b43a3a2d3a96fbac1df/41ef7c03-851d-461e-91eb-34fc91e6a789?sig=gLnw2ZXjh8D3hitwfQuVRcOz7QCMm3S3msLLKRmyTvY%3D&st=2017-11-07T05%3A08%3A05Z&se=2017-11-09T05%3A08%3A05Z&sv=2017-04-17&si=DownloadPolicy&sp=rwd&sr=b\",\"RawDataSize\":1645,\"DatabaseName\":\"AdobeAnalytics\",\"TableName\":\"RonylTest\",\"RetainBlobOnSuccess\":false,\"Format\":\"tsv\",\"FlushImmediately\":false,\"ReportLevel\":0}");
-            queue.addMessage(cloudQueueMessage);
-        } catch (Exception e) {
-            // Output the stack trace.
-            e.printStackTrace();
-        }
-    }
-
     public static void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.

@@ -18,10 +18,6 @@ import java.util.HashMap;
 
 public class Utils {
 
-    public static boolean isNullOrEmpty(String str) {
-        return str == null ||str.isEmpty();
-    }
-
     public static KustoResults post(String url, String aadAccessToken, String payload) throws Exception {
         HttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);

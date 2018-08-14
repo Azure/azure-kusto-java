@@ -26,7 +26,7 @@ public class AadAuthenticationHelper {
     public AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) throws Exception{
         m_clusterUrl = kcsb.getClusterUrl();
 
-        if (!Utils.isNullOrEmpty(kcsb.getApplicationClientId()) && !Utils.isNullOrEmpty(kcsb.getApplicationKey())) {
+        if (!"".equals(kcsb.getApplicationClientId()) && !"".equals(kcsb.getApplicationKey())) {
             m_clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
         } else {
             m_userUsername = kcsb.getUserUsername();
