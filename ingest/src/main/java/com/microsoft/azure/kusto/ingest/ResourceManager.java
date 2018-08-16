@@ -45,7 +45,7 @@ public class ResourceManager {
     private String identityToken;
 
     private KustoClient kustoClient;
-    private final long refreshIngestionResourcesPeriod = 1000 * 60 * 60 * 1; // 1 hour
+    private final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60 * 1; // 1 hour
     private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(KustoIngestClient.class);
 
@@ -76,11 +76,8 @@ public class ResourceManager {
         };
 
         try {
-//            refreshIngestionResources();
-//            refreshIngestionAuthToken();
-
-            timer.schedule(refreshIngestionAuthTokenTask, 0, refreshIngestionResourcesPeriod);
-            timer.schedule(refreshIngestionResourceValuesTask, 0, refreshIngestionResourcesPeriod);
+            timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+            timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
         } catch (Exception e) {
             log.error(String.format("Error in initializing ResourceManager: %s.", e.getMessage()), e);
