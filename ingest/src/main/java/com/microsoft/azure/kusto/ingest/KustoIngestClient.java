@@ -137,7 +137,6 @@ public class KustoIngestClient {
             if(uploadThroughTempFile){
                 File tempFile = File.createTempFile("kustoIngestion","tmp");
                 String tempFilePath = tempFile.getAbsolutePath();
-                System.out.println("tempFilePath="+tempFilePath);
 
                 Files.copy(stream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
@@ -149,7 +148,7 @@ public class KustoIngestClient {
                         stream,
                         blobName,
                         resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE),
-                        false
+                        true
                 );
 
                 String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
