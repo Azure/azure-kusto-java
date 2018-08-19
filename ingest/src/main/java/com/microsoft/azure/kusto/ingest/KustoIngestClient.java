@@ -10,7 +10,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.*;
@@ -105,18 +108,19 @@ public class KustoIngestClient {
         return new TableReportKustoIngestionResult(tableStatuses);
     }
 
-    public void postMessageToQueue(String ingestionResource, String serializedIngestionBlobInfo) throws Exception {
-        AzureStorageHelper.postMessageToQueue(ingestionResource,serializedIngestionBlobInfo);
+    public void postMessageToQueue(String queuePath, String serializedIngestionBlobInfo) throws Exception {
+        AzureStorageHelper.postMessageToQueue(queuePath,serializedIngestionBlobInfo);
     }
 
-    public void ingestFromSingleFile(String filePath, KustoIngestionProperties ingestionProperties) throws Exception {
+    public IKustoIngestionResult ingestFromSingleFile(String filePath, KustoIngestionProperties ingestionProperties) throws Exception {
         try {
-            String blobName = genBlobName(filePath, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+            String fileName = (new File(filePath)).getName();
+            String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             CloudBlockBlob blob = uploadLocalFileToBlob(filePath,blobName, resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = estimateLocalFileSize(filePath);
 
-            ingestFromSingleBlob(blobPath, true, ingestionProperties, rawDataSize);
+            return ingestFromSingleBlob(blobPath, true, ingestionProperties, rawDataSize);
 
         } catch (Exception ex) {
             log.error(String.format("ingestFromSingleFile: Error while uploading file (compression mode): %s. Error: %s", filePath, ex.getMessage()), ex);
@@ -124,8 +128,53 @@ public class KustoIngestClient {
         }
     }
 
-    public CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String ingestionResource) throws Exception {
-        return AzureStorageHelper.uploadLocalFileToBlob(filePath,blobName,ingestionResource);
+    public IKustoIngestionResult ingestFromStream(InputStream stream, KustoIngestionProperties ingestionProperties, boolean leaveOpen, boolean uploadThroughTempFile) throws Exception {
+        try {
+            IKustoIngestionResult kustoIngestionResult;
+            if(stream == null || stream.available()<=0) {
+                throw new Exception("stream is empty");
+            }
+            if(uploadThroughTempFile){
+                File tempFile = File.createTempFile("kustoIngestion","tmp");
+                String tempFilePath = tempFile.getAbsolutePath();
+                System.out.println("tempFilePath="+tempFilePath);
+
+                Files.copy(stream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                kustoIngestionResult = ingestFromSingleFile(tempFilePath, ingestionProperties);
+
+            }else{
+                String blobName = genBlobName("StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+                CloudBlockBlob blob = uploadFromStreamToBlob(
+                        stream,
+                        blobName,
+                        resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE),
+                        false
+                );
+
+                String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+
+                kustoIngestionResult = ingestFromSingleBlob(blobPath, true, ingestionProperties, null);// TODO: check if we can get the rawDataSize locally
+            }
+
+            if(!leaveOpen){
+                stream.close();
+            }
+
+            return kustoIngestionResult;
+
+        } catch (Exception ex) {
+            log.error(String.format("ingestFromStream: Error while ingesting from stream. Error: %s", ex.getMessage()), ex);
+            throw ex;
+        }
+    }
+
+    public CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws Exception {
+        return AzureStorageHelper.uploadLocalFileToBlob(filePath,blobName,storageUri);
+    }
+
+    public CloudBlockBlob uploadFromStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws Exception {
+        return AzureStorageHelper.uploadFromStreamToBlob(inputStream,blobName,storageUri, compress);
     }
 
     private Long estimateBlobRawSize(BlobDescription blobDescription) throws Exception {
@@ -153,8 +202,7 @@ public class KustoIngestClient {
         return fileSize;
     }
 
-    private String genBlobName(String filePath, String databaseName, String tableName) {
-        String fileName = (new File(filePath)).getName();
+    private String genBlobName(String fileName, String databaseName, String tableName) {
         return String.format("%s__%s__%s__%s",databaseName,tableName,UUID.randomUUID().toString(),fileName);
     }
 }
