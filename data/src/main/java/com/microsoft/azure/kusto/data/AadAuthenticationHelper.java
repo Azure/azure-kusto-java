@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
 public class AadAuthenticationHelper {
 
     private final static String MICROSOFT_AAD_TENANT_ID = "72f988bf-86f1-41af-91ab-2d7cd011db47";
-    private final static String KUSTO_CLIENT_ID = "ad30ae9e-ac1b-4249-8817-d24f5d7ad3de";
+    private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
     private ClientCredential clientCredential;
     private String userUsername;
