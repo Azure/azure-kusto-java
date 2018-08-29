@@ -4,15 +4,15 @@ import org.apache.http.HttpResponse;
 
 public class KustoWebException extends Exception{
 
-    private String m_message;
-    private HttpResponse m_httpResponse;
+    private String message;
+    private HttpResponse httpResponse;
 
-    public String getMessage() { return m_message; }
+    public String getMessage() { return message; }
 
-    public HttpResponse getHttpResponse() { return m_httpResponse; }
+    public HttpResponse getHttpResponse() { return httpResponse; }
 
     public KustoWebException(String message, HttpResponse httpResponse) {
-        m_message = message;
-        m_httpResponse = httpResponse;
+        this.message = message;
+        this.httpResponse = httpResponse;
     }
 }

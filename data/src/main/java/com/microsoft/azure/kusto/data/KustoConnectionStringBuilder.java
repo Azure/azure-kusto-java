@@ -2,28 +2,28 @@ package com.microsoft.azure.kusto.data;
 
 public class KustoConnectionStringBuilder {
 
-    private String m_clusterUri;
-    private String m_username;
-    private String m_password;
-    private String m_applicationClientId;
-    private String m_applicationKey;
-    private String m_aadAuthorityId; // AAD tenant Id (GUID)
+    private String clusterUri;
+    private String username;
+    private String password;
+    private String applicationClientId;
+    private String applicationKey;
+    private String aadAuthorityId; // AAD tenant Id (GUID)
 
-    public String getClusterUrl() { return m_clusterUri; }
-    public String getUserUsername() { return m_username; }
-    public String getUserPassword() { return m_password; }
-    public String getApplicationClientId() { return m_applicationClientId; }
-    public String getApplicationKey() { return m_applicationKey; }
-    public String getAuthorityId() { return m_aadAuthorityId; }
+    public String getClusterUrl() { return clusterUri; }
+    public String getUserUsername() { return username; }
+    public String getUserPassword() { return password; }
+    public String getApplicationClientId() { return applicationClientId; }
+    public String getApplicationKey() { return applicationKey; }
+    public String getAuthorityId() { return aadAuthorityId; }
 
     private KustoConnectionStringBuilder(String resourceUri)
     {
-        m_clusterUri = resourceUri;
-        m_username = null;
-        m_password = null;
-        m_applicationClientId = null;
-        m_applicationKey = null;
-        m_aadAuthorityId = null;
+        clusterUri = resourceUri;
+        username = null;
+        password = null;
+        applicationClientId = null;
+        applicationKey = null;
+        aadAuthorityId = null;
     }
 
     public static KustoConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -32,9 +32,9 @@ public class KustoConnectionStringBuilder {
                                                                             String authorityId)
     {
         KustoConnectionStringBuilder kcsb = new KustoConnectionStringBuilder(resourceUri);
-        kcsb.m_username = username;
-        kcsb.m_password = password;
-        kcsb.m_aadAuthorityId = authorityId;
+        kcsb.username = username;
+        kcsb.password = password;
+        kcsb.aadAuthorityId = authorityId;
         return kcsb;
     }
 
@@ -51,9 +51,9 @@ public class KustoConnectionStringBuilder {
                                                                                    String authorityId)
     {
         KustoConnectionStringBuilder kcsb = new KustoConnectionStringBuilder(resourceUri);
-        kcsb.m_applicationClientId = applicationClientId;
-        kcsb.m_applicationKey = applicationKey;
-        kcsb.m_aadAuthorityId = authorityId;
+        kcsb.applicationClientId = applicationClientId;
+        kcsb.applicationKey = applicationKey;
+        kcsb.aadAuthorityId = authorityId;
         return kcsb;
     }
 

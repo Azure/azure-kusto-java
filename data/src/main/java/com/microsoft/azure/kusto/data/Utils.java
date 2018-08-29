@@ -52,8 +52,8 @@ public class Utils {
                 JSONObject table0 = tablesArray.getJSONObject(0);
                 JSONArray resultsColumns = table0.getJSONArray("Columns");
 
-                HashMap<String, Integer> columnNameToIndex = new HashMap<String, Integer>();
-                HashMap<String, String> columnNameToType = new HashMap<String, String>();
+                HashMap<String, Integer> columnNameToIndex = new HashMap<>();
+                HashMap<String, String> columnNameToType = new HashMap<>();
                 for (int i = 0; i < resultsColumns.length(); i++) {
                     JSONObject column = resultsColumns.getJSONObject(i);
                     String columnName = column.getString("ColumnName");
@@ -62,10 +62,10 @@ public class Utils {
                 }
 
                 JSONArray resultsRows = table0.getJSONArray("Rows");
-                ArrayList<ArrayList<String>> values = new ArrayList<ArrayList<String>>();
+                ArrayList<ArrayList<String>> values = new ArrayList<>();
                 for (int i = 0; i < resultsRows.length(); i++) {
                     JSONArray row = resultsRows.getJSONArray(i);
-                    ArrayList<String> rowVector = new ArrayList<String>();
+                    ArrayList<String> rowVector = new ArrayList<>();
                     for (int j = 0; j < row.length(); j++) {
                         rowVector.add(row.getString(j));
                     }

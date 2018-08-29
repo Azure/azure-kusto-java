@@ -1,9 +1,9 @@
 package com.microsoft.azure.kusto.ingest.exceptions;
 
 public class KustoClientException extends Exception {
-    private String m_ingestionSource;
+    private String ingestionSource;
 
-    public String getIngestionSource() { return m_ingestionSource; }
+    public String getIngestionSource() { return ingestionSource; }
 
     public KustoClientException(String message) {
         super(message);
@@ -15,6 +15,6 @@ public class KustoClientException extends Exception {
 
     public KustoClientException(String ingestionSource, String message, Exception exception) {
         super(message, exception);
-        m_ingestionSource = ingestionSource;
+        this.ingestionSource = ingestionSource;
     }
 }

@@ -1,7 +1,8 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.aad.adal4j.*;
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.ClientCredential;
 
 import javax.naming.ServiceUnavailableException;
 import java.util.concurrent.ExecutorService;
@@ -10,35 +11,35 @@ import java.util.concurrent.Future;
 
 public class AadAuthenticationHelper {
 
-    private final static String c_microsoftAadTenantId = "72f988bf-86f1-41af-91ab-2d7cd011db47";
-    private final static String c_kustoClientId = "ad30ae9e-ac1b-4249-8817-d24f5d7ad3de";
+    private final static String MICROSOFT_AAD_TENANT_ID = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+    private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
-    private ClientCredential m_clientCredential;
-    private String m_userUsername;
-    private String m_userPassword;
-    private String m_clusterUrl;
-    private String m_aadAuthorityId;
-    private String m_aadAuthorityUri;
+    private ClientCredential clientCredential;
+    private String userUsername;
+    private String userPassword;
+    private String clusterUrl;
+    private String aadAuthorityId;
+    private String aadAuthorityUri;
 
-    public static String getMicrosoftAadAuthorityId() { return c_microsoftAadTenantId; }
+    public static String getMicrosoftAadAuthorityId() { return MICROSOFT_AAD_TENANT_ID; }
 
-    public AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
-        m_clusterUrl = kcsb.getClusterUrl();
+    public AadAuthenticationHelper(KustoConnectionStringBuilder kcsb){
+        clusterUrl = kcsb.getClusterUrl();
 
         if (!"".equals(kcsb.getApplicationClientId()) && !"".equals(kcsb.getApplicationKey())) {
-            m_clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
+            clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
         } else {
-            m_userUsername = kcsb.getUserUsername();
-            m_userPassword = kcsb.getUserPassword();
+            userUsername = kcsb.getUserUsername();
+            userPassword = kcsb.getUserPassword();
         }
 
         // Set the AAD Authority URI
-        m_aadAuthorityId = (kcsb.getAuthorityId() == null ? c_microsoftAadTenantId : kcsb.getAuthorityId());
-        m_aadAuthorityUri = "https://login.microsoftonline.com/" + m_aadAuthorityId + "/oauth2/authorize";
+        aadAuthorityId = (kcsb.getAuthorityId() == null ? MICROSOFT_AAD_TENANT_ID : kcsb.getAuthorityId());
+        aadAuthorityUri = "https://login.microsoftonline.com/" + aadAuthorityId + "/oauth2/authorize";
     }
 
     public String acquireAccessToken() throws Exception {
-        if (m_clientCredential != null){
+        if (clientCredential != null){
             return acquireAadApplicationAccessToken().getAccessToken();
         } else {
             return acquireAadUserAccessToken().getAccessToken();
@@ -46,19 +47,21 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
+        AuthenticationContext context;
+        AuthenticationResult result;
         ExecutorService service = null;
         try {
             service = Executors.newFixedThreadPool(1);
-            context = new AuthenticationContext(m_aadAuthorityUri, true, service);
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
-                    m_clusterUrl, c_kustoClientId, m_userUsername, m_userPassword,
+                    clusterUrl, KUSTO_CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
         } finally {
-            service.shutdown();
+            if(service != null){
+                service.shutdown();
+            }
         }
 
         if (result == null) {
@@ -68,16 +71,18 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAadApplicationAccessToken() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
+        AuthenticationContext context;
+        AuthenticationResult result;
         ExecutorService service = null;
         try {
             service = Executors.newFixedThreadPool(1);
-            context = new AuthenticationContext(m_aadAuthorityUri, true, service);
-            Future<AuthenticationResult> future = context.acquireToken(m_clusterUrl, m_clientCredential, null);
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
+            Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
         } finally {
-            service.shutdown();
+            if(service != null){
+                service.shutdown();
+            }
         }
 
         if (result == null) {
@@ -85,5 +90,4 @@ public class AadAuthenticationHelper {
         }
         return result;
     }
-
 }

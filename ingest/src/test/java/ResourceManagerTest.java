@@ -1,0 +1,145 @@
+import com.microsoft.azure.kusto.data.KustoClient;
+import com.microsoft.azure.kusto.data.KustoResults;
+import com.microsoft.azure.kusto.ingest.Commands;
+import com.microsoft.azure.kusto.ingest.ResourceManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class ResourceManagerTest {
+
+    ResourceManager resourceManager;
+    KustoClient kustoClientMock = mock(KustoClient.class);
+
+    private static final String QUEUE_1 = "queue1";
+    private static final String QUEUE_2 = "queue2";
+    private static final String STORAGE_1 = "storage1";
+    private static final String STORAGE_2 = "storage2";
+    private static final String AUTH_TOKEN = "AuthenticationToken";
+
+    @BeforeEach
+    void setUp() {
+        try {
+            KustoResults ingestionResourcesResult = generateIngestionResourcesResult();
+            KustoResults ingestionAuthTokenResult = generateIngestionAuthTokenResult();
+
+            when(kustoClientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                    .thenReturn(ingestionResourcesResult);
+
+            when(kustoClientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
+                    .thenReturn(ingestionAuthTokenResult);
+
+            resourceManager = new ResourceManager(kustoClientMock);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+    }
+
+    @Test
+    void getKustoIdentityToken() {
+        try {
+            assertEquals(AUTH_TOKEN, resourceManager.getKustoIdentityToken());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void getStorageUri() {
+        try {
+            String storage;
+            HashMap<String,Integer> m = new HashMap();
+
+            for(int i=0; i<10; i++){
+                storage = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE);
+                m.put(storage,m.getOrDefault(storage,0)+1);
+            }
+
+            assertEquals(5, m.get(STORAGE_1).intValue());
+            assertEquals(5, m.get(STORAGE_2).intValue());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void getAggregationQueue() {
+        try {
+            String queueName;
+            HashMap<String,Integer> m = new HashMap();
+
+            for(int i=0; i<10; i++){
+                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE);
+                m.put(queueName,m.getOrDefault(queueName,0)+1);
+            }
+
+            assertEquals(5, m.get(QUEUE_1).intValue());
+            assertEquals(5, m.get(QUEUE_2).intValue());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void clean() {
+        try{
+            resourceManager.clean();
+            assertEquals(0, resourceManager.getSize(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE));
+            assertEquals(0, resourceManager.getSize(ResourceManager.ResourceTypes.TEMP_STORAGE));
+            assertEquals(0, resourceManager.getSize(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE));
+            assertEquals(0, resourceManager.getSize(ResourceManager.ResourceTypes.FAILED_INGESTIONS_QUEUE));
+            assertEquals(0, resourceManager.getSize(ResourceManager.ResourceTypes.SUCCESSFUL_INGESTIONS_QUEUE));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private KustoResults generateIngestionResourcesResult() {
+        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
+        HashMap<String, String> colNameToTypeMap = new HashMap<>();
+        ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
+
+        colNameToIndexMap.put("colNameToIndexMap",0);
+        colNameToIndexMap.put("StorageRoot",1);
+
+        colNameToTypeMap.put("colNameToIndexMap","String");
+        colNameToTypeMap.put("StorageRoot","String");
+
+        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
+        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue","failedQueue"))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue","successQueue"))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_1))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_2))));
+        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable","statusTable"))));
+
+        return new KustoResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+    }
+
+    private KustoResults generateIngestionAuthTokenResult() {
+        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
+        HashMap<String, String> colNameToTypeMap = new HashMap<>();
+        ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
+
+        colNameToIndexMap.put("AuthorizationContext",0);
+        colNameToTypeMap.put("AuthorizationContext","String");
+        valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
+
+        return new KustoResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+    }
+}

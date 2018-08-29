@@ -4,12 +4,12 @@ import java.util.List;
 
 public class KustoClientAggregateException extends Exception{
 
-    List<KustoClientException> m_kustoClientExceptions;
+    List<KustoClientException> kustoClientExceptions;
 
-    public List<KustoClientException> getExceptions() { return m_kustoClientExceptions; }
+    public List<KustoClientException> getExceptions() { return kustoClientExceptions; }
 
     public KustoClientAggregateException(List<KustoClientException> kustoClientExceptions)
     {
-        m_kustoClientExceptions = kustoClientExceptions;
+        this.kustoClientExceptions = kustoClientExceptions;
     }
 }

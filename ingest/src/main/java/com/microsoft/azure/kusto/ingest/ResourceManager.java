@@ -5,38 +5,53 @@ import com.microsoft.azure.kusto.data.KustoResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ResourceManager {
 
-    // Constants:
-    private static final String SECURED_READY_FOR_AGGREGATION_QUEUE = "SecuredReadyForAggregationQueue";
-    private static final String FAILED_INGESTIONS_QUEUE = "FailedIngestionsQueue";
-    private static final String SUCCESSFUL_INGESTIONS_QUEUE = "SuccessfulIngestionsQueue";
-    private static final String TEMP_STORAGE = "TempStorage";
-    private static final String INGESTIONS_STATUS_TABLE = "IngestionsStatusTable";
+    public enum ResourceTypes{
+        SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
+        FAILED_INGESTIONS_QUEUE("FailedIngestionsQueue"),
+        SUCCESSFUL_INGESTIONS_QUEUE("SuccessfulIngestionsQueue"),
+        TEMP_STORAGE("TempStorage"),
+        INGESTIONS_STATUS_TABLE("IngestionsStatusTable");
 
-    // Ingestion Resources value lists:
-    private ArrayList<String> aggregationQueueList = new ArrayList<>();
-    private ArrayList<String> failedIngestionsQueueList = new ArrayList<>();
-    private ArrayList<String> successfulIngestionsQueueList = new ArrayList<>();
-    private ArrayList<String> tempStorageList = new ArrayList<>();
-    private ArrayList<String> ingestionsStatusTableList = new ArrayList<>();
+        private String name;
+
+        ResourceTypes(String name) {
+            this.name = name;
+        }
+
+        String getName(){
+            return name;
+        }
+    }
+
+    private ResourceTypes getResourceTypeByName(String name){
+        for (ResourceTypes t : ResourceTypes.values()){
+            if (t.name.equalsIgnoreCase(name)){
+                return t;
+            }
+        }
+        return null;
+    }
+
+    private HashMap<ResourceTypes, IngestionResource> ingestionResources;
 
     //Identity Token
-    private String m_identityToken;
+    private String identityToken;
 
-    // Round-rubin indexes:
-    private int aggregationQueueIdx = 0;
-    private int tempStorageIdx = 0;
-
-    private KustoClient m_kustoClient;
-    private final long refreshIngestionResourcesPeriod = 1000 * 60 * 60 * 1; // 1 hour
+    private KustoClient kustoClient;
+    private final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60 * 1; // 1 hour
     private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(KustoIngestClient.class);
 
     public ResourceManager(KustoClient kustoClient) {
-        m_kustoClient = kustoClient;
+        this.kustoClient = kustoClient;
+        ingestionResources = new HashMap<>();
 
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
@@ -60,86 +75,56 @@ public class ResourceManager {
             }
         };
 
-        timer.schedule(refreshIngestionAuthTokenTask, 0, refreshIngestionResourcesPeriod);
-        timer.schedule(refreshIngestionResourceValuesTask, 0, refreshIngestionResourcesPeriod);
+        try {
+            timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+            timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
+        } catch (Exception e) {
+            log.error(String.format("Error in initializing ResourceManager: %s.", e.getMessage()), e);
+            throw e;
+        }
     }
 
     public void clean() {
-        aggregationQueueList = new ArrayList<>();
-        failedIngestionsQueueList = new ArrayList<>();
-        successfulIngestionsQueueList = new ArrayList<>();
-        tempStorageList = new ArrayList<>();
-        ingestionsStatusTableList = new ArrayList<>();
+        ingestionResources.clear();
     }
 
     public String getKustoIdentityToken() throws Exception {
-        if (m_identityToken == null) {
+        if (identityToken == null) {
             refreshIngestionAuthToken();
-            if (m_identityToken == null) {
+            if (identityToken == null) {
                 throw new Exception("Unable to get Identity token");
             }
         }
-        return m_identityToken;
+        return identityToken;
     }
 
-    public String getStorageUri() throws Exception {
-        int arrSize = tempStorageList.size();
-        if (arrSize == 0) {
+    public String getIngestionResource(ResourceTypes resourceType) throws Exception {
+        if (!ingestionResources.containsKey(resourceType)) {
             refreshIngestionResources();
-            arrSize = tempStorageList.size();
-            if (arrSize == 0) {
-                throw new Exception("Unable to get temp storages list");
+            if (!ingestionResources.containsKey(resourceType)) {
+                throw new Exception("Unable to get ingestion resources for this type: " + resourceType.getName());
             }
         }
 
-        // Round-rubin over the values of tempStorageList:
-        tempStorageIdx = (tempStorageIdx + 1) % arrSize;
-        return tempStorageList.get(tempStorageIdx);
+        return ingestionResources.get(resourceType).nextValue();
     }
 
-    public String getAggregationQueue() throws Exception {
-        int arrSize = aggregationQueueList.size();
-        if (arrSize == 0) {
-            refreshIngestionResources();
-            arrSize = aggregationQueueList.size();
-            if (arrSize == 0) {
-                throw new Exception("Unable to get aggregation queues list");
-            }
-        }
-
-        // Round-rubin over the values of aggregationQueueList:
-        aggregationQueueIdx = (aggregationQueueIdx + 1) % arrSize;
-        return aggregationQueueList.get(aggregationQueueIdx);
+    public int getSize(ResourceTypes resourceType){
+        return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
     private void addValue(String key, String value) {
-        switch (key) {
-            case SECURED_READY_FOR_AGGREGATION_QUEUE:
-                aggregationQueueList.add(value);
-                break;
-            case FAILED_INGESTIONS_QUEUE:
-                failedIngestionsQueueList.add(value);
-                break;
-            case SUCCESSFUL_INGESTIONS_QUEUE:
-                successfulIngestionsQueueList.add(value);
-                break;
-            case TEMP_STORAGE:
-                tempStorageList.add(value);
-                break;
-            case INGESTIONS_STATUS_TABLE:
-                ingestionsStatusTableList.add(value);
-                break;
-            default:
-                log.warn("Unrecognized key: %s", key);
-                break;
+        ResourceTypes resourceType = getResourceTypeByName(key);
+        if(!ingestionResources.containsKey(resourceType)){
+            ingestionResources.put(resourceType, new IngestionResource(resourceType));
         }
+        ingestionResources.get(resourceType).addValue(value);
     }
-
 
     private void refreshIngestionResources() throws Exception {
         log.info("Refreshing Ingestion Resources");
-        KustoResults ingestionResourcesResults = m_kustoClient.execute(Commands.IngestionResourcesShowCommand);
+        KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
         ArrayList<ArrayList<String>> values = ingestionResourcesResults.getValues();
 
         clean();
@@ -153,28 +138,32 @@ public class ResourceManager {
 
     private void refreshIngestionAuthToken() throws Exception {
         log.info("Refreshing Ingestion Auth Token");
-        KustoResults authToken = m_kustoClient.execute(Commands.KustoIdentityGetCommand);
-        m_identityToken = authToken.getValues().get(0).get(authToken.getIndexByColumnName("AuthorizationContext"));
+        KustoResults identityTokenResult = kustoClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
+        identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
     }
 
+    private class IngestionResource {
+        ResourceTypes type;
+        int roundRubinIdx = 0;
+        ArrayList<String> valuesList;
 
-    public ArrayList<String> getAggregationQueueList() {
-        return aggregationQueueList;
+        IngestionResource(ResourceTypes resourceType){
+            this.type = resourceType;
+            valuesList = new ArrayList<>();
+        }
+
+        void addValue(String val){
+            valuesList.add(val);
+        }
+
+        int getSize(){
+            return valuesList.size();
+        }
+
+        String nextValue(){
+            roundRubinIdx = (roundRubinIdx + 1) % valuesList.size();
+            return valuesList.get(roundRubinIdx);
+        }
     }
 
-    public ArrayList<String> getFailedIngestionsQueueList() {
-        return failedIngestionsQueueList;
-    }
-
-    public ArrayList<String> getSuccessfulIngestionsQueueList() {
-        return successfulIngestionsQueueList;
-    }
-
-    public ArrayList<String> getTempStorageList() {
-        return tempStorageList;
-    }
-
-    public ArrayList<String> getIngestionsStatusTableList() {
-        return ingestionsStatusTableList;
-    }
 }
