@@ -7,6 +7,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -25,7 +27,7 @@ class KustoIngestClientTest {
     KustoIngestionProperties props;
 
     @BeforeEach
-     void setUp() {
+    void setUp() {
         try {
             ingestClientMock = mock(KustoIngestClient.class);
 
@@ -128,6 +130,52 @@ class KustoIngestClientTest {
             }
 
             verify(ingestClientMock, times(numOfFiles)).ingestFromSingleFile(testFilePath,props);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void ingestFromStream() {
+        try {
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+
+            when(ingestClientMock.uploadFromStreamToBlob(isA(InputStream.class),isA(String.class),isA(String.class),isA(Boolean.class)))
+                    .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+
+            doNothing().when(ingestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
+
+            int numOfFiles = 3;
+            for(int i=0; i<numOfFiles; i++){
+                ingestClientMock.ingestFromStream(stream,props,false,false);
+            }
+
+            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(InputStream.class),any(KustoIngestionProperties.class),anyBoolean(),anyBoolean());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void ingestFromStreamThroughTempFile() {
+        try {
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+
+            when(ingestClientMock.uploadLocalFileToBlob(isA(String.class),isA(String.class),isA(String.class)))
+                    .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+
+            doNothing().when(ingestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
+
+            int numOfFiles = 3;
+            for(int i=0; i<numOfFiles; i++){
+                ingestClientMock.ingestFromStream(stream,props,false,true);
+            }
+
+            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(InputStream.class),any(KustoIngestionProperties.class),anyBoolean(),anyBoolean());
 
         } catch (Exception e) {
             e.printStackTrace();

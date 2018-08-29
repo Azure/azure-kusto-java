@@ -5,7 +5,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
@@ -13,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.*;
 
 class AzureStorageHelperTest {
@@ -57,7 +61,42 @@ class AzureStorageHelperTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        byte[] bs = new byte[12];
+    }
+
+    @Test
+    void uploadFromStreamToBlob() {
+        try{
+            OutputStream outputStreamMock = mock(OutputStream.class);
+            doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
+
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+
+            azureStorageHelperMock.uploadFromStreamToBlob(stream,"blobName","https://ms.com/blob",false);
+
+            verify(azureStorageHelperMock).uploadFromStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void uploadFromStreamToBlobCompress() {
+        try{
+            OutputStream outputStreamMock = mock(OutputStream.class);
+            doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
+
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+
+            azureStorageHelperMock.uploadFromStreamToBlob(stream,"blobName","https://ms.com/blob",true);
+
+            verify(azureStorageHelperMock).uploadFromStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
