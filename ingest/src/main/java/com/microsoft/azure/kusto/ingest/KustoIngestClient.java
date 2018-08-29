@@ -5,6 +5,8 @@ import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.storage.queue.CloudQueue;
+import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,5 +158,17 @@ public class KustoIngestClient {
     private String genBlobName(String filePath, String databaseName, String tableName) {
         String fileName = (new File(filePath)).getName();
         return String.format("%s__%s__%s__%s",databaseName,tableName,UUID.randomUUID().toString(),fileName);
+    }
+
+    private List<IngestionBlobInfo> GetAndDiscardTopIngestionFailures() throws Exception {
+        // Get ingestion queues from DM
+//        KustoResults failedIngestionsQueues = kustoClient
+//                .execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+//        String failedIngestionsQueue = failedIngestionsQueues.getValues().get(0)
+//                .get(failedIngestionsQueues.getIndexByColumnName("Uri"));
+        String failedIngestionsQueue = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.FAILED_INGESTIONS_QUEUE);
+        CloudQueue queue = new CloudQueue(new URI(failedIngestionsQueue));
+        Iterable<CloudQueueMessage> messages = queue.retrieveMessages(32, 5000, null, null);
+        return null; // Will be implemented in future
     }
 }
