@@ -134,7 +134,7 @@ public class KustoIngestClient {
         try {
             IKustoIngestionResult kustoIngestionResult;
             if(stream == null || stream.available()<=0) {
-                throw new Exception("stream is empty");
+                throw new KustoClientException("stream is empty");
             }
             if(uploadThroughTempFile){
                 File tempFile = File.createTempFile("kustoIngestion","tmp");
@@ -154,7 +154,6 @@ public class KustoIngestClient {
                 );
 
                 String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
-
                 kustoIngestionResult = ingestFromSingleBlob(blobPath, true, ingestionProperties, null);// TODO: check if we can get the rawDataSize locally
             }
 
@@ -175,7 +174,7 @@ public class KustoIngestClient {
     }
 
     public CloudBlockBlob uploadFromStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws Exception {
-        return AzureStorageHelper.uploadFromStreamToBlob(inputStream,blobName,storageUri, compress);
+        return AzureStorageHelper.uploadStreamToBlob(inputStream,blobName,storageUri, compress);
     }
 
     private Long estimateBlobRawSize(BlobDescription blobDescription) throws Exception {

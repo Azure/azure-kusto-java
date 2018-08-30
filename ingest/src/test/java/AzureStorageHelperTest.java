@@ -72,9 +72,9 @@ class AzureStorageHelperTest {
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
             InputStream stream = new FileInputStream(testFilePath);
 
-            azureStorageHelperMock.uploadFromStreamToBlob(stream,"blobName","https://ms.com/blob",false);
+            azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",false);
 
-            verify(azureStorageHelperMock).uploadFromStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+            verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -90,9 +90,9 @@ class AzureStorageHelperTest {
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
             InputStream stream = new FileInputStream(testFilePath);
 
-            azureStorageHelperMock.uploadFromStreamToBlob(stream,"blobName","https://ms.com/blob",true);
+            azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",true);
 
-            verify(azureStorageHelperMock).uploadFromStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+            verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
 
         } catch (Exception e) {
             e.printStackTrace();

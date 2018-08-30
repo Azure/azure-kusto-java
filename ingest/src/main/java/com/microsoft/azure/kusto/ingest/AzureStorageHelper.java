@@ -117,7 +117,7 @@ public class AzureStorageHelper {
         fin.close();
     }
 
-    public static CloudBlockBlob uploadFromStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
+    public static CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
         log.debug(String.format("uploadLocalFileToBlob: blobName: %s, storageUri: %s", blobName, storageUri));
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName+ (compress?".gz":""));
