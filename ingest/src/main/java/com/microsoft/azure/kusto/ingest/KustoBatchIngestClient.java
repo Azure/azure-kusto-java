@@ -108,7 +108,8 @@ public class KustoBatchIngestClient implements KustoIngestClient {
             String blobName = genBlobName(fileSourceInfo.getFilePath(), ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             CloudBlockBlob blob = uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
-            long rawDataSize = estimateFileRawSize(fileSourceInfo.getFilePath());
+            long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
+                    estimateFileRawSize(fileSourceInfo.getFilePath());
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
