@@ -1,5 +1,6 @@
 import com.microsoft.azure.kusto.data.AadAuthenticationHelper;
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.KustoBatchIngestClient;
 import com.microsoft.azure.kusto.ingest.KustoIngestClient;
 import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
@@ -41,7 +42,7 @@ public class Sample {
                     KustoConnectionStringBuilder.createWithAadApplicationCredentials(dmClusterUrl, applicationClientId, applicationKey, authorityId);
 
             // Create an instance of com.microsoft.azure.kusto.data.KustoClient that will be used for executing commands against the cluster
-            KustoIngestClient kustoClient = new KustoIngestClient(kcsb);
+            KustoIngestClient kustoClient = new KustoBatchIngestClient(kcsb);
 
 
             // Running a basic count query on the given database and table
@@ -101,7 +102,7 @@ public class Sample {
             ingestionProperties.setJsonMappingName("LogsMapping1");
             ingestionProperties.setFlushImmediately(true);
 
-            kustoIngestClient.ingestFromMultipleBlobsPaths(blobs, false, ingestionProperties);
+            //kustoIngestClient.ingestFromMultipleBlobsPaths(blobs, false, ingestionProperties);
 
 
             System.out.print("DONE !!!");

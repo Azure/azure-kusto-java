@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.*;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class TestTableStatus {
@@ -14,13 +15,13 @@ public class TestTableStatus {
         String applicationKey = null;
         KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        KustoIngestClient client = new KustoIngestClient(kcsb);
+        KustoIngestClient client = new KustoBatchIngestClient(kcsb);
 
         // step 2: create an entry in the azure storage table
         String blobUri = "";
         UUID uuid = UUID.randomUUID();
         System.out.println(uuid);
-        BlobDescription blob = new BlobDescription(blobUri, 1000L);
+        BlobSourceInfo blob = new BlobSourceInfo(blobUri, 1000L);
         blob.setSourceId(uuid);
 
         // Now the entry in the table exists.
@@ -30,8 +31,9 @@ public class TestTableStatus {
         KustoIngestionProperties ingestionProperties = new KustoIngestionProperties(dbName, tableName);
         ingestionProperties.setReportLevel(KustoIngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
         ingestionProperties.setReportMethod(KustoIngestionProperties.IngestionReportMethod.Table);
-        IKustoIngestionResult kustoIngestionResult = client.ingestFromMultipleBlobs(Collections.singletonList(blob),
-                false, ingestionProperties);
+        //IKustoIngestionResult kustoIngestionResult =
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobUri);
+        KustoIngestionResult kustoIngestionResult = client.ingestFromBlob(blobSourceInfo, ingestionProperties);
         List<IngestionStatus> statuses = kustoIngestionResult.GetIngestionStatusCollection();
 
         // step 3: poll on the result.

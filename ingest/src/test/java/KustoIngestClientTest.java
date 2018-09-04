@@ -1,7 +1,9 @@
-import com.microsoft.azure.kusto.ingest.BlobDescription;
+import com.microsoft.azure.kusto.ingest.KustoBatchIngestClient;
 import com.microsoft.azure.kusto.ingest.KustoIngestClient;
 import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResourceManager;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,12 +24,14 @@ class KustoIngestClientTest {
 
     ResourceManager resourceManagerMock = mock(ResourceManager.class);
     KustoIngestClient ingestClientMock;
+    KustoBatchIngestClient batchIngestClientMock;
     KustoIngestionProperties props;
 
     @BeforeEach
      void setUp() {
         try {
             ingestClientMock = mock(KustoIngestClient.class);
+            batchIngestClientMock = mock(KustoBatchIngestClient.class);
 
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
@@ -57,36 +61,18 @@ class KustoIngestClientTest {
     }
 
     @Test
-    void ingestFromSingleBlob() {
+    void ingestFromBlob() {
         try {
-            doReturn(null).when(ingestClientMock).ingestFromMultipleBlobs(isA(List.class),isA(Boolean.class),isA(KustoIngestionProperties.class));
+            doReturn(null).when(ingestClientMock).ingestFromBlob(isA(BlobSourceInfo.class), isA(KustoIngestionProperties.class));
 
             String blobPath = "blobPath";
             long size = 100;
 
-            ingestClientMock.ingestFromSingleBlob(blobPath, true, props, size);
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, size);
 
-            verify(ingestClientMock).ingestFromSingleBlob(blobPath, true, props, size);
+            ingestClientMock.ingestFromBlob(blobSourceInfo, props);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    void ingestFromMultipleBlobs() {
-        List<BlobDescription> blobs = new ArrayList<>();
-
-        int numberOfBlobs = 3;
-        for(int i=0; i<numberOfBlobs; i++){
-            blobs.add(new BlobDescription("blobPath"+i, 1000L));
-        }
-
-        try {
-            ingestClientMock.ingestFromMultipleBlobs(blobs,true, props);
-
-            verify(ingestClientMock).ingestFromMultipleBlobs(anyList(),anyBoolean(),any(KustoIngestionProperties.class));
-            //verify(ingestClientMock,times(numberOfBlobs)).postMessageToQueue(anyString(),anyString());
+            verify(ingestClientMock).ingestFromBlob(blobSourceInfo, props);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,21 +80,22 @@ class KustoIngestClientTest {
     }
 
     @Test
-    void ingestFromSingleFile() {
+    void ingestFromFile() {
         try {
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
 
-            when(ingestClientMock.uploadLocalFileToBlob(isA(String.class),isA(String.class),isA(String.class)))
+            when(batchIngestClientMock.uploadLocalFileToBlob(isA(String.class),isA(String.class),isA(String.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-            doNothing().when(ingestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
+            doNothing().when(batchIngestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
 
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath,0);
             int numOfFiles = 3;
             for(int i=0; i<numOfFiles; i++){
-                ingestClientMock.ingestFromSingleFile(testFilePath,props);
+                ingestClientMock.ingestFromFile(fileSourceInfo,props);
             }
 
-            verify(ingestClientMock, times(numOfFiles)).ingestFromSingleFile(testFilePath,props);
+            verify(ingestClientMock, times(numOfFiles)).ingestFromFile(fileSourceInfo,props);
 
         } catch (Exception e) {
             e.printStackTrace();
