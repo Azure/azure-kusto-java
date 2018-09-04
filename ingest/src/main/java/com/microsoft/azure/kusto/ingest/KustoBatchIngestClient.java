@@ -164,26 +164,7 @@ public class KustoBatchIngestClient implements KustoIngestClient {
 
     @Override
     public KustoIngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, KustoIngestionProperties ingestionProperties) throws Exception {
-        try {
-
-            File tempFile = File.createTempFile("kusto-resultset", ".tmp");
-            FileOutputStream fos = new FileOutputStream(tempFile, false);
-            Writer out = new OutputStreamWriter(new BufferedOutputStream(fos), "UTF8");
-
-            writeResultSet(resultSetSourceInfo.getResultSet(), out);
-
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), tempFile.length());
-
-            KustoIngestionResult kir = ingestFromFile(fileSourceInfo, ingestionProperties);
-
-            tempFile.delete();
-
-            return kir;
-
-        } catch (Exception ex) {
-            log.error("Unexpected error when ingesting a result set.", ex);
-            throw ex;
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -191,50 +172,5 @@ public class KustoBatchIngestClient implements KustoIngestClient {
         throw new UnsupportedOperationException();
     }
 
-    private void writeResultSet(ResultSet rs, Writer out) throws IOException, SQLException {
-        final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-        try {
-            ResultSetMetaData metaData = rs.getMetaData();
-            int numberOfColumns = metaData.getColumnCount();
-
-            String columnSeparator = "";
-
-            for (int column = 0; column < numberOfColumns; column++) {
-                out.write(columnSeparator);
-                out.write(metaData.getColumnLabel(column + 1));
-
-                columnSeparator = ",";
-            }
-
-            out.write(LINE_SEPARATOR);
-            int numberOfRecords = 0;
-
-            // Get all rows.
-            while (rs.next()) {
-                columnSeparator = "";
-
-                for (int i = 1; i <= numberOfColumns; i++) {
-                    out.write(columnSeparator);
-                    out.write("\"" + rs.getObject(i) + "\"");
-                    columnSeparator = ",";
-                }
-
-                out.write(LINE_SEPARATOR);
-                // Increment row count
-                numberOfRecords++;
-            }
-
-            log.debug("Wrote result set to file. ColumnCount: %s, RecordCount: %s", numberOfColumns, numberOfRecords);
-        } catch (Exception ex) {
-            log.error("Unexpected error with write result set to temporary file.", ex);
-            throw ex;
-        } finally {
-            try {
-                out.close();
-            } catch (IOException e) { /* ignore */
-            }
-        }
-
-    }
 }
