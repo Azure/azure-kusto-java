@@ -9,7 +9,7 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TableReportKustoIngestionResult implements IKustoIngestionResult {
+public class TableReportKustoIngestionResult implements KustoIngestionResult {
 
     private List<IngestionStatusInTableDescription> descriptors;
 

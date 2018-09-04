@@ -57,25 +57,6 @@ class KustoIngestClientTest {
     }
 
     @Test
-    void ingestFromMultipleBlobsPaths() {
-        try {
-            doReturn(null).when(ingestClientMock).ingestFromMultipleBlobs(isA(List.class),isA(Boolean.class),isA(KustoIngestionProperties.class));
-
-            List<String> blobPaths = new ArrayList<>();
-            blobPaths.add("blobPath1");
-            blobPaths.add("blobPath2");
-            blobPaths.add("blobPath3");
-
-            ingestClientMock.ingestFromMultipleBlobsPaths(blobPaths, true, props);
-
-            verify(ingestClientMock).ingestFromMultipleBlobsPaths(blobPaths, true, props);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
     void ingestFromSingleBlob() {
         try {
             doReturn(null).when(ingestClientMock).ingestFromMultipleBlobs(isA(List.class),isA(Boolean.class),isA(KustoIngestionProperties.class));
