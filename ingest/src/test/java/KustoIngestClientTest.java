@@ -142,40 +142,17 @@ class KustoIngestClientTest {
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
             InputStream stream = new FileInputStream(testFilePath);
 
-            when(ingestClientMock.uploadFromStreamToBlob(isA(InputStream.class),isA(String.class),isA(String.class),isA(Boolean.class)))
+            when(ingestClientMock.uploadStreamToBlob(isA(InputStream.class),isA(String.class),isA(String.class),isA(Boolean.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
             doNothing().when(ingestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
 
             int numOfFiles = 3;
             for(int i=0; i<numOfFiles; i++){
-                ingestClientMock.ingestFromStream(stream,props,false,false);
+                ingestClientMock.ingestFromStream(stream,props,false);
             }
 
-            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(InputStream.class),any(KustoIngestionProperties.class),anyBoolean(),anyBoolean());
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    void ingestFromStreamThroughTempFile() {
-        try {
-            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
-            InputStream stream = new FileInputStream(testFilePath);
-
-            when(ingestClientMock.uploadLocalFileToBlob(isA(String.class),isA(String.class),isA(String.class)))
-                    .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
-
-            doNothing().when(ingestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
-
-            int numOfFiles = 3;
-            for(int i=0; i<numOfFiles; i++){
-                ingestClientMock.ingestFromStream(stream,props,false,true);
-            }
-
-            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(InputStream.class),any(KustoIngestionProperties.class),anyBoolean(),anyBoolean());
+            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(InputStream.class),any(KustoIngestionProperties.class),anyBoolean());
 
         } catch (Exception e) {
             e.printStackTrace();
