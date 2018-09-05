@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
+
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,7 +24,7 @@ final public class IngestionBlobInfo{
         this.databaseName = databaseName;
         this.tableName = tableName;
         id = UUID.randomUUID();
-        retainBlobOnSuccess = false;
+        retainBlobOnSuccess = true; //false doesn't seem to work
         flushImmediately = false;
         reportLevel = KustoIngestionProperties.IngestionReportLevel.FailuresOnly;
         reportMethod = KustoIngestionProperties.IngestionReportMethod.Queue;

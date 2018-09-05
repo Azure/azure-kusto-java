@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import java.util.UUID;
 
-public abstract class SourceInfo {
+abstract class SourceInfo {
 
     private UUID sourceId;
 

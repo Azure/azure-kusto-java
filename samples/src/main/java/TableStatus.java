@@ -1,13 +1,17 @@
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.*;
+import com.microsoft.azure.kusto.ingest.KustoIngestClient;
+import com.microsoft.azure.kusto.ingest.KustoIngestClientFactory;
+import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.KustoIngestionResult;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import org.codehaus.jackson.map.ObjectMapper;
 
-public class TestTableStatus {
+import java.util.List;
+import java.util.UUID;
+
+public class TableStatus {
     public static void main(String[] args) throws Exception {
 
         // step 1: Retrieve table uri
@@ -15,7 +19,7 @@ public class TestTableStatus {
         String applicationKey = null;
         KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        KustoIngestClient client = new KustoBatchIngestClient(kcsb);
+        KustoIngestClient client = KustoIngestClientFactory.createClient(kcsb);
 
         // step 2: create an entry in the azure storage table
         String blobUri = "";

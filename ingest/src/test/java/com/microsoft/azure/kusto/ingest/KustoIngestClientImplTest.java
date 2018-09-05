@@ -1,7 +1,5 @@
-import com.microsoft.azure.kusto.ingest.KustoBatchIngestClient;
-import com.microsoft.azure.kusto.ingest.KustoIngestClient;
-import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
-import com.microsoft.azure.kusto.ingest.ResourceManager;
+package com.microsoft.azure.kusto.ingest;
+
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
@@ -11,27 +9,22 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
-class KustoIngestClientTest {
+class KustoIngestClientImplTest {
 
     ResourceManager resourceManagerMock = mock(ResourceManager.class);
     KustoIngestClient ingestClientMock;
-    KustoBatchIngestClient batchIngestClientMock;
+    KustoIngestClientImpl batchIngestClientMock;
     KustoIngestionProperties props;
 
     @BeforeEach
      void setUp() {
         try {
             ingestClientMock = mock(KustoIngestClient.class);
-            batchIngestClientMock = mock(KustoBatchIngestClient.class);
+            batchIngestClientMock = mock(KustoIngestClientImpl.class);
 
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")

@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.result;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.table.CloudTable;

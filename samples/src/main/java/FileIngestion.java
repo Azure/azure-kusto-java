@@ -1,10 +1,10 @@
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.KustoBatchIngestClient;
 import com.microsoft.azure.kusto.ingest.KustoIngestClient;
+import com.microsoft.azure.kusto.ingest.KustoIngestClientFactory;
 import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
-public class SampleFileIngestion {
+public class FileIngestion {
 
     private static final String appId = "2cb0cc4c-c9be-4301-b2aa-718935b0ce1d";
     private static final String appKey = "11hZc+sXY7cwFQ91DMmjEvPFfBHxN8P25kV+BH8A9qg="; //2cb0cc4c-c9be-4301-b2aa-718935b0ce1d
@@ -21,7 +21,7 @@ public class SampleFileIngestion {
             KustoIngestionProperties ingestionProperties = new KustoIngestionProperties(dbName,tableName);
             ingestionProperties.setJsonMappingName(dataMappingName);
 
-            KustoIngestClient client = new KustoBatchIngestClient(kcsb);
+            KustoIngestClient client = KustoIngestClientFactory.createClient(kcsb);
 
             String filePath = "C:\\Development\\temp\\kusto test data\\testdata";
 

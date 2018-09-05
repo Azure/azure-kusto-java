@@ -1,9 +1,9 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.result;
+
+import com.microsoft.azure.storage.StorageException;
 
 import java.net.URISyntaxException;
 import java.util.List;
-
-import com.microsoft.azure.storage.StorageException;
 
 public interface KustoIngestionResult {
     /// <summary>

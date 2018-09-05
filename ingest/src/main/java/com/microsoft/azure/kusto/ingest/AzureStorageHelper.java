@@ -1,13 +1,11 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobOutputStream;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueClient;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
@@ -22,10 +20,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.InvalidKeyException;
 import java.util.zip.GZIPOutputStream;
 
-public class AzureStorageHelper {
+class AzureStorageHelper {
 
     private static final Logger log = LoggerFactory.getLogger(AzureStorageHelper.class);
     private static final int GZIP_BUFFER_SIZE = 16384;
@@ -43,24 +40,6 @@ public class AzureStorageHelper {
             log.error(String.format("postMessageToQueue: %s.",e.getMessage()), e);
             throw e;
         }
-    }
-
-    private static void postMessageStorageAccountNotWorkingYet(String content) throws URISyntaxException, InvalidKeyException, StorageException {
-        // Retrieve storage account from connection-string.
-        CloudStorageAccount storageAccount = CloudStorageAccount.parse("");
-
-        // Create the queue client.
-        CloudQueueClient queueClient = storageAccount.createCloudQueueClient();
-
-        // Retrieve a reference to a queue.
-        CloudQueue queue = queueClient.getQueueReference("myqueue");
-
-        // Create the queue if it doesn't already exist.
-        queue.createIfNotExists();
-
-        // Create a message and add it to the queue.
-        CloudQueueMessage message = new CloudQueueMessage(content);
-        queue.addMessage(message);
     }
 
     public static void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {

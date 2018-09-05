@@ -1,4 +1,5 @@
-import com.microsoft.azure.kusto.ingest.AzureStorageHelper;
+package com.microsoft.azure.kusto.ingest;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;

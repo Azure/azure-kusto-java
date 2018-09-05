@@ -4,6 +4,7 @@ import com.microsoft.azure.kusto.data.KustoClient;
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
+import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
@@ -14,26 +15,23 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.sql.Date;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class KustoBatchIngestClient implements KustoIngestClient {
+class KustoIngestClientImpl implements KustoIngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
-    private ResourceManager resourceManager;
+    private final ResourceManager resourceManager;
 
-    public KustoBatchIngestClient(KustoConnectionStringBuilder kcsb) {
+    public KustoIngestClientImpl(KustoConnectionStringBuilder kcsb) {
         log.info("Creating a new KustoIngestClient");
         KustoClient kustoClient = new KustoClient(kcsb);
         resourceManager = new ResourceManager(kustoClient);
@@ -56,7 +54,6 @@ public class KustoBatchIngestClient implements KustoIngestClient {
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes() > 0L ? blobSourceInfo.getRawSizeInBytes()
                     : estimateBlobRawSize(blobSourceInfo);
-//            ingestionBlobInfo.retainBlobOnSuccess = !deleteSourceOnSuccess; TODO: Check if needed
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();

@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class ResourceManager {
+class ResourceManager {
 
     public enum ResourceTypes{
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
