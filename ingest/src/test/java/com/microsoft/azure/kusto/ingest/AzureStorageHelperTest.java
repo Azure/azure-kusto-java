@@ -6,7 +6,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
@@ -62,6 +65,29 @@ class AzureStorageHelperTest {
     }
 
     @Test
-    void getBlobPathWithSas() {
+    void uploadFromStreamToBlob() {
+        try{
+            OutputStream outputStreamMock = mock(OutputStream.class);
+            doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+            azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",false);
+            verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    @Test
+    void uploadFromStreamToBlobCompress() {
+        try{
+            OutputStream outputStreamMock = mock(OutputStream.class);
+            doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
+            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+            InputStream stream = new FileInputStream(testFilePath);
+            azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",true);
+            verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

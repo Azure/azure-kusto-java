@@ -6,15 +6,15 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 public class FileIngestion {
 
-    private static final String appId = "2cb0cc4c-c9be-4301-b2aa-718935b0ce1d";
-    private static final String appKey = "11hZc+sXY7cwFQ91DMmjEvPFfBHxN8P25kV+BH8A9qg="; //2cb0cc4c-c9be-4301-b2aa-718935b0ce1d
+    private static final String appId = "";
+    private static final String appKey = "";
 
     public static void main(String[] args) {
         try {
-            String kustoClusterPath = "https://ingest-csetests.westeurope.kusto.windows.net";
-            String dbName = "raabusal";
-            String tableName = "test1";
-            String dataMappingName = "map1";
+            String kustoClusterPath = "https://ingest-<cluster-name>.kusto.windows.net";
+            String dbName = "";
+            String tableName = "";
+            String dataMappingName = "";
             String dataFormat = "json";
 
             KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath,appId,appKey);

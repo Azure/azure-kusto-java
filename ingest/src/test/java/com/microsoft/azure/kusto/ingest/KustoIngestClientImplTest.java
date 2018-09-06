@@ -2,11 +2,14 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 
@@ -17,14 +20,14 @@ class KustoIngestClientImplTest {
 
     ResourceManager resourceManagerMock = mock(ResourceManager.class);
     KustoIngestClient ingestClientMock;
-    KustoIngestClientImpl batchIngestClientMock;
+    KustoIngestClientImpl ingestClientMockImpl;
     KustoIngestionProperties props;
 
     @BeforeEach
-     void setUp() {
+    void setUp() {
         try {
             ingestClientMock = mock(KustoIngestClient.class);
-            batchIngestClientMock = mock(KustoIngestClientImpl.class);
+            ingestClientMockImpl = mock(KustoIngestClientImpl.class);
 
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
@@ -75,21 +78,39 @@ class KustoIngestClientImplTest {
     @Test
     void ingestFromFile() {
         try {
-            String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
-
-            when(batchIngestClientMock.uploadLocalFileToBlob(isA(String.class),isA(String.class),isA(String.class)))
+            String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
+            when(ingestClientMockImpl.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-            doNothing().when(batchIngestClientMock).postMessageToQueue(isA(String.class),isA(String.class));
+            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
 
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath,0);
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
             int numOfFiles = 3;
-            for(int i=0; i<numOfFiles; i++){
-                ingestClientMock.ingestFromFile(fileSourceInfo,props);
+            for (int i = 0; i < numOfFiles; i++) {
+                ingestClientMock.ingestFromFile(fileSourceInfo, props);
             }
 
-            verify(ingestClientMock, times(numOfFiles)).ingestFromFile(fileSourceInfo,props);
+            verify(ingestClientMock, times(numOfFiles)).ingestFromFile(fileSourceInfo, props);
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    void ingestFromStream() {
+        try {
+            String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
+            when(ingestClientMockImpl.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
+                    .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
+            int numOfFiles = 3;
+            for (int i = 0; i < numOfFiles; i++) {
+                InputStream stream = new FileInputStream(testFilePath);
+                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
+                ingestClientMock.ingestFromStream(streamSourceInfo, props);
+            }
+            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(StreamSourceInfo.class), any(KustoIngestionProperties.class));
         } catch (Exception e) {
             e.printStackTrace();
         }
