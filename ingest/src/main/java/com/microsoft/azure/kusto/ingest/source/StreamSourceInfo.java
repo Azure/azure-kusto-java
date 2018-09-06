@@ -1,26 +1,41 @@
 package com.microsoft.azure.kusto.ingest.source;
 
+import java.io.InputStream;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 public class StreamSourceInfo extends SourceInfo {
 
-    private Stream stream;
+    private InputStream stream;
+    private boolean leaveOpen = false;
 
-    public Stream getStream() {
+    public InputStream getStream() {
         return stream;
     }
 
-    public void setStream(Stream stream) {
+    public void setStream(InputStream stream) {
         this.stream = stream;
     }
 
-    public StreamSourceInfo(Stream stream) {
+    public boolean isLeaveOpen() {
+        return leaveOpen;
+    }
+
+    public void setLeaveOpen(boolean leaveOpen) {
+        this.leaveOpen = leaveOpen;
+    }
+
+    public StreamSourceInfo(InputStream stream) {
         this.stream = stream;
     }
 
-    public StreamSourceInfo(Stream stream, UUID sourceId) {
+    public StreamSourceInfo(InputStream stream, boolean leaveOpen) {
         this.stream = stream;
+        this.leaveOpen = leaveOpen;
+    }
+
+    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId) {
+        this.stream = stream;
+        this.leaveOpen = leaveOpen;
         this.setSourceId(sourceId);
     }
 
