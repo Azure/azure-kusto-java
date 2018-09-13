@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KustoIngestionProperties {
+public class IngestionProperties {
     private String databaseName;
     private String tableName;
     private boolean flushImmediately;
@@ -65,7 +65,7 @@ public class KustoIngestionProperties {
         additionalProperties.put("authorizationContext", token);
     }
 
-    public KustoIngestionProperties(String databaseName, String tableName)
+    public IngestionProperties(String databaseName, String tableName)
     {
         this.databaseName = databaseName;
         this.tableName = tableName;

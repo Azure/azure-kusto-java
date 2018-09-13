@@ -12,8 +12,8 @@ final public class IngestionBlobInfo{
     public String tableName;
     public UUID id;
     public Boolean retainBlobOnSuccess;
-    public KustoIngestionProperties.IngestionReportLevel reportLevel;
-    public KustoIngestionProperties.IngestionReportMethod reportMethod;
+    public IngestionProperties.IngestionReportLevel reportLevel;
+    public IngestionProperties.IngestionReportMethod reportMethod;
     public Boolean flushImmediately;
     public IngestionStatusInTableDescription IngestionStatusInTable;
 
@@ -26,7 +26,7 @@ final public class IngestionBlobInfo{
         id = UUID.randomUUID();
         retainBlobOnSuccess = true; //false doesn't seem to work
         flushImmediately = false;
-        reportLevel = KustoIngestionProperties.IngestionReportLevel.FailuresOnly;
-        reportMethod = KustoIngestionProperties.IngestionReportMethod.Queue;
+        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
+        reportMethod = IngestionProperties.IngestionReportMethod.Queue;
     }
 }

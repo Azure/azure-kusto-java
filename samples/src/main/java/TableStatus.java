@@ -1,9 +1,9 @@
 import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.KustoIngestClient;
-import com.microsoft.azure.kusto.ingest.KustoIngestClientFactory;
-import com.microsoft.azure.kusto.ingest.KustoIngestionProperties;
+import com.microsoft.azure.kusto.ingest.IngestClient;
+import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
-import com.microsoft.azure.kusto.ingest.result.KustoIngestionResult;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -19,7 +19,7 @@ public class TableStatus {
         String applicationKey = null;
         KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        KustoIngestClient client = KustoIngestClientFactory.createClient(kcsb);
+        IngestClient client = IngestClientFactory.createClient(kcsb);
 
         // step 2: create an entry in the azure storage table
         String blobUri = "";
@@ -32,18 +32,17 @@ public class TableStatus {
         // We should now pass it as part of the message to the ingest endpoint.
         String dbName = null;
         String tableName = null;
-        KustoIngestionProperties ingestionProperties = new KustoIngestionProperties(dbName, tableName);
-        ingestionProperties.setReportLevel(KustoIngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-        ingestionProperties.setReportMethod(KustoIngestionProperties.IngestionReportMethod.Table);
-        //IKustoIngestionResult kustoIngestionResult =
+        IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
+        ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobUri);
-        KustoIngestionResult kustoIngestionResult = client.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        List<IngestionStatus> statuses = kustoIngestionResult.GetIngestionStatusCollection();
+        IngestionResult ingestionResult = client.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
 
         // step 3: poll on the result.
         while (statuses.get(0).status == OperationStatus.Pending) {
             Thread.sleep(1000);
-            statuses = kustoIngestionResult.GetIngestionStatusCollection();
+            statuses = ingestionResult.GetIngestionStatusCollection();
         }
 
         ObjectMapper objectMapper = new ObjectMapper();

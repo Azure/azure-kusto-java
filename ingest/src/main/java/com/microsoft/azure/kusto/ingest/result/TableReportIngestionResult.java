@@ -9,11 +9,11 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TableReportKustoIngestionResult implements KustoIngestionResult {
+public class TableReportIngestionResult implements IngestionResult {
 
     private List<IngestionStatusInTableDescription> descriptors;
 
-    public TableReportKustoIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
+    public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
         this.descriptors = descriptors;
     }
 

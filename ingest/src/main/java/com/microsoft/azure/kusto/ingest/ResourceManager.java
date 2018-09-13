@@ -47,7 +47,7 @@ class ResourceManager {
     private KustoClient kustoClient;
     private final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60 * 1; // 1 hour
     private Timer timer = new Timer(true);
-    private final Logger log = LoggerFactory.getLogger(KustoIngestClient.class);
+    private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
     public ResourceManager(KustoClient kustoClient) {
         this.kustoClient = kustoClient;

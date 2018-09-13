@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest.result;//import org.joda.time.DateTime;
+package com.microsoft.azure.kusto.ingest.result;
 
 import java.util.Date;
 import java.util.UUID;

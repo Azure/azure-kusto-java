@@ -25,21 +25,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-class KustoIngestClientImpl implements KustoIngestClient {
+class IngestClientImpl implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public KustoIngestClientImpl(KustoConnectionStringBuilder kcsb) {
-        log.info("Creating a new KustoIngestClient");
+    public IngestClientImpl(KustoConnectionStringBuilder kcsb) {
+        log.info("Creating a new IngestClient");
         KustoClient kustoClient = new KustoClient(kcsb);
         resourceManager = new ResourceManager(kustoClient);
     }
 
     @Override
-    public KustoIngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, KustoIngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws Exception {
         if (blobSourceInfo == null) {
             throw new KustoClientException("blobs must have at least 1 path");
         }
@@ -63,7 +63,7 @@ class KustoIngestClientImpl implements KustoIngestClient {
                 ingestionBlobInfo.id = blobSourceInfo.getSourceId();
             }
 
-            if (ingestionProperties.getReportMethod() != KustoIngestionProperties.IngestionReportMethod.Queue) {
+            if (ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue) {
                 String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE);
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
@@ -95,12 +95,12 @@ class KustoIngestClientImpl implements KustoIngestClient {
             throw new KustoClientAggregateException(ingestionErrors);
         }
 
-        return new TableReportKustoIngestionResult(tableStatuses);
+        return new TableReportIngestionResult(tableStatuses);
 
     }
 
     @Override
-    public KustoIngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, KustoIngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws Exception {
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
@@ -120,9 +120,9 @@ class KustoIngestClientImpl implements KustoIngestClient {
     }
 
     @Override
-    public KustoIngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, KustoIngestionProperties ingestionProperties) throws Exception{
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws Exception{
         try {
-            KustoIngestionResult kustoIngestionResult;
+            IngestionResult ingestionResult;
             if(streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available()<=0) {
                 throw new KustoClientException("stream is empty");
             }
@@ -136,11 +136,11 @@ class KustoIngestClientImpl implements KustoIngestClient {
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0); // TODO: check if we can get the rawDataSize locally
 
-            kustoIngestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
+            ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if(!streamSourceInfo.isLeaveOpen()){
                 streamSourceInfo.getStream().close();
             }
-            return kustoIngestionResult;
+            return ingestionResult;
         } catch (Exception ex) {
             log.error(String.format("ingestFromStream: Error while ingesting from stream. Error: %s", ex.getMessage()), ex);
             throw ex;
@@ -192,7 +192,7 @@ class KustoIngestClientImpl implements KustoIngestClient {
     }
 
     @Override
-    public KustoIngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, KustoIngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws Exception {
         throw new UnsupportedOperationException();
     }
 }

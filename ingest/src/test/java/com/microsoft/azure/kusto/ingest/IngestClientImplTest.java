@@ -16,18 +16,18 @@ import java.nio.file.Paths;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
-class KustoIngestClientImplTest {
+class IngestClientImplTest {
 
     ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    KustoIngestClient ingestClientMock;
-    KustoIngestClientImpl ingestClientMockImpl;
-    KustoIngestionProperties props;
+    IngestClient ingestClientMock;
+    IngestClientImpl ingestClientMockImpl;
+    IngestionProperties props;
 
     @BeforeEach
     void setUp() {
         try {
-            ingestClientMock = mock(KustoIngestClient.class);
-            ingestClientMockImpl = mock(KustoIngestClientImpl.class);
+            ingestClientMock = mock(IngestClient.class);
+            ingestClientMockImpl = mock(IngestClientImpl.class);
 
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
@@ -43,7 +43,7 @@ class KustoIngestClientImplTest {
             when(resourceManagerMock.getKustoIdentityToken())
                     .thenReturn("identityToken");
 
-            props = new KustoIngestionProperties("dbName", "tableName");
+            props = new IngestionProperties("dbName", "tableName");
             props.setJsonMappingName("mappingName");
 
         } catch (Exception e) {
@@ -59,7 +59,7 @@ class KustoIngestClientImplTest {
     @Test
     void ingestFromBlob() {
         try {
-            doReturn(null).when(ingestClientMock).ingestFromBlob(isA(BlobSourceInfo.class), isA(KustoIngestionProperties.class));
+            doReturn(null).when(ingestClientMock).ingestFromBlob(isA(BlobSourceInfo.class), isA(IngestionProperties.class));
 
             String blobPath = "blobPath";
             long size = 100;
@@ -110,7 +110,7 @@ class KustoIngestClientImplTest {
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
                 ingestClientMock.ingestFromStream(streamSourceInfo, props);
             }
-            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(StreamSourceInfo.class), any(KustoIngestionProperties.class));
+            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(StreamSourceInfo.class), any(IngestionProperties.class));
         } catch (Exception e) {
             e.printStackTrace();
         }
