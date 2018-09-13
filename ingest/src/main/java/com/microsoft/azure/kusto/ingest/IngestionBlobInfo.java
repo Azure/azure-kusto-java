@@ -24,7 +24,7 @@ final public class IngestionBlobInfo{
         this.databaseName = databaseName;
         this.tableName = tableName;
         id = UUID.randomUUID();
-        retainBlobOnSuccess = true; //false doesn't seem to work
+        retainBlobOnSuccess = true;
         flushImmediately = false;
         reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
         reportMethod = IngestionProperties.IngestionReportMethod.Queue;
