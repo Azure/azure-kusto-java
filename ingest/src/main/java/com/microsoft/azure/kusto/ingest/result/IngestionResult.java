@@ -1,11 +1,11 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.result;
+
+import com.microsoft.azure.storage.StorageException;
 
 import java.net.URISyntaxException;
 import java.util.List;
 
-import com.microsoft.azure.storage.StorageException;
-
-public interface IKustoIngestionResult {
+public interface IngestionResult {
     /// <summary>
     /// Retrieves the detailed ingestion status of 
     /// all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.

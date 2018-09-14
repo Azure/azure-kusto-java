@@ -1,9 +1,9 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.result;
+
+import com.microsoft.azure.storage.table.TableServiceEntity;
 
 import java.util.Date;
 import java.util.UUID;
-
-import com.microsoft.azure.storage.table.TableServiceEntity;
 
 /// <summary>
 /// This class represents an ingestion status.

@@ -1,7 +1,7 @@
+package com.microsoft.azure.kusto.ingest;
+
 import com.microsoft.azure.kusto.data.KustoClient;
 import com.microsoft.azure.kusto.data.KustoResults;
-import com.microsoft.azure.kusto.ingest.Commands;
-import com.microsoft.azure.kusto.ingest.ResourceManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

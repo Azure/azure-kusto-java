@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
+
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,8 +12,8 @@ final public class IngestionBlobInfo{
     public String tableName;
     public UUID id;
     public Boolean retainBlobOnSuccess;
-    public KustoIngestionProperties.IngestionReportLevel reportLevel;
-    public KustoIngestionProperties.IngestionReportMethod reportMethod;
+    public IngestionProperties.IngestionReportLevel reportLevel;
+    public IngestionProperties.IngestionReportMethod reportMethod;
     public Boolean flushImmediately;
     public IngestionStatusInTableDescription IngestionStatusInTable;
 
@@ -22,9 +24,9 @@ final public class IngestionBlobInfo{
         this.databaseName = databaseName;
         this.tableName = tableName;
         id = UUID.randomUUID();
-        retainBlobOnSuccess = false;
+        retainBlobOnSuccess = true;
         flushImmediately = false;
-        reportLevel = KustoIngestionProperties.IngestionReportLevel.FailuresOnly;
-        reportMethod = KustoIngestionProperties.IngestionReportMethod.Queue;
+        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
+        reportMethod = IngestionProperties.IngestionReportMethod.Queue;
     }
 }

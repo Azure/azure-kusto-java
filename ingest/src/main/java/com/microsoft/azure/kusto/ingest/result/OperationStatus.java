@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.result;
 
 /// <summary>
 /// An enum representing the state of a data ingestion operation into Kusto

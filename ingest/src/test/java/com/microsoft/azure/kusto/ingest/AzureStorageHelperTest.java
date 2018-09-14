@@ -1,4 +1,5 @@
-import com.microsoft.azure.kusto.ingest.AzureStorageHelper;
+package com.microsoft.azure.kusto.ingest;
+
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;
@@ -68,14 +69,10 @@ class AzureStorageHelperTest {
         try{
             OutputStream outputStreamMock = mock(OutputStream.class);
             doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
-
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
             InputStream stream = new FileInputStream(testFilePath);
-
             azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",false);
-
             verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -86,20 +83,12 @@ class AzureStorageHelperTest {
         try{
             OutputStream outputStreamMock = mock(OutputStream.class);
             doNothing().when(outputStreamMock).write(any(byte[].class),anyInt(),anyInt());
-
             String testFilePath = Paths.get("src","test","resources","testdata.json").toString();
             InputStream stream = new FileInputStream(testFilePath);
-
             azureStorageHelperMock.uploadStreamToBlob(stream,"blobName","https://ms.com/blob",true);
-
             verify(azureStorageHelperMock).uploadStreamToBlob(any(),anyString(),anyString(),anyBoolean());
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @Test
-    void getBlobPathWithSas() {
     }
 }
