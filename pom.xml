@@ -6,7 +6,27 @@
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-client</artifactId>
     <packaging>pom</packaging>
-    <version>0.2.0</version>
+    <version>0.2.0-SNAPSHOT</version>
+
+    <scm>
+        <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
+        <connection>scm:git:git://github.com/Azure/azure-kusto-java.git</connection>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>microsoft</id>
+            <name>Microsoft</name>
+        </developer>
+    </developers>
+
+    <properties>
+        <java.version>1.8</java.version>
+        <slf4j.version>1.8.0-beta2</slf4j.version>
+        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>2.22.0</maven-surefire-plugin.version>
+        <junit.version>5.2.0</junit.version>
+    </properties>
 
     <modules>
         <module>ingest</module>
