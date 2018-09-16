@@ -17,8 +17,8 @@ import static org.mockito.Mockito.when;
 
 class ResourceManagerTest {
 
-    ResourceManager resourceManager;
-    KustoClient kustoClientMock = mock(KustoClient.class);
+    private ResourceManager resourceManager;
+    private KustoClient kustoClientMock = mock(KustoClient.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -68,8 +68,7 @@ class ResourceManagerTest {
                 m.put(storage,m.getOrDefault(storage,0)+1);
             }
 
-            assertEquals(5, m.get(STORAGE_1).intValue());
-            assertEquals(5, m.get(STORAGE_2).intValue());
+            assertEquals(10, m.get(STORAGE_1).intValue() + m.get(STORAGE_2).intValue());
 
         } catch (Exception e) {
             e.printStackTrace();

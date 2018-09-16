@@ -49,7 +49,7 @@ class ResourceManager {
     private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
-    public ResourceManager(KustoClient kustoClient) {
+    public ResourceManager(KustoClient kustoClient) throws Exception {
         this.kustoClient = kustoClient;
         ingestionResources = new HashMap<>();
 
@@ -76,8 +76,11 @@ class ResourceManager {
         };
 
         try {
-            timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
-            timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+            refreshIngestionResources();
+            refreshIngestionAuthToken();
+
+            timer.schedule(refreshIngestionAuthTokenTask, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD);
+            timer.schedule(refreshIngestionResourceValuesTask, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD);
 
         } catch (Exception e) {
             log.error(String.format("Error in initializing ResourceManager: %s.", e.getMessage()), e);
@@ -86,7 +89,7 @@ class ResourceManager {
     }
 
     public void clean() {
-        ingestionResources.clear();
+        ingestionResources = new HashMap<>();
     }
 
     public String getKustoIdentityToken() throws Exception {
@@ -110,7 +113,7 @@ class ResourceManager {
         return ingestionResources.get(resourceType).nextValue();
     }
 
-    public int getSize(ResourceTypes resourceType){
+    int getSize(ResourceTypes resourceType){
         return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
