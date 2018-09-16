@@ -27,7 +27,7 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/ResourceManagerTest*</exclude>
+                        <!--<exclude>**/ResourceManagerTest*</exclude>-->
                     </excludes>
                 </configuration>
                 <!-- JUnit 5 Support -->

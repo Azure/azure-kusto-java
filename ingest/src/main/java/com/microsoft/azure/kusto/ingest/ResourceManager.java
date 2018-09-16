@@ -89,7 +89,7 @@ class ResourceManager {
     }
 
     public void clean() {
-        ingestionResources = new HashMap<>();
+        ingestionResources.clear();
     }
 
     public String getKustoIdentityToken() throws Exception {

@@ -2,33 +2,30 @@ import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 public class FileIngestion {
 
-    private static final String appId = "";
-    private static final String appKey = "";
+    private static final String appId = "<application Id aka service principal>";
+    private static final String appKey = "<application key / secret>";
 
     public static void main(String[] args) {
         try {
             String kustoClusterPath = "https://ingest-<cluster-name>.kusto.windows.net";
-            String dbName = "";
-            String tableName = "";
-            String dataMappingName = "";
-            String dataFormat = "json";
+            String dbName = "<databaseName>";
+            String tableName = "<tableName>";
+            String dataMappingName = "<dataMappingName>";
+            String filePath = "<localFilePath>";
 
-            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath,appId,appKey);
-            IngestionProperties ingestionProperties = new IngestionProperties(dbName,tableName);
-            ingestionProperties.setJsonMappingName(dataMappingName);
-
+            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey);
             IngestClient client = IngestClientFactory.createClient(kcsb);
 
-            String filePath = "C:\\Development\\temp\\kusto test data\\testdata";
+            IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
+            ingestionProperties.setJsonMappingName(dataMappingName);
 
-            for(int i = 1; i<11; i++){
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(filePath+i+".json", 0);
-                client.ingestFromFile(fileSourceInfo, ingestionProperties);
-            }
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(filePath, 0);
+            IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
 
         } catch (Exception e) {
             e.printStackTrace();
