@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
 
 public class AadAuthenticationHelper {
 
-    private final static String MICROSOFT_AAD_TENANT_ID = "72f988bf-86f1-41af-91ab-2d7cd011db47";
+    private final static String DEFAULT_AAD_TENANT = "common";
     private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
     private ClientCredential clientCredential;
@@ -21,9 +21,7 @@ public class AadAuthenticationHelper {
     private String aadAuthorityId;
     private String aadAuthorityUri;
 
-    public static String getMicrosoftAadAuthorityId() { return MICROSOFT_AAD_TENANT_ID; }
-
-    public AadAuthenticationHelper(KustoConnectionStringBuilder kcsb){
+    AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
         clusterUrl = kcsb.getClusterUrl();
 
         if (!"".equals(kcsb.getApplicationClientId()) && !"".equals(kcsb.getApplicationKey())) {
@@ -34,12 +32,12 @@ public class AadAuthenticationHelper {
         }
 
         // Set the AAD Authority URI
-        aadAuthorityId = (kcsb.getAuthorityId() == null ? MICROSOFT_AAD_TENANT_ID : kcsb.getAuthorityId());
-        aadAuthorityUri = "https://login.microsoftonline.com/" + aadAuthorityId + "/oauth2/authorize";
+        aadAuthorityId = (kcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : kcsb.getAuthorityId());
+        aadAuthorityUri = String.format("https://login.microsoftonline.com/%s/oauth2/authorize", aadAuthorityId);
     }
 
-    public String acquireAccessToken() throws Exception {
-        if (clientCredential != null){
+    String acquireAccessToken() throws Exception {
+        if (clientCredential != null) {
             return acquireAadApplicationAccessToken().getAccessToken();
         } else {
             return acquireAadUserAccessToken().getAccessToken();
@@ -59,7 +57,7 @@ public class AadAuthenticationHelper {
                     null);
             result = future.get();
         } finally {
-            if(service != null){
+            if (service != null) {
                 service.shutdown();
             }
         }
@@ -80,7 +78,7 @@ public class AadAuthenticationHelper {
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
         } finally {
-            if(service != null){
+            if (service != null) {
                 service.shutdown();
             }
         }
