@@ -33,7 +33,7 @@ public class AadAuthenticationHelper {
 
         // Set the AAD Authority URI
         aadAuthorityId = (kcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : kcsb.getAuthorityId());
-        aadAuthorityUri = String.format("https://login.microsoftonline.com/%s/oauth2/authorize", aadAuthorityId);
+        aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
     String acquireAccessToken() throws Exception {
