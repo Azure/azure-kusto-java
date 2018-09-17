@@ -31,7 +31,7 @@ class IngestClientImpl implements IngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public IngestClientImpl(KustoConnectionStringBuilder kcsb) {
+    public IngestClientImpl(KustoConnectionStringBuilder kcsb) throws Exception {
         log.info("Creating a new IngestClient");
         KustoClient kustoClient = new KustoClient(kcsb);
         resourceManager = new ResourceManager(kustoClient);

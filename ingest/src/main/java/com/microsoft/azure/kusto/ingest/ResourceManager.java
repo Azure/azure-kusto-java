@@ -49,7 +49,7 @@ class ResourceManager {
     private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
-    public ResourceManager(KustoClient kustoClient) {
+    public ResourceManager(KustoClient kustoClient) throws Exception {
         this.kustoClient = kustoClient;
         ingestionResources = new HashMap<>();
 
@@ -110,7 +110,7 @@ class ResourceManager {
         return ingestionResources.get(resourceType).nextValue();
     }
 
-    public int getSize(ResourceTypes resourceType){
+    int getSize(ResourceTypes resourceType){
         return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
