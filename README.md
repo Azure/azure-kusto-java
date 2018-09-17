@@ -25,7 +25,7 @@ In the near future this library will be available directly off Maven.
 
 # Samples
 
-- Query Sample
+- [Query Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/Query.java)
 - [Ingest Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/FileIngestion.java)
 
 # Contributing

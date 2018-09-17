@@ -24,7 +24,7 @@ public class AadAuthenticationHelper {
     AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
         clusterUrl = kcsb.getClusterUrl();
 
-        if (!"".equals(kcsb.getApplicationClientId()) && !"".equals(kcsb.getApplicationKey())) {
+        if (!isNullOrEmpty(kcsb.getApplicationClientId()) && !isNullOrEmpty(kcsb.getApplicationKey())) {
             clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
         } else {
             userUsername = kcsb.getUserUsername();
@@ -87,5 +87,9 @@ public class AadAuthenticationHelper {
             throw new ServiceUnavailableException("acquireAadApplicationAccessToken got 'null' authentication result");
         }
         return result;
+    }
+
+    private Boolean isNullOrEmpty(String str) {
+        return (str == null || str.trim().isEmpty());
     }
 }
