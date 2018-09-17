@@ -1,3 +1,32 @@
+# Microsoft Azure Kusto SDK for Java
+
+This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
+This library contains 3 different modules:
+- data: the main client that allows interaction with Kusto. It's able to create a connection, issue (control) commands and query data.
+- ingest: this provides an easy way to bring data into Kusto
+- samples 
+
+# Install
+
+Currently, you will need to download the source code, compile and install locally.
+One way to do this is by using maven like in the following example:
+```
+git clone git://github.com/Azure/azure-kusto-java.git
+cd azure-kusto-java
+mvn install
+```
+
+In the near future this library will be available directly off Maven.
+
+# Prerequisites
+
+- A Java Developer Kit (JDK), version 1.8 or later
+- Maven
+
+# Samples
+
+- [Query Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/Query.java)
+- [Ingest Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/FileIngestion.java)
 
 # Contributing
 
