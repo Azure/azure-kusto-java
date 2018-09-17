@@ -76,11 +76,8 @@ class ResourceManager {
         };
 
         try {
-            refreshIngestionResources();
-            refreshIngestionAuthToken();
-
-            timer.schedule(refreshIngestionAuthTokenTask, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD);
-            timer.schedule(refreshIngestionResourceValuesTask, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD);
+            timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+            timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
         } catch (Exception e) {
             log.error(String.format("Error in initializing ResourceManager: %s.", e.getMessage()), e);
