@@ -39,7 +39,7 @@ class AzureStorageHelper {
         }
         catch (Exception e)
         {
-            log.error(String.format("postMessageToQueue: %s.",e.getMessage()), e);
+            log.error("Error in postMessageToQueue", e);
             throw e;
         }
     }
@@ -54,7 +54,7 @@ class AzureStorageHelper {
 
     public static CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws Exception{
         try {
-            log.debug(String.format("uploadLocalFileToBlob: filePath: %s, blobName: %s, storageUri: %s", filePath, blobName, storageUri));
+            log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
             // Check if the file is already compressed:
             boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
@@ -74,13 +74,14 @@ class AzureStorageHelper {
         }
         catch (StorageException se)
         {
-            log.error(String.format("uploadLocalFileToBlob: Error returned from the service. Http code: %d and error code: %s", se.getHttpStatusCode(), se.getErrorCode()), se);
+            log.error("uploadLocalFileToBlob: Error returned from the service. Http code: {}. error code: {}. file path: {}"
+                    , se.getHttpStatusCode(), se.getErrorCode(), filePath, se);
             throw se;
         }
 
         catch (Exception ex)
         {
-            log.error(String.format("uploadLocalFileToBlob: Error while uploading file to blob."), ex);
+            log.error("uploadLocalFileToBlob: Error while uploading file to blob. file path: {}", filePath, ex);
             throw ex;
         }
     }
@@ -97,7 +98,7 @@ class AzureStorageHelper {
     }
 
     public static CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
-        log.debug(String.format("uploadLocalFileToBlob: blobName: %s, storageUri: %s", blobName, storageUri));
+        log.debug("uploadLocalFileToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName+ (compress?".gz":""));
         BlobOutputStream bos = blob.openOutputStream();

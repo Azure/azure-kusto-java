@@ -59,7 +59,7 @@ class ResourceManager {
                 try {
                     refreshIngestionResources();
                 } catch (Exception e) {
-                    log.error(String.format("Error in refreshIngestionResources: %s.", e.getMessage()), e);
+                    log.error("Error in refreshIngestionResources: {}.", e.getMessage(), e);
                 }
             }
         };
@@ -70,7 +70,7 @@ class ResourceManager {
                 try {
                     refreshIngestionAuthToken();
                 } catch (Exception e) {
-                    log.error(String.format("Error in refreshIngestionAuthToken: %s.", e.getMessage()), e);
+                    log.error("Error in refreshIngestionAuthToken: {}.", e.getMessage(), e);
                 }
             }
         };
@@ -80,7 +80,7 @@ class ResourceManager {
             timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
         } catch (Exception e) {
-            log.error(String.format("Error in initializing ResourceManager: %s.", e.getMessage()), e);
+            log.error("Error in initializing ResourceManager: {}.", e.getMessage(), e);
             throw e;
         }
     }
