@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager {
 
@@ -39,6 +41,7 @@ class ResourceManager {
         return null;
     }
 
+    //Ingestion Resources
     private HashMap<ResourceTypes, IngestionResource> ingestionResources;
 
     //Identity Token
@@ -48,6 +51,9 @@ class ResourceManager {
     private final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60 * 1; // 1 hour
     private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
+
+    private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
+    private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
     public ResourceManager(KustoClient kustoClient) throws Exception {
         this.kustoClient = kustoClient;
@@ -85,61 +91,92 @@ class ResourceManager {
         }
     }
 
-    public void clean() {
+    void clean() {
         ingestionResources.clear();
     }
 
-    public String getKustoIdentityToken() throws Exception {
+    String getIngestionResource(ResourceTypes resourceType) throws Exception {
+        if (!ingestionResources.containsKey(resourceType)) {
+            // When the value is not available, we need to get the tokens from Kusto (refresh):
+            refreshIngestionResources();
+            try{
+                // If the write lock is locked, then the read will wait here.
+                // In other words if the refresh is running yet, then wait until it ends:
+                ingestionResourcesLock.readLock().lock();
+                if (!ingestionResources.containsKey(resourceType)) {
+                    throw new Exception("Unable to get ingestion resources for this type: " + resourceType.getName());
+                }
+            } finally {
+                ingestionResourcesLock.readLock().unlock();
+            }
+        }
+        return ingestionResources.get(resourceType).nextValue();
+    }
+
+    String getKustoIdentityToken() throws Exception {
         if (identityToken == null) {
             refreshIngestionAuthToken();
-            if (identityToken == null) {
-                throw new Exception("Unable to get Identity token");
+            try{
+                authTokenLock.readLock().lock();
+                if (identityToken == null) {
+                    throw new Exception("Unable to get Identity token");
+                }
+            } finally{
+                authTokenLock.readLock().unlock();
             }
         }
         return identityToken;
-    }
-
-    public String getIngestionResource(ResourceTypes resourceType) throws Exception {
-        if (!ingestionResources.containsKey(resourceType)) {
-            refreshIngestionResources();
-            if (!ingestionResources.containsKey(resourceType)) {
-                throw new Exception("Unable to get ingestion resources for this type: " + resourceType.getName());
-            }
-        }
-
-        return ingestionResources.get(resourceType).nextValue();
     }
 
     int getSize(ResourceTypes resourceType){
         return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
-    private void addValue(String key, String value) {
+    private void addIngestionResource(HashMap<ResourceTypes, IngestionResource> newIngestionResources, String key, String value) {
         ResourceTypes resourceType = getResourceTypeByName(key);
-        if(!ingestionResources.containsKey(resourceType)){
-            ingestionResources.put(resourceType, new IngestionResource(resourceType));
+        if(!newIngestionResources.containsKey(resourceType)){
+            newIngestionResources.put(resourceType, new IngestionResource(resourceType));
         }
-        ingestionResources.get(resourceType).addValue(value);
+        newIngestionResources.get(resourceType).addValue(value);
     }
 
     private void refreshIngestionResources() throws Exception {
-        log.info("Refreshing Ingestion Resources");
-        KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
-        ArrayList<ArrayList<String>> values = ingestionResourcesResults.getValues();
-
-        clean();
-
-        values.forEach(pairValues -> {
-            String key = pairValues.get(0);
-            String value = pairValues.get(1);
-            addValue(key, value);
-        });
+        // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
+        if(ingestionResourcesLock.writeLock().tryLock()){
+            try {
+                log.info("Refreshing Ingestion Resources");
+                KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                if(ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null){
+                    HashMap<ResourceTypes, IngestionResource> newIngestionResources = new HashMap<>();
+                    // Add the received values to a new IngestionResources map:
+                    ingestionResourcesResults.getValues().forEach(pairValues -> {
+                        String key = pairValues.get(0);
+                        String value = pairValues.get(1);
+                        addIngestionResource(newIngestionResources, key, value);
+                    });
+                    // Replace the class ingestionResources map with the new map:
+                    ingestionResources = newIngestionResources;
+                }
+            }finally {
+                ingestionResourcesLock.writeLock().unlock();
+            }
+        }
     }
 
     private void refreshIngestionAuthToken() throws Exception {
-        log.info("Refreshing Ingestion Auth Token");
-        KustoResults identityTokenResult = kustoClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
-        identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
+        if (authTokenLock.writeLock().tryLock()) {
+            try {
+                log.info("Refreshing Ingestion Auth Token");
+                KustoResults identityTokenResult = kustoClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
+                if (identityTokenResult != null
+                        && identityTokenResult.getValues() != null
+                        && identityTokenResult.getValues().size() > 0) {
+                    identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
+                }
+            } finally {
+                authTokenLock.writeLock().unlock();
+            }
+        }
     }
 
     private class IngestionResource {
