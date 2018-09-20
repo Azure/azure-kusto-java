@@ -144,7 +144,7 @@ class IngestClientImpl implements IngestClient {
             }
             return ingestionResult;
         } catch (Exception ex) {
-            log.error("ingestFromStream: Error while ingesting from stream. Error: {}", ex.getMessage(), ex);
+            log.error("ingestFromStream: Error while ingesting from stream.", ex);
             throw ex;
         }
     }

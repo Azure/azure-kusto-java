@@ -65,7 +65,7 @@ class ResourceManager {
                 try {
                     refreshIngestionResources();
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionResources: {}.", e.getMessage(), e);
+                    log.error("Error in refreshIngestionResources.", e);
                 }
             }
         };
@@ -76,7 +76,7 @@ class ResourceManager {
                 try {
                     refreshIngestionAuthToken();
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionAuthToken: {}.", e.getMessage(), e);
+                    log.error("Error in refreshIngestionAuthToken.", e);
                 }
             }
         };
@@ -86,13 +86,9 @@ class ResourceManager {
             timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
         } catch (Exception e) {
-            log.error("Error in initializing ResourceManager: {}.", e.getMessage(), e);
+            log.error("Error in initializing ResourceManager.", e);
             throw e;
         }
-    }
-
-    void clean() {
-        ingestionResources.clear();
     }
 
     String getIngestionResource(ResourceTypes resourceType) throws Exception {
@@ -132,12 +128,12 @@ class ResourceManager {
         return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
-    private void addIngestionResource(HashMap<ResourceTypes, IngestionResource> newIngestionResources, String key, String value) {
+    private void addIngestionResource(HashMap<ResourceTypes, IngestionResource> ingestionResources, String key, String value) {
         ResourceTypes resourceType = getResourceTypeByName(key);
-        if(!newIngestionResources.containsKey(resourceType)){
-            newIngestionResources.put(resourceType, new IngestionResource(resourceType));
+        if(!ingestionResources.containsKey(resourceType)){
+            ingestionResources.put(resourceType, new IngestionResource(resourceType));
         }
-        newIngestionResources.get(resourceType).addValue(value);
+        ingestionResources.get(resourceType).addValue(value);
     }
 
     private void refreshIngestionResources() throws Exception {

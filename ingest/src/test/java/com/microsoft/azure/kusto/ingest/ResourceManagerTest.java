@@ -93,18 +93,6 @@ class ResourceManagerTest {
         }
     }
 
-    //@Test  (Not ready yet)
-    void clean() {
-        try{
-            resourceManager.clean();
-            for(ResourceManager.ResourceTypes resourceType : ResourceManager.ResourceTypes.values()){
-                assertEquals(0, resourceManager.getSize(resourceType));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     private KustoResults generateIngestionResourcesResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
