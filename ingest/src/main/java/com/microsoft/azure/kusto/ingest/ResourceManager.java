@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -42,7 +43,7 @@ class ResourceManager {
     }
 
     //Ingestion Resources
-    private HashMap<ResourceTypes, IngestionResource> ingestionResources;
+    private ConcurrentHashMap<ResourceTypes, IngestionResource> ingestionResources;
 
     //Identity Token
     private String identityToken;
@@ -57,7 +58,7 @@ class ResourceManager {
 
     public ResourceManager(KustoClient kustoClient) throws Exception {
         this.kustoClient = kustoClient;
-        ingestionResources = new HashMap<>();
+        ingestionResources = new ConcurrentHashMap<>();
 
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
@@ -150,13 +151,27 @@ class ResourceManager {
                         String value = pairValues.get(1);
                         addIngestionResource(newIngestionResources, key, value);
                     });
-                    // Replace the class ingestionResources map with the new map:
-                    ingestionResources = newIngestionResources;
+                    // Replace the values in the ingestionResources map with the values in the new map:
+                    putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             }finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
+    }
+
+    private void putIngestionResourceValues(ConcurrentHashMap<ResourceTypes, IngestionResource> ingestionResources, HashMap<ResourceTypes, IngestionResource> newIngestionResources) {
+        // Update the values in the original resources map:
+        newIngestionResources.keySet().forEach(
+                k -> ingestionResources.put(k, newIngestionResources.get(k))
+        );
+
+        // Remove the key-value pairs that are not existing in the new resources map:
+        ingestionResources.keySet().forEach(k -> {
+            if(!newIngestionResources.containsKey(k)){
+                ingestionResources.remove(k);
+            }
+        });
     }
 
     private void refreshIngestionAuthToken() throws Exception {
