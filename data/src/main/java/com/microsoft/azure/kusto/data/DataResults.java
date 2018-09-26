@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.data;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class KustoResults {
+public class DataResults {
     private HashMap<String, Integer> columnNameToIndex;
     private HashMap<String, String> columnNameToType;
     private ArrayList<ArrayList<String>> values;
@@ -18,8 +18,8 @@ public class KustoResults {
 
     public ArrayList<ArrayList<String>> getValues() { return values; }
 
-    public KustoResults(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
-                         ArrayList<ArrayList<String>> values)
+    public DataResults(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
+                       ArrayList<ArrayList<String>> values)
     {
         this.columnNameToIndex = columnNameToIndex;
         this.columnNameToType = columnNameToType;

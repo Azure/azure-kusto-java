@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.KustoWebException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -18,7 +18,7 @@ import java.util.HashMap;
 
 public class Utils {
 
-    public static KustoResults post(String url, String aadAccessToken, String payload) throws Exception {
+    public static DataResults post(String url, String aadAccessToken, String payload) throws Exception {
         HttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);
 
@@ -72,9 +72,9 @@ public class Utils {
                     values.add(rowVector);
                 }
 
-                return new KustoResults(columnNameToIndex, columnNameToType, values);
+                return new DataResults(columnNameToIndex, columnNameToType, values);
             } else {
-                throw new KustoWebException(responseContent, response);
+                throw new DataWebException(responseContent, response);
             }
         }
         return null;

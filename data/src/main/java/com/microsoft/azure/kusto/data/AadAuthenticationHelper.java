@@ -21,7 +21,7 @@ public class AadAuthenticationHelper {
     private String aadAuthorityId;
     private String aadAuthorityUri;
 
-    AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
+    AadAuthenticationHelper(DataConnectionStringBuilder kcsb) {
         clusterUrl = kcsb.getClusterUrl();
 
         if (!isNullOrEmpty(kcsb.getApplicationClientId()) && !isNullOrEmpty(kcsb.getApplicationKey())) {

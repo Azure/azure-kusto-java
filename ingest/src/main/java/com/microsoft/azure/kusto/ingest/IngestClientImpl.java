@@ -1,9 +1,10 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
+import com.microsoft.azure.kusto.data.DataClient;
+import com.microsoft.azure.kusto.data.DataClientFactory;
+import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestClientAggregateException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestClientException;
 import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -31,21 +32,21 @@ class IngestClientImpl implements IngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public IngestClientImpl(KustoConnectionStringBuilder kcsb) throws Exception {
+    public IngestClientImpl(DataConnectionStringBuilder kcsb) throws Exception {
         log.info("Creating a new IngestClient");
-        KustoClient kustoClient = new KustoClient(kcsb);
-        resourceManager = new ResourceManager(kustoClient);
+        DataClient dataClient = DataClientFactory.createClient(kcsb);
+        resourceManager = new ResourceManager(dataClient);
     }
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws Exception {
         if (blobSourceInfo == null) {
-            throw new KustoClientException("blobs must have at least 1 path");
+            throw new IngestClientException("blobs must have at least 1 path");
         }
 
-        ingestionProperties.setAuthorizationContextToken(resourceManager.getKustoIdentityToken());
+        ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
 
-        List<KustoClientException> ingestionErrors = new LinkedList();
+        List<IngestClientException> ingestionErrors = new LinkedList();
         List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
 
         try {
@@ -90,11 +91,11 @@ class IngestClientImpl implements IngestClient {
 
         } catch (Exception ex) {
             ingestionErrors.add(
-                    new KustoClientException(blobSourceInfo.getBlobPath(), "fail to post message to queue", ex));
+                    new IngestClientException(blobSourceInfo.getBlobPath(), "fail to post message to queue", ex));
         }
 
         if (ingestionErrors.size() > 0) {
-            throw new KustoClientAggregateException(ingestionErrors);
+            throw new IngestClientAggregateException(ingestionErrors);
         }
 
         return new TableReportIngestionResult(tableStatuses);
@@ -126,7 +127,7 @@ class IngestClientImpl implements IngestClient {
         try {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
-                throw new KustoClientException("stream is empty");
+                throw new IngestClientException("stream is empty");
             }
             String blobName = genBlobName("StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             CloudBlockBlob blob = uploadStreamToBlob(

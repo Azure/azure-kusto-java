@@ -1,6 +1,6 @@
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.KustoResults;
+import com.microsoft.azure.kusto.data.DataClientImpl;
+import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.DataResults;
 
 public class Query {
 
@@ -16,10 +16,10 @@ public class Query {
         String query = "StormEvents | take 10";
 
         try {
-            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
-            KustoClient client = new KustoClient(kcsb);
+            DataConnectionStringBuilder kcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
+            DataClientImpl client = new DataClientImpl(kcsb);
 
-            KustoResults results = client.execute(dbName, query);
+            DataResults results = client.execute(dbName, query);
 
             System.out.println(String.format("Kusto sent back %s rows.", results.getValues().size()));
         } catch (Exception e) {

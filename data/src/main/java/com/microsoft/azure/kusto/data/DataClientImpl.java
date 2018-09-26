@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.data;
 
 import org.json.JSONObject;
 
-public class KustoClient {
+public class DataClientImpl implements DataClient{
 
     private final String adminCommandsPrefix = ".";
     private final String apiVersion = "v1";
@@ -11,16 +11,16 @@ public class KustoClient {
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
 
-    public KustoClient(KustoConnectionStringBuilder kcsb) {
+    public DataClientImpl(DataConnectionStringBuilder kcsb) {
         clusterUrl = kcsb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(kcsb);
     }
 
-    public KustoResults execute(String command) throws Exception {
+    public DataResults execute(String command) throws Exception {
         return execute(defaultDatabaseName, command);
     }
 
-    public KustoResults execute(String database, String command) throws Exception {
+    public DataResults execute(String database, String command) throws Exception {
         String clusterEndpoint;
         if (command.startsWith(adminCommandsPrefix)) {
             clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, apiVersion);
@@ -30,7 +30,7 @@ public class KustoClient {
         return execute(database, command, clusterEndpoint);
     }
 
-    private KustoResults execute(String database, String command, String clusterEndpoint) throws Exception {
+    private DataResults execute(String database, String command, String clusterEndpoint) throws Exception {
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
         String jsonString = new JSONObject()

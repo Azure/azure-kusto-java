@@ -1,4 +1,4 @@
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
@@ -19,7 +19,7 @@ public class FileIngestion {
             String dataMappingName = "<dataMappingName>";
             String filePath = "<localFilePath>";
 
-            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
+            DataConnectionStringBuilder kcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
             IngestClient client = IngestClientFactory.createClient(kcsb);
 
             IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
