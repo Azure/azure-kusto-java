@@ -1,6 +1,6 @@
-import com.microsoft.azure.kusto.data.DataClientImpl;
-import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.DataResults;
+import com.microsoft.azure.kusto.data.client.DataClientImpl;
+import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.results.DataResults;
 
 public class Query {
 

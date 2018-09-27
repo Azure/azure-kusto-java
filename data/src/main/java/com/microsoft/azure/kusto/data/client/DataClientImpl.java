@@ -1,5 +1,8 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.client;
 
+import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.results.DataResults;
+import com.microsoft.azure.kusto.data.Utils;
 import org.json.JSONObject;
 
 public class DataClientImpl implements DataClient{

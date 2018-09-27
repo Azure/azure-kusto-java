@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.DataClient;
-import com.microsoft.azure.kusto.data.DataResults;
+import com.microsoft.azure.kusto.data.client.DataClient;
+import com.microsoft.azure.kusto.data.results.DataResults;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

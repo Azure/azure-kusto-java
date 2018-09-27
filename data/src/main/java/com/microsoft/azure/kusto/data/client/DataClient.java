@@ -1,4 +1,6 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.client;
+
+import com.microsoft.azure.kusto.data.results.DataResults;
 
 public interface DataClient {
 

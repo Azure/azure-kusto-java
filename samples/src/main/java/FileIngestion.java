@@ -1,4 +1,4 @@
-import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;

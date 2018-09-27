@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.results;
 
 import java.util.ArrayList;
 import java.util.HashMap;

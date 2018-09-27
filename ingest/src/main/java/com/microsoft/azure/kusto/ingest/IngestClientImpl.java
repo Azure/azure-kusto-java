@@ -1,8 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.DataClient;
-import com.microsoft.azure.kusto.data.DataClientFactory;
-import com.microsoft.azure.kusto.data.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.client.DataClient;
+import com.microsoft.azure.kusto.data.client.DataClientFactory;
+import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestClientAggregateException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestClientException;
 import com.microsoft.azure.kusto.ingest.result.*;
