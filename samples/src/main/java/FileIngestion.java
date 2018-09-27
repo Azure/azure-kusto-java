@@ -9,6 +9,7 @@ public class FileIngestion {
 
     private static final String appId = "<application Id aka service principal>";
     private static final String appKey = "<application key / secret>";
+    private static final String appTenant = "<application tenant id or domain name>";
 
     public static void main(String[] args) {
         try {
@@ -18,7 +19,7 @@ public class FileIngestion {
             String dataMappingName = "<dataMappingName>";
             String filePath = "<localFilePath>";
 
-            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey);
+            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
             IngestClient client = IngestClientFactory.createClient(kcsb);
 
             IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);

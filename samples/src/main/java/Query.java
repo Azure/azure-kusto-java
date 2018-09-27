@@ -8,6 +8,7 @@ public class Query {
 
         String appId = "<app id>";
         String appKey = "<app key>";
+        String appTenant = "<app tenant id or domain name>";
 
         String kustoClusterPath = "https://help.kusto.windows.net";
         String dbName = "Samples";
@@ -15,7 +16,7 @@ public class Query {
         String query = "StormEvents | take 10";
 
         try {
-            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey);
+            KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
             KustoClient client = new KustoClient(kcsb);
 
             KustoResults results = client.execute(dbName, query);
