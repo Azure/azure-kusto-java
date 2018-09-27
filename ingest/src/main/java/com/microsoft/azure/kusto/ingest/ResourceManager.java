@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.client.DataClient;
-import com.microsoft.azure.kusto.data.results.DataResults;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.Results;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +48,14 @@ class ResourceManager {
     //Identity Token
     private String identityToken;
 
-    private DataClient dataClient;
+    private Client client;
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
-    ResourceManager(DataClient dataClient) throws Exception {
-        this.dataClient = dataClient;
+    ResourceManager(Client client) throws Exception {
+        this.client = client;
         ingestionResources = new ConcurrentHashMap<>();
 
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
@@ -138,7 +138,7 @@ class ResourceManager {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                DataResults ingestionResourcesResults = dataClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                Results ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     // Add the received values to a new IngestionResources map:
@@ -174,7 +174,7 @@ class ResourceManager {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                DataResults identityTokenResult = dataClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
+                Results identityTokenResult = client.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.getValues() != null
                         && identityTokenResult.getValues().size() > 0) {

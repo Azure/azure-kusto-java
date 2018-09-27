@@ -1,8 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.client.DataClient;
-import com.microsoft.azure.kusto.data.client.DataClientFactory;
-import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestClientAggregateException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestClientException;
 import com.microsoft.azure.kusto.ingest.result.*;
@@ -32,9 +32,9 @@ class IngestClientImpl implements IngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public IngestClientImpl(DataConnectionStringBuilder dcsb) throws Exception {
+    public IngestClientImpl(ConnectionStringBuilder dcsb) throws Exception {
         log.info("Creating a new IngestClient");
-        DataClient dataClient = DataClientFactory.createClient(dcsb);
+        Client dataClient = ClientFactory.createClient(dcsb);
         resourceManager = new ResourceManager(dataClient);
     }
 

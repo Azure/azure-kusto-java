@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.data.exceptions;
 
 import org.apache.http.HttpResponse;
 
-public class DataWebException extends Exception{
+public class WebException extends Exception{
 
     private String message;
     private HttpResponse httpResponse;
@@ -11,7 +11,7 @@ public class DataWebException extends Exception{
 
     public HttpResponse getHttpResponse() { return httpResponse; }
 
-    public DataWebException(String message, HttpResponse httpResponse) {
+    public WebException(String message, HttpResponse httpResponse) {
         this.message = message;
         this.httpResponse = httpResponse;
     }

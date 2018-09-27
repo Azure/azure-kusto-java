@@ -1,4 +1,4 @@
-import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
@@ -17,7 +17,7 @@ public class TableStatus {
         // step 1: Retrieve table uri
         String applicationClientId = null;
         String applicationKey = null;
-        DataConnectionStringBuilder dcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(
+        ConnectionStringBuilder dcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
         IngestClient client = IngestClientFactory.createClient(dcsb);
 

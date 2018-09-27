@@ -1,9 +1,8 @@
-package com.microsoft.azure.kusto.data.client;
+package com.microsoft.azure.kusto.data;
 
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
-import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
 
 import javax.naming.ServiceUnavailableException;
 import java.util.concurrent.ExecutorService;
@@ -22,7 +21,7 @@ public class AadAuthenticationHelper {
     private String aadAuthorityId;
     private String aadAuthorityUri;
 
-    AadAuthenticationHelper(DataConnectionStringBuilder dcsb) {
+    AadAuthenticationHelper(ConnectionStringBuilder dcsb) {
         clusterUrl = dcsb.getClusterUrl();
 
         if (!isNullOrEmpty(dcsb.getApplicationClientId()) && !isNullOrEmpty(dcsb.getApplicationKey())) {

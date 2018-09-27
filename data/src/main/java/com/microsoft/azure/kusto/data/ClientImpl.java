@@ -1,11 +1,8 @@
-package com.microsoft.azure.kusto.data.client;
+package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.connection.DataConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.results.DataResults;
-import com.microsoft.azure.kusto.data.Utils;
 import org.json.JSONObject;
 
-public class DataClientImpl implements DataClient{
+public class ClientImpl implements Client {
 
     private final String adminCommandsPrefix = ".";
     private final String apiVersion = "v1";
@@ -14,16 +11,16 @@ public class DataClientImpl implements DataClient{
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
 
-    public DataClientImpl(DataConnectionStringBuilder dcsb) {
+    public ClientImpl(ConnectionStringBuilder dcsb) {
         clusterUrl = dcsb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(dcsb);
     }
 
-    public DataResults execute(String command) throws Exception {
+    public Results execute(String command) throws Exception {
         return execute(defaultDatabaseName, command);
     }
 
-    public DataResults execute(String database, String command) throws Exception {
+    public Results execute(String database, String command) throws Exception {
         String clusterEndpoint;
         if (command.startsWith(adminCommandsPrefix)) {
             clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, apiVersion);
@@ -33,7 +30,7 @@ public class DataClientImpl implements DataClient{
         return execute(database, command, clusterEndpoint);
     }
 
-    private DataResults execute(String database, String command, String clusterEndpoint) throws Exception {
+    private Results execute(String database, String command, String clusterEndpoint) throws Exception {
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
         String jsonString = new JSONObject()
