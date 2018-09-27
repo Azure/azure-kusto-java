@@ -21,18 +21,18 @@ public class AadAuthenticationHelper {
     private String aadAuthorityId;
     private String aadAuthorityUri;
 
-    AadAuthenticationHelper(DataConnectionStringBuilder kcsb) {
-        clusterUrl = kcsb.getClusterUrl();
+    AadAuthenticationHelper(DataConnectionStringBuilder dcsb) {
+        clusterUrl = dcsb.getClusterUrl();
 
-        if (!isNullOrEmpty(kcsb.getApplicationClientId()) && !isNullOrEmpty(kcsb.getApplicationKey())) {
-            clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
+        if (!isNullOrEmpty(dcsb.getApplicationClientId()) && !isNullOrEmpty(dcsb.getApplicationKey())) {
+            clientCredential = new ClientCredential(dcsb.getApplicationClientId(), dcsb.getApplicationKey());
         } else {
-            userUsername = kcsb.getUserUsername();
-            userPassword = kcsb.getUserPassword();
+            userUsername = dcsb.getUserUsername();
+            userPassword = dcsb.getUserPassword();
         }
 
         // Set the AAD Authority URI
-        aadAuthorityId = (kcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : kcsb.getAuthorityId());
+        aadAuthorityId = (dcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : dcsb.getAuthorityId());
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 

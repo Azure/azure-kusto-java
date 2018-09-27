@@ -31,11 +31,11 @@ public class DataConnectionStringBuilder {
                                                                            String password,
                                                                            String authorityId)
     {
-        DataConnectionStringBuilder kcsb = new DataConnectionStringBuilder(resourceUri);
-        kcsb.username = username;
-        kcsb.password = password;
-        kcsb.aadAuthorityId = authorityId;
-        return kcsb;
+        DataConnectionStringBuilder dcsb = new DataConnectionStringBuilder(resourceUri);
+        dcsb.username = username;
+        dcsb.password = password;
+        dcsb.aadAuthorityId = authorityId;
+        return dcsb;
     }
 
     public static DataConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -50,11 +50,11 @@ public class DataConnectionStringBuilder {
                                                                                   String applicationKey,
                                                                                   String authorityId)
     {
-        DataConnectionStringBuilder kcsb = new DataConnectionStringBuilder(resourceUri);
-        kcsb.applicationClientId = applicationClientId;
-        kcsb.applicationKey = applicationKey;
-        kcsb.aadAuthorityId = authorityId;
-        return kcsb;
+        DataConnectionStringBuilder dcsb = new DataConnectionStringBuilder(resourceUri);
+        dcsb.applicationClientId = applicationClientId;
+        dcsb.applicationKey = applicationKey;
+        dcsb.aadAuthorityId = authorityId;
+        return dcsb;
     }
 
     public static DataConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,

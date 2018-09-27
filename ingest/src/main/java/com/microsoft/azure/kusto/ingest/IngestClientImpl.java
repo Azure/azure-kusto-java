@@ -32,9 +32,9 @@ class IngestClientImpl implements IngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public IngestClientImpl(DataConnectionStringBuilder kcsb) throws Exception {
+    public IngestClientImpl(DataConnectionStringBuilder dcsb) throws Exception {
         log.info("Creating a new IngestClient");
-        DataClient dataClient = DataClientFactory.createClient(kcsb);
+        DataClient dataClient = DataClientFactory.createClient(dcsb);
         resourceManager = new ResourceManager(dataClient);
     }
 

@@ -19,8 +19,8 @@ public class FileIngestion {
             String dataMappingName = "<dataMappingName>";
             String filePath = "<localFilePath>";
 
-            DataConnectionStringBuilder kcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
-            IngestClient client = IngestClientFactory.createClient(kcsb);
+            DataConnectionStringBuilder dcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
+            IngestClient client = IngestClientFactory.createClient(dcsb);
 
             IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
             ingestionProperties.setJsonMappingName(dataMappingName);

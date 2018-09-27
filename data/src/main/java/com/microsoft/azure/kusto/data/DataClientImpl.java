@@ -11,9 +11,9 @@ public class DataClientImpl implements DataClient{
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
 
-    public DataClientImpl(DataConnectionStringBuilder kcsb) {
-        clusterUrl = kcsb.getClusterUrl();
-        aadAuthenticationHelper = new AadAuthenticationHelper(kcsb);
+    public DataClientImpl(DataConnectionStringBuilder dcsb) {
+        clusterUrl = dcsb.getClusterUrl();
+        aadAuthenticationHelper = new AadAuthenticationHelper(dcsb);
     }
 
     public DataResults execute(String command) throws Exception {

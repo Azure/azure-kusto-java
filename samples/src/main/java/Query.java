@@ -16,8 +16,8 @@ public class Query {
         String query = "StormEvents | take 10";
 
         try {
-            DataConnectionStringBuilder kcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
-            DataClientImpl client = new DataClientImpl(kcsb);
+            DataConnectionStringBuilder dcsb = DataConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
+            DataClientImpl client = new DataClientImpl(dcsb);
 
             DataResults results = client.execute(dbName, query);
 
