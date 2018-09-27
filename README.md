@@ -1,6 +1,7 @@
 # Microsoft Azure Kusto SDK for Java
 
-[![Build Status](https://travis-ci.org/Azure/azure-kusto-java.svg?branch=master)](https://travis-ci.org/Azure/azure-kusto-java)
+master: [![Build Status](https://travis-ci.org/Azure/azure-kusto-java.svg?branch=master)](https://travis-ci.org/Azure/azure-kusto-java) 
+dev: [![Build Status](https://travis-ci.org/Azure/azure-kusto-java.svg?branch=dev)](https://travis-ci.org/Azure/azure-kusto-java)
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
