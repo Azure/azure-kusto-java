@@ -18,8 +18,8 @@ public class Results {
 
     public ArrayList<ArrayList<String>> getValues() { return values; }
 
-    public Results(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
-                   ArrayList<ArrayList<String>> values)
+    Results(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
+            ArrayList<ArrayList<String>> values)
     {
         this.columnNameToIndex = columnNameToIndex;
         this.columnNameToType = columnNameToType;

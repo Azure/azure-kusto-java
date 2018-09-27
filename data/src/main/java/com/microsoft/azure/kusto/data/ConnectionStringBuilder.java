@@ -9,12 +9,12 @@ public class ConnectionStringBuilder {
     private String applicationKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
 
-    public String getClusterUrl() { return clusterUri; }
-    public String getUserUsername() { return username; }
-    public String getUserPassword() { return password; }
-    public String getApplicationClientId() { return applicationClientId; }
-    public String getApplicationKey() { return applicationKey; }
-    public String getAuthorityId() { return aadAuthorityId; }
+    String getClusterUrl() { return clusterUri; }
+    String getUserUsername() { return username; }
+    String getUserPassword() { return password; }
+    String getApplicationClientId() { return applicationClientId; }
+    String getApplicationKey() { return applicationKey; }
+    String getAuthorityId() { return aadAuthorityId; }
 
     private ConnectionStringBuilder(String resourceUri)
     {
@@ -26,10 +26,10 @@ public class ConnectionStringBuilder {
         aadAuthorityId = null;
     }
 
-    public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
-                                                                       String username,
-                                                                       String password,
-                                                                       String authorityId)
+    private static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
+                                                                        String username,
+                                                                        String password,
+                                                                        String authorityId)
     {
         ConnectionStringBuilder dcsb = new ConnectionStringBuilder(resourceUri);
         dcsb.username = username;
@@ -45,10 +45,10 @@ public class ConnectionStringBuilder {
         return createWithAadUserCredentials(resourceUri, username, password, null);
     }
 
-    public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
-                                                                              String applicationClientId,
-                                                                              String applicationKey,
-                                                                              String authorityId)
+    private static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
+                                                                               String applicationClientId,
+                                                                               String applicationKey,
+                                                                               String authorityId)
     {
         ConnectionStringBuilder dcsb = new ConnectionStringBuilder(resourceUri);
         dcsb.applicationClientId = applicationClientId;

@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class AadAuthenticationHelper {
+class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -18,7 +18,6 @@ public class AadAuthenticationHelper {
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
-    private String aadAuthorityId;
     private String aadAuthorityUri;
 
     AadAuthenticationHelper(ConnectionStringBuilder dcsb) {
@@ -32,7 +31,7 @@ public class AadAuthenticationHelper {
         }
 
         // Set the AAD Authority URI
-        aadAuthorityId = (dcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : dcsb.getAuthorityId());
+        String aadAuthorityId = (dcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : dcsb.getAuthorityId());
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 

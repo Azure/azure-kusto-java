@@ -16,9 +16,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class Utils {
+class Utils {
 
-    public static Results post(String url, String aadAccessToken, String payload) throws Exception {
+    static Results post(String url, String aadAccessToken, String payload) throws Exception {
         HttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);
 
