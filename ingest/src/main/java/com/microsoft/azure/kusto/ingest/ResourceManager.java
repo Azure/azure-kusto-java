@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager {
 
-    public enum ResourceTypes{
+    public enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
         FAILED_INGESTIONS_QUEUE("FailedIngestionsQueue"),
         SUCCESSFUL_INGESTIONS_QUEUE("SuccessfulIngestionsQueue"),
@@ -24,7 +24,7 @@ class ResourceManager {
 
         private String name;
 
-        ResourceTypes(String name) {
+        ResourceType(String name) {
             this.name = name;
         }
 
@@ -33,8 +33,8 @@ class ResourceManager {
         }
     }
 
-    private ResourceTypes getResourceTypeByName(String name){
-        for (ResourceTypes t : ResourceTypes.values()){
+    private ResourceType getResourceTypeByName(String name){
+        for (ResourceType t : ResourceType.values()){
             if (t.name.equalsIgnoreCase(name)){
                 return t;
             }
@@ -43,7 +43,7 @@ class ResourceManager {
     }
 
     //Ingestion Resources
-    private ConcurrentHashMap<ResourceTypes, IngestionResource> ingestionResources;
+    private ConcurrentHashMap<ResourceType, IngestionResource> ingestionResources;
 
     //Identity Token
     private String identityToken;
@@ -92,7 +92,7 @@ class ResourceManager {
         }
     }
 
-    String getIngestionResource(ResourceTypes resourceType) throws Exception {
+    String getIngestionResource(ResourceType resourceType) throws Exception {
         if (!ingestionResources.containsKey(resourceType)) {
             // When the value is not available, we need to get the tokens from Kusto (refresh):
             refreshIngestionResources();
@@ -125,12 +125,12 @@ class ResourceManager {
         return identityToken;
     }
 
-    int getSize(ResourceTypes resourceType){
+    int getSize(ResourceType resourceType){
         return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
     }
 
-    private void addIngestionResource(HashMap<ResourceTypes, IngestionResource> ingestionResources, String key, String value) {
-        ResourceTypes resourceType = getResourceTypeByName(key);
+    private void addIngestionResource(HashMap<ResourceType, IngestionResource> ingestionResources, String key, String value) {
+        ResourceType resourceType = getResourceTypeByName(key);
         if(!ingestionResources.containsKey(resourceType)){
             ingestionResources.put(resourceType, new IngestionResource(resourceType));
         }
@@ -144,7 +144,7 @@ class ResourceManager {
                 log.info("Refreshing Ingestion Resources");
                 KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if(ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null){
-                    HashMap<ResourceTypes, IngestionResource> newIngestionResources = new HashMap<>();
+                    HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     // Add the received values to a new IngestionResources map:
                     ingestionResourcesResults.getValues().forEach(pairValues -> {
                         String key = pairValues.get(0);
@@ -160,7 +160,7 @@ class ResourceManager {
         }
     }
 
-    private void putIngestionResourceValues(ConcurrentHashMap<ResourceTypes, IngestionResource> ingestionResources, HashMap<ResourceTypes, IngestionResource> newIngestionResources) {
+    private void putIngestionResourceValues(ConcurrentHashMap<ResourceType, IngestionResource> ingestionResources, HashMap<ResourceType, IngestionResource> newIngestionResources) {
         // Update the values in the original resources map:
         newIngestionResources.keySet().forEach(
                 k -> ingestionResources.put(k, newIngestionResources.get(k))
@@ -191,11 +191,11 @@ class ResourceManager {
     }
 
     private class IngestionResource {
-        ResourceTypes type;
+        ResourceType type;
         int roundRubinIdx = 0;
         ArrayList<String> valuesList;
 
-        IngestionResource(ResourceTypes resourceType){
+        IngestionResource(ResourceType resourceType){
             this.type = resourceType;
             valuesList = new ArrayList<>();
         }

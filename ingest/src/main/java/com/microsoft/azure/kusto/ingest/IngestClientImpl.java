@@ -63,7 +63,7 @@ class IngestClientImpl implements IngestClient {
             }
 
             if (ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue) {
-                String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE);
+                String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
                 ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
@@ -85,7 +85,7 @@ class IngestClientImpl implements IngestClient {
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
             postMessageToQueue(
-                    resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE)
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
 
         } catch (Exception ex) {
@@ -106,7 +106,7 @@ class IngestClientImpl implements IngestClient {
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
+            CloudBlockBlob blob = uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(fileSourceInfo.getFilePath());
@@ -132,7 +132,7 @@ class IngestClientImpl implements IngestClient {
             CloudBlockBlob blob = uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE),
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
                     true
             );
             String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);

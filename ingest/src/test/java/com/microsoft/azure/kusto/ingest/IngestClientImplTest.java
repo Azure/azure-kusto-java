@@ -29,15 +29,15 @@ class IngestClientImplTest {
             ingestClientMock = mock(IngestClient.class);
             ingestClientMockImpl = mock(IngestClientImpl.class);
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
                     .thenReturn("queue2");
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE))
                     .thenReturn("storage1")
                     .thenReturn("storage2");
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
                     .thenReturn("statusTable");
 
             when(resourceManagerMock.getKustoIdentityToken())
