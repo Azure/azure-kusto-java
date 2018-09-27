@@ -29,6 +29,7 @@
     </developers>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <slf4j.version>1.8.0-beta2</slf4j.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
