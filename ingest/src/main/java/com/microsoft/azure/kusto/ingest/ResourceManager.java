@@ -28,14 +28,14 @@ class ResourceManager {
             this.name = name;
         }
 
-        String getName(){
+        String getName() {
             return name;
         }
     }
 
-    private ResourceType getResourceTypeByName(String name){
-        for (ResourceType t : ResourceType.values()){
-            if (t.name.equalsIgnoreCase(name)){
+    private ResourceType getResourceTypeByName(String name) {
+        for (ResourceType t : ResourceType.values()) {
+            if (t.name.equalsIgnoreCase(name)) {
                 return t;
             }
         }
@@ -49,14 +49,12 @@ class ResourceManager {
     private String identityToken;
 
     private KustoClient kustoClient;
-    private final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60 * 1; // 1 hour
-    private Timer timer = new Timer(true);
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
-    public ResourceManager(KustoClient kustoClient) throws Exception {
+    ResourceManager(KustoClient kustoClient) throws Exception {
         this.kustoClient = kustoClient;
         ingestionResources = new ConcurrentHashMap<>();
 
@@ -83,6 +81,8 @@ class ResourceManager {
         };
 
         try {
+            Timer timer = new Timer(true);
+            long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
             timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
             timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
 
@@ -96,7 +96,7 @@ class ResourceManager {
         if (!ingestionResources.containsKey(resourceType)) {
             // When the value is not available, we need to get the tokens from Kusto (refresh):
             refreshIngestionResources();
-            try{
+            try {
                 // If the write lock is locked, then the read will wait here.
                 // In other words if the refresh is running yet, then wait until it ends:
                 ingestionResourcesLock.readLock().lock();
@@ -113,37 +113,34 @@ class ResourceManager {
     String getKustoIdentityToken() throws Exception {
         if (identityToken == null) {
             refreshIngestionAuthToken();
-            try{
+            try {
                 authTokenLock.readLock().lock();
                 if (identityToken == null) {
                     throw new Exception("Unable to get Identity token");
                 }
-            } finally{
+            } finally {
                 authTokenLock.readLock().unlock();
             }
         }
         return identityToken;
     }
 
-    int getSize(ResourceType resourceType){
-        return ingestionResources.containsKey(resourceType) ? ingestionResources.get(resourceType).getSize() : 0;
-    }
-
     private void addIngestionResource(HashMap<ResourceType, IngestionResource> ingestionResources, String key, String value) {
         ResourceType resourceType = getResourceTypeByName(key);
-        if(!ingestionResources.containsKey(resourceType)){
+        if (!ingestionResources.containsKey(resourceType)) {
             ingestionResources.put(resourceType, new IngestionResource(resourceType));
         }
         ingestionResources.get(resourceType).addValue(value);
     }
 
     private void refreshIngestionResources() throws Exception {
+        System.out.println("refreshIngestionResources");
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-        if(ingestionResourcesLock.writeLock().tryLock()){
+        if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
                 KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
-                if(ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null){
+                if (ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     // Add the received values to a new IngestionResources map:
                     ingestionResourcesResults.getValues().forEach(pairValues -> {
@@ -154,7 +151,7 @@ class ResourceManager {
                     // Replace the values in the ingestionResources map with the values in the new map:
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
-            }finally {
+            } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
@@ -168,13 +165,14 @@ class ResourceManager {
 
         // Remove the key-value pairs that are not existing in the new resources map:
         ingestionResources.keySet().forEach(k -> {
-            if(!newIngestionResources.containsKey(k)){
+            if (!newIngestionResources.containsKey(k)) {
                 ingestionResources.remove(k);
             }
         });
     }
 
     private void refreshIngestionAuthToken() throws Exception {
+        System.out.println("refreshIngestionAuthToken");
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
@@ -195,20 +193,20 @@ class ResourceManager {
         int roundRubinIdx = 0;
         ArrayList<String> valuesList;
 
-        IngestionResource(ResourceType resourceType){
+        IngestionResource(ResourceType resourceType) {
             this.type = resourceType;
             valuesList = new ArrayList<>();
         }
 
-        void addValue(String val){
+        void addValue(String val) {
             valuesList.add(val);
         }
 
-        int getSize(){
+        int getSize() {
             return valuesList.size();
         }
 
-        String nextValue(){
+        String nextValue() {
             roundRubinIdx = (roundRubinIdx + 1) % valuesList.size();
             return valuesList.get(roundRubinIdx);
         }
