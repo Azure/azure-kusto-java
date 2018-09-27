@@ -134,7 +134,6 @@ class ResourceManager {
     }
 
     private void refreshIngestionResources() throws Exception {
-        System.out.println("refreshIngestionResources");
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
@@ -172,7 +171,6 @@ class ResourceManager {
     }
 
     private void refreshIngestionAuthToken() throws Exception {
-        System.out.println("refreshIngestionAuthToken");
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
