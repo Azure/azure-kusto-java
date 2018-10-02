@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class ResourceManagerTest {
 
     private ResourceManager resourceManager;
-    private Client dataClientMock = mock(Client.class);
+    private Client clientMock = mock(Client.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -32,13 +32,13 @@ class ResourceManagerTest {
             Results ingestionResourcesResult = generateIngestionResourcesResult();
             Results ingestionAuthTokenResult = generateIngestionAuthTokenResult();
 
-            when(dataClientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+            when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                     .thenReturn(ingestionResourcesResult);
 
-            when(dataClientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
+            when(clientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
                     .thenReturn(ingestionAuthTokenResult);
 
-            resourceManager = new ResourceManager(dataClientMock);
+            resourceManager = new ResourceManager(clientMock);
         } catch (Exception e) {
             e.printStackTrace();
         }

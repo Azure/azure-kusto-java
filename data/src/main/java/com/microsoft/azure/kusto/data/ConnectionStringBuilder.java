@@ -31,11 +31,11 @@ public class ConnectionStringBuilder {
                                                                         String password,
                                                                         String authorityId)
     {
-        ConnectionStringBuilder dcsb = new ConnectionStringBuilder(resourceUri);
-        dcsb.username = username;
-        dcsb.password = password;
-        dcsb.aadAuthorityId = authorityId;
-        return dcsb;
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.username = username;
+        csb.password = password;
+        csb.aadAuthorityId = authorityId;
+        return csb;
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -50,11 +50,11 @@ public class ConnectionStringBuilder {
                                                                                String applicationKey,
                                                                                String authorityId)
     {
-        ConnectionStringBuilder dcsb = new ConnectionStringBuilder(resourceUri);
-        dcsb.applicationClientId = applicationClientId;
-        dcsb.applicationKey = applicationKey;
-        dcsb.aadAuthorityId = authorityId;
-        return dcsb;
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.applicationClientId = applicationClientId;
+        csb.applicationKey = applicationKey;
+        csb.aadAuthorityId = authorityId;
+        return csb;
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,

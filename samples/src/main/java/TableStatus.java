@@ -17,9 +17,9 @@ public class TableStatus {
         // step 1: Retrieve table uri
         String applicationClientId = null;
         String applicationKey = null;
-        ConnectionStringBuilder dcsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        IngestClient client = IngestClientFactory.createClient(dcsb);
+        IngestClient client = IngestClientFactory.createClient(csb);
 
         // step 2: create an entry in the azure storage table
         String blobUri = "";

@@ -11,9 +11,9 @@ public class ClientImpl implements Client {
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
 
-    public ClientImpl(ConnectionStringBuilder dcsb) {
-        clusterUrl = dcsb.getClusterUrl();
-        aadAuthenticationHelper = new AadAuthenticationHelper(dcsb);
+    public ClientImpl(ConnectionStringBuilder csb) {
+        clusterUrl = csb.getClusterUrl();
+        aadAuthenticationHelper = new AadAuthenticationHelper(csb);
     }
 
     public Results execute(String command) throws Exception {
