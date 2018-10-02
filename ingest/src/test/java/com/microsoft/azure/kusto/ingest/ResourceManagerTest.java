@@ -64,7 +64,7 @@ class ResourceManagerTest {
             HashMap<String,Integer> m = new HashMap();
 
             for(int i=0; i<10; i++){
-                storage = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE);
+                storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
                 m.put(storage,m.getOrDefault(storage,0)+1);
             }
 
@@ -82,24 +82,12 @@ class ResourceManagerTest {
             HashMap<String,Integer> m = new HashMap();
 
             for(int i=0; i<10; i++){
-                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE);
+                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
                 m.put(queueName,m.getOrDefault(queueName,0)+1);
             }
 
             assertEquals(10, m.get(QUEUE_1) + m.get(QUEUE_2));
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    //@Test  (Not ready yet)
-    void clean() {
-        try{
-            resourceManager.clean();
-            for(ResourceManager.ResourceTypes resourceType : ResourceManager.ResourceTypes.values()){
-                assertEquals(0, resourceManager.getSize(resourceType));
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
