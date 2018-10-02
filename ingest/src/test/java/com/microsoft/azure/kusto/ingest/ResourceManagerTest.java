@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.DataClient;
-import com.microsoft.azure.kusto.data.DataResults;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.Results;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class ResourceManagerTest {
 
     private ResourceManager resourceManager;
-    private DataClient dataClientMock = mock(DataClient.class);
+    private Client dataClientMock = mock(Client.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -29,8 +29,8 @@ class ResourceManagerTest {
     @BeforeEach
     void setUp() {
         try {
-            DataResults ingestionResourcesResult = generateIngestionResourcesResult();
-            DataResults ingestionAuthTokenResult = generateIngestionAuthTokenResult();
+            Results ingestionResourcesResult = generateIngestionResourcesResult();
+            Results ingestionAuthTokenResult = generateIngestionAuthTokenResult();
 
             when(dataClientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                     .thenReturn(ingestionResourcesResult);
@@ -51,7 +51,7 @@ class ResourceManagerTest {
     @Test
     void getKustoIdentityToken() {
         try {
-            assertEquals(AUTH_TOKEN, resourceManager.getKustoIdentityToken());
+            assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -93,7 +93,7 @@ class ResourceManagerTest {
         }
     }
 
-    private DataResults generateIngestionResourcesResult() {
+    private Results generateIngestionResourcesResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -112,10 +112,10 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable","statusTable"))));
 
-        return new DataResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
     }
 
-    private DataResults generateIngestionAuthTokenResult() {
+    private Results generateIngestionAuthTokenResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -124,6 +124,6 @@ class ResourceManagerTest {
         colNameToTypeMap.put("AuthorizationContext","String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new DataResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
     }
 }

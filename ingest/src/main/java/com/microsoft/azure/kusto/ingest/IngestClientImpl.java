@@ -34,8 +34,8 @@ class IngestClientImpl implements IngestClient {
 
     public IngestClientImpl(ConnectionStringBuilder dcsb) throws Exception {
         log.info("Creating a new IngestClient");
-        Client dataClient = ClientFactory.createClient(dcsb);
-        resourceManager = new ResourceManager(dataClient);
+        Client client = ClientFactory.createClient(dcsb);
+        resourceManager = new ResourceManager(client);
     }
 
     @Override

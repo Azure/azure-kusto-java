@@ -110,7 +110,7 @@ class ResourceManager {
         return ingestionResources.get(resourceType).nextValue();
     }
 
-    String getKustoIdentityToken() throws Exception {
+    String getIdentityToken() throws Exception {
         if (identityToken == null) {
             refreshIngestionAuthToken();
             try {

@@ -45,7 +45,7 @@ public class ConnectionStringBuilder {
         return createWithAadUserCredentials(resourceUri, username, password, null);
     }
 
-    private static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
+    public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
                                                                                String applicationClientId,
                                                                                String applicationKey,
                                                                                String authorityId)
