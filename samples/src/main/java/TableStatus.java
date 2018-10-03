@@ -1,4 +1,4 @@
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
@@ -17,9 +17,9 @@ public class TableStatus {
         // step 1: Retrieve table uri
         String applicationClientId = null;
         String applicationKey = null;
-        KustoConnectionStringBuilder kcsb = KustoConnectionStringBuilder.createWithAadApplicationCredentials(
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                 "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        IngestClient client = IngestClientFactory.createClient(kcsb);
+        IngestClient client = IngestClientFactory.createClient(csb);
 
         // step 2: create an entry in the azure storage table
         String blobUri = "";

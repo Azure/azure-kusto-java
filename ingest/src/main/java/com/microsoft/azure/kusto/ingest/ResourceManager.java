@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoResults;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.Results;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +48,14 @@ class ResourceManager {
     //Identity Token
     private String identityToken;
 
-    private KustoClient kustoClient;
+    private Client client;
     private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
 
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
-    ResourceManager(KustoClient kustoClient) throws Exception {
-        this.kustoClient = kustoClient;
+    ResourceManager(Client client) throws Exception {
+        this.client = client;
         ingestionResources = new ConcurrentHashMap<>();
 
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
@@ -110,7 +110,7 @@ class ResourceManager {
         return ingestionResources.get(resourceType).nextValue();
     }
 
-    String getKustoIdentityToken() throws Exception {
+    String getIdentityToken() throws Exception {
         if (identityToken == null) {
             refreshIngestionAuthToken();
             try {
@@ -138,7 +138,7 @@ class ResourceManager {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoResults ingestionResourcesResults = kustoClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                Results ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     // Add the received values to a new IngestionResources map:
@@ -174,7 +174,7 @@ class ResourceManager {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                KustoResults identityTokenResult = kustoClient.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
+                Results identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.getValues() != null
                         && identityTokenResult.getValues().size() > 0) {

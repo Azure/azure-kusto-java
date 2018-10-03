@@ -9,30 +9,29 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-public class AadAuthenticationHelper {
+class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
-    private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
     private ClientCredential clientCredential;
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
-    private String aadAuthorityId;
     private String aadAuthorityUri;
 
-    AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
-        clusterUrl = kcsb.getClusterUrl();
+    AadAuthenticationHelper(ConnectionStringBuilder csb) {
+        clusterUrl = csb.getClusterUrl();
 
-        if (!isNullOrEmpty(kcsb.getApplicationClientId()) && !isNullOrEmpty(kcsb.getApplicationKey())) {
-            clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
+        if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
+            clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
         } else {
-            userUsername = kcsb.getUserUsername();
-            userPassword = kcsb.getUserPassword();
+            userUsername = csb.getUserUsername();
+            userPassword = csb.getUserPassword();
         }
 
         // Set the AAD Authority URI
-        aadAuthorityId = (kcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : kcsb.getAuthorityId());
+        String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
@@ -53,7 +52,7 @@ public class AadAuthenticationHelper {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
-                    clusterUrl, KUSTO_CLIENT_ID, userUsername, userPassword,
+                    clusterUrl, CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
         } finally {

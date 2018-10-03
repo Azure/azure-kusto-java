@@ -40,7 +40,7 @@ class IngestClientImplTest {
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
                     .thenReturn("statusTable");
 
-            when(resourceManagerMock.getKustoIdentityToken())
+            when(resourceManagerMock.getIdentityToken())
                     .thenReturn("identityToken");
 
             props = new IngestionProperties("dbName", "tableName");
