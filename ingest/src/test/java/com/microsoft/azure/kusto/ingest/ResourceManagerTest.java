@@ -35,7 +35,7 @@ class ResourceManagerTest {
             when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                     .thenReturn(ingestionResourcesResult);
 
-            when(clientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
+            when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                     .thenReturn(ingestionAuthTokenResult);
 
             resourceManager = new ResourceManager(clientMock);
@@ -49,7 +49,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getKustoIdentityToken() {
+    void getIdentityToken() {
         try {
             assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
         } catch (Exception e) {

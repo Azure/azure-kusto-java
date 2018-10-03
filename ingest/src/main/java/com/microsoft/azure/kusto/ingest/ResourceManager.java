@@ -174,7 +174,7 @@ class ResourceManager {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                Results identityTokenResult = client.execute(Commands.KUSTO_IDENTITY_GET_COMMAND);
+                Results identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.getValues() != null
                         && identityTokenResult.getValues().size() > 0) {

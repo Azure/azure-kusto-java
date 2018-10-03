@@ -12,7 +12,7 @@ import java.util.concurrent.Future;
 class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
-    private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -52,7 +52,7 @@ class AadAuthenticationHelper {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
-                    clusterUrl, KUSTO_CLIENT_ID, userUsername, userPassword,
+                    clusterUrl, CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
         } finally {

@@ -10,13 +10,13 @@ public class Query {
         String appKey = "<app key>";
         String appTenant = "<app tenant id or domain name>";
 
-        String kustoClusterPath = "https://help.kusto.windows.net";
+        String clusterPath = "https://help.kusto.windows.net";
         String dbName = "Samples";
 
         String query = "StormEvents | take 10";
 
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(kustoClusterPath, appId, appKey, appTenant);
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterPath, appId, appKey, appTenant);
             ClientImpl client = new ClientImpl(csb);
 
             Results results = client.execute(dbName, query);
