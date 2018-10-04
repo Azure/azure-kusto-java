@@ -17,4 +17,9 @@ public class DataServiceException extends Exception {
         super(message, exception);
         this.ingestionSource = ingestionSource;
     }
+
+    public DataServiceException(String ingestionSource, String message) {
+        super(message);
+        this.ingestionSource = ingestionSource;
+    }
 }

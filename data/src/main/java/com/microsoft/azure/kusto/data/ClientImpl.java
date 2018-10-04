@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -34,6 +35,11 @@ public class ClientImpl implements Client {
     }
 
     private Results execute(String database, String command, String clusterEndpoint) throws DataServiceException, DataClientException {
+        // Argument validation:
+        if(StringUtils.isAnyEmpty(database, command, clusterEndpoint)){
+            throw new IllegalArgumentException("database, command or clusterEndpoint are empty");
+        }
+
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
         String jsonString;
         try {

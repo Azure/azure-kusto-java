@@ -82,10 +82,10 @@ class Utils {
                     throw new DataWebException(responseContent, response);
                 }
             }
-        } catch (DataWebException | IOException e) {
-            throw new DataServiceException("Error in post request", e);
-        } catch (JSONException e) {
-            throw new DataClientException("Error in post request", e);
+        } catch (DataWebException e) {
+            throw new DataServiceException(url, "Error in post request", e);
+        } catch (JSONException | IOException e) {
+            throw new DataClientException(url, "Error in post request", e);
         }
         return null;
     }

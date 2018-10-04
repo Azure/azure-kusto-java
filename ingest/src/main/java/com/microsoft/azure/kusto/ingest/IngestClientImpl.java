@@ -35,20 +35,22 @@ class IngestClientImpl implements IngestClient {
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
 
-    public IngestClientImpl(ConnectionStringBuilder csb) {
+    IngestClientImpl(ConnectionStringBuilder csb) {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         resourceManager = new ResourceManager(client);
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        if (blobSourceInfo == null) {
-            throw new IngestionClientException("blobSourceInfo is null");
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+
+        // Argument validation:
+        if (blobSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
         }
-        if (blobSourceInfo.getBlobPath() == null || blobSourceInfo.getBlobPath().isEmpty()) {
-            throw new IngestionClientException("blobPath is empty");
-        }
+        blobSourceInfo.validate();
+        ingestionProperties.validate();
 
         try {
             ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
@@ -103,6 +105,13 @@ class IngestClientImpl implements IngestClient {
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        // Argument validation:
+        if (fileSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
+        }
+        fileSourceInfo.validate();
+        ingestionProperties.validate();
+
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
@@ -124,6 +133,13 @@ class IngestClientImpl implements IngestClient {
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        // Argument validation:
+        if (streamSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
+        }
+        streamSourceInfo.validate();
+        ingestionProperties.validate();
+
         try {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
@@ -151,7 +167,7 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException {
+    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
         try {
             String blobPath = blobSourceInfo.getBlobPath();
             CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
@@ -167,7 +183,9 @@ class IngestClientImpl implements IngestClient {
             }
 
             return length;
-        } catch (StorageException | URISyntaxException e) {
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in estimateBlobRawSize", e);
+        } catch (URISyntaxException e) {
             throw new IngestionClientException("Error in estimateBlobRawSize", e);
         }
     }
@@ -184,7 +202,6 @@ class IngestClientImpl implements IngestClient {
     private String genBlobName(String fileName, String databaseName, String tableName) {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
-
 
     // TODO: redesign to avoid those wrapper methods over static ones.
     void postMessageToQueue(String queuePath, String serializedIngestionBlobInfo) throws URISyntaxException, StorageException {
