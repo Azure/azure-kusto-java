@@ -18,16 +18,16 @@ import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
 
-    ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    IngestClient ingestClientMock;
-    IngestClientImpl ingestClientMockImpl;
-    IngestionProperties props;
+    private ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    private IngestClient ingestClientMock;
+    private AzureStorageHelper azureStorageHelperMock;
+    private IngestionProperties props;
 
     @BeforeEach
     void setUp() {
         try {
             ingestClientMock = mock(IngestClient.class);
-            ingestClientMockImpl = mock(IngestClientImpl.class);
+            azureStorageHelperMock = mock(AzureStorageHelper.class);
 
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
@@ -79,10 +79,10 @@ class IngestClientImplTest {
     void ingestFromFile() {
         try {
             String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-            when(ingestClientMockImpl.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
+            when(azureStorageHelperMock.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
+            doNothing().when(azureStorageHelperMock).postMessageToQueue(isA(String.class), isA(String.class));
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
             int numOfFiles = 3;
@@ -101,9 +101,9 @@ class IngestClientImplTest {
     void ingestFromStream() {
         try {
             String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-            when(ingestClientMockImpl.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
+            when(azureStorageHelperMock.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
-            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
+            doNothing().when(azureStorageHelperMock).postMessageToQueue(isA(String.class), isA(String.class));
             int numOfFiles = 3;
             for (int i = 0; i < numOfFiles; i++) {
                 InputStream stream = new FileInputStream(testFilePath);
