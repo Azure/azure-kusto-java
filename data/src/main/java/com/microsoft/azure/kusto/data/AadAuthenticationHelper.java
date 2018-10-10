@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-class AadAuthenticationHelper {
+public class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -28,7 +28,7 @@ class AadAuthenticationHelper {
     private String clusterUrl;
     private String aadAuthorityUri;
 
-    AadAuthenticationHelper(ConnectionStringBuilder csb) {
+    public AadAuthenticationHelper(ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
 
         if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
@@ -54,11 +54,11 @@ class AadAuthenticationHelper {
             Future<DeviceCode> future = context.acquireDeviceCode(clientCredential.getClientId(), RESOURCE, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
-            System.in.read();
+            System.out.println("Press Enter after authenticating");
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
             }
-            System.out.println("Press Enter after authenticating");
+            System.in.read();
             Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
             result = futureResult.get();
 
