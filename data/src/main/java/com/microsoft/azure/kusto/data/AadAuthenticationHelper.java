@@ -3,9 +3,13 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.aad.adal4j.DeviceCode;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import javax.naming.ServiceUnavailableException;
+import java.awt.*;
+import java.net.URI;
 import java.net.MalformedURLException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +20,7 @@ class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static String RESOURCE = "https://graph.windows.net";
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -36,6 +41,35 @@ class AadAuthenticationHelper {
         // Set the AAD Authority URI
         String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+    }
+
+    public AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newFixedThreadPool(1);
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
+
+            Future<DeviceCode> future = context.acquireDeviceCode(clientCredential.getClientId(), RESOURCE, null);
+            DeviceCode deviceCode = future.get();
+            System.out.println(deviceCode.getMessage());
+            System.in.read();
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            }
+            System.out.println("Press Enter after authenticating");
+            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+            result = futureResult.get();
+
+        } finally {
+            assert service != null;
+            service.shutdown();
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
     }
 
     String acquireAccessToken() throws DataServiceException, DataClientException {
