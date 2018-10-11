@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 class IngestClientImpl implements IngestClient {
 
@@ -95,6 +96,7 @@ class IngestClientImpl implements IngestClient {
             azureStorageHelper.postMessageToQueue(
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
+
             return new TableReportIngestionResult(tableStatuses);
 
         } catch (StorageException e) {
@@ -102,6 +104,19 @@ class IngestClientImpl implements IngestClient {
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Error in ingestFromBlob()", e);
         }
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromBlob(blobSourceInfo, ingestionProperties);
+                    } catch (Exception e) {
+                        log.error("Error when ingestFromBlobAsync()", e);
+                        return null;
+                    }
+                });
     }
 
     @Override
@@ -130,6 +145,19 @@ class IngestClientImpl implements IngestClient {
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Error in ingestFromFile()", e);
         }
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromFile(fileSourceInfo, ingestionProperties);
+                    } catch (Exception e) {
+                        log.error("Error when ingestFromFileAsync()", e);
+                        return null;
+                    }
+                });
     }
 
     @Override
@@ -166,6 +194,19 @@ class IngestClientImpl implements IngestClient {
         } catch (StorageException e) {
             throw new IngestionServiceException("Error in ingestFromStream()", e);
         }
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromStream(streamSourceInfo, ingestionProperties);
+                    } catch (Exception e) {
+                        log.error("Error when ingestFromStreamAsync()", e);
+                        return null;
+                    }
+                });
     }
 
     private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
