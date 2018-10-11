@@ -28,7 +28,7 @@ public class AadAuthenticationHelper {
     private String clusterUrl;
     private String aadAuthorityUri;
 
-    public AadAuthenticationHelper(ConnectionStringBuilder csb) {
+    AadAuthenticationHelper(ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
 
         if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
@@ -43,12 +43,12 @@ public class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    public AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
         AuthenticationContext context = null;
         AuthenticationResult result = null;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext( aadAuthorityUri, true, service);
 
             Future<DeviceCode> future = context.acquireDeviceCode(clientCredential.getClientId(), RESOURCE, null);
@@ -63,8 +63,9 @@ public class AadAuthenticationHelper {
             result = futureResult.get();
 
         } finally {
-            assert service != null;
-            service.shutdown();
+            if (service != null) {
+                service.shutdown();
+            }
         }
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
@@ -85,7 +86,7 @@ public class AadAuthenticationHelper {
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
@@ -111,7 +112,7 @@ public class AadAuthenticationHelper {
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
