@@ -6,11 +6,13 @@ import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.aad.adal4j.DeviceCode;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.naming.ServiceUnavailableException;
 import java.awt.*;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,15 +29,21 @@ class AadAuthenticationHelper {
     private String userPassword;
     private String clusterUrl;
     private String aadAuthorityUri;
+    private AuthenticationType authenticationType;
 
-    AadAuthenticationHelper(ConnectionStringBuilder csb) {
+    private enum AuthenticationType { USER, APP, DEVICE }
+
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
-
-        if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
+        if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
-        } else {
+            authenticationType = AuthenticationType.APP;
+        } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
             userUsername = csb.getUserUsername();
             userPassword = csb.getUserPassword();
+            authenticationType = AuthenticationType.USER;
+        } else {
+            authenticationType = AuthenticationType.DEVICE;
         }
 
         // Set the AAD Authority URI
@@ -51,7 +59,7 @@ class AadAuthenticationHelper {
             service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext( aadAuthorityUri, true, service);
 
-            Future<DeviceCode> future = context.acquireDeviceCode(clientCredential.getClientId(), RESOURCE, null);
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
             System.out.println("Press Enter after authenticating");
@@ -73,12 +81,22 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    String acquireAccessToken() throws DataServiceException, DataClientException {
-        if (clientCredential != null) {
-            return acquireAadApplicationAccessToken().getAccessToken();
-        } else {
-            return acquireAadUserAccessToken().getAccessToken();
+    String acquireAccessToken() throws DataServiceException  {
+        try {
+            switch (authenticationType) {
+                case APP:
+                    return acquireAadApplicationAccessToken().getAccessToken();
+                case USER:
+                    return acquireAadUserAccessToken().getAccessToken();
+                case DEVICE:
+                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                default:
+                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+            }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
         }
+
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
@@ -130,7 +148,4 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    private Boolean isNullOrEmpty(String str) {
-        return (str == null || str.trim().isEmpty());
-    }
 }
