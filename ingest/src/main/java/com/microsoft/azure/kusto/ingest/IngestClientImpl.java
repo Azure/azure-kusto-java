@@ -46,9 +46,30 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
+        return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+                    } catch (Exception e) {
+                        log.error("Error when ingestFromBlobAsync()", e);
+                        return null;
+                        /*todo: Might decide what to return in case of error.
+                            One suggestion is to return an object of ResultWrapper<IngestionResult, Exception>...
+                         */
+                    }
+                });
+    }
+
+    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        if (blobSourceInfo == null || ingestionProperties == null){
+        if (blobSourceInfo == null || ingestionProperties == null) {
             throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
         }
         blobSourceInfo.validate();
@@ -107,20 +128,25 @@ class IngestClientImpl implements IngestClient {
     }
 
     @Override
-    public CompletableFuture<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-                        return ingestFromBlob(blobSourceInfo, ingestionProperties);
+                        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
                     } catch (Exception e) {
-                        log.error("Error when ingestFromBlobAsync()", e);
+                        log.error("Error when ingestFromFileAsync()", e);
                         return null;
                     }
                 });
     }
 
-    @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    private IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         if (fileSourceInfo == null || ingestionProperties == null){
             throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
@@ -148,20 +174,24 @@ class IngestClientImpl implements IngestClient {
     }
 
     @Override
-    public CompletableFuture<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-                        return ingestFromFile(fileSourceInfo, ingestionProperties);
+                        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
                     } catch (Exception e) {
-                        log.error("Error when ingestFromFileAsync()", e);
+                        log.error("Error when ingestFromStreamAsync()", e);
                         return null;
                     }
                 });
     }
 
-    @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         if (streamSourceInfo == null || ingestionProperties == null){
             throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
@@ -194,19 +224,6 @@ class IngestClientImpl implements IngestClient {
         } catch (StorageException e) {
             throw new IngestionServiceException("Error in ingestFromStream()", e);
         }
-    }
-
-    @Override
-    public CompletableFuture<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return ingestFromStream(streamSourceInfo, ingestionProperties);
-                    } catch (Exception e) {
-                        log.error("Error when ingestFromStreamAsync()", e);
-                        return null;
-                    }
-                });
     }
 
     private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
