@@ -31,7 +31,7 @@ class AadAuthenticationHelper {
     private String aadAuthorityUri;
     private AuthenticationType authenticationType;
 
-    private enum AuthenticationType { USER, APP, DEVICE }
+    private enum AuthenticationType { USER, APPLICATION, DEVICE }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
