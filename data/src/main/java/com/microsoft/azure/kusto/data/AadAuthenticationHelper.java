@@ -37,7 +37,7 @@ class AadAuthenticationHelper {
         clusterUrl = csb.getClusterUrl();
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
-            authenticationType = AuthenticationType.APP;
+            authenticationType = AuthenticationType.APPLICATION;
         } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
             userUsername = csb.getUserUsername();
             userPassword = csb.getUserPassword();
@@ -84,14 +84,14 @@ class AadAuthenticationHelper {
     String acquireAccessToken() throws DataServiceException  {
         try {
             switch (authenticationType) {
-                case APP:
+                case APPLICATION:
                     return acquireAadApplicationAccessToken().getAccessToken();
                 case USER:
                     return acquireAadUserAccessToken().getAccessToken();
                 case DEVICE:
                     return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
                 default:
-                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
         } catch (Exception e) {
             throw new DataServiceException(e.getMessage());

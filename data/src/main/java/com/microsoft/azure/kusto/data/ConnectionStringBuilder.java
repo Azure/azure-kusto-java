@@ -64,7 +64,7 @@ public class ConnectionStringBuilder {
         return createWithAadApplicationCredentials(resourceUri, applicationClientId, applicationKey, null);
     }
 
-    public static ConnectionStringBuilder createWithDeviceCredentials(String resourceUri){
+    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri){
         return new ConnectionStringBuilder(resourceUri);
     }
 }
