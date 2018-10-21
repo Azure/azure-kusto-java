@@ -51,36 +51,6 @@ class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
-        ExecutorService service = null;
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext( aadAuthorityUri, true, service);
-
-            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
-            DeviceCode deviceCode = future.get();
-            System.out.println(deviceCode.getMessage());
-            System.out.println("Press Enter after authenticating");
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
-            }
-            System.in.read();
-            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
-            result = futureResult.get();
-
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
-        }
-        if (result == null) {
-            throw new ServiceUnavailableException("authentication result was null");
-        }
-        return result;
-    }
-
     String acquireAccessToken() throws DataServiceException  {
         try {
             switch (authenticationType) {
@@ -144,6 +114,36 @@ class AadAuthenticationHelper {
 
         if (result == null) {
             throw new DataServiceException(clusterUrl, "acquireAadApplicationAccessToken got 'null' authentication result");
+        }
+        return result;
+    }
+
+    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
+
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
+            DeviceCode deviceCode = future.get();
+            System.out.println(deviceCode.getMessage());
+            System.out.println("Press Enter after authenticating");
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            }
+            System.in.read();
+            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+            result = futureResult.get();
+
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
         }
         return result;
     }
