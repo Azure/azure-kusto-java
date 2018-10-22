@@ -79,11 +79,9 @@ class Utils {
 
                     return new Results(columnNameToIndex, columnNameToType, values);
                 } else {
-                    throw new DataWebException(responseContent, response);
+                    throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
             }
-        } catch (DataWebException e) {
-            throw new DataServiceException(url, "Error in post request", e);
         } catch (JSONException | IOException e) {
             throw new DataClientException(url, "Error in post request", e);
         }
