@@ -20,7 +20,6 @@ class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    private final static String RESOURCE = "https://graph.windows.net";
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -107,8 +106,7 @@ class AadAuthenticationHelper {
     public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
             throws IOException, InterruptedException, ExecutionException{
 
-        AuthenticationContext context;
-        context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
+        AuthenticationContext context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
         AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
                 privateKey, cert);
         // pass null value for optional callback function and acquire access token
