@@ -10,6 +10,7 @@ import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,12 +47,20 @@ class AzureStorageHelper {
     public CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
+        // Validation
+        if(StringUtils.isAnyEmpty(filePath, blobName, storageUri)){
+            throw new IllegalArgumentException("All arguments must be supplied to this method");
+        }
+
+        File sourceFile = new File(filePath);
+        if(!sourceFile.exists()){
+            throw new IllegalArgumentException("The file is not existing in this path: " + filePath);
+        }
+
         // Check if the file is already compressed:
         boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        File sourceFile = new File(filePath);
-
         CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
 
         if(!isCompressed){

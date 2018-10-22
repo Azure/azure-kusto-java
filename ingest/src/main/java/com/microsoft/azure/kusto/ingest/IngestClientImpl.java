@@ -27,6 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 class IngestClientImpl implements IngestClient {
 
@@ -55,11 +56,14 @@ class IngestClientImpl implements IngestClient {
                 () -> {
                     try {
                         return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
-                    } catch (Exception e) {
+                    } catch (IngestionClientException | IngestionServiceException e) {
                         log.error("Error when ingestFromBlobAsync()", e);
-                        return null;
-                        /*todo: Might decide what to return in case of error.
-                            One suggestion is to return an object of ResultWrapper<IngestionResult, Exception>...
+                        // Here we throw a CompletionException which extends the RuntimeException.
+                        // the real exception itself would be in the <cause> of this CompletionException
+                        throw new CompletionException(e);
+                        /* We might decide what to return in case of error.
+                            One suggestion is to return an object of ResultWrapper<IngestionResult, Exception>
+                            instead of throwing an exception.
                          */
                     }
                 });
@@ -139,9 +143,9 @@ class IngestClientImpl implements IngestClient {
                 () -> {
                     try {
                         return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
-                    } catch (Exception e) {
-                        log.error("Error when ingestFromFileAsync()", e);
-                        return null;
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        log.error("Error in ingestFromFileAsync()", e);
+                        throw new CompletionException(e);
                     }
                 });
     }
@@ -184,9 +188,9 @@ class IngestClientImpl implements IngestClient {
                 () -> {
                     try {
                         return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
-                    } catch (Exception e) {
+                    } catch (IngestionClientException | IngestionServiceException e) {
                         log.error("Error when ingestFromStreamAsync()", e);
-                        return null;
+                        throw new CompletionException(e);
                     }
                 });
     }
