@@ -119,6 +119,19 @@ class AadAuthenticationHelper {
         return (str == null || str.trim().isEmpty());
     }
 
+    public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
+            throws IOException, InterruptedException, ExecutionException{
+
+        AuthenticationContext context;
+        context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
+        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                privateKey, cert);
+        // pass null value for optional callback function and acquire access token
+        AuthenticationResult result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+
+        return result;
+    }
+
     public AuthenticationResult acquireWithClientCertificate(String certPath, String keyPath, String pemPassword)
             throws IOException, CertificateException, OperatorCreationException, PKCSException,
             InterruptedException, ExecutionException{
