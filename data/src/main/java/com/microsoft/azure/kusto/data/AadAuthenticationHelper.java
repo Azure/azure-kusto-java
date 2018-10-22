@@ -66,23 +66,6 @@ class AadAuthenticationHelper {
         }
     }
 
-    public AuthenticationResult acquireWithClientCertificate(String path, String pemPassword)
-            throws IOException, CertificateException, OperatorCreationException, PKCSException,
-            InterruptedException, ExecutionException{
-        final KeyCert certificateKey = readPem(path, pemPassword);
-
-        final PrivateKey privateKey = certificateKey.getKey();
-
-        AuthenticationContext context;
-            context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
-        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(CLIENT_ID,
-                privateKey, certificateKey.getCertificate());
-        // pass null value for optional callback function and acquire access token
-        AuthenticationResult result = context.acquireToken(RESOURCE, asymmetricKeyCredential, null).get();
-
-        return result;
-    }
-
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
         AuthenticationContext context;
         AuthenticationResult result;
@@ -134,6 +117,23 @@ class AadAuthenticationHelper {
 
     private Boolean isNullOrEmpty(String str) {
         return (str == null || str.trim().isEmpty());
+    }
+
+    public AuthenticationResult acquireWithClientCertificate(String certPath, String keyPath, String pemPassword)
+            throws IOException, CertificateException, OperatorCreationException, PKCSException,
+            InterruptedException, ExecutionException{
+        final KeyCert certificateKey = readPem(certPath, pemPassword);
+
+        final PrivateKey privateKey = readPem(keyPath, pemPassword).getKey();
+
+        AuthenticationContext context;
+        context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
+        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                privateKey, certificateKey.getCertificate());
+        // pass null value for optional callback function and acquire access token
+        AuthenticationResult result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+
+        return result;
     }
 
     private static KeyCert readPem(String path, String password) throws IOException, CertificateException, OperatorCreationException, PKCSException {
