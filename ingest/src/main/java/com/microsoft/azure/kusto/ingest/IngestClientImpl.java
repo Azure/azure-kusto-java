@@ -167,27 +167,21 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
-        try {
-            String blobPath = blobSourceInfo.getBlobPath();
-            CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-            blockBlob.downloadAttributes();
-            long length = blockBlob.getProperties().getLength();
+    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws StorageException, URISyntaxException {
+        String blobPath = blobSourceInfo.getBlobPath();
+        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
+        blockBlob.downloadAttributes();
+        long length = blockBlob.getProperties().getLength();
 
-            if (length == 0) {
-                return length;
-            }
-
-            if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
-                length = length * COMPRESSED_FILE_MULTIPLIER;
-            }
-
+        if (length == 0) {
             return length;
-        } catch (StorageException e) {
-            throw new IngestionServiceException("Error in estimateBlobRawSize", e);
-        } catch (URISyntaxException e) {
-            throw new IngestionClientException("Error in estimateBlobRawSize", e);
         }
+
+        if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
+            length = length * COMPRESSED_FILE_MULTIPLIER;
+        }
+
+        return length;
     }
 
     private long estimateFileRawSize(String filePath) {
