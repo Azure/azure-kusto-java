@@ -1,14 +1,18 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.aad.adal4j.AsymmetricKeyCredential;
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.aad.adal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.aad.adal4j.DeviceCode;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
+import javax.naming.ServiceUnavailableException;
+import java.awt.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
@@ -20,21 +24,28 @@ class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static String RESOURCE = "https://graph.windows.net";
 
     private ClientCredential clientCredential;
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
     private String aadAuthorityUri;
+    private AuthenticationType authenticationType;
 
-    AadAuthenticationHelper(ConnectionStringBuilder csb) {
+    private enum AuthenticationType { USER, APPLICATION, DEVICE }
+
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
-
-        if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
+        if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
-        } else {
+            authenticationType = AuthenticationType.APPLICATION;
+        } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
             userUsername = csb.getUserUsername();
             userPassword = csb.getUserPassword();
+            authenticationType = AuthenticationType.USER;
+        } else {
+            authenticationType = AuthenticationType.DEVICE;
         }
 
         // Set the AAD Authority URI
@@ -42,12 +53,22 @@ class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws DataServiceException, DataClientException {
-        if (clientCredential != null) {
-            return acquireAadApplicationAccessToken().getAccessToken();
-        } else {
-            return acquireAadUserAccessToken().getAccessToken();
+    String acquireAccessToken() throws DataServiceException  {
+        try {
+            switch (authenticationType) {
+                case APPLICATION:
+                    return acquireAadApplicationAccessToken().getAccessToken();
+                case USER:
+                    return acquireAadUserAccessToken().getAccessToken();
+                case DEVICE:
+                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                default:
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+            }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
         }
+
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
@@ -55,7 +76,7 @@ class AadAuthenticationHelper {
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
@@ -81,7 +102,7 @@ class AadAuthenticationHelper {
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
@@ -99,8 +120,34 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    private Boolean isNullOrEmpty(String str) {
-        return (str == null || str.trim().isEmpty());
+    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
+
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
+            DeviceCode deviceCode = future.get();
+            System.out.println(deviceCode.getMessage());
+            System.out.println("Press Enter after authenticating");
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            }
+            System.in.read();
+            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+            result = futureResult.get();
+
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
     }
 
     public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
