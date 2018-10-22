@@ -6,11 +6,13 @@ import com.microsoft.aad.adal4j.ClientCredential;
 import com.microsoft.aad.adal4j.DeviceCode;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.naming.ServiceUnavailableException;
 import java.awt.*;
-import java.net.URI;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,15 +29,21 @@ class AadAuthenticationHelper {
     private String userPassword;
     private String clusterUrl;
     private String aadAuthorityUri;
+    private AuthenticationType authenticationType;
 
-    AadAuthenticationHelper(ConnectionStringBuilder csb) {
+    private enum AuthenticationType { USER, APPLICATION, DEVICE }
+
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
-
-        if (!isNullOrEmpty(csb.getApplicationClientId()) && !isNullOrEmpty(csb.getApplicationKey())) {
+        if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
-        } else {
+            authenticationType = AuthenticationType.APPLICATION;
+        } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
             userUsername = csb.getUserUsername();
             userPassword = csb.getUserPassword();
+            authenticationType = AuthenticationType.USER;
+        } else {
+            authenticationType = AuthenticationType.DEVICE;
         }
 
         // Set the AAD Authority URI
@@ -43,42 +51,22 @@ class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
-        ExecutorService service = null;
+    String acquireAccessToken() throws DataServiceException  {
         try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext( aadAuthorityUri, true, service);
-
-            Future<DeviceCode> future = context.acquireDeviceCode(clientCredential.getClientId(), RESOURCE, null);
-            DeviceCode deviceCode = future.get();
-            System.out.println(deviceCode.getMessage());
-            System.out.println("Press Enter after authenticating");
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            switch (authenticationType) {
+                case APPLICATION:
+                    return acquireAadApplicationAccessToken().getAccessToken();
+                case USER:
+                    return acquireAadUserAccessToken().getAccessToken();
+                case DEVICE:
+                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                default:
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
-            System.in.read();
-            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
-            result = futureResult.get();
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
+        }
 
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
-        }
-        if (result == null) {
-            throw new ServiceUnavailableException("authentication result was null");
-        }
-        return result;
-    }
-
-    String acquireAccessToken() throws DataServiceException, DataClientException {
-        if (clientCredential != null) {
-            return acquireAadApplicationAccessToken().getAccessToken();
-        } else {
-            return acquireAadUserAccessToken().getAccessToken();
-        }
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
@@ -130,7 +118,34 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    private Boolean isNullOrEmpty(String str) {
-        return (str == null || str.trim().isEmpty());
+    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
+
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
+            DeviceCode deviceCode = future.get();
+            System.out.println(deviceCode.getMessage());
+            System.out.println("Press Enter after authenticating");
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            }
+            System.in.read();
+            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+            result = futureResult.get();
+
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
     }
+
 }
