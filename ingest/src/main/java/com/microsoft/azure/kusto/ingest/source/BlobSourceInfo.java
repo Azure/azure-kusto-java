@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.UUID;
 
-public class BlobSourceInfo extends SourceInfo {
+public class BlobSourceInfo extends AbstractSourceInfo {
 
     private String blobPath;
 
