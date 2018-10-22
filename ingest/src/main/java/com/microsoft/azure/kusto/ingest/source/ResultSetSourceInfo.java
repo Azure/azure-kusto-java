@@ -28,4 +28,9 @@ public class ResultSetSourceInfo extends SourceInfo {
     public String toString() {
         return String.format("ResultSet with SourceId: %s", getSourceId());
     }
+
+    @Override
+    public void validate() {
+
+    }
 }

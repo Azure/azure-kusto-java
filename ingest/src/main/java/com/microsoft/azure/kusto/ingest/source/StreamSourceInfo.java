@@ -39,6 +39,7 @@ public class StreamSourceInfo extends SourceInfo {
         this.setSourceId(sourceId);
     }
 
+    @Override
     public void validate(){
         if(stream == null){
             throw new IllegalArgumentException("stream is null");

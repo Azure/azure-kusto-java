@@ -37,6 +37,7 @@ public class FileSourceInfo extends SourceInfo {
         this.setSourceId(sourceId);
     }
 
+    @Override
     public void validate(){
         if(StringUtils.isEmpty(filePath)){
             throw new IllegalArgumentException("filePath is empty");
