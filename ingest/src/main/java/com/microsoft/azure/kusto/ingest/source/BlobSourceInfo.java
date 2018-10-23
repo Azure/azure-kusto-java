@@ -41,7 +41,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-    @Override
     public void validate(){
         if(StringUtils.isEmpty(blobPath)){
             throw new IllegalArgumentException("blobPath is empty");

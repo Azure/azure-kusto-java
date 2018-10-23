@@ -29,8 +29,7 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
         return String.format("ResultSet with SourceId: %s", getSourceId());
     }
 
-    @Override
     public void validate() {
-
+        // Not implemented yet
     }
 }
