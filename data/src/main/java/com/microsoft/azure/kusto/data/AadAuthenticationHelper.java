@@ -150,14 +150,27 @@ class AadAuthenticationHelper {
     }
 
     public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
-            throws IOException, InterruptedException, ExecutionException{
+            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
 
-        AuthenticationContext context = new AuthenticationContext(aadAuthorityUri, false, Executors.newFixedThreadPool(1));
-        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
-                privateKey, cert);
-        // pass null value for optional callback function and acquire access token
-        AuthenticationResult result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+        AuthenticationContext context;
+        AuthenticationResult result;
+        ExecutorService service = null;
 
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext(aadAuthorityUri, false, service);
+            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                    privateKey, cert);
+            // pass null value for optional callback function and acquire access token
+            result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
         return result;
     }
 

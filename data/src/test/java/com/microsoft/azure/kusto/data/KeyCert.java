@@ -4,27 +4,27 @@ import java.security.cert.X509Certificate;
 
 class KeyCert {
 
-    X509Certificate certificate;
-    PrivateKey key;
+    private X509Certificate certificate;
+    private PrivateKey key;
 
-    public KeyCert(X509Certificate certificate, PrivateKey key) {
+    KeyCert(X509Certificate certificate, PrivateKey key) {
         this.certificate = certificate;
         this.key = key;
     }
 
-    public X509Certificate getCertificate() {
+    X509Certificate getCertificate() {
         return certificate;
     }
 
-    public void setCertificate(X509Certificate certificate) {
+    void setCertificate(X509Certificate certificate) {
         this.certificate = certificate;
     }
 
-    public PrivateKey getKey() {
+    PrivateKey getKey() {
         return key;
     }
 
-    public void setKey(PrivateKey key) {
+    void setKey(PrivateKey key) {
         this.key = key;
     }
 
