@@ -3,8 +3,11 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import javax.naming.ServiceUnavailableException;
+import java.net.MalformedURLException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -35,7 +38,7 @@ class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws Exception {
+    String acquireAccessToken() throws DataServiceException, DataClientException {
         if (clientCredential != null) {
             return acquireAadApplicationAccessToken().getAccessToken();
         } else {
@@ -43,7 +46,7 @@ class AadAuthenticationHelper {
         }
     }
 
-    private AuthenticationResult acquireAadUserAccessToken() throws Exception {
+    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
         AuthenticationContext context;
         AuthenticationResult result;
         ExecutorService service = null;
@@ -55,6 +58,8 @@ class AadAuthenticationHelper {
                     clusterUrl, CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
+        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+            throw new DataClientException(clusterUrl, "Error in acquiring UserAccessToken", e);
         } finally {
             if (service != null) {
                 service.shutdown();
@@ -62,12 +67,12 @@ class AadAuthenticationHelper {
         }
 
         if (result == null) {
-            throw new ServiceUnavailableException("acquireAadUserAccessToken got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireAadUserAccessToken got 'null' authentication result");
         }
         return result;
     }
 
-    private AuthenticationResult acquireAadApplicationAccessToken() throws Exception {
+    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException {
         AuthenticationContext context;
         AuthenticationResult result;
         ExecutorService service = null;
@@ -76,6 +81,8 @@ class AadAuthenticationHelper {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
+        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+            throw new DataClientException(clusterUrl, "Error in acquiring ApplicationAccessToken", e);
         } finally {
             if (service != null) {
                 service.shutdown();
@@ -83,7 +90,7 @@ class AadAuthenticationHelper {
         }
 
         if (result == null) {
-            throw new ServiceUnavailableException("acquireAadApplicationAccessToken got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireAadApplicationAccessToken got 'null' authentication result");
         }
         return result;
     }

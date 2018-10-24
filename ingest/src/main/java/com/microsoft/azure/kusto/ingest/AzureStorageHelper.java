@@ -29,19 +29,10 @@ class AzureStorageHelper {
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
-    public static void postMessageToQueue(String queuePath, String content) throws Exception {
-
-        try
-        {
-            CloudQueue queue = new CloudQueue(new URI(queuePath));
-            CloudQueueMessage queueMessage = new CloudQueueMessage(content);
-            queue.addMessage(queueMessage);
-        }
-        catch (Exception e)
-        {
-            log.error("Error in postMessageToQueue", e);
-            throw e;
-        }
+    public static void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+        CloudQueue queue = new CloudQueue(new URI(queuePath));
+        CloudQueueMessage queueMessage = new CloudQueueMessage(content);
+        queue.addMessage(queueMessage);
     }
 
     public static void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
@@ -52,38 +43,24 @@ class AzureStorageHelper {
         table.execute(insert);
     }
 
-    public static CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws Exception{
-        try {
-            log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
+    public static CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws URISyntaxException, StorageException, IOException {
+        log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
-            // Check if the file is already compressed:
-            boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
+        // Check if the file is already compressed:
+        boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
 
-            CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-            File sourceFile = new File(filePath);
+        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
+        File sourceFile = new File(filePath);
 
-            CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
 
-            if(!isCompressed){
-                compressAndUploadFile(filePath, blob);
-            } else {
-                blob.uploadFromFile(sourceFile.getAbsolutePath());
-            }
-
-            return blob;
-        }
-        catch (StorageException se)
-        {
-            log.error("uploadLocalFileToBlob: Error returned from the service. Http code: {}. error code: {}. file path: {}"
-                    , se.getHttpStatusCode(), se.getErrorCode(), filePath, se);
-            throw se;
+        if(!isCompressed){
+            compressAndUploadFile(filePath, blob);
+        } else {
+            blob.uploadFromFile(sourceFile.getAbsolutePath());
         }
 
-        catch (Exception ex)
-        {
-            log.error("uploadLocalFileToBlob: Error while uploading file to blob. file path: {}", filePath, ex);
-            throw ex;
-        }
+        return blob;
     }
 
     private static void compressAndUploadFile(String filePath, CloudBlockBlob blob) throws IOException, StorageException {

@@ -2,6 +2,10 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +58,7 @@ class ResourceManager {
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
-    ResourceManager(Client client) throws Exception {
+    ResourceManager(Client client) {
         this.client = client;
         ingestionResources = new ConcurrentHashMap<>();
 
@@ -80,19 +84,13 @@ class ResourceManager {
             }
         };
 
-        try {
-            Timer timer = new Timer(true);
-            long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
-            timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
-            timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
-
-        } catch (Exception e) {
-            log.error("Error in initializing ResourceManager.", e);
-            throw e;
-        }
+        Timer timer = new Timer(true);
+        long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
+        timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+        timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
     }
 
-    String getIngestionResource(ResourceType resourceType) throws Exception {
+    String getIngestionResource(ResourceType resourceType) throws IngestionServiceException, IngestionClientException {
         if (!ingestionResources.containsKey(resourceType)) {
             // When the value is not available, we need to get the tokens from Kusto (refresh):
             refreshIngestionResources();
@@ -101,7 +99,7 @@ class ResourceManager {
                 // In other words if the refresh is running yet, then wait until it ends:
                 ingestionResourcesLock.readLock().lock();
                 if (!ingestionResources.containsKey(resourceType)) {
-                    throw new Exception("Unable to get ingestion resources for this type: " + resourceType.getName());
+                    throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resourceType.getName());
                 }
             } finally {
                 ingestionResourcesLock.readLock().unlock();
@@ -110,13 +108,13 @@ class ResourceManager {
         return ingestionResources.get(resourceType).nextValue();
     }
 
-    String getIdentityToken() throws Exception {
+    String getIdentityToken() throws IngestionServiceException, IngestionClientException {
         if (identityToken == null) {
             refreshIngestionAuthToken();
             try {
                 authTokenLock.readLock().lock();
                 if (identityToken == null) {
-                    throw new Exception("Unable to get Identity token");
+                    throw new IngestionServiceException("Unable to get Identity token");
                 }
             } finally {
                 authTokenLock.readLock().unlock();
@@ -133,7 +131,7 @@ class ResourceManager {
         ingestionResources.get(resourceType).addValue(value);
     }
 
-    private void refreshIngestionResources() throws Exception {
+    private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
@@ -150,6 +148,10 @@ class ResourceManager {
                     // Replace the values in the ingestionResources map with the values in the new map:
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
+            } catch (DataServiceException e) {
+                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
+            } catch (DataClientException e) {
+                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -170,7 +172,7 @@ class ResourceManager {
         });
     }
 
-    private void refreshIngestionAuthToken() throws Exception {
+    private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
@@ -180,6 +182,10 @@ class ResourceManager {
                         && identityTokenResult.getValues().size() > 0) {
                     identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
                 }
+            } catch (DataServiceException e) {
+                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
+            } catch (DataClientException e) {
+                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }
@@ -198,10 +204,6 @@ class ResourceManager {
 
         void addValue(String val) {
             valuesList.add(val);
-        }
-
-        int getSize() {
-            return valuesList.size();
         }
 
         String nextValue() {
