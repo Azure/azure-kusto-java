@@ -1,9 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
-import com.microsoft.aad.adal4j.DeviceCode;
+import com.microsoft.aad.adal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
@@ -11,8 +8,11 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.naming.ServiceUnavailableException;
 import java.awt.*;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -137,6 +137,31 @@ class AadAuthenticationHelper {
             Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
             result = futureResult.get();
 
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
+    }
+
+    public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
+            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
+
+        AuthenticationContext context;
+        AuthenticationResult result;
+        ExecutorService service = null;
+
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext(aadAuthorityUri, false, service);
+            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                    privateKey, cert);
+            // pass null value for optional callback function and acquire access token
+            result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
         } finally {
             if (service != null) {
                 service.shutdown();
