@@ -73,8 +73,11 @@ class IngestClientImpl implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        if (blobSourceInfo == null || ingestionProperties == null) {
-            throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
+        if (blobSourceInfo == null){
+            throw new IllegalArgumentException("blobSourceInfo is null");
+        }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
         }
         blobSourceInfo.validate();
         ingestionProperties.validate();
@@ -152,8 +155,11 @@ class IngestClientImpl implements IngestClient {
 
     private IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (fileSourceInfo == null || ingestionProperties == null){
-            throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
+        if (fileSourceInfo == null){
+            throw new IllegalArgumentException("fileSourceInfo is null");
+        }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
         }
         fileSourceInfo.validate();
         ingestionProperties.validate();
@@ -197,9 +203,13 @@ class IngestClientImpl implements IngestClient {
 
     private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (streamSourceInfo == null || ingestionProperties == null){
-            throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
+        if (streamSourceInfo == null){
+            throw new IllegalArgumentException("streamSourceInfo is null");
         }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
+        }
+
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
