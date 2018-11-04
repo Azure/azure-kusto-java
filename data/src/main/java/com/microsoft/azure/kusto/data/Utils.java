@@ -19,7 +19,7 @@ import java.util.HashMap;
 public class Utils {
 
     public static KustoResults post(String url, String aadAccessToken, String payload) throws Exception {
-        HttpClient httpClient = HttpClients.createDefault();
+        HttpClient httpClient = HttpClients.createSystem();
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
