@@ -13,37 +13,45 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    private final static String RESOURCE = "https://graph.windows.net";
 
     private ClientCredential clientCredential;
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
     private String aadAuthorityUri;
+    private X509Certificate x509Certificate;
+    private PrivateKey privateKey;
     private AuthenticationType authenticationType;
 
-    private enum AuthenticationType { USER, APPLICATION, DEVICE }
+    private enum AuthenticationType {
+        AAD_USERNAME_PASSWORD,
+        AAD_APPLICATION_KEY,
+        AAD_DEVICE_LOGIN,
+        AAD_APPLICATION_CERTIFICATE
+    }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
-            authenticationType = AuthenticationType.APPLICATION;
+            authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
         } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
             userUsername = csb.getUserUsername();
             userPassword = csb.getUserPassword();
-            authenticationType = AuthenticationType.USER;
+            authenticationType = AuthenticationType.AAD_USERNAME_PASSWORD;
+        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
+            x509Certificate = csb.getX509Certificate();
+            privateKey = csb.getPrivateKey();
+            clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
+            authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
         } else {
-            authenticationType = AuthenticationType.DEVICE;
+            authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
 
         // Set the AAD Authority URI
@@ -54,11 +62,11 @@ class AadAuthenticationHelper {
     String acquireAccessToken() throws DataServiceException  {
         try {
             switch (authenticationType) {
-                case APPLICATION:
+                case AAD_APPLICATION_KEY:
                     return acquireAadApplicationAccessToken().getAccessToken();
-                case USER:
+                case AAD_USERNAME_PASSWORD:
                     return acquireAadUserAccessToken().getAccessToken();
-                case DEVICE:
+                case AAD_DEVICE_LOGIN:
                     return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
                 default:
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
@@ -125,8 +133,7 @@ class AadAuthenticationHelper {
         try {
             service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext( aadAuthorityUri, true, service);
-
-            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, RESOURCE, null);
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, aadAuthorityUri, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
             System.out.println("Press Enter after authenticating");
@@ -148,7 +155,7 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    public AuthenticationResult acquireWithClientCertificate(X509Certificate cert, PrivateKey privateKey)
+    AuthenticationResult acquireWithClientCertificate()
             throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
 
         AuthenticationContext context;
@@ -159,7 +166,7 @@ class AadAuthenticationHelper {
             service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, false, service);
             AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
-                    privateKey, cert);
+                    privateKey, x509Certificate);
             // pass null value for optional callback function and acquire access token
             result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
         } finally {

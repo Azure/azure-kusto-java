@@ -1,5 +1,10 @@
 package com.microsoft.azure.kusto.data;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+
 public class ConnectionStringBuilder {
 
     private String clusterUri;
@@ -7,7 +12,11 @@ public class ConnectionStringBuilder {
     private String password;
     private String applicationClientId;
     private String applicationKey;
+    private X509Certificate x509Certificate;
+    private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
+
+    private final static String illegalArgumentsMsg = "One (or more) of required parameters is null or empty.";
 
     String getClusterUrl() { return clusterUri; }
     String getUserUsername() { return username; }
@@ -15,6 +24,8 @@ public class ConnectionStringBuilder {
     String getApplicationClientId() { return applicationClientId; }
     String getApplicationKey() { return applicationKey; }
     String getAuthorityId() { return aadAuthorityId; }
+    X509Certificate getX509Certificate() { return x509Certificate; }
+    PrivateKey getPrivateKey(){ return  privateKey; }
 
     private ConnectionStringBuilder(String resourceUri)
     {
@@ -24,6 +35,8 @@ public class ConnectionStringBuilder {
         applicationClientId = null;
         applicationKey = null;
         aadAuthorityId = null;
+        x509Certificate = null;
+        privateKey = null;
     }
 
     private static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -31,6 +44,9 @@ public class ConnectionStringBuilder {
                                                                         String password,
                                                                         String authorityId)
     {
+        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(username) || StringUtils.isEmpty(password)){
+            throw new IllegalArgumentException(illegalArgumentsMsg);
+        }
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.username = username;
         csb.password = password;
@@ -50,6 +66,9 @@ public class ConnectionStringBuilder {
                                                                                String applicationKey,
                                                                                String authorityId)
     {
+        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(applicationClientId) || StringUtils.isEmpty(applicationKey)){
+            throw new IllegalArgumentException(illegalArgumentsMsg);
+        }
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;
         csb.applicationKey = applicationKey;
@@ -65,6 +84,25 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri){
+        if (StringUtils.isEmpty(resourceUri)){
+            throw new IllegalArgumentException(illegalArgumentsMsg);
+        }
         return new ConnectionStringBuilder(resourceUri);
     }
+
+    public static ConnectionStringBuilder createWithAadApplicationCertificate(String resourceUri,
+                                                                              String applicationClientId,
+                                                                              X509Certificate x509Certificate,
+                                                                              PrivateKey privateKey){
+        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(applicationClientId) || x509Certificate == null || privateKey == null){
+            throw new IllegalArgumentException(illegalArgumentsMsg);
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.applicationClientId = applicationClientId;
+        csb.x509Certificate = x509Certificate;
+        csb.privateKey = privateKey;
+        return csb;
+    }
+
 }

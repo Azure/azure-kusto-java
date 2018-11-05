@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
 
-import com.microsoft.aad.adal4j.AuthenticationException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -31,8 +30,8 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
-    void acquireWithClientCertificateNullKey() throws IOException, CertificateException, OperatorCreationException,
-            PKCSException, IOException, InterruptedException, ExecutionException {
+    void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
+            PKCSException, IOException {
 
         String certFilePath = Paths.get("src","test","resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src","test","resources","key.pem").toString();
@@ -41,20 +40,16 @@ public class AadAuthenticationHelperTest {
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
 
         ConnectionStringBuilder csb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials("resource.uri", "client-id", "applicationKey", "authority-id");
+                .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
         AadAuthenticationHelper aadAuthenticationHelper = new AadAuthenticationHelper(csb);
 
-        Assertions.assertThrows(NullPointerException.class,
-                () -> aadAuthenticationHelper.acquireWithClientCertificate(x509Certificate, null));
-        Assertions.assertThrows(AuthenticationException.class,
-                () -> aadAuthenticationHelper.acquireWithClientCertificate(null, privateKey));
         Assertions.assertThrows(ExecutionException.class,
-                () -> aadAuthenticationHelper.acquireWithClientCertificate(x509Certificate, privateKey));
+                () -> aadAuthenticationHelper.acquireWithClientCertificate());
 
     }
 
-    private static KeyCert readPem(String path, String password)
+    static KeyCert readPem(String path, String password)
             throws IOException, CertificateException, OperatorCreationException, PKCSException {
 
         Security.addProvider(new BouncyCastleProvider());
