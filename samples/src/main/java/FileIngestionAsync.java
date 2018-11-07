@@ -6,7 +6,6 @@ import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 public class FileIngestionAsync {
     public static void main(String[] args) {
@@ -24,19 +23,40 @@ public class FileIngestionAsync {
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 
-            // Ingest From File ASYNC:
+            // Ingest From File ASYNC returns a CompletableFuture:
             CompletableFuture<IngestionResult> cf = client.ingestFromFileAsync(fileSourceInfo, ingestionProperties);
+            System.out.println("Waiting for ingestion results");
 
-            try {
-                IngestionResult ingestionResult = cf.join();
-                System.out.println(ingestionResult.toString());
-            } catch (CompletionException e) {
-                // The CompletionException includes in its cause the original exception that occurred during the ingestion.
-                throw new Exception(e.getCause());
-            }
+            // In case of exception during File Ingestion, a CompletionException will be thrown by the CompletableFuture,
+            // that contains in its cause the original exception that occurred during the ingestion itself.
+            // In this case we print an error message and the StackTrace of the cause, and return null, Else (if
+            // no exception was thrown), the IngestionResult will be returned by the completable future.
+            CompletableFuture<IngestionResult> cf2 = cf.exceptionally(ex -> {
+                System.err.println("Error in File Ingestion:");
+                // Here the getCause() will return the exception from the file ingestion operation
+                ex.getCause().printStackTrace();
+                return null;
+            });
+
+            // When the CompletableFuture ends and we have an IngestionResult,
+            // print a message, and apply the method doSomethingWithIngestionResult() on the result:
+            cf2.thenRun(() -> System.out.println("File Ingestion ended."));
+            cf2.thenAccept(FileIngestionAsync::doSomethingWithIngestionResult);
+
+            System.out.println("(Press Enter to terminate the program)");
+            System.in.read();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static void doSomethingWithIngestionResult(IngestionResult ingestionResult){
+        if(ingestionResult != null) {
+            System.out.println("IngestionResults: " + ingestionResult.toString());
+        } else {
+            System.out.println("No IngestionResults available");
+        }
+
     }
 }
