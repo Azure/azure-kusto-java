@@ -3,6 +3,8 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.aad.adal4j.AuthenticationContext;
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.ClientCredential;
+import java.time.Instant;
+import java.util.Date;
 
 import javax.naming.ServiceUnavailableException;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +22,8 @@ public class AadAuthenticationHelper {
     private String clusterUrl;
     private String aadAuthorityId;
     private String aadAuthorityUri;
+    
+    private AuthenticationResult cachedToken;
 
     AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
         clusterUrl = kcsb.getClusterUrl();
@@ -36,12 +40,20 @@ public class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws Exception {
-        if (clientCredential != null) {
-            return acquireAadApplicationAccessToken().getAccessToken();
-        } else {
-            return acquireAadUserAccessToken().getAccessToken();
+    String acquireAccessToken(Date renewalTime) throws Exception {
+        if (cachedToken != null && renewalTime.before(cachedToken.getExpiresOnDate())){
+            return cachedToken.getAccessToken();
         }
+        if (clientCredential != null) {
+            cachedToken = acquireAadApplicationAccessToken();
+        } else {
+            cachedToken = acquireAadUserAccessToken();
+        }
+        return cachedToken.getAccessToken();
+    }
+    
+    String acquireAccessToken() throws Exception {
+       return acquireAccessToken(Date.from(Instant.now().minusSeconds(60)));
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws Exception {
