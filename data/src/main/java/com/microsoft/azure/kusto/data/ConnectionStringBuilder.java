@@ -16,7 +16,7 @@ public class ConnectionStringBuilder {
     private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
 
-    private final static String illegalArgumentsMsg = "One (or more) of required parameters is null or empty.";
+    private final static String illegalArgumentsMsg = "One (or more) of the required parameters is null or empty.";
 
     String getClusterUrl() { return clusterUri; }
     String getUserUsername() { return username; }
