@@ -16,8 +16,6 @@ public class ConnectionStringBuilder {
     private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
 
-    private final static String illegalArgumentsMsg = "One (or more) of required parameters is null or empty.";
-
     String getClusterUrl() { return clusterUri; }
     String getUserUsername() { return username; }
     String getUserPassword() { return password; }
@@ -26,7 +24,6 @@ public class ConnectionStringBuilder {
     String getAuthorityId() { return aadAuthorityId; }
     X509Certificate getX509Certificate() { return x509Certificate; }
     PrivateKey getPrivateKey(){ return  privateKey; }
-
     private ConnectionStringBuilder(String resourceUri)
     {
         clusterUri = resourceUri;
@@ -44,8 +41,14 @@ public class ConnectionStringBuilder {
                                                                         String password,
                                                                         String authorityId)
     {
-        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(username) || StringUtils.isEmpty(password)){
-            throw new IllegalArgumentException(illegalArgumentsMsg);
+        if (StringUtils.isEmpty(resourceUri)){
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
+        if (StringUtils.isEmpty(username)){
+            throw new IllegalArgumentException("username cannot be null or empty");
+        }
+        if (StringUtils.isEmpty(password)){
+            throw new IllegalArgumentException("password cannot be null or empty");
         }
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.username = username;
@@ -66,9 +69,17 @@ public class ConnectionStringBuilder {
                                                                                String applicationKey,
                                                                                String authorityId)
     {
-        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(applicationClientId) || StringUtils.isEmpty(applicationKey)){
-            throw new IllegalArgumentException(illegalArgumentsMsg);
+
+        if (StringUtils.isEmpty(resourceUri)){
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
+        if (StringUtils.isEmpty(applicationClientId)){
+            throw new IllegalArgumentException("applicationClientId cannot be null or empty");
+        }
+        if (StringUtils.isEmpty(applicationKey)){
+            throw new IllegalArgumentException("applicationKey cannot be null or empty");
+        }
+
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;
         csb.applicationKey = applicationKey;
@@ -85,7 +96,7 @@ public class ConnectionStringBuilder {
 
     public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri){
         if (StringUtils.isEmpty(resourceUri)){
-            throw new IllegalArgumentException(illegalArgumentsMsg);
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
         return new ConnectionStringBuilder(resourceUri);
     }
@@ -94,9 +105,19 @@ public class ConnectionStringBuilder {
                                                                               String applicationClientId,
                                                                               X509Certificate x509Certificate,
                                                                               PrivateKey privateKey){
-        if (StringUtils.isEmpty(resourceUri) || StringUtils.isEmpty(applicationClientId) || x509Certificate == null || privateKey == null){
-            throw new IllegalArgumentException(illegalArgumentsMsg);
+        if (StringUtils.isEmpty(resourceUri)){
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
+        if (StringUtils.isEmpty(applicationClientId)){
+            throw new IllegalArgumentException("applicationClientId cannot be null or empty");
+        }
+        if (x509Certificate == null){
+            throw new IllegalArgumentException("certificate cannot be null");
+        }
+        if (privateKey == null){
+            throw new IllegalArgumentException("privateKey cannot be null");
+        }
+
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;

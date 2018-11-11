@@ -15,7 +15,7 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.*;
 
-class AadAuthenticationHelper {
+public class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -36,7 +36,7 @@ class AadAuthenticationHelper {
         AAD_APPLICATION_CERTIFICATE
     }
 
-    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
+    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
         clusterUrl = csb.getClusterUrl();
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
@@ -126,23 +126,21 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+    public AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
         AuthenticationContext context = null;
         AuthenticationResult result = null;
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext( aadAuthorityUri, true, service);
-            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, aadAuthorityUri, null);
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
-            System.out.println("Press Enter after authenticating");
             if (Desktop.isDesktopSupported()) {
                 Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
             }
-            System.in.read();
-            Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
-            result = futureResult.get();
+            result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
+
 
         } finally {
             if (service != null) {
@@ -151,6 +149,22 @@ class AadAuthenticationHelper {
         }
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
+    }
+
+    private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
+            throws  InterruptedException{
+        int timeout = 15 * 1000;
+        AuthenticationResult result = null;
+        while (timeout > 0){
+            try{
+                Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+                return futureResult.get();
+            } catch (ExecutionException e) {
+                    Thread.sleep(1000);
+                    timeout -= 1000;
+            }
         }
         return result;
     }
