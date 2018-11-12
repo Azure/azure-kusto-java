@@ -112,12 +112,40 @@ class AzureStorageHelper {
         return blob;
     }
 
+    public static CloudBlockBlob uploadByteArrayToBlob(byte[] bytes, int size, String blobName, String storageUri) throws IOException, URISyntaxException, StorageException {
+        log.debug(String.format("uploadImMemoryByteStreamToBlob: blobName: %s, storageUri: %s", blobName, storageUri));
+        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName);
+        BlobOutputStream bos = blob.openOutputStream();
+
+        streamBuffer(bytes, size, bos);
+        bos.close();
+
+        return blob;
+    }
+
     private static void streamFile(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
         byte[] buffer = new byte[bufferSize];
         int length;
         while ((length = inputStream.read(buffer)) > 0) {
             outputStream.write(buffer, 0, length);
         }
+    }
+
+    private static void streamBuffer(byte[] buffer, int bufferSize, OutputStream outputStream) throws IOException {
+        int length;
+        int remainingSize = bufferSize;
+        int offset = 0;
+
+        while ((length = getChunkSize(remainingSize, STREAM_BUFFER_SIZE)) > 0) {
+            outputStream.write(buffer, offset, length);
+            remainingSize -= length;
+            offset += length;
+        }
+    }
+
+    private static int getChunkSize(int remainingSize, int maxChunkSize) {
+        return remainingSize > maxChunkSize ? maxChunkSize : remainingSize;
     }
 
     public static String getBlobPathWithSas(CloudBlockBlob blob) {

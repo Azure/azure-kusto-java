@@ -5,10 +5,7 @@ import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
 import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
 import com.microsoft.azure.kusto.ingest.result.*;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
@@ -98,7 +95,6 @@ class IngestClientImpl implements IngestClient {
         }
 
         return new TableReportIngestionResult(tableStatuses);
-
     }
 
     @Override
@@ -149,6 +145,30 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
+    @Override
+    public IngestionResult ingestFromByteArray(ByteArraySourceInfo byteArraySourceInfo, IngestionProperties ingestionProperties) throws Exception {
+        try {
+            String fileName = byteArraySourceInfo.getName();
+            String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+            int rawDataSize = byteArraySourceInfo.getSize();
+
+            CloudBlockBlob blob = uploadByteArrayToBlob(
+                    byteArraySourceInfo.getByteArray(),
+                    rawDataSize,
+                    blobName,
+                    resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
+
+            String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, byteArraySourceInfo.getSourceId());
+
+            return ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        } catch (Exception ex) {
+            log.error("ingestFromByteArray: Error ingesting local byte array: {}", byteArraySourceInfo.getName(), ex);
+            throw ex;
+        }
+    }
+
     private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws Exception {
         String blobPath = blobSourceInfo.getBlobPath();
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
@@ -193,6 +213,11 @@ class IngestClientImpl implements IngestClient {
     // TODO: redesign to avoid those wrapper methods over static ones.
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws Exception {
         return AzureStorageHelper.uploadStreamToBlob(inputStream, blobName, storageUri, compress);
+    }
+
+    // TODO: redesign to avoid those wrapper methods over static ones.
+    CloudBlockBlob uploadByteArrayToBlob(byte[] bytes, int size, String blobName, String storageUri) throws Exception {
+        return AzureStorageHelper.uploadByteArrayToBlob(bytes, size, blobName, storageUri);
     }
 
     @Override

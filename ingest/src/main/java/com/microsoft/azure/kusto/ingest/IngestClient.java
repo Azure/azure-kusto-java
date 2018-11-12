@@ -1,10 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 
 public interface IngestClient {
 
@@ -16,7 +13,5 @@ public interface IngestClient {
 
     IngestionResult ingestFromStream (StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws Exception;
 
-
-
-
+    IngestionResult ingestFromByteArray(ByteArraySourceInfo byteArraySourceInfo, IngestionProperties ingestionProperties) throws Exception;
 }
