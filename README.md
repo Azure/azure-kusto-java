@@ -1,4 +1,4 @@
-# Microsoft Azure Kusto SDK for Java
+# Microsoft Azure Kusto (Azure Data Explorer) SDK for Java
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
@@ -54,6 +54,11 @@ In the near future this library will be available directly off Maven.
 
 - [Query Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/Query.java)
 - [Ingest Sample](https://github.com/Azure/azure-kusto-java/blob/master/samples/src/main/java/FileIngestion.java)
+
+## Looking for SDKs for other languages/platforms?
+- [Node](https://github.com/azure/azure-kusto-node)
+- [Python](https://github.com/azure/azure-kusto-python)
+- [.NET](https://docs.microsoft.com/en-us/azure/kusto/api/netfx/about-the-sdk)
 
 # Contributing
 
