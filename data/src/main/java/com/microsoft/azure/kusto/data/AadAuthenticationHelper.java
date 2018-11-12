@@ -68,6 +68,8 @@ public class AadAuthenticationHelper {
                     return acquireAadUserAccessToken().getAccessToken();
                 case AAD_DEVICE_LOGIN:
                     return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                case AAD_APPLICATION_CERTIFICATE:
+                    return acquireWithClientCertificate().getAccessToken();
                 default:
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
@@ -126,7 +128,7 @@ public class AadAuthenticationHelper {
         return result;
     }
 
-    public AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+    private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
         AuthenticationContext context = null;
         AuthenticationResult result = null;
         ExecutorService service = null;
