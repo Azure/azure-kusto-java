@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest.source;
 import java.sql.ResultSet;
 import java.util.UUID;
 
-public class ResultSetSourceInfo extends SourceInfo {
+public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     private ResultSet resultSet;
 
@@ -27,5 +27,9 @@ public class ResultSetSourceInfo extends SourceInfo {
     @Override
     public String toString() {
         return String.format("ResultSet with SourceId: %s", getSourceId());
+    }
+
+    public void validate() {
+        // Not implemented yet
     }
 }

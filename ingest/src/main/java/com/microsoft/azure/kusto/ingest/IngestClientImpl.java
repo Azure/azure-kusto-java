@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,11 +33,13 @@ class IngestClientImpl implements IngestClient {
 
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
+    private AzureStorageHelper azureStorageHelper;
 
     IngestClientImpl(ConnectionStringBuilder csb) {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         resourceManager = new ResourceManager(client);
+        azureStorageHelper = new AzureStorageHelper();
     }
 
     @Override
@@ -84,14 +85,14 @@ class IngestClientImpl implements IngestClient {
                 status.ingestionSourceId = ingestionBlobInfo.id;
                 status.setIngestionSourcePath(blobSourceInfo.getBlobPath());
 
-                AzureStorageHelper.azureTableInsertEntity(tableStatusUri, status);
+                azureStorageHelper.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            postMessageToQueue(
+            azureStorageHelper.postMessageToQueue(
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
             return new TableReportIngestionResult(tableStatuses);
@@ -115,8 +116,8 @@ class IngestClientImpl implements IngestClient {
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
-            String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
+            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(fileSourceInfo.getFilePath());
 
@@ -146,13 +147,13 @@ class IngestClientImpl implements IngestClient {
                 throw new IngestionClientException("Stream is empty");
             }
             String blobName = genBlobName("StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = uploadStreamToBlob(
+            CloudBlockBlob blob = azureStorageHelper.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
                     true
             );
-            String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0); // TODO: check if we can get the rawDataSize locally
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -167,21 +168,27 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws StorageException, URISyntaxException {
-        String blobPath = blobSourceInfo.getBlobPath();
-        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-        blockBlob.downloadAttributes();
-        long length = blockBlob.getProperties().getLength();
+    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
+        try {
+            String blobPath = blobSourceInfo.getBlobPath();
+            CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
+            blockBlob.downloadAttributes();
+            long length = blockBlob.getProperties().getLength();
 
-        if (length == 0) {
+            if (length == 0) {
+                return length;
+            }
+
+            if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
+                length = length * COMPRESSED_FILE_MULTIPLIER;
+            }
+
             return length;
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in estimateBlobRawSize", e);
+        } catch (URISyntaxException e) {
+            throw new IngestionClientException("Error in estimateBlobRawSize", e);
         }
-
-        if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
-            length = length * COMPRESSED_FILE_MULTIPLIER;
-        }
-
-        return length;
     }
 
     private long estimateFileRawSize(String filePath) {
@@ -195,21 +202,6 @@ class IngestClientImpl implements IngestClient {
 
     private String genBlobName(String fileName, String databaseName, String tableName) {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
-    }
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    void postMessageToQueue(String queuePath, String serializedIngestionBlobInfo) throws URISyntaxException, StorageException {
-        AzureStorageHelper.postMessageToQueue(queuePath, serializedIngestionBlobInfo);
-    }
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws StorageException, IOException, URISyntaxException {
-        return AzureStorageHelper.uploadLocalFileToBlob(filePath, blobName, storageUri);
-    }
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws StorageException, IOException, URISyntaxException {
-        return AzureStorageHelper.uploadStreamToBlob(inputStream, blobName, storageUri, compress);
     }
 
     @Override

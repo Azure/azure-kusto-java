@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.UUID;
 
-public class FileSourceInfo extends SourceInfo {
+public class FileSourceInfo extends AbstractSourceInfo {
 
     private String filePath;
 

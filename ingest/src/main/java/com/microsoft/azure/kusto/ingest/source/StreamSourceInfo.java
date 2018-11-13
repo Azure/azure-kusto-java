@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest.source;
 import java.io.InputStream;
 import java.util.UUID;
 
-public class StreamSourceInfo extends SourceInfo {
+public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;

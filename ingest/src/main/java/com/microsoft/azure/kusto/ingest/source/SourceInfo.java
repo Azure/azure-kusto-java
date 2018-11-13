@@ -2,16 +2,8 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import java.util.UUID;
 
-abstract class SourceInfo {
-
-    private UUID sourceId;
-
-    public UUID getSourceId() {
-        return sourceId;
-    }
-
-    public void setSourceId(UUID sourceId) {
-        this.sourceId = sourceId;
-    }
-
+public interface SourceInfo {
+    void validate();
+    UUID getSourceId();
+    void setSourceId(UUID sourceId);
 }
