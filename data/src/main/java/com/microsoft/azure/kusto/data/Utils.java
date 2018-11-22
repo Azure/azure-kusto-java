@@ -69,7 +69,13 @@ public class Utils {
                     for (int j = 0; j < row.length(); j++) {
                         rowVector.add(row.getString(j));
                     }
-                    values.add(rowVector);
+                    Object obj = row.get(j);
+                    rowVector.add(row.getString(j));
+	                if(obj == JSONObject.NULL){		
+	                    rowVector.add("");		
+	                } else {		
+	                    rowVector.add(obj.toString());		
+	                }
                 }
 
                 return new KustoResults(columnNameToIndex, columnNameToType, values);
