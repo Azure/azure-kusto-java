@@ -74,7 +74,7 @@ class Utils {
                         for(int j = 0; j < row.length(); ++j) {
                             Object obj = row.get(j);
                             if (obj == JSONObject.NULL) {
-                                rowVector.add((Object)null);
+                                rowVector.add(null);
                             } else {
                                 rowVector.add(obj.toString());
                             }
