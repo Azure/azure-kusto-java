@@ -66,16 +66,14 @@ public class Utils {
                 for (int i = 0; i < resultsRows.length(); i++) {
                     JSONArray row = resultsRows.getJSONArray(i);
                     ArrayList<String> rowVector = new ArrayList<>();
-                    for (int j = 0; j < row.length(); j++) {
-                        rowVector.add(row.getString(j));
+                    for(int j = 0; j < row.length(); ++j) {
+                        Object obj = row.get(j);
+                        if (obj == JSONObject.NULL) {
+                            rowVector.add((Object)null);
+                        } else {
+                            rowVector.add(obj.toString());
+                        }
                     }
-                    Object obj = row.get(j);
-                    rowVector.add(row.getString(j));
-	                if(obj == JSONObject.NULL){		
-	                    rowVector.add("");		
-	                } else {		
-	                    rowVector.add(obj.toString());		
-	                }
                 }
 
                 return new KustoResults(columnNameToIndex, columnNameToType, values);
