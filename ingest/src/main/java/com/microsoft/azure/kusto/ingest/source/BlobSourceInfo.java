@@ -1,8 +1,10 @@
 package com.microsoft.azure.kusto.ingest.source;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.UUID;
 
-public class BlobSourceInfo extends SourceInfo {
+public class BlobSourceInfo extends AbstractSourceInfo {
 
     private String blobPath;
 
@@ -37,5 +39,11 @@ public class BlobSourceInfo extends SourceInfo {
         this.blobPath = blobPath;
         this.rawSizeInBytes = rawSizeInBytes;
         this.setSourceId(sourceId);
+    }
+
+    public void validate(){
+        if(StringUtils.isEmpty(blobPath)){
+            throw new IllegalArgumentException("blobPath is empty");
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -87,5 +89,11 @@ public class IngestionProperties {
         Queue,
         Table,
         QueueAndTable
+    }
+
+    public void validate(){
+        if(StringUtils.isAnyEmpty(databaseName,tableName) || reportMethod == null){
+            throw new IllegalArgumentException("databaseName, tableName or reportMethod are empty");
+        }
     }
 }

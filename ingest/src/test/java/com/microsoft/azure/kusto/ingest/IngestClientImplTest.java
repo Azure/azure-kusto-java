@@ -18,29 +18,29 @@ import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
 
-    ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    IngestClient ingestClientMock;
-    IngestClientImpl ingestClientMockImpl;
-    IngestionProperties props;
+    private ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    private IngestClientImpl ingestClientImplMock;
+    private AzureStorageHelper azureStorageHelperMock;
+    private IngestionProperties props;
 
     @BeforeEach
     void setUp() {
         try {
-            ingestClientMock = mock(IngestClient.class);
-            ingestClientMockImpl = mock(IngestClientImpl.class);
+            ingestClientImplMock = mock(IngestClientImpl.class);
+            azureStorageHelperMock = mock(AzureStorageHelper.class);
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
                     .thenReturn("queue2");
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE))
                     .thenReturn("storage1")
                     .thenReturn("storage2");
 
-            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE))
+            when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
                     .thenReturn("statusTable");
 
-            when(resourceManagerMock.getKustoIdentityToken())
+            when(resourceManagerMock.getIdentityToken())
                     .thenReturn("identityToken");
 
             props = new IngestionProperties("dbName", "tableName");
@@ -59,16 +59,16 @@ class IngestClientImplTest {
     @Test
     void ingestFromBlob() {
         try {
-            doReturn(null).when(ingestClientMock).ingestFromBlob(isA(BlobSourceInfo.class), isA(IngestionProperties.class));
+            doReturn(null).when(ingestClientImplMock).ingestFromBlob(isA(BlobSourceInfo.class), isA(IngestionProperties.class));
 
             String blobPath = "blobPath";
             long size = 100;
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, size);
 
-            ingestClientMock.ingestFromBlob(blobSourceInfo, props);
+            ingestClientImplMock.ingestFromBlob(blobSourceInfo, props);
 
-            verify(ingestClientMock).ingestFromBlob(blobSourceInfo, props);
+            verify(ingestClientImplMock).ingestFromBlob(blobSourceInfo, props);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,18 +79,18 @@ class IngestClientImplTest {
     void ingestFromFile() {
         try {
             String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-            when(ingestClientMockImpl.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
+            when(azureStorageHelperMock.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
+            doNothing().when(azureStorageHelperMock).postMessageToQueue(isA(String.class), isA(String.class));
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
             int numOfFiles = 3;
             for (int i = 0; i < numOfFiles; i++) {
-                ingestClientMock.ingestFromFile(fileSourceInfo, props);
+                ingestClientImplMock.ingestFromFile(fileSourceInfo, props);
             }
 
-            verify(ingestClientMock, times(numOfFiles)).ingestFromFile(fileSourceInfo, props);
+            verify(ingestClientImplMock, times(numOfFiles)).ingestFromFile(fileSourceInfo, props);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -101,16 +101,16 @@ class IngestClientImplTest {
     void ingestFromStream() {
         try {
             String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-            when(ingestClientMockImpl.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
+            when(azureStorageHelperMock.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
-            doNothing().when(ingestClientMockImpl).postMessageToQueue(isA(String.class), isA(String.class));
+            doNothing().when(azureStorageHelperMock).postMessageToQueue(isA(String.class), isA(String.class));
             int numOfFiles = 3;
             for (int i = 0; i < numOfFiles; i++) {
                 InputStream stream = new FileInputStream(testFilePath);
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
-                ingestClientMock.ingestFromStream(streamSourceInfo, props);
+                ingestClientImplMock.ingestFromStream(streamSourceInfo, props);
             }
-            verify(ingestClientMock, times(numOfFiles)).ingestFromStream(any(StreamSourceInfo.class), any(IngestionProperties.class));
+            verify(ingestClientImplMock, times(numOfFiles)).ingestFromStream(any(StreamSourceInfo.class), any(IngestionProperties.class));
         } catch (Exception e) {
             e.printStackTrace();
         }
