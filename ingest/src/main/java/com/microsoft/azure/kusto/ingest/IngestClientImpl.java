@@ -26,6 +26,8 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 class IngestClientImpl implements IngestClient {
 
@@ -45,10 +47,37 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
+        return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        log.error("Error when ingestFromBlobAsync()", e);
+                        // Here we throw a CompletionException which extends the RuntimeException.
+                        // the real exception itself would be in the <cause> of this CompletionException
+                        throw new CompletionException(e);
+                        /* We might decide what to return in case of error.
+                            One suggestion is to return an object of ResultWrapper<IngestionResult, Exception>
+                            instead of throwing an exception.
+                         */
+                    }
+                });
+    }
+
+    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        if (blobSourceInfo == null || ingestionProperties == null){
-            throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
+        if (blobSourceInfo == null){
+            throw new IllegalArgumentException("blobSourceInfo is null");
+        }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
         }
         blobSourceInfo.validate();
         ingestionProperties.validate();
@@ -95,6 +124,7 @@ class IngestClientImpl implements IngestClient {
             azureStorageHelper.postMessageToQueue(
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
+
             return new TableReportIngestionResult(tableStatuses);
 
         } catch (StorageException e) {
@@ -105,10 +135,31 @@ class IngestClientImpl implements IngestClient {
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        log.error("Error in ingestFromFileAsync()", e);
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    private IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (fileSourceInfo == null || ingestionProperties == null){
-            throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
+        if (fileSourceInfo == null){
+            throw new IllegalArgumentException("fileSourceInfo is null");
+        }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
         }
         fileSourceInfo.validate();
         ingestionProperties.validate();
@@ -134,10 +185,31 @@ class IngestClientImpl implements IngestClient {
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    public CompletableFuture<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        log.error("Error when ingestFromStreamAsync()", e);
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (streamSourceInfo == null || ingestionProperties == null){
-            throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
+        if (streamSourceInfo == null){
+            throw new IllegalArgumentException("streamSourceInfo is null");
         }
+        if (ingestionProperties == null){
+            throw new IllegalArgumentException("ingestionProperties is null");
+        }
+
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
