@@ -5,49 +5,47 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.util.List;
-import java.util.UUID;
+
+import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QueueAndTable;
 
 public class TableStatus {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        try {
 
-        // step 1: Retrieve table uri
-        String applicationClientId = null;
-        String applicationKey = null;
-        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                "https://ingest-CLUSTERNAME.kusto.windows.net", applicationClientId, applicationKey);
-        IngestClient client = IngestClientFactory.createClient(csb);
+            Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
-        // step 2: create an entry in the azure storage table
-        String blobUri = "";
-        UUID uuid = UUID.randomUUID();
-        System.out.println(uuid);
-        BlobSourceInfo blob = new BlobSourceInfo(blobUri, 1000L);
-        blob.setSourceId(uuid);
+            ConnectionStringBuilder csb =
+                    ConnectionStringBuilder.createWithAadApplicationCredentials( System.getProperty("clusterPath"),
+                            System.getProperty("appId"),
+                            System.getProperty("appKey"),
+                            System.getProperty("appTenant"));
+            IngestClient client = IngestClientFactory.createClient(csb);
 
-        // Now the entry in the table exists.
-        // We should now pass it as part of the message to the ingest endpoint.
-        String dbName = null;
-        String tableName = null;
-        IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
-        ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobUri);
-        IngestionResult ingestionResult = client.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
+            IngestionProperties ingestionProperties = new IngestionProperties( System.getProperty("dbName"),
+                    System.getProperty("tableName"));
+            ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
+            ingestionProperties.setReportMethod(QueueAndTable);
+            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+            IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
+            List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
 
-        // step 3: poll on the result.
-        while (statuses.get(0).status == OperationStatus.Pending) {
-            Thread.sleep(1000);
-            statuses = ingestionResult.GetIngestionStatusCollection();
+            // step 3: poll on the result.
+            while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
+                Thread.sleep(1000);
+                timeoutInSec -= 1;
+                statuses = ingestionResult.GetIngestionStatusCollection();
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
+            System.out.println(resultAsJson);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
-        System.out.println(resultAsJson);
-
     }
 }

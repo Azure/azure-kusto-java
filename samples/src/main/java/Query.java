@@ -6,20 +6,15 @@ public class Query {
 
     public static void main(String[] args) {
 
-        String appId = "<app id>";
-        String appKey = "<app key>";
-        String appTenant = "<app tenant id or domain name>";
-
-        String clusterPath = "https://help.kusto.windows.net";
-        String dbName = "Samples";
-
-        String query = "StormEvents | take 10";
-
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterPath, appId, appKey, appTenant);
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
             ClientImpl client = new ClientImpl(csb);
 
-            Results results = client.execute(dbName, query);
+            Results results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
 
             System.out.println(String.format("Kusto sent back %s rows.", results.getValues().size()));
         } catch (Exception e) {

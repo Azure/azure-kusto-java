@@ -7,25 +7,21 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 public class FileIngestion {
 
-    private static final String appId = "<application Id aka service principal>";
-    private static final String appKey = "<application key / secret>";
-    private static final String appTenant = "<application tenant id or domain name>";
-
     public static void main(String[] args) {
         try {
-            String clusterPath = "https://ingest-<cluster-name>.kusto.windows.net";
-            String dbName = "<databaseName>";
-            String tableName = "<tableName>";
-            String dataMappingName = "<dataMappingName>";
-            String filePath = "<localFilePath>";
 
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterPath, appId, appKey, appTenant);
+            ConnectionStringBuilder csb =
+                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
+                            System.getProperty("appId"),
+                            System.getProperty("appKey"),
+                            System.getProperty("appTenant"));
             IngestClient client = IngestClientFactory.createClient(csb);
 
-            IngestionProperties ingestionProperties = new IngestionProperties(dbName, tableName);
-            ingestionProperties.setJsonMappingName(dataMappingName);
+            IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
+                    System.getProperty("tableName"));
+            ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
 
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(filePath, 0);
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
             IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
 
         } catch (Exception e) {
