@@ -6,6 +6,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URISyntaxException;
+
 public class ClientImpl implements Client {
 
     private static final String ADMIN_COMMANDS_PREFIX = ".";
@@ -15,7 +17,7 @@ public class ClientImpl implements Client {
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
 
-    public ClientImpl(ConnectionStringBuilder csb) {
+    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
     }
