@@ -16,12 +16,14 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,8 +40,20 @@ class IngestClientImpl implements IngestClient {
     IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
-        resourceManager = new ResourceManager(client);
+        this.resourceManager = new ResourceManager(client);
+        this.azureStorageHelper = new AzureStorageHelper();
+    }
+
+    IngestClientImpl(ResourceManager resourceManager) {
+        log.info("Creating a new IngestClient");
+        this.resourceManager = resourceManager;
         azureStorageHelper = new AzureStorageHelper();
+    }
+
+    IngestClientImpl(ResourceManager resourceManager, AzureStorageHelper azureStorageHelper) {
+        log.info("Creating a new IngestClient");
+        this.resourceManager = resourceManager;
+        this.azureStorageHelper = azureStorageHelper;
     }
 
     @Override
@@ -47,7 +61,7 @@ class IngestClientImpl implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        if (blobSourceInfo == null || ingestionProperties == null){
+        if (blobSourceInfo == null || ingestionProperties == null) {
             throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
         }
         blobSourceInfo.validate();
@@ -107,7 +121,7 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (fileSourceInfo == null || ingestionProperties == null){
+        if (fileSourceInfo == null || ingestionProperties == null) {
             throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
         }
         fileSourceInfo.validate();
@@ -135,7 +149,7 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (streamSourceInfo == null || ingestionProperties == null){
+        if (streamSourceInfo == null || ingestionProperties == null) {
             throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
         }
         streamSourceInfo.validate();
@@ -205,7 +219,77 @@ class IngestClientImpl implements IngestClient {
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
-        throw new UnsupportedOperationException();
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        try {
+            File tempFile = File.createTempFile("kusto-resultset", ".tmp");
+            FileOutputStream fos = new FileOutputStream(tempFile, false);
+            Writer out = new OutputStreamWriter(new BufferedOutputStream(fos), StandardCharsets.UTF_8);
+
+            resultSetToCsv(resultSetSourceInfo.getResultSet(), out, false);
+
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), tempFile.length());
+            IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
+
+            //noinspection ResultOfMethodCallIgnored
+            tempFile.delete();
+
+            return ingestionResult;
+        } catch (IngestionClientException | IngestionServiceException ex) {
+            log.error("Unexpected error when ingesting a result set.", ex);
+            throw ex;
+        } catch (IOException ex) {
+            log.error("Failed to write or delete local file", ex);
+            throw new IngestionClientException("Failed to write or delete local file");
+        }
+    }
+
+    void resultSetToCsv(ResultSet rs, Writer out, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+        final String LINE_SEPARATOR = System.getProperty("line.separator");
+
+        try {
+            String columnSeparator = "";
+
+            ResultSetMetaData metaData = rs.getMetaData();
+            int numberOfColumns = metaData.getColumnCount();
+
+            if (includeHeaderAsFirstRow) {
+                for (int column = 0; column < numberOfColumns; column++) {
+                    out.write(columnSeparator);
+                    out.write(metaData.getColumnLabel(column + 1));
+
+                    columnSeparator = ",";
+                }
+
+                out.write(LINE_SEPARATOR);
+            }
+
+            int numberOfRecords = 0;
+
+            // Get all rows.
+            while (rs.next()) {
+                columnSeparator = "";
+
+                for (int i = 1; i <= numberOfColumns; i++) {
+                    out.write(columnSeparator);
+                    out.write("\"" + rs.getObject(i) + "\"");
+                    columnSeparator = ",";
+                }
+
+                out.write(LINE_SEPARATOR);
+                // Increment row count
+                numberOfRecords++;
+            }
+
+            log.debug("Wrote result set to file. ColumnCount: %s, RecordCount: %s", numberOfColumns, numberOfRecords);
+        } catch (Exception ex) {
+            String msg = "Unexpected error when writing result set to temporary file.";
+            log.error(msg, ex);
+            throw new IngestionClientException(msg);
+        } finally {
+            try {
+                out.close();
+            } catch (IOException e) { /* ignore */
+            }
+        }
     }
 }

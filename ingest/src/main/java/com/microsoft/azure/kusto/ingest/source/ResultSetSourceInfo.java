@@ -1,27 +1,28 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import java.sql.ResultSet;
+import java.util.Objects;
 import java.util.UUID;
 
 public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     private ResultSet resultSet;
 
+    public ResultSetSourceInfo(ResultSet resultSet) {
+        setResultSet(resultSet);
+    }
+
+    public ResultSetSourceInfo(ResultSet resultSet, UUID sourceId) {
+        setResultSet(resultSet);
+        this.setSourceId(sourceId);
+    }
+
     public ResultSet getResultSet() {
         return resultSet;
     }
 
     public void setResultSet(ResultSet resultSet) {
-        this.resultSet = resultSet;
-    }
-
-    public ResultSetSourceInfo(ResultSet resultSet) {
-        this.resultSet = resultSet;
-    }
-
-    public ResultSetSourceInfo(ResultSet resultSet, UUID sourceId) {
-        this.resultSet = resultSet;
-        this.setSourceId(sourceId);
+        this.resultSet = Objects.requireNonNull(resultSet, "ResultSet cannot be null");
     }
 
     @Override
@@ -30,6 +31,5 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        // Not implemented yet
     }
 }
