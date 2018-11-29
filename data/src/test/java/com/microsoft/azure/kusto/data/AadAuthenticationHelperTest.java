@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.Security;
@@ -31,7 +32,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException {
+            PKCSException, IOException, URISyntaxException {
 
         String certFilePath = Paths.get("src","test","resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src","test","resources","key.pem").toString();

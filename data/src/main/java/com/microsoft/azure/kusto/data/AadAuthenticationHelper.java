@@ -11,6 +11,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.*;
@@ -36,8 +37,9 @@ public class AadAuthenticationHelper {
         AAD_APPLICATION_CERTIFICATE
     }
 
-    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) {
-        clusterUrl = csb.getClusterUrl();
+    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+        URI clusterUri = new URI(csb.getClusterUrl());
+        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
             authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
