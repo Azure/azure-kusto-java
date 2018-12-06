@@ -1,12 +1,6 @@
----
-services: Kusto
-platforms: java
-author: lishakur
----
+# Getting Started with Kusto Java SDK
 
-## Getting Started with Kusto java SDK ##
-
-#### Prerequisites
+### Prerequisites
   - A Java Developer Kit (JDK), version 1.8 or later
   - Maven
   - Clone the project and enter the samples directory: 
@@ -15,17 +9,17 @@ author: lishakur
       cd samples
 ```
 
-### Execute Query Sample
+## Execute Query Sample
 
 This sample will demonstrate how to execute a query.  
-Sample Code : [samples/Query.java](Query.java)
+[Sample Code](src/main/java/Query.java)
 
-#### Sample Prerequisites
+### Prerequisites
 
   - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
   - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
 
-#### Steps to follow:
+### Steps to follow
 
 1. Build Connection string and initialize the client
 
@@ -44,7 +38,7 @@ ClientImpl client = new ClientImpl(csb);
 Results results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
 ```
 
-#### How to run this Sample
+### How to run this sample
 
 ```sh
 mvn clean compile exec:java -Dexec.mainClass="Query" \
@@ -57,19 +51,19 @@ mvn clean compile exec:java -Dexec.mainClass="Query" \
 
 ```
 
-### File Ingestion Sample
+## File Ingestion Sample
 
 This sample will demonstrate how to ingest data from file into table.  
-Sample Code : [samples/FileIngestion.java](FileIngestion.java)
+[Sample Code](src/main/java/FileIngestion.java)
 
-#### Sample Prerequisites
+### Prerequisites
 
   - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
   - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
   - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
   - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
    
-#### Steps to follow:
+### Steps to follow
 
 1. Build connection string and initialize
 
@@ -96,7 +90,7 @@ FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"
 IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
 ```
 
-#### How to run this Sample
+### How to run this sample
 
 ```sh
 mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
@@ -111,19 +105,19 @@ mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
                               -DfilePath="file/path"
 
 ```    
-### Query Table Status Sample
+## Query Table Status Sample
 
 This sample will demonstrate how to retrieve ingestion status.  
-Sample Code : [samples/TableStatus.java](TableStatus.java)
+[Sample Code](src/main/java/TableStatus.java)
 
-#### Prerequisites
+### Prerequisites
 
   - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
   - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
   - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
   - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
 
-#### Steps to follow:
+### Steps to follow
 
 1. Set timeout for status retrieval :
 
@@ -172,7 +166,7 @@ while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
 }
 ```
 
-#### Running this Sample ##
+### Running this sample
 
 To run this sample:
 ```sh
@@ -188,7 +182,7 @@ mvn clean compile exec:java -Dexec.mainClass="TableStatus" \
                             -DtimeoutInSec=300
 ``` 
 
-#### More information ##
+### More information 
 
 [http://azure.com/java](http://azure.com/java)
 
