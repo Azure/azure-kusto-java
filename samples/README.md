@@ -105,6 +105,7 @@ mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
                               -DfilePath="file/path"
 
 ```    
+
 ## Query Table Status Sample
 
 This sample will demonstrate how to retrieve ingestion status.  
