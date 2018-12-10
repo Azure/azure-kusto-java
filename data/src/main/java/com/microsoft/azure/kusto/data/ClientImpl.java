@@ -38,7 +38,7 @@ public class ClientImpl implements Client {
 
     private Results execute(String database, String command, String clusterEndpoint) throws DataServiceException, DataClientException {
         // Argument validation:
-        if(StringUtils.isAnyEmpty(database, command, clusterEndpoint)){
+        if (StringUtils.isAnyEmpty(database, command, clusterEndpoint)) {
             throw new IllegalArgumentException("database, command or clusterEndpoint are empty");
         }
 
@@ -46,8 +46,8 @@ public class ClientImpl implements Client {
         String jsonString;
         try {
             jsonString = new JSONObject()
-                .put("db", database)
-                .put("csl", command).toString();
+                    .put("db", database)
+                    .put("csl", command).toString();
         } catch (JSONException e) {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
