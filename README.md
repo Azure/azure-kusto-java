@@ -70,11 +70,6 @@ In the near future this library will be available directly off Maven.
 - [Python](https://github.com/azure/azure-kusto-python)
 - [.NET](https://docs.microsoft.com/en-us/azure/kusto/api/netfx/about-the-sdk)
 
-## Looking for SDKs for other languages/platforms?
-- [Node](https://github.com/azure/azure-kusto-node)
-- [Python](https://github.com/azure/azure-kusto-python)
-- [.NET](https://docs.microsoft.com/en-us/azure/kusto/api/netfx/about-the-sdk)
-
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
