@@ -22,8 +22,8 @@ import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload) throws DataServiceException, DataClientException {
-        HttpClient httpClient = HttpClients.createDefault();
+    static Results post(String url, String aadAccessToken, String payload) throws Exception {
+        HttpClient httpClient = HttpClients.createSystem();
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
