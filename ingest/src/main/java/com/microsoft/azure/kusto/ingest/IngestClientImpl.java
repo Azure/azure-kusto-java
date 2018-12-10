@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.zip.GZIPOutputStream;
 
 class IngestClientImpl implements IngestClient {
 
@@ -223,11 +224,13 @@ class IngestClientImpl implements IngestClient {
         try {
             File tempFile = File.createTempFile("kusto-resultset", ".tmp");
             FileOutputStream fos = new FileOutputStream(tempFile, false);
-            Writer out = new OutputStreamWriter(new BufferedOutputStream(fos), StandardCharsets.UTF_8);
+            GZIPOutputStream gzipos = new GZIPOutputStream(fos);
+            Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
 
-            resultSetToCsv(resultSetSourceInfo.getResultSet(), out, false);
+            long numberOfChars = resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), tempFile.length());
+            fileSourceInfo.setRawSizeInBytes(numberOfChars * 2); // utf8 chars are 2 bytes each
             IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
 
             //noinspection ResultOfMethodCallIgnored
@@ -243,8 +246,10 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    void resultSetToCsv(ResultSet rs, Writer out, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+    long resultSetToCsv(ResultSet rs, Writer out, boolean includeHeaderAsFirstRow) throws IngestionClientException {
         final String LINE_SEPARATOR = System.getProperty("line.separator");
+
+        long numberOfChars = 0;
 
         try {
             String columnSeparator = "";
@@ -265,14 +270,21 @@ class IngestClientImpl implements IngestClient {
 
             int numberOfRecords = 0;
 
+            String columnString;
+
             // Get all rows.
             while (rs.next()) {
                 columnSeparator = "";
 
                 for (int i = 1; i <= numberOfColumns; i++) {
                     out.write(columnSeparator);
-                    out.write("\"" + rs.getObject(i) + "\"");
+                    out.write('"');
+                    columnString = rs.getObject(i).toString();
+                    out.write(columnString);
+                    out.write('"');
+
                     columnSeparator = ",";
+                    numberOfChars += columnString.length();
                 }
 
                 out.write(LINE_SEPARATOR);
@@ -280,7 +292,16 @@ class IngestClientImpl implements IngestClient {
                 numberOfRecords++;
             }
 
-            log.debug("Wrote result set to file. ColumnCount: %s, RecordCount: %s", numberOfColumns, numberOfRecords);
+            numberOfChars = numberOfChars
+                    + numberOfColumns * numberOfRecords // column separator
+                    + numberOfColumns * 2 * numberOfRecords // 2 " per column
+                    + numberOfRecords // number of line breaks
+            ;
+
+            log.debug("Wrote result set to file. CharsCount: %s, ColumnCount: %s, RecordCount: %s"
+                    , numberOfChars, numberOfColumns, numberOfRecords);
+
+            return numberOfChars;
         } catch (Exception ex) {
             String msg = "Unexpected error when writing result set to temporary file.";
             log.error(msg, ex);

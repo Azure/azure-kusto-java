@@ -11,6 +11,7 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -132,14 +133,19 @@ class IngestClientImplTest {
         TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
 
         doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
-        doNothing().when(ingestClientSpy).resultSetToCsv(any(), any(), anyBoolean());
+        long numberOfChars = 1000;
+        doReturn(numberOfChars).when(ingestClientSpy).resultSetToCsv(any(), any(), anyBoolean());
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
         ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
-
         verify(ingestClientSpy).ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
-        verify(ingestClientSpy).ingestFromFile(any(FileSourceInfo.class), any(IngestionProperties.class));
+
+        // captor to allow us to inspect the internal call values
+        ArgumentCaptor<FileSourceInfo> fileSourceInfoCaptor = ArgumentCaptor.forClass(FileSourceInfo.class);
+        verify(ingestClientSpy).ingestFromFile(fileSourceInfoCaptor.capture(), any(IngestionProperties.class));
+        FileSourceInfo fileSourceInfoActual = fileSourceInfoCaptor.getValue();
+        assertEquals(numberOfChars * 2, fileSourceInfoActual.getRawSizeInBytes());
     }
 
     @Test
@@ -198,13 +204,14 @@ class IngestClientImplTest {
         ResultSet resultSet = getSampleResultSet();
         StringWriter stringWriter = new StringWriter();
 
-        ingestClient.resultSetToCsv(resultSet, stringWriter, false);
+        long numberOfCharsActual = ingestClient.resultSetToCsv(resultSet, stringWriter, false);
 
         final String expected = System.getProperty("line.separator").equals("\n") ?
                 "\"1\",\"leo\"\n\"2\",\"yui\"\n" :
                 "\"1\",\"leo\"\r\n\"2\",\"yui\"\r\n";
 
-        assertEquals(expected, stringWriter.toString());
+        assertEquals(expected, stringWriter.toString()); // check the string values
+        assertEquals(expected.length(), numberOfCharsActual); // check the returned length
     }
 
     @Test
