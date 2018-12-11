@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoResults;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.Results;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import static org.mockito.Mockito.when;
 class ResourceManagerTest {
 
     private ResourceManager resourceManager;
-    private KustoClient kustoClientMock = mock(KustoClient.class);
+    private Client clientMock = mock(Client.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -29,16 +29,16 @@ class ResourceManagerTest {
     @BeforeEach
     void setUp() {
         try {
-            KustoResults ingestionResourcesResult = generateIngestionResourcesResult();
-            KustoResults ingestionAuthTokenResult = generateIngestionAuthTokenResult();
+            Results ingestionResourcesResult = generateIngestionResourcesResult();
+            Results ingestionAuthTokenResult = generateIngestionAuthTokenResult();
 
-            when(kustoClientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+            when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                     .thenReturn(ingestionResourcesResult);
 
-            when(kustoClientMock.execute(Commands.KUSTO_IDENTITY_GET_COMMAND))
+            when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                     .thenReturn(ingestionAuthTokenResult);
 
-            resourceManager = new ResourceManager(kustoClientMock);
+            resourceManager = new ResourceManager(clientMock);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -49,9 +49,9 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getKustoIdentityToken() {
+    void getIdentityToken() {
         try {
-            assertEquals(AUTH_TOKEN, resourceManager.getKustoIdentityToken());
+            assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -64,7 +64,7 @@ class ResourceManagerTest {
             HashMap<String,Integer> m = new HashMap();
 
             for(int i=0; i<10; i++){
-                storage = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE);
+                storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
                 m.put(storage,m.getOrDefault(storage,0)+1);
             }
 
@@ -82,7 +82,7 @@ class ResourceManagerTest {
             HashMap<String,Integer> m = new HashMap();
 
             for(int i=0; i<10; i++){
-                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE);
+                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
                 m.put(queueName,m.getOrDefault(queueName,0)+1);
             }
 
@@ -93,19 +93,7 @@ class ResourceManagerTest {
         }
     }
 
-    //@Test  (Not ready yet)
-    void clean() {
-        try{
-            resourceManager.clean();
-            for(ResourceManager.ResourceTypes resourceType : ResourceManager.ResourceTypes.values()){
-                assertEquals(0, resourceManager.getSize(resourceType));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private KustoResults generateIngestionResourcesResult() {
+    private Results generateIngestionResourcesResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -124,10 +112,10 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable","statusTable"))));
 
-        return new KustoResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
     }
 
-    private KustoResults generateIngestionAuthTokenResult() {
+    private Results generateIngestionAuthTokenResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -136,6 +124,6 @@ class ResourceManagerTest {
         colNameToTypeMap.put("AuthorizationContext","String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new KustoResults(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
     }
 }

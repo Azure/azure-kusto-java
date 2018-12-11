@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest.source;
 import java.io.InputStream;
 import java.util.UUID;
 
-public class StreamSourceInfo extends SourceInfo {
+public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;
@@ -37,6 +37,12 @@ public class StreamSourceInfo extends SourceInfo {
         this.stream = stream;
         this.leaveOpen = leaveOpen;
         this.setSourceId(sourceId);
+    }
+
+    public void validate(){
+        if(stream == null){
+            throw new IllegalArgumentException("stream is null");
+        }
     }
 
     @Override

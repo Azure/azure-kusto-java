@@ -1,8 +1,10 @@
 package com.microsoft.azure.kusto.ingest.source;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.UUID;
 
-public class FileSourceInfo extends SourceInfo {
+public class FileSourceInfo extends AbstractSourceInfo {
 
     private String filePath;
 
@@ -33,5 +35,11 @@ public class FileSourceInfo extends SourceInfo {
         this.filePath = filePath;
         this.rawSizeInBytes = rawSizeInBytes;
         this.setSourceId(sourceId);
+    }
+
+    public void validate(){
+        if(StringUtils.isEmpty(filePath)){
+            throw new IllegalArgumentException("filePath is empty");
+        }
     }
 }

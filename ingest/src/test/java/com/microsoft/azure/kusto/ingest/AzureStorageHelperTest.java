@@ -21,16 +21,14 @@ import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.*;
 
 class AzureStorageHelperTest {
-    AzureStorageHelper azureStorageHelperMock = mock(AzureStorageHelper.class);
-    CloudBlockBlob cloudBlockBlobMock = mock(CloudBlockBlob.class);
+    private AzureStorageHelper azureStorageHelperMock = mock(AzureStorageHelper.class);
+    private CloudBlockBlob cloudBlockBlobMock = mock(CloudBlockBlob.class);
 
     @BeforeEach
     void setUp() {
         try {
             doNothing().when(cloudBlockBlobMock).uploadFromFile(isA(String.class));
-        } catch (StorageException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (StorageException | IOException e) {
             e.printStackTrace();
         }
     }

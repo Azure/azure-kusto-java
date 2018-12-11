@@ -1,23 +1,26 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.KustoClient;
-import com.microsoft.azure.kusto.data.KustoConnectionStringBuilder;
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientAggregateException;
-import com.microsoft.azure.kusto.ingest.exceptions.KustoClientException;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.InputStream;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.LinkedList;
@@ -30,25 +33,30 @@ class IngestClientImpl implements IngestClient {
 
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
+    private AzureStorageHelper azureStorageHelper;
 
-    public IngestClientImpl(KustoConnectionStringBuilder kcsb) throws Exception {
+    IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
-        KustoClient kustoClient = new KustoClient(kcsb);
-        resourceManager = new ResourceManager(kustoClient);
+        Client client = ClientFactory.createClient(csb);
+        resourceManager = new ResourceManager(client);
+        azureStorageHelper = new AzureStorageHelper();
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws Exception {
-        if (blobSourceInfo == null) {
-            throw new KustoClientException("blobs must have at least 1 path");
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+
+        // Argument validation:
+        if (blobSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("blobSourceInfo or ingestionProperties is null");
         }
-
-        ingestionProperties.setAuthorizationContextToken(resourceManager.getKustoIdentityToken());
-
-        List<KustoClientException> ingestionErrors = new LinkedList();
-        List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
+        blobSourceInfo.validate();
+        ingestionProperties.validate();
 
         try {
+            ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
+            List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
+
             // Create the ingestion message
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
@@ -63,7 +71,7 @@ class IngestClientImpl implements IngestClient {
             }
 
             if (ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue) {
-                String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceTypes.INGESTIONS_STATUS_TABLE);
+                String tableStatusUri = resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
                 ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
@@ -77,37 +85,39 @@ class IngestClientImpl implements IngestClient {
                 status.ingestionSourceId = ingestionBlobInfo.id;
                 status.setIngestionSourcePath(blobSourceInfo.getBlobPath());
 
-                AzureStorageHelper.azureTableInsertEntity(tableStatusUri, status);
+                azureStorageHelper.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            postMessageToQueue(
-                    resourceManager.getIngestionResource(ResourceManager.ResourceTypes.SECURED_READY_FOR_AGGREGATION_QUEUE)
+            azureStorageHelper.postMessageToQueue(
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
+            return new TableReportIngestionResult(tableStatuses);
 
-        } catch (Exception ex) {
-            ingestionErrors.add(
-                    new KustoClientException(blobSourceInfo.getBlobPath(), "fail to post message to queue", ex));
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in ingestFromBlob()", e);
+        } catch (IOException | URISyntaxException e) {
+            throw new IngestionClientException("Error in ingestFromBlob()", e);
         }
-
-        if (ingestionErrors.size() > 0) {
-            throw new KustoClientAggregateException(ingestionErrors);
-        }
-
-        return new TableReportIngestionResult(tableStatuses);
-
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        // Argument validation:
+        if (fileSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("fileSourceInfo or ingestionProperties is null");
+        }
+        fileSourceInfo.validate();
+        ingestionProperties.validate();
+
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE));
-            String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
+            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(fileSourceInfo.getFilePath());
 
@@ -115,27 +125,35 @@ class IngestClientImpl implements IngestClient {
 
             return ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        } catch (Exception ex) {
-            log.error("ingestFromFile: Error ingesting local file: {}", fileSourceInfo.getFilePath(), ex);
-            throw ex;
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in ingestFromFile()", e);
+        } catch (IOException | URISyntaxException e) {
+            throw new IngestionClientException("Error in ingestFromFile()", e);
         }
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        // Argument validation:
+        if (streamSourceInfo == null || ingestionProperties == null){
+            throw new IllegalArgumentException("streamSourceInfo or ingestionProperties is null");
+        }
+        streamSourceInfo.validate();
+        ingestionProperties.validate();
+
         try {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
-                throw new KustoClientException("stream is empty");
+                throw new IngestionClientException("Stream is empty");
             }
             String blobName = genBlobName("StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = uploadStreamToBlob(
+            CloudBlockBlob blob = azureStorageHelper.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceTypes.TEMP_STORAGE),
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
                     true
             );
-            String blobPath = AzureStorageHelper.getBlobPathWithSas(blob);
+            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0); // TODO: check if we can get the rawDataSize locally
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -143,27 +161,34 @@ class IngestClientImpl implements IngestClient {
                 streamSourceInfo.getStream().close();
             }
             return ingestionResult;
-        } catch (Exception ex) {
-            log.error(String.format("ingestFromStream: Error while ingesting from stream. Error: %s", ex.getMessage()), ex);
-            throw ex;
+        } catch (IOException | URISyntaxException e) {
+            throw new IngestionClientException("Error in ingestFromStream()", e);
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in ingestFromStream()", e);
         }
     }
 
-    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws Exception {
-        String blobPath = blobSourceInfo.getBlobPath();
-        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-        blockBlob.downloadAttributes();
-        long length = blockBlob.getProperties().getLength();
+    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
+        try {
+            String blobPath = blobSourceInfo.getBlobPath();
+            CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
+            blockBlob.downloadAttributes();
+            long length = blockBlob.getProperties().getLength();
 
-        if (length == 0) {
+            if (length == 0) {
+                return length;
+            }
+
+            if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
+                length = length * COMPRESSED_FILE_MULTIPLIER;
+            }
+
             return length;
+        } catch (StorageException e) {
+            throw new IngestionServiceException("Error in estimateBlobRawSize", e);
+        } catch (URISyntaxException e) {
+            throw new IngestionClientException("Error in estimateBlobRawSize", e);
         }
-
-        if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
-            length = length * COMPRESSED_FILE_MULTIPLIER;
-        }
-
-        return length;
     }
 
     private long estimateFileRawSize(String filePath) {
@@ -179,24 +204,8 @@ class IngestClientImpl implements IngestClient {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
 
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    void postMessageToQueue(String queuePath, String serializedIngestionBlobInfo) throws Exception {
-        AzureStorageHelper.postMessageToQueue(queuePath, serializedIngestionBlobInfo);
-    }
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws Exception {
-        return AzureStorageHelper.uploadLocalFileToBlob(filePath, blobName, storageUri);
-    }
-
-    // TODO: redesign to avoid those wrapper methods over static ones.
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws Exception {
-        return AzureStorageHelper.uploadStreamToBlob(inputStream, blobName, storageUri, compress);
-    }
-
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws Exception {
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
         throw new UnsupportedOperationException();
     }
 }

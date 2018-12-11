@@ -1,61 +1,100 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.ClientCredential;
+import com.microsoft.aad.adal4j.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.naming.ServiceUnavailableException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.awt.*;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.*;
 
 public class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
-    private final static String KUSTO_CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
 
     private ClientCredential clientCredential;
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
-    private String aadAuthorityId;
     private String aadAuthorityUri;
+    private X509Certificate x509Certificate;
+    private PrivateKey privateKey;
+    private AuthenticationType authenticationType;
 
-    AadAuthenticationHelper(KustoConnectionStringBuilder kcsb) {
-        clusterUrl = kcsb.getClusterUrl();
+    private enum AuthenticationType {
+        AAD_USERNAME_PASSWORD,
+        AAD_APPLICATION_KEY,
+        AAD_DEVICE_LOGIN,
+        AAD_APPLICATION_CERTIFICATE
+    }
 
-        if (!isNullOrEmpty(kcsb.getApplicationClientId()) && !isNullOrEmpty(kcsb.getApplicationKey())) {
-            clientCredential = new ClientCredential(kcsb.getApplicationClientId(), kcsb.getApplicationKey());
+    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+        URI clusterUri = new URI(csb.getClusterUrl());
+        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
+        if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
+            clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
+            authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
+        } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
+            userUsername = csb.getUserUsername();
+            userPassword = csb.getUserPassword();
+            authenticationType = AuthenticationType.AAD_USERNAME_PASSWORD;
+        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
+            x509Certificate = csb.getX509Certificate();
+            privateKey = csb.getPrivateKey();
+            clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
+            authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
         } else {
-            userUsername = kcsb.getUserUsername();
-            userPassword = kcsb.getUserPassword();
+            authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
 
         // Set the AAD Authority URI
-        aadAuthorityId = (kcsb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : kcsb.getAuthorityId());
+        String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws Exception {
-        if (clientCredential != null) {
-            return acquireAadApplicationAccessToken().getAccessToken();
-        } else {
-            return acquireAadUserAccessToken().getAccessToken();
+    String acquireAccessToken() throws DataServiceException  {
+        try {
+            switch (authenticationType) {
+                case AAD_APPLICATION_KEY:
+                    return acquireAadApplicationAccessToken().getAccessToken();
+                case AAD_USERNAME_PASSWORD:
+                    return acquireAadUserAccessToken().getAccessToken();
+                case AAD_DEVICE_LOGIN:
+                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                case AAD_APPLICATION_CERTIFICATE:
+                    return acquireWithClientCertificate().getAccessToken();
+                default:
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+            }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
         }
+
     }
 
-    private AuthenticationResult acquireAadUserAccessToken() throws Exception {
+    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
         AuthenticationContext context;
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
 
             Future<AuthenticationResult> future = context.acquireToken(
-                    clusterUrl, KUSTO_CLIENT_ID, userUsername, userPassword,
+                    clusterUrl, CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
+        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+            throw new DataClientException(clusterUrl, "Error in acquiring UserAccessToken", e);
         } finally {
             if (service != null) {
                 service.shutdown();
@@ -63,20 +102,22 @@ public class AadAuthenticationHelper {
         }
 
         if (result == null) {
-            throw new ServiceUnavailableException("acquireAadUserAccessToken got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireAadUserAccessToken got 'null' authentication result");
         }
         return result;
     }
 
-    private AuthenticationResult acquireAadApplicationAccessToken() throws Exception {
+    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException {
         AuthenticationContext context;
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newFixedThreadPool(1);
+            service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
+        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+            throw new DataClientException(clusterUrl, "Error in acquiring ApplicationAccessToken", e);
         } finally {
             if (service != null) {
                 service.shutdown();
@@ -84,12 +125,77 @@ public class AadAuthenticationHelper {
         }
 
         if (result == null) {
-            throw new ServiceUnavailableException("acquireAadApplicationAccessToken got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireAadApplicationAccessToken got 'null' authentication result");
         }
         return result;
     }
 
-    private Boolean isNullOrEmpty(String str) {
-        return (str == null || str.trim().isEmpty());
+    private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
+        AuthenticationContext context = null;
+        AuthenticationResult result = null;
+        ExecutorService service = null;
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
+            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
+            DeviceCode deviceCode = future.get();
+            System.out.println(deviceCode.getMessage());
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+            }
+            result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
+
+
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
     }
+
+    private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
+            throws  InterruptedException{
+        int timeout = 15 * 1000;
+        AuthenticationResult result = null;
+        while (timeout > 0){
+            try{
+                Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
+                return futureResult.get();
+            } catch (ExecutionException e) {
+                    Thread.sleep(1000);
+                    timeout -= 1000;
+            }
+        }
+        return result;
+    }
+
+    AuthenticationResult acquireWithClientCertificate()
+            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
+
+        AuthenticationContext context;
+        AuthenticationResult result;
+        ExecutorService service = null;
+
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext(aadAuthorityUri, false, service);
+            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                    privateKey, x509Certificate);
+            // pass null value for optional callback function and acquire access token
+            result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+        if (result == null) {
+            throw new ServiceUnavailableException("authentication result was null");
+        }
+        return result;
+    }
+
 }
