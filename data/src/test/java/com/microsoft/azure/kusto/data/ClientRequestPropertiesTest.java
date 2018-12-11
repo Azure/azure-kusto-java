@@ -29,6 +29,6 @@ public class ClientRequestPropertiesTest {
         props.setOption("a",1);
         props.setOption("b","hello");
 
-        JSONAssert.assertEquals("{\"options\": {\"a\":1, \"b\":\"hello\"}}", props.toString(), false);
+        JSONAssert.assertEquals("{\"Options\": {\"a\":1, \"b\":\"hello\"}}", props.toString(), false);
     }
 }

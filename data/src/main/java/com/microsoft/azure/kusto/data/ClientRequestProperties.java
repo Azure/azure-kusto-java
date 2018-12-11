@@ -13,7 +13,7 @@ import java.util.HashMap;
  */
 public class ClientRequestProperties {
     private HashMap<String, Object> properties;
-    private static final String OPTIONS_KEY = "options";
+    private static final String OPTIONS_KEY = "Options";
     private static final String OptionServerTimeout  = "servertimeout";
 
     public ClientRequestProperties() {
