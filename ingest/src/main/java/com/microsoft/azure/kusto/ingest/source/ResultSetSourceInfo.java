@@ -21,6 +21,7 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
         return resultSet;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void setResultSet(ResultSet resultSet) {
         this.resultSet = Objects.requireNonNull(resultSet, "ResultSet cannot be null");
     }
@@ -31,5 +32,6 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
+        //nothing to validate as of now.
     }
 }

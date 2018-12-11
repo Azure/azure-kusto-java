@@ -27,6 +27,7 @@ import java.sql.ResultSetMetaData;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
@@ -222,15 +223,19 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         try {
-            File tempFile = File.createTempFile("kusto-resultset", ".tmp");
+            Objects.requireNonNull(resultSetSourceInfo, "resultSetSourceInfo cannot be null");
+            resultSetSourceInfo.validate();
+
+            File tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
             FileOutputStream fos = new FileOutputStream(tempFile, false);
             GZIPOutputStream gzipos = new GZIPOutputStream(fos);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
+            log.debug("Going to write result set as csv file: {}", tempFile.getAbsolutePath());
 
             long numberOfChars = resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), tempFile.length());
-            fileSourceInfo.setRawSizeInBytes(numberOfChars * 2); // utf8 chars are 2 bytes each
+            // utf8 chars are 2 bytes each
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
             IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
 
             //noinspection ResultOfMethodCallIgnored
@@ -246,48 +251,47 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    long resultSetToCsv(ResultSet rs, Writer out, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+    long resultSetToCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
         final String LINE_SEPARATOR = System.getProperty("line.separator");
-
-        long numberOfChars = 0;
 
         try {
             String columnSeparator = "";
 
-            ResultSetMetaData metaData = rs.getMetaData();
+            ResultSetMetaData metaData = resultSet.getMetaData();
             int numberOfColumns = metaData.getColumnCount();
 
             if (includeHeaderAsFirstRow) {
                 for (int column = 0; column < numberOfColumns; column++) {
-                    out.write(columnSeparator);
-                    out.write(metaData.getColumnLabel(column + 1));
+                    writer.write(columnSeparator);
+                    writer.write(metaData.getColumnLabel(column + 1));
 
                     columnSeparator = ",";
                 }
 
-                out.write(LINE_SEPARATOR);
+                writer.write(LINE_SEPARATOR);
             }
 
             int numberOfRecords = 0;
+            long numberOfChars = 0;
 
             String columnString;
 
             // Get all rows.
-            while (rs.next()) {
+            while (resultSet.next()) {
                 columnSeparator = "";
 
                 for (int i = 1; i <= numberOfColumns; i++) {
-                    out.write(columnSeparator);
-                    out.write('"');
-                    columnString = rs.getObject(i).toString();
-                    out.write(columnString);
-                    out.write('"');
+                    writer.write(columnSeparator);
+                    writer.write('"');
+                    columnString = resultSet.getObject(i).toString();
+                    writer.write(columnString);
+                    writer.write('"');
 
                     columnSeparator = ",";
                     numberOfChars += columnString.length();
                 }
 
-                out.write(LINE_SEPARATOR);
+                writer.write(LINE_SEPARATOR);
                 // Increment row count
                 numberOfRecords++;
             }
@@ -308,7 +312,7 @@ class IngestClientImpl implements IngestClient {
             throw new IngestionClientException(msg);
         } finally {
             try {
-                out.close();
+                writer.close();
             } catch (IOException e) { /* ignore */
             }
         }
