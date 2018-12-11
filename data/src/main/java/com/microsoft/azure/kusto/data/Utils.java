@@ -29,7 +29,7 @@ class Utils {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs.intValue()).build();
-            httpClient = HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+            httpClient = HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
         } else {
             httpClient =  HttpClients.createSystem();
         }

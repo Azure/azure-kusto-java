@@ -63,7 +63,6 @@ public class ClientImpl implements Client {
                 .put("csl", command);
 
             if (properties != null) {
-                // TODO: to json
                 json.put("properties", properties.toString());
             }
 
