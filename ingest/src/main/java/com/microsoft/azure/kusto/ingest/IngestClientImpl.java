@@ -296,13 +296,15 @@ class IngestClientImpl implements IngestClient {
                 numberOfRecords++;
             }
 
+            log.debug("Number of chars written from column values: {}", numberOfChars);
+
             numberOfChars = numberOfChars
-                    + numberOfColumns * numberOfRecords // column separator
+                    + (numberOfColumns-1) * numberOfRecords // column separators
                     + numberOfColumns * 2 * numberOfRecords // 2 " per column
-                    + numberOfRecords // number of line breaks
+                    + numberOfRecords * LINE_SEPARATOR.length() // number of line separator
             ;
 
-            log.debug("Wrote result set to file. CharsCount: %s, ColumnCount: %s, RecordCount: %s"
+            log.debug("Wrote result set to file. CharsCount: {}, ColumnCount: {}, RecordCount: {}"
                     , numberOfChars, numberOfColumns, numberOfRecords);
 
             return numberOfChars;
