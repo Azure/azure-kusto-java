@@ -13,6 +13,8 @@ public class ClientImpl implements Client {
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String API_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
+    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
+    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
@@ -39,19 +41,19 @@ public class ClientImpl implements Client {
         Long timeoutMs = null;
 
         if (properties != null) {
-            timeoutMs = properties.getTimeout();
+            timeoutMs = properties.getTimeoutInMilliSec();
         }
 
         String clusterEndpoint;
         if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
             clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, API_VERSION);
             if (timeoutMs == null) {
-                timeoutMs = TimeUnit.HOURS.toMillis(1) + TimeUnit.SECONDS.toMillis(30);
+                timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
             }
         } else {
             clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, API_VERSION);
             if (timeoutMs == null) {
-                timeoutMs = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
+                timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
             }
         }
 
@@ -71,6 +73,6 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs);
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue());
     }
 }

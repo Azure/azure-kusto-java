@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class ClientRequestProperties {
     private HashMap<String, Object> properties;
     private static final String OPTIONS_KEY = "Options";
-    private static final String OptionServerTimeout  = "servertimeout";
+    private static final String OPTION_SERVER_TIMEOUT  = "servertimeout";
 
     public ClientRequestProperties() {
         properties = new HashMap<>();
@@ -37,12 +37,12 @@ public class ClientRequestProperties {
         ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).clear();
     }
 
-    public void setTimeout(Long timeoutInMs) {
-        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).put(OptionServerTimeout, timeoutInMs);
+    public void setTimeoutInMilliSec(Long timeoutInMs) {
+        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
-    public Long getTimeout() {
-        return (Long)getOption(OptionServerTimeout);
+    public Long getTimeoutInMilliSec() {
+        return (Long)getOption(OPTION_SERVER_TIMEOUT);
     }
 
     public JSONObject toJson() {

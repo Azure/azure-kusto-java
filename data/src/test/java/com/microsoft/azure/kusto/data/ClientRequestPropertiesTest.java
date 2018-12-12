@@ -16,14 +16,14 @@ public class ClientRequestPropertiesTest {
         Long expected = TimeUnit.MINUTES.toMillis(100);
 
         // before setting value should be null
-        Assertions.assertEquals(null, props.getTimeout());
+        Assertions.assertEquals(null, props.getTimeoutInMilliSec());
 
-        props.setTimeout(expected);
-        Assertions.assertEquals(expected, props.getTimeout());
+        props.setTimeoutInMilliSec(expected);
+        Assertions.assertEquals(expected, props.getTimeoutInMilliSec());
     }
 
     @Test
-    @DisplayName("test set/get timeout")
+    @DisplayName("test ClientRequestProperties toString")
     void testToString() throws JSONException {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a",1);
