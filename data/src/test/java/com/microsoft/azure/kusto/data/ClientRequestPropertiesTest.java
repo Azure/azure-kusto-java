@@ -26,8 +26,8 @@ public class ClientRequestPropertiesTest {
     @DisplayName("test ClientRequestProperties toString")
     void testToString() throws JSONException {
         ClientRequestProperties props = new ClientRequestProperties();
-        props.setOption("a",1);
-        props.setOption("b","hello");
+        props.setOption("a", 1);
+        props.setOption("b", "hello");
 
         JSONAssert.assertEquals("{\"Options\": {\"a\":1, \"b\":\"hello\"}}", props.toString(), false);
     }

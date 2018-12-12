@@ -31,7 +31,7 @@ class Utils {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
             httpClient = HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
         } else {
-            httpClient =  HttpClients.createSystem();
+            httpClient = HttpClients.createSystem();
         }
 
         HttpPost httpPost = new HttpPost(url);
@@ -49,7 +49,7 @@ class Utils {
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
         httpPost.addHeader("x-ms-client-version", "Kusto.Java.Client");
-        httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s",java.util.UUID.randomUUID()));
+        httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
 
         try {
             //Execute and get the response.
@@ -82,7 +82,7 @@ class Utils {
                     for (int i = 0; i < resultsRows.length(); i++) {
                         JSONArray row = resultsRows.getJSONArray(i);
                         ArrayList<String> rowVector = new ArrayList<>();
-                        for(int j = 0; j < row.length(); ++j) {
+                        for (int j = 0; j < row.length(); ++j) {
                             Object obj = row.get(j);
                             if (obj == JSONObject.NULL) {
                                 rowVector.add(null);

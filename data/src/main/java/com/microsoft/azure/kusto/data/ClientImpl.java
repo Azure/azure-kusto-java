@@ -1,4 +1,5 @@
 package com.microsoft.azure.kusto.data;
+
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
@@ -29,12 +30,12 @@ public class ClientImpl implements Client {
     }
 
     public Results execute(String database, String command) throws DataServiceException, DataClientException {
-        return execute(database,command, null);
+        return execute(database, command, null);
     }
 
     public Results execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation:
-        if(StringUtils.isAnyEmpty(database, command)){
+        if (StringUtils.isAnyEmpty(database, command)) {
             throw new IllegalArgumentException("database or command are empty");
         }
 
@@ -61,8 +62,8 @@ public class ClientImpl implements Client {
         String jsonString;
         try {
             JSONObject json = new JSONObject()
-                .put("db", database)
-                .put("csl", command);
+                    .put("db", database)
+                    .put("csl", command);
 
             if (properties != null) {
                 json.put("properties", properties.toString());

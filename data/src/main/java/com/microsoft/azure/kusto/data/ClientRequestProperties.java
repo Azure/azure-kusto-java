@@ -12,9 +12,9 @@ import java.util.HashMap;
  * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
 public class ClientRequestProperties {
-    private HashMap<String, Object> properties;
     private static final String OPTIONS_KEY = "Options";
-    private static final String OPTION_SERVER_TIMEOUT  = "servertimeout";
+    private static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+    private HashMap<String, Object> properties;
 
     public ClientRequestProperties() {
         properties = new HashMap<>();
@@ -22,27 +22,27 @@ public class ClientRequestProperties {
     }
 
     public void setOption(String name, Object value) {
-        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).put(name, value);
+        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).put(name, value);
     }
 
     public Object getOption(String name) {
-        return ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).get(name);
+        return ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).get(name);
     }
 
     public void removeOption(String name) {
-        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).remove(name);
+        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).remove(name);
     }
 
     public void clearOptions() {
-        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).clear();
-    }
-
-    public void setTimeoutInMilliSec(Long timeoutInMs) {
-        ((HashMap<String, Object>)properties.get(OPTIONS_KEY)).put(OPTION_SERVER_TIMEOUT, timeoutInMs);
+        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).clear();
     }
 
     public Long getTimeoutInMilliSec() {
-        return (Long)getOption(OPTION_SERVER_TIMEOUT);
+        return (Long) getOption(OPTION_SERVER_TIMEOUT);
+    }
+
+    public void setTimeoutInMilliSec(Long timeoutInMs) {
+        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
     public JSONObject toJson() {
