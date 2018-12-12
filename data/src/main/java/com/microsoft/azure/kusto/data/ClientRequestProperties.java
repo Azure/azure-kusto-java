@@ -15,26 +15,28 @@ public class ClientRequestProperties {
     private static final String OPTIONS_KEY = "Options";
     private static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     private HashMap<String, Object> properties;
+    private HashMap<String, Object> options;
 
     public ClientRequestProperties() {
         properties = new HashMap<>();
-        properties.put(OPTIONS_KEY, new HashMap<String, Object>());
+        options = new HashMap<>();
+        properties.put(OPTIONS_KEY, options);
     }
 
     public void setOption(String name, Object value) {
-        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).put(name, value);
+        options.put(name, value);
     }
 
     public Object getOption(String name) {
-        return ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).get(name);
+        return options.get(name);
     }
 
     public void removeOption(String name) {
-        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).remove(name);
+        options.remove(name);
     }
 
     public void clearOptions() {
-        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).clear();
+        options.clear();
     }
 
     public Long getTimeoutInMilliSec() {
@@ -42,10 +44,10 @@ public class ClientRequestProperties {
     }
 
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        ((HashMap<String, Object>) properties.get(OPTIONS_KEY)).put(OPTION_SERVER_TIMEOUT, timeoutInMs);
+        options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
-    public JSONObject toJson() {
+    JSONObject toJson() {
         return new JSONObject(properties);
     }
 
