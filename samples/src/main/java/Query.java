@@ -23,7 +23,7 @@ public class Query {
 
             // in case we want to pass client request properties
             ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-            clientRequestProperties.setTimeout(TimeUnit.MINUTES.toMillis(1));
+            clientRequestProperties.setTimeoutInMilliSec(TimeUnit.MINUTES.toMillis(1));
 
             results = client.execute( System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
         } catch (Exception e) {
