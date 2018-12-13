@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -51,7 +52,7 @@ class Utils {
 
         String version = Utils.class.getPackage().getImplementationVersion();
         String clientVersion = "Kusto.Java.Client";
-        if (version != null && !version.isEmpty()) {
+        if (StringUtils.isNotBlank(version)) {
             clientVersion += ":" + version;
         }
         
