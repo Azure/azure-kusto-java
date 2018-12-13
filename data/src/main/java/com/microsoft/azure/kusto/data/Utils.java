@@ -48,7 +48,14 @@ class Utils {
         httpPost.addHeader("Content-Type", "application/json");
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
-        httpPost.addHeader("x-ms-client-version", "Kusto.Java.Client");
+
+        String version = Utils.class.getPackage().getImplementationVersion();
+        String clientVersion = "Kusto.Java.Client";
+        if (version != null && !version.isEmpty()) {
+            clientVersion += ":" + version;
+        }
+        
+        httpPost.addHeader("x-ms-client-version", clientVersion);
         httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
 
         try {
