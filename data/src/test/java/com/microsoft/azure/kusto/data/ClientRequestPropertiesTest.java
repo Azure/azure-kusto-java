@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test set/get timeout")
-    void testSetGetTimeout() {
+    void timeoutSetGet() {
         ClientRequestProperties props = new ClientRequestProperties();
         Long expected = TimeUnit.MINUTES.toMillis(100);
 
@@ -24,7 +24,7 @@ public class ClientRequestPropertiesTest {
 
     @Test
     @DisplayName("test ClientRequestProperties toString")
-    void testToString() throws JSONException {
+    void propertiesToString() throws JSONException {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a", 1);
         props.setOption("b", "hello");
