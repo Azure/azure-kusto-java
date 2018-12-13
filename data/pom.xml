@@ -27,6 +27,7 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <mainClass>com.microsoft.azure.kusto.data.Client</mainClass>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
