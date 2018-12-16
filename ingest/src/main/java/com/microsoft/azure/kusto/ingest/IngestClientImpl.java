@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.jetbrains.annotations.Contract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
@@ -220,6 +222,15 @@ class IngestClientImpl implements IngestClient {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
 
+    /**
+     * Ingests a ResultSet into the service
+     *
+     * @param resultSetSourceInfo The specific SourceInfo to be ingested.
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return A result that could be used to query for status
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     */
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         try {
@@ -230,7 +241,7 @@ class IngestClientImpl implements IngestClient {
             FileOutputStream fos = new FileOutputStream(tempFile, false);
             GZIPOutputStream gzipos = new GZIPOutputStream(fos);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
-            log.debug("Going to write result set as csv file: {}", tempFile.getAbsolutePath());
+            log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
 
             long numberOfChars = resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
@@ -246,8 +257,9 @@ class IngestClientImpl implements IngestClient {
             log.error("Unexpected error when ingesting a result set.", ex);
             throw ex;
         } catch (IOException ex) {
-            log.error("Failed to write or delete local file", ex);
-            throw new IngestionClientException("Failed to write or delete local file");
+            String msg = "Failed to write or delete local file";
+            log.error(msg, ex);
+            throw new IngestionClientException(msg);
         }
     }
 
@@ -274,23 +286,9 @@ class IngestClientImpl implements IngestClient {
             int numberOfRecords = 0;
             long numberOfChars = 0;
 
-            String columnString;
-
             // Get all rows.
             while (resultSet.next()) {
-                columnSeparator = "";
-
-                for (int i = 1; i <= numberOfColumns; i++) {
-                    writer.write(columnSeparator);
-                    writer.write('"');
-                    columnString = resultSet.getObject(i).toString();
-                    writer.write(columnString);
-                    writer.write('"');
-
-                    columnSeparator = ",";
-                    numberOfChars += columnString.length();
-                }
-
+                numberOfChars += writeResultSetRow(resultSet, writer, numberOfColumns);
                 writer.write(LINE_SEPARATOR);
                 // Increment row count
                 numberOfRecords++;
@@ -298,16 +296,13 @@ class IngestClientImpl implements IngestClient {
 
             log.debug("Number of chars written from column values: {}", numberOfChars);
 
-            numberOfChars = numberOfChars
-                    + (numberOfColumns-1) * numberOfRecords // column separators
-                    + numberOfColumns * 2 * numberOfRecords // 2 " per column
-                    + numberOfRecords * LINE_SEPARATOR.length() // number of line separator
-            ;
+            long totalNumberOfChars = totalNumberOfCharsWrittenToCsv(numberOfChars, numberOfColumns
+                    , numberOfRecords, LINE_SEPARATOR.length());
 
-            log.debug("Wrote result set to file. CharsCount: {}, ColumnCount: {}, RecordCount: {}"
+            log.debug("Wrote resultset to file. CharsCount: {}, ColumnCount: {}, RecordCount: {}"
                     , numberOfChars, numberOfColumns, numberOfRecords);
 
-            return numberOfChars;
+            return totalNumberOfChars;
         } catch (Exception ex) {
             String msg = "Unexpected error when writing result set to temporary file.";
             log.error(msg, ex);
@@ -318,5 +313,33 @@ class IngestClientImpl implements IngestClient {
             } catch (IOException e) { /* ignore */
             }
         }
+    }
+
+    private int writeResultSetRow(ResultSet resultSet, Writer writer, int numberOfColumns) throws IOException, SQLException {
+        int numberOfChars = 0;
+        String columnString;
+        String columnSeparator = "";
+
+        for (int i = 1; i <= numberOfColumns; i++) {
+            writer.write(columnSeparator);
+            writer.write('"');
+            columnString = resultSet.getObject(i).toString();
+            writer.write(columnString);
+            writer.write('"');
+
+            columnSeparator = ",";
+            numberOfChars += columnString.length();
+        }
+
+        return numberOfChars;
+    }
+
+    @Contract(pure = true)
+    private long totalNumberOfCharsWrittenToCsv(long numberOfChars, int numberOfColumns, int numberOfRecords, int LineSeparatorLength) {
+        return numberOfChars
+                + (numberOfColumns - 1) * numberOfRecords // column separators
+                + numberOfColumns * 2 * numberOfRecords // 2 " per column
+                + LineSeparatorLength * numberOfRecords // number of line separator
+                ;
     }
 }

@@ -13,9 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.*;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.sql.*;
@@ -126,7 +124,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_Success() throws IngestionClientException, IngestionServiceException, SQLException {
+    void ingestFromResultSet_Success() throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
         // we need a spy to intercept calls to internal methods so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
@@ -149,7 +147,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_ResultSetToCsv_Error() throws IngestionClientException, IngestionServiceException, SQLException {
+    void ingestFromResultSet_ResultSetToCsv_Error() throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
@@ -203,19 +201,16 @@ class IngestClientImplTest {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
         ResultSet resultSet = getSampleResultSet();
         StringWriter stringWriter = new StringWriter();
-
         long numberOfCharsActual = ingestClient.resultSetToCsv(resultSet, stringWriter, false);
 
-        final String expected = System.getProperty("line.separator").equals("\n") ?
-                "\"1\",\"leo\"\n\"2\",\"yui\"\n" :
-                "\"1\",\"leo\"\r\n\"2\",\"yui\"\r\n";
+        final String expected = getSampleResultSetDump();
 
         assertEquals(expected, stringWriter.toString()); // check the string values
         assertEquals(expected.length(), numberOfCharsActual); // check the returned length
     }
 
     @Test
-    void resultSetToCsv_ResultSetClosed_Exception() throws IngestionClientException, IngestionServiceException, SQLException {
+    void resultSetToCsv_ClosedResultSet_Exception() throws SQLException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
         ResultSet resultSet = getSampleResultSet();
         resultSet.close();
@@ -223,6 +218,18 @@ class IngestClientImplTest {
 
         assertThrows(IngestionClientException.class,
                 () -> ingestClient.resultSetToCsv(resultSet, stringWriter, false));
+    }
+
+    @Test
+    void resultSetToCsv_Writer_Exception() throws SQLException, IOException {
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        ResultSet resultSet = getSampleResultSet();
+
+        Writer writer = mock(Writer.class);
+        doThrow(new IOException("Some exception")).when(writer).write(anyString());
+
+        assertThrows(IngestionClientException.class,
+                () -> ingestClient.resultSetToCsv(resultSet, writer, false));
     }
 
     private ResultSet getSampleResultSet() throws SQLException {
@@ -238,5 +245,11 @@ class IngestClientImplTest {
         statement.executeUpdate("insert into person values(2, 'yui')");
 
         return statement.executeQuery("select * from person");
+    }
+
+    private String getSampleResultSetDump() {
+        return System.getProperty("line.separator").equals("\n") ?
+                "\"1\",\"leo\"\n\"2\",\"yui\"\n" :
+                "\"1\",\"leo\"\r\n\"2\",\"yui\"\r\n";
     }
 }
