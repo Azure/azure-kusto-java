@@ -22,8 +22,9 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     /**
      * Creates a ResultSetSourceInfo
+     *
      * @param resultSet The ResultSet with the data to be ingested.
-     * @param sourceId An identifier that could later be used to trace this specific source data.
+     * @param sourceId  An identifier that could later be used to trace this specific source data.
      */
     public ResultSetSourceInfo(ResultSet resultSet, UUID sourceId) {
         setResultSet(resultSet);
@@ -32,7 +33,8 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     /**
      * Gets the ResultSet.
-     * @return
+     *
+     * @return The ResultSet in the SourceInfo
      */
     public ResultSet getResultSet() {
         return resultSet;
@@ -40,6 +42,7 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     /**
      * Sets the ResultSet.
+     *
      * @param resultSet The ResultSet with the data to be ingested.
      */
     @SuppressWarnings("WeakerAccess")
@@ -52,9 +55,6 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
         return String.format("ResultSet with SourceId: %s", getSourceId());
     }
 
-    /**
-     * Checks that this SourceInfo is defined appropriately.
-     */
     public void validate() {
         //nothing to validate as of now.
     }

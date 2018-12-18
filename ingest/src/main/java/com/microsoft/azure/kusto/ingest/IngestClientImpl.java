@@ -12,8 +12,8 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.jetbrains.annotations.Contract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,22 +222,24 @@ class IngestClientImpl implements IngestClient {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
 
-    /**
-     * Ingests a ResultSet into the service
-     *
-     * @param resultSetSourceInfo The specific SourceInfo to be ingested.
-     * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return A result that could be used to query for status
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
-     */
-    @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        return ingestFromResultSet(resultSetSourceInfo, ingestionProperties, "");
+    }
+
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath) throws IngestionClientException, IngestionServiceException {
         try {
             Objects.requireNonNull(resultSetSourceInfo, "resultSetSourceInfo cannot be null");
             resultSetSourceInfo.validate();
 
-            File tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
+            File tempFile;
+
+            if (StringUtils.isBlank(tempStoragePath)) {
+                tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
+            } else {
+                log.debug("Temp file will be created in a user specified folder: {}", tempStoragePath);
+                tempFile = File.createTempFile("kusto-resultset", ".csv.gz", new File(tempStoragePath));
+            }
+
             FileOutputStream fos = new FileOutputStream(tempFile, false);
             GZIPOutputStream gzipos = new GZIPOutputStream(fos);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
@@ -296,8 +298,7 @@ class IngestClientImpl implements IngestClient {
 
             log.debug("Number of chars written from column values: {}", numberOfChars);
 
-            long totalNumberOfChars = totalNumberOfCharsWrittenToCsv(numberOfChars, numberOfColumns
-                    , numberOfRecords, LINE_SEPARATOR.length());
+            long totalNumberOfChars = numberOfChars + numberOfRecords * LINE_SEPARATOR.length();
 
             log.debug("Wrote resultset to file. CharsCount: {}, ColumnCount: {}, RecordCount: {}"
                     , numberOfChars, numberOfColumns, numberOfRecords);
@@ -323,7 +324,7 @@ class IngestClientImpl implements IngestClient {
         for (int i = 1; i <= numberOfColumns; i++) {
             writer.write(columnSeparator);
             writer.write('"');
-            columnString = resultSet.getObject(i).toString();
+            columnString = resultSet.getObject(i).toString().replace("\"", "\"\"");
             writer.write(columnString);
             writer.write('"');
 
@@ -331,15 +332,10 @@ class IngestClientImpl implements IngestClient {
             numberOfChars += columnString.length();
         }
 
-        return numberOfChars;
-    }
-
-    @Contract(pure = true)
-    private long totalNumberOfCharsWrittenToCsv(long numberOfChars, int numberOfColumns, int numberOfRecords, int LineSeparatorLength) {
         return numberOfChars
-                + (numberOfColumns - 1) * numberOfRecords // column separators
-                + numberOfColumns * 2 * numberOfRecords // 2 " per column
-                + LineSeparatorLength * numberOfRecords // number of line separator
+                + numberOfColumns * 2 * columnSeparator.length() // 2 " per column
+                + numberOfColumns - 1 // last column doesn't have a separator
                 ;
     }
+
 }

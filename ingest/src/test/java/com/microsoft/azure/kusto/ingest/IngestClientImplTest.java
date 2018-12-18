@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -124,7 +125,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_Success() throws IngestionClientException, IngestionServiceException {
+    void ingestFromResultSet_DefaultTempFolder_Success() throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
         // we need a spy to intercept calls to internal methods so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
@@ -144,6 +145,36 @@ class IngestClientImplTest {
         verify(ingestClientSpy).ingestFromFile(fileSourceInfoCaptor.capture(), any(IngestionProperties.class));
         FileSourceInfo fileSourceInfoActual = fileSourceInfoCaptor.getValue();
         assertEquals(numberOfChars * 2, fileSourceInfoActual.getRawSizeInBytes());
+    }
+
+    @Test
+    void ingestFromResultSet_SpecifyTempFolder_Success() throws IngestionClientException, IngestionServiceException {
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClientSpy = spy(ingestClient);
+        TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
+
+        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
+        long numberOfChars = 1000;
+        doReturn(numberOfChars).when(ingestClientSpy).resultSetToCsv(any(), any(), anyBoolean());
+
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
+
+        File tempPath = new File(Paths.get(System.getProperty("java.io.tmpdir"), String.valueOf(System.currentTimeMillis())).toString());
+        //noinspection ResultOfMethodCallIgnored
+        tempPath.mkdirs();
+
+        String tempFolderPath = tempPath.toString();
+
+        ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties, tempFolderPath);
+        verify(ingestClientSpy).ingestFromResultSet(resultSetSourceInfo, ingestionProperties, tempFolderPath);
+
+        // captor to allow us to inspect the internal call values
+        ArgumentCaptor<FileSourceInfo> fileSourceInfoCaptor = ArgumentCaptor.forClass(FileSourceInfo.class);
+        verify(ingestClientSpy).ingestFromFile(fileSourceInfoCaptor.capture(), any(IngestionProperties.class));
+        FileSourceInfo fileSourceInfoActual = fileSourceInfoCaptor.getValue();
+        assertEquals(numberOfChars * 2, fileSourceInfoActual.getRawSizeInBytes());
+        // make sure the temp file was written to the folder we specified
+        Assertions.assertTrue(fileSourceInfoActual.getFilePath().startsWith(tempFolderPath));
     }
 
     @Test
