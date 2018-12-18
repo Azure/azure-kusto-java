@@ -29,13 +29,13 @@ class AzureStorageHelper {
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
-    public void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
         queue.addMessage(queueMessage);
     }
 
-    public void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
+    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
         TableOperation insert = TableOperation.insert(entity);
@@ -43,7 +43,7 @@ class AzureStorageHelper {
         table.execute(insert);
     }
 
-    public CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws URISyntaxException, StorageException, IOException {
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Check if the file is already compressed:
@@ -52,9 +52,9 @@ class AzureStorageHelper {
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         File sourceFile = new File(filePath);
 
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
 
-        if(!isCompressed){
+        if (!isCompressed) {
             compressAndUploadFile(filePath, blob);
         } else {
             blob.uploadFromFile(sourceFile.getAbsolutePath());
@@ -68,29 +68,29 @@ class AzureStorageHelper {
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
 
-        streamFile(fin, gzout, GZIP_BUFFER_SIZE);
+        copyStream(fin, gzout, GZIP_BUFFER_SIZE);
 
         gzout.close();
         fin.close();
     }
 
-    public CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
-        log.debug("uploadLocalFileToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
+    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
+        log.debug("uploadStreamToBlob - blobName: {}, storageUri: {}", blobName, storageUri);
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName+ (compress?".gz":""));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (compress ? ".gz" : ""));
         BlobOutputStream bos = blob.openOutputStream();
-        if(compress){
+        if (compress) {
             GZIPOutputStream gzout = new GZIPOutputStream(bos);
-            streamFile(inputStream,gzout,GZIP_BUFFER_SIZE);
+            copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
             gzout.close();
-        }else{
-            streamFile(inputStream,bos,STREAM_BUFFER_SIZE);
+        } else {
+            copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
             bos.close();
         }
         return blob;
     }
 
-    private void streamFile(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
+    private void copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
         byte[] buffer = new byte[bufferSize];
         int length;
         while ((length = inputStream.read(buffer)) > 0) {
@@ -98,8 +98,9 @@ class AzureStorageHelper {
         }
     }
 
-    public String getBlobPathWithSas(CloudBlockBlob blob) {
-        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature)blob.getServiceClient().getCredentials();
+    String getBlobPathWithSas(CloudBlockBlob blob) {
+        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
+
 }
