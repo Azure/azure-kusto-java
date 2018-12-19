@@ -36,7 +36,7 @@ public class ConnectionStringBuilder {
         privateKey = null;
     }
 
-    private static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
+    public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
                                                                         String username,
                                                                         String password,
                                                                         String authorityId)
