@@ -64,6 +64,13 @@ public interface IngestClient {
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      */
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
 
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
+    /**
+     * Generate a temporary blob uri that can be used to ingest with this client
+     * @return The blob uri
+     * @throws IngestionClientException An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     */
+    String GetTempBlobUriFromClientResourceManager() throws IngestionClientException, IngestionServiceException;
 }
