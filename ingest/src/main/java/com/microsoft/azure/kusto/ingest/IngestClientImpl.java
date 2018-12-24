@@ -134,7 +134,7 @@ class IngestClientImpl implements IngestClient {
         try {
             String fileName = (new File(fileSourceInfo.getFilePath())).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
+            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, GetTempBlobUriFromClientResourceManager());
             String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(fileSourceInfo.getFilePath());
@@ -168,7 +168,7 @@ class IngestClientImpl implements IngestClient {
             CloudBlockBlob blob = azureStorageHelper.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
+                    GetTempBlobUriFromClientResourceManager(),
                     true
             );
             String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
@@ -338,4 +338,7 @@ class IngestClientImpl implements IngestClient {
                 ;
     }
 
+    public String GetTempBlobUriFromClientResourceManager() throws IngestionClientException, IngestionServiceException {
+        return resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+    }
 }
