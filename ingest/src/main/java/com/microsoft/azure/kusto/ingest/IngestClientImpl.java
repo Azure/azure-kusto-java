@@ -138,13 +138,18 @@ class IngestClientImpl implements IngestClient {
         fileSourceInfo.validate();
         ingestionProperties.validate();
 
+        String filePath = fileSourceInfo.getFilePath();
+        if(!(new File(filePath).exists())){
+            throw new IllegalArgumentException("The file does not exist: " + filePath);
+        }
+
         try {
-            String fileName = (new File(fileSourceInfo.getFilePath())).getName();
+            String fileName = (new File(filePath)).getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
             String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(fileSourceInfo.getFilePath());
+                    estimateFileRawSize(filePath);
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 

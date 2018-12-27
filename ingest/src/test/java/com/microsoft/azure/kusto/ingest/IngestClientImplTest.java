@@ -1,11 +1,11 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
@@ -13,18 +13,20 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
 
-    private ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    private IngestClientImpl ingestClientImplMock = mock(IngestClientImpl.class);;
-    private AzureStorageHelper azureStorageHelperMock = mock(AzureStorageHelper.class);
-    private IngestionProperties props;
+    private static ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    private static AzureStorageHelper azureStorageHelperMock = mock(AzureStorageHelper.class);
+    private static IngestClientImpl ingestClientImplMock = mock(IngestClientImpl.class);
+    private static IngestionProperties props;
+    private static IngestClient ingestClient;
 
-    @BeforeEach
-    void setUp() {
+    @BeforeAll
+    static void setUp() {
         try {
             when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                     .thenReturn("queue1")
@@ -45,21 +47,18 @@ class IngestClientImplTest {
             props = new IngestionProperties("dbName", "tableName");
             props.setJsonMappingName("mappingName");
 
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials("resource.uri", "client-id", "applicationKey", "authority-id");
+            ingestClient = IngestClientFactory.createClient(csb);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-    }
-
-    @AfterEach
-    void tearDown() {
     }
 
     @Test
     void ingestFromBlob() {
         try {
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo("blobPath", 100);
-
             ingestClientImplMock.ingestFromBlob(blobSourceInfo, props);
             verify(ingestClientImplMock).ingestFromBlob(any(BlobSourceInfo.class), any(IngestionProperties.class));
 
@@ -69,11 +68,27 @@ class IngestClientImplTest {
     }
 
     @Test
+    void ingestFromBlobThrowExceptionWhenArgumentIsNull() {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("blob.path", 100);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromBlob(null, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromBlob(blobSourceInfo, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromBlob(null, props));
+    }
+
+    @Test
     void ingestFromFile() {
         try {
             String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
             when(azureStorageHelperMock.uploadLocalFileToBlob(isA(String.class), isA(String.class), isA(String.class)))
                     .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+
+            doNothing().when(azureStorageHelperMock).postMessageToQueue(isA(String.class), isA(String.class));
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
             int numOfFiles = 3;
@@ -81,11 +96,33 @@ class IngestClientImplTest {
                 ingestClientImplMock.ingestFromFile(fileSourceInfo, props);
             }
 
-            verify(ingestClientImplMock, times(numOfFiles)).ingestFromFile(fileSourceInfo, props);
+            verify(ingestClientImplMock, times(numOfFiles)).ingestFromFile(any(FileSourceInfo.class), any(IngestionProperties.class));
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    void ingestFromFileThrowExceptionWhenArgumentIsNull() {
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromFile(null, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromFile(fileSourceInfo, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromFile(null, props));
+    }
+
+    @Test
+    void ingestFromFileThrowExceptionWhenFileDoesNotExist() {
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromFile(fileSourceInfo, props));
     }
 
     @Test
@@ -153,5 +190,20 @@ class IngestClientImplTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    void ingestFromStreamThrowExceptionWhenArgumentIsNull() {
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromStream(null, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromStream(streamSourceInfo, null));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> ingestClient.ingestFromStream(null, props));
+
     }
 }

@@ -2,8 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.Results;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -17,8 +16,8 @@ import static org.mockito.Mockito.when;
 
 class ResourceManagerTest {
 
-    private ResourceManager resourceManager;
-    private Client clientMock = mock(Client.class);
+    private static ResourceManager resourceManager;
+    private static Client clientMock = mock(Client.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -26,8 +25,8 @@ class ResourceManagerTest {
     private static final String STORAGE_2 = "storage2";
     private static final String AUTH_TOKEN = "AuthenticationToken";
 
-    @BeforeEach
-    void setUp() {
+    @BeforeAll
+    static void setUp() {
         try {
             Results ingestionResourcesResult = generateIngestionResourcesResult();
             Results ingestionAuthTokenResult = generateIngestionAuthTokenResult();
@@ -42,10 +41,6 @@ class ResourceManagerTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    @AfterEach
-    void tearDown() {
     }
 
     @Test
@@ -93,7 +88,7 @@ class ResourceManagerTest {
         }
     }
 
-    private Results generateIngestionResourcesResult() {
+    private static Results generateIngestionResourcesResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -115,7 +110,7 @@ class ResourceManagerTest {
         return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
     }
 
-    private Results generateIngestionAuthTokenResult() {
+    private static Results generateIngestionAuthTokenResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();

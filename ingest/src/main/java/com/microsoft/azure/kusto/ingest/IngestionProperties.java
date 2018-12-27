@@ -40,7 +40,7 @@ public class IngestionProperties {
 
     /**
      * Sets the data format by its name. If the name does not exist, then it does not add it.
-     * @param dataFormatName
+     * @param dataFormatName One of the string values in: {@link DATA_FORMAT DATA_FORMAT}
      */
     public void setDataFormat(String dataFormatName)
     {
@@ -50,15 +50,34 @@ public class IngestionProperties {
         }
     }
 
+    /**
+     * Adds to the {@code additionalProperties} map, the following key-value pairs:
+     * <blockquote>
+     *     <p>{@code jsonMappingReference} : the value of the {@code jsonMappingName} parameter
+     *     <p>{@code format} : {@code DATA_FORMAT.json}</p>
+     * </blockquote>
+     * @param jsonMappingName The name of a JSON mapping declared in the destination Kusto database, that
+     *                        describes the mapping between fields of a JSON object and columns of a Kusto table.
+     */
     public void setJsonMappingName(String jsonMappingName)
     {
         additionalProperties.put("jsonMappingReference", jsonMappingName);
         additionalProperties.put("format", DATA_FORMAT.json.name());
     }
 
-    public void setCsvMappingName(String mappingName)
+    /**
+     * Adds to the {@code additionalProperties} map, the following key-value pairs:
+     * <blockquote>
+     *     <p>{@code csvMappingReference} : the value of the {@code csvMappingName} parameter
+     *     <p>{@code format} : {@code DATA_FORMAT.csv}</p>
+     * </blockquote>
+     *
+     * @param csvMappingName The name of a CSV mapping declared in the destination Kusto database, that
+     *                        describes the mapping between fields of a CSV file and columns of a Kusto table.
+     */
+    public void setCsvMappingName(String csvMappingName)
     {
-        additionalProperties.put("csvMappingReference", mappingName);
+        additionalProperties.put("csvMappingReference", csvMappingName);
         additionalProperties.put("format", DATA_FORMAT.csv.name());
     }
 
@@ -67,6 +86,19 @@ public class IngestionProperties {
         additionalProperties.put("authorizationContext", token);
     }
 
+    /**
+     * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
+     * The default values of the rest of the properties are:
+     * <blockquote><code>
+     *   <p>reportLevel = IngestionReportLevel.FailuresOnly;</p>
+     *   <p>reportMethod = IngestionReportMethod.Queue;</p>
+     *   <p>flushImmediately = false;</p>
+     *   <p>additionalProperties = new HashMap();</p>
+     * </code></blockquote>
+     *
+     * @param databaseName the name of the database in the destination Kusto cluster.
+     * @param tableName the name of the table in the destination database.
+     */
     public IngestionProperties(String databaseName, String tableName)
     {
         this.databaseName = databaseName;
@@ -91,6 +123,9 @@ public class IngestionProperties {
         QueueAndTable
     }
 
+    /**
+     * Validate the minimum non-empty values needed for data ingestion.
+     */
     public void validate(){
         if(StringUtils.isAnyEmpty(databaseName,tableName) || reportMethod == null){
             throw new IllegalArgumentException("databaseName, tableName or reportMethod are empty");
