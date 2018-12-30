@@ -60,8 +60,10 @@ class ResourceManager {
 
     ResourceManager(Client client) {
         this.client = client;
-        ingestionResources = new ConcurrentHashMap<>();
+        init();
+    }
 
+    private void init(){
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
             public void run() {

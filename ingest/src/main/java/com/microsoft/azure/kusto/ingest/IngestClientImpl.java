@@ -37,11 +37,10 @@ class IngestClientImpl implements IngestClient {
     private final ResourceManager resourceManager;
     private AzureStorageHelper azureStorageHelper;
 
-    IngestClientImpl(ConnectionStringBuilder csb) {
+    IngestClientImpl(ResourceManager resourceManager, AzureStorageHelper azureStorageHelper){
         log.info("Creating a new IngestClient");
-        Client client = ClientFactory.createClient(csb);
-        resourceManager = new ResourceManager(client);
-        azureStorageHelper = new AzureStorageHelper();
+        this.resourceManager = resourceManager;
+        this.azureStorageHelper = azureStorageHelper;
     }
 
     @Override
@@ -66,7 +65,7 @@ class IngestClientImpl implements IngestClient {
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes() > 0L ? blobSourceInfo.getRawSizeInBytes()
-                    : estimateBlobRawSize(blobSourceInfo);
+                    : estimateBlobRawSize(blobSourceInfo.getBlobPath());
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
@@ -208,6 +207,7 @@ class IngestClientImpl implements IngestClient {
                 streamSourceInfo.getStream().close();
             }
             return ingestionResult;
+
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
         } catch (StorageException e) {
@@ -228,36 +228,19 @@ class IngestClientImpl implements IngestClient {
                 });
     }
 
-    private Long estimateBlobRawSize(@org.jetbrains.annotations.NotNull BlobSourceInfo blobSourceInfo) throws IngestionClientException, IngestionServiceException {
-        try {
-            String blobPath = blobSourceInfo.getBlobPath();
-            CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-            blockBlob.downloadAttributes();
-            long length = blockBlob.getProperties().getLength();
+    private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
+        long blobSize = azureStorageHelper.getBlobSize(blobPath);
 
-            if (length == 0) {
-                return length;
-            }
-
-            if (blobPath.contains(".zip") || blobPath.contains(".gz")) {
-                length = length * COMPRESSED_FILE_MULTIPLIER;
-            }
-
-            return length;
-        } catch (StorageException e) {
-            throw new IngestionServiceException("Error in estimateBlobRawSize", e);
-        } catch (URISyntaxException e) {
-            throw new IngestionClientException("Error in estimateBlobRawSize", e);
-        }
+        return blobPath.contains(".zip") || blobPath.contains(".gz") ?
+                blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
     private long estimateFileRawSize(String filePath) {
         File file = new File(filePath);
         long fileSize = file.length();
-        if (filePath.endsWith(".zip") || filePath.endsWith(".gz")) {
-            fileSize = fileSize * COMPRESSED_FILE_MULTIPLIER;
-        }
-        return fileSize;
+
+        return filePath.contains(".zip") || filePath.contains(".gz") ?
+                fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
     private String genBlobName(String fileName, String databaseName, String tableName) {

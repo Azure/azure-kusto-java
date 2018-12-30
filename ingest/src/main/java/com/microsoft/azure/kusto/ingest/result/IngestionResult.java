@@ -10,5 +10,6 @@ public interface IngestionResult {
     /// Retrieves the detailed ingestion status of 
     /// all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
     /// </summary>
-    List<IngestionStatus> GetIngestionStatusCollection() throws StorageException, URISyntaxException;
+    List<IngestionStatus> getIngestionStatusCollection() throws StorageException, URISyntaxException;
+    int getIngestionStatusesLength();
 }

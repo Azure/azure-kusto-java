@@ -117,4 +117,10 @@ class AzureStorageHelper {
         StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature)blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
+
+    long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
+        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
+        blockBlob.downloadAttributes();
+        return blockBlob.getProperties().getLength();
+    }
 }
