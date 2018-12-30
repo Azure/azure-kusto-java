@@ -1,12 +1,9 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,13 +13,11 @@ import org.junit.jupiter.api.Test;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
@@ -33,7 +28,7 @@ class IngestClientImplTest {
     private static IngestionProperties props;
 
     @BeforeAll
-    static void setUp() throws IngestionServiceException, IngestionClientException, URISyntaxException, StorageException {
+    static void setUp() throws Exception {
         ingestClientImpl = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
 
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
@@ -49,6 +44,17 @@ class IngestClientImplTest {
 
         when(resourceManagerMock.getIdentityToken())
                 .thenReturn("identityToken");
+
+        when(azureStorageHelperMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
+                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+
+        when(azureStorageHelperMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
+                .thenReturn("https://ms.com/storageUri");
+
+        when(azureStorageHelperMock.getBlobSize(anyString())).thenReturn(100L);
+
+        when(azureStorageHelperMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
+                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
         doNothing().when(azureStorageHelperMock)
                 .azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
@@ -67,7 +73,7 @@ class IngestClientImplTest {
     void ingestFromBlobCheckIngestionStatusEmpty() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = ingestClientImpl.ingestFromBlob(blobSourceInfo, props);
-        assert (result.getIngestionStatusesLength() == 0);
+        assert result.getIngestionStatusesLength() == 0;
     }
 
     @Test
@@ -76,7 +82,7 @@ class IngestClientImplTest {
         props.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = ingestClientImpl.ingestFromBlob(blobSourceInfo, props);
-        assert(result.getIngestionStatusesLength() != 0);
+        assert result.getIngestionStatusesLength() != 0;
     }
 
     @Test
@@ -96,16 +102,13 @@ class IngestClientImplTest {
     @Test
     void ingestFromFileCheckIngestionStatusEmpty() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-        when(azureStorageHelperMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
-
-        when(azureStorageHelperMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
-                .thenReturn("https://ms.com/storageUri");
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
         IngestionResult result = ingestClientImpl.ingestFromFile(fileSourceInfo, props);
 
-        assert(result.getIngestionStatusesLength() == 0);
+        assert result.getIngestionStatusesLength() == 0;
+
+        verify(azureStorageHelperMock).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
     @Test
@@ -133,18 +136,12 @@ class IngestClientImplTest {
     @Test
     void ingestFromStreamCheckIngestionStatusEmpty() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-        when(azureStorageHelperMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
-
-        when(azureStorageHelperMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
-                .thenReturn("https://ms.com/storageUri");
-
-        when(azureStorageHelperMock.getBlobSize(anyString())).thenReturn(100L);
 
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
         IngestionResult result = ingestClientImpl.ingestFromStream(streamSourceInfo, props);
-        assert(result.getIngestionStatusesLength() == 0);
+        assert result.getIngestionStatusesLength() == 0;
+
     }
 
     @Test
@@ -153,34 +150,30 @@ class IngestClientImplTest {
         CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromBlobAsync(blobSourceInfo, props);
 
         assertNotNull(cf);
-        assert(cf.get().getIngestionStatusesLength() == 0);
+        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
     void ingestFromFileAsync() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-        when(azureStorageHelperMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
         CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromFileAsync(fileSourceInfo, props);
 
         assertNotNull(cf);
-        assert(cf.get().getIngestionStatusesLength() == 0);
+        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
     void ingestFromStreamAsync() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-        when(azureStorageHelperMock.uploadStreamToBlob(isA(InputStream.class), isA(String.class), isA(String.class), isA(Boolean.class)))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
         CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromStreamAsync(streamSourceInfo, props);
 
         assertNotNull(cf);
-        assert(cf.get().getIngestionStatusesLength() == 0);
+        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
