@@ -145,7 +145,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromBlobAsync() throws Exception {
+    void ingestFromBlobAsyncCheckIngestionStatusEmpty() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath", 100);
         CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromBlobAsync(blobSourceInfo, props);
 
@@ -154,7 +154,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromFileAsync() throws Exception {
+    void ingestFromFileAsyncCheckIngestionStatusEmpty() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
@@ -165,7 +165,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromStreamAsync() throws Exception {
+    void ingestFromStreamAsyncCheckIngestionStatusEmpty() throws Exception {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
 
         InputStream stream = new FileInputStream(testFilePath);
