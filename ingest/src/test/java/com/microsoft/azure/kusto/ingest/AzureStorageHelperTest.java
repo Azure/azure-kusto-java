@@ -26,7 +26,6 @@ class AzureStorageHelperTest {
     static private String testFilePathCompressed;
     static private CloudBlockBlob blob;
 
-
     @BeforeAll
     static void setUp() throws IOException, StorageException, URISyntaxException {
         testFilePath = Paths.get("src","test","resources","testdata.json").toString();

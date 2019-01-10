@@ -64,6 +64,7 @@ class ResourceManager {
     }
 
     private void init(){
+        ingestionResources = new ConcurrentHashMap<>();
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
             public void run() {
