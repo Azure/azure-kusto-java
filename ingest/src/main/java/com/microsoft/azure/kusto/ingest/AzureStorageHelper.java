@@ -31,14 +31,9 @@ class AzureStorageHelper {
     private static final int STREAM_BUFFER_SIZE = 16384;
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
-
         // Validation
-        if(StringUtils.isEmpty(queuePath)){
-            throw new IllegalArgumentException("queuePath is empty");
-        }
-        if(StringUtils.isEmpty(content)){
-            throw new IllegalArgumentException("content is empty");
-        }
+        validateIsNotEmpty(queuePath, "queuePath is empty");
+        validateIsNotEmpty(content, "content is empty");
 
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
@@ -47,12 +42,8 @@ class AzureStorageHelper {
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
         // Validation
-        if(StringUtils.isEmpty(tableUri)){
-            throw new IllegalArgumentException("tableUri is empty");
-        }
-        if(entity == null){
-            throw new IllegalArgumentException("entity is null");
-        }
+        validateIsNotEmpty(tableUri, "tableUri is empty");
+        validateIsNotNull(entity, "entity is null");
 
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
@@ -65,20 +56,12 @@ class AzureStorageHelper {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Validation
-        if(StringUtils.isEmpty(filePath)){
-            throw new IllegalArgumentException("filePath is empty");
-        }
-        if(StringUtils.isEmpty(blobName)){
-            throw new IllegalArgumentException("blobName is empty");
-        }
-        if(StringUtils.isEmpty(storageUri)){
-            throw new IllegalArgumentException("storageUri is empty");
-        }
+        validateIsNotEmpty(filePath, "filePath is empty");
+        validateIsNotEmpty(blobName, "blobName is empty");
+        validateIsNotEmpty(storageUri, "storageUri is empty");
 
         File sourceFile = new File(filePath);
-        if(!sourceFile.exists()){
-            throw new IllegalArgumentException("The file does not exist: " + filePath);
-        }
+        validateFileExists(sourceFile, "The file does not exist: " + filePath);
 
         // Check if the file is already compressed:
         boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
@@ -97,12 +80,8 @@ class AzureStorageHelper {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        if(StringUtils.isEmpty(filePath)){
-            throw new IllegalArgumentException("filePath is empty");
-        }
-        if(blob == null){
-            throw new IllegalArgumentException("blob is null");
-        }
+        validateIsNotEmpty(filePath,"filePath is empty");
+        validateIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
         BlobOutputStream bos = blob.openOutputStream();
@@ -116,32 +95,20 @@ class AzureStorageHelper {
 
     void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        if(blob == null){
-            throw new IllegalArgumentException("blob is null");
-        }
-        if(sourceFile == null){
-            throw new IllegalArgumentException("sourceFile is null");
-        }
-        if(!sourceFile.exists()){
-            throw new IllegalArgumentException("The file does not exist");
-        }
+        validateIsNotNull(blob, "blob is null");
+        validateIsNotNull(sourceFile, "sourceFile is null");
+        validateFileExists(sourceFile, "The file does not exist");
 
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
-        //log.debug("uploadLocalFileToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
+        log.debug("uploadLocalFileToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Validation
-        if(inputStream == null){
-            throw new IllegalArgumentException("inputStream is null");
-        }
-        if(StringUtils.isEmpty(blobName)){
-            throw new IllegalArgumentException("blobName is empty");
-        }
-        if(StringUtils.isEmpty(storageUri)){
-            throw new IllegalArgumentException("storageUri is empty");
-        }
+        validateIsNotNull(inputStream, "inputStream is null");
+        validateIsNotEmpty(blobName, "blobName is empty");
+        validateIsNotEmpty(storageUri, "storageUri is empty");
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
@@ -156,12 +123,8 @@ class AzureStorageHelper {
 
     void streamToBlob(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Validation
-        if(inputStream == null){
-            throw new IllegalArgumentException("inputStream is null");
-        }
-        if(blob == null){
-            throw new IllegalArgumentException("blob is null");
-        }
+        validateIsNotNull(inputStream, "inputStream is null");
+        validateIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
         stream(inputStream,bos,STREAM_BUFFER_SIZE);
@@ -170,13 +133,8 @@ class AzureStorageHelper {
 
     void compressAndStreamToBlob(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Validation
-        if(inputStream == null){
-            throw new IllegalArgumentException("inputStream is null");
-        }
-        if(blob == null){
-            throw new IllegalArgumentException("blob is null");
-        }
-
+        validateIsNotNull(inputStream, "inputStream is null");
+        validateIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
@@ -193,21 +151,37 @@ class AzureStorageHelper {
     }
 
     String getBlobPathWithSas(CloudBlockBlob blob) {
-        if(blob == null){
-            throw new IllegalArgumentException("blob is null");
-        }
+        validateIsNotNull(blob, "blob is null");
 
         StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature)blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 
     long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
-        if(StringUtils.isEmpty(blobPath)){
-            throw new IllegalArgumentException("blobPath is empty");
-        }
+        validateIsNotEmpty(blobPath, "blobPath is empty");
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();
         return blockBlob.getProperties().getLength();
     }
+
+    // Validation functions:
+    private void validateIsNotEmpty(String str, String message) {
+        if(StringUtils.isEmpty(str)){
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private void validateIsNotNull(Object obj, String message) {
+        if(obj == null){
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    private void validateFileExists(File file, String message) {
+        if(!file.exists()){
+            throw new IllegalArgumentException(message);
+        }
+    }
+
 }
