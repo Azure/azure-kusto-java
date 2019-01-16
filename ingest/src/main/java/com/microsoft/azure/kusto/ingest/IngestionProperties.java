@@ -1,9 +1,10 @@
 package com.microsoft.azure.kusto.ingest;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
 
 public class IngestionProperties {
     private String databaseName;
@@ -103,10 +104,10 @@ public class IngestionProperties {
     {
         this.databaseName = databaseName;
         this.tableName = tableName;
-        reportLevel = IngestionReportLevel.FailuresOnly;
-        reportMethod = IngestionReportMethod.Queue;
-        flushImmediately = false;
-        additionalProperties = new HashMap();
+        this.reportLevel = IngestionReportLevel.FailuresOnly;
+        this.reportMethod = IngestionReportMethod.Queue;
+        this.flushImmediately = false;
+        this.additionalProperties = new HashMap<>();
     }
 
     public enum IngestionReportLevel
@@ -126,9 +127,9 @@ public class IngestionProperties {
     /**
      * Validate the minimum non-empty values needed for data ingestion.
      */
-    public void validate(){
-        if(StringUtils.isAnyEmpty(databaseName,tableName) || reportMethod == null){
-            throw new IllegalArgumentException("databaseName, tableName or reportMethod are empty");
-        }
+    void validate(){
+        validateIsNotEmpty(databaseName, "databaseName is empty");
+        validateIsNotEmpty(tableName, "tableName is empty");
+        validateIsNotNull(reportMethod, "reportMethod is null");
     }
 }

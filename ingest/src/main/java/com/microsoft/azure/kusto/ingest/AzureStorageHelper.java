@@ -10,7 +10,6 @@ import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,10 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
+
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateFileExists;
 
 class AzureStorageHelper {
 
@@ -85,7 +88,7 @@ class AzureStorageHelper {
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
 
-        stream(fin, gzout, GZIP_BUFFER_SIZE);
+        copyStream(fin, gzout, GZIP_BUFFER_SIZE);
 
         gzout.close();
         fin.close();
@@ -125,7 +128,7 @@ class AzureStorageHelper {
         validateIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
-        stream(inputStream,bos,STREAM_BUFFER_SIZE);
+        copyStream(inputStream,bos,STREAM_BUFFER_SIZE);
         bos.close();
     }
 
@@ -136,11 +139,11 @@ class AzureStorageHelper {
 
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
-        stream(inputStream,gzout,GZIP_BUFFER_SIZE);
+        copyStream(inputStream,gzout,GZIP_BUFFER_SIZE);
         gzout.close();
     }
 
-    private void stream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
+    private void copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
         byte[] buffer = new byte[bufferSize];
         int length;
         while ((length = inputStream.read(buffer)) > 0) {
@@ -161,24 +164,5 @@ class AzureStorageHelper {
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();
         return blockBlob.getProperties().getLength();
-    }
-
-    // Validation functions:
-    private void validateIsNotEmpty(String str, String message) {
-        if(StringUtils.isEmpty(str)){
-            throw new IllegalArgumentException(message);
-        }
-    }
-
-    private void validateIsNotNull(Object obj, String message) {
-        if(obj == null){
-            throw new IllegalArgumentException(message);
-        }
-    }
-
-    private void validateFileExists(File file, String message) {
-        if(!file.exists()){
-            throw new IllegalArgumentException(message);
-        }
     }
 }

@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.lang.invoke.MethodHandles;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -34,6 +33,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.zip.GZIPOutputStream;
+
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateFileExists;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
 
 class IngestClientImpl implements IngestClient {
 
@@ -67,12 +69,9 @@ class IngestClientImpl implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        if (blobSourceInfo == null){
-            throw new IllegalArgumentException("blobSourceInfo is null");
-        }
-        if (ingestionProperties == null){
-            throw new IllegalArgumentException("ingestionProperties is null");
-        }
+        validateIsNotNull(blobSourceInfo, "blobSourceInfo is null");
+        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
+
         blobSourceInfo.validate();
         ingestionProperties.validate();
 
@@ -146,24 +145,21 @@ class IngestClientImpl implements IngestClient {
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (fileSourceInfo == null){
-            throw new IllegalArgumentException("fileSourceInfo is null");
-        }
-        if (ingestionProperties == null){
-            throw new IllegalArgumentException("ingestionProperties is null");
-        }
+        validateIsNotNull(fileSourceInfo, "fileSourceInfo is null");
+        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
+
         fileSourceInfo.validate();
         ingestionProperties.validate();
 
-        String filePath = fileSourceInfo.getFilePath();
-        if(!(new File(filePath).exists())){
-            throw new IllegalArgumentException("The file does not exist: " + filePath);
-        }
-
         try {
-            String fileName = (new File(filePath)).getName();
+            String filePath = fileSourceInfo.getFilePath();
+            File file = new File(filePath);
+            validateFileExists(file, "The file does not exist: " + filePath);
+
+            String fileName = file.getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName, resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
+            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
             String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath);
@@ -195,12 +191,8 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        if (streamSourceInfo == null){
-            throw new IllegalArgumentException("streamSourceInfo is null");
-        }
-        if (ingestionProperties == null){
-            throw new IllegalArgumentException("ingestionProperties is null");
-        }
+        validateIsNotNull(streamSourceInfo, "streamSourceInfo is null");
+        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
 
         streamSourceInfo.validate();
         ingestionProperties.validate();

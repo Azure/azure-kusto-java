@@ -3,6 +3,8 @@ package com.microsoft.azure.kusto.ingest.source;
 import java.io.InputStream;
 import java.util.UUID;
 
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
+
 public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
@@ -40,9 +42,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate(){
-        if(stream == null){
-            throw new IllegalArgumentException("stream is null");
-        }
+        validateIsNotNull(stream, "stream is null");
     }
 
     @Override

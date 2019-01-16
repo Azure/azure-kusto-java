@@ -1,8 +1,9 @@
 package com.microsoft.azure.kusto.ingest.source;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.UUID;
+
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+
 
 public class FileSourceInfo extends AbstractSourceInfo {
 
@@ -38,8 +39,6 @@ public class FileSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate(){
-        if(StringUtils.isEmpty(filePath)){
-            throw new IllegalArgumentException("filePath is empty");
-        }
+        validateIsNotEmpty(filePath, "filePath is empty");
     }
 }
