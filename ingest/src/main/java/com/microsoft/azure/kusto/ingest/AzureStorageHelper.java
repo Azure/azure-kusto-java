@@ -34,7 +34,6 @@ class AzureStorageHelper {
         // Validation
         validateIsNotEmpty(queuePath, "queuePath is empty");
         validateIsNotEmpty(content, "content is empty");
-
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
         queue.addMessage(queueMessage);
@@ -44,7 +43,6 @@ class AzureStorageHelper {
         // Validation
         validateIsNotEmpty(tableUri, "tableUri is empty");
         validateIsNotNull(entity, "entity is null");
-
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
         TableOperation insert = TableOperation.insert(entity);
@@ -153,7 +151,7 @@ class AzureStorageHelper {
     String getBlobPathWithSas(CloudBlockBlob blob) {
         validateIsNotNull(blob, "blob is null");
 
-        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature)blob.getServiceClient().getCredentials();
+        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 
@@ -183,5 +181,4 @@ class AzureStorageHelper {
             throw new IllegalArgumentException(message);
         }
     }
-
 }

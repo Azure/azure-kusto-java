@@ -31,7 +31,10 @@ out/
 *.iml
 .idea/
 .eclipse
-
+# Eclipse Core
+.project
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
 
 # Maven
 target/

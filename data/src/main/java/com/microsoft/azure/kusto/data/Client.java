@@ -9,4 +9,5 @@ public interface Client {
 
     Results execute(String database, String command) throws DataServiceException, DataClientException;
 
+    Results execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 }

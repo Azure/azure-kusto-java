@@ -3,13 +3,16 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
@@ -22,8 +25,16 @@ import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload) throws DataServiceException, DataClientException {
-        HttpClient httpClient = HttpClients.createDefault();
+    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs) throws DataServiceException, DataClientException {
+
+        HttpClient httpClient;
+        if (timeoutMs != null) {
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
+            httpClient = HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
+        } else {
+            httpClient = HttpClients.createSystem();
+        }
+
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
@@ -38,7 +49,15 @@ class Utils {
         httpPost.addHeader("Content-Type", "application/json");
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
-        httpPost.addHeader("x-ms-client-version", "Kusto.Java.Client");
+
+        String version = Utils.class.getPackage().getImplementationVersion();
+        String clientVersion = "Kusto.Java.Client";
+        if (StringUtils.isNotBlank(version)) {
+            clientVersion += ":" + version;
+        }
+        
+        httpPost.addHeader("x-ms-client-version", clientVersion);
+        httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
 
         try {
             //Execute and get the response.
@@ -71,7 +90,7 @@ class Utils {
                     for (int i = 0; i < resultsRows.length(); i++) {
                         JSONArray row = resultsRows.getJSONArray(i);
                         ArrayList<String> rowVector = new ArrayList<>();
-                        for(int j = 0; j < row.length(); ++j) {
+                        for (int j = 0; j < row.length(); ++j) {
                             Object obj = row.get(j);
                             if (obj == JSONObject.NULL) {
                                 rowVector.add(null);

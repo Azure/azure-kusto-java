@@ -17,14 +17,13 @@ public interface IngestClient {
      * This method ingests the data from a given file, described in {@code fileSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
-     * @param  fileSourceInfo includes information about the source data file, like: {@code filePath} and {@code rawSizeInBytes}
-     * @param  ingestionProperties includes ingestion properties relevant to the destination Kusto database,
-     *                             like: <code>databaseName, tableName, reportMethod</code>...
+     * @param  fileSourceInfo      The specific SourceInfo to be ingested
+     * @param  ingestionProperties Settings used to customize the ingestion operation
      *
      * @return {@link IngestionResult} object including the ingestion result.
      *
-     * @throws IngestionClientException If there was an exception in the client.
-     * @throws IngestionServiceException If there was an exception in one of the services outside the client.
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
      *
      * @see FileSourceInfo
      * @see IngestionProperties
@@ -37,14 +36,13 @@ public interface IngestClient {
      * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
-     * @param  blobSourceInfo includes information about the source blob, like: {@code blobPath} and {@code rawSizeInBytes}
-     * @param  ingestionProperties includes ingestion properties relevant to the destination Kusto database,
-     *                             like: <code>databaseName, tableName, reportMethod</code>...
+     * @param blobSourceInfo      The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
      *
      * @return {@link IngestionResult} object including the ingestion result.
      *
-     * @throws IngestionClientException If there was an exception in the client.
-     * @throws IngestionServiceException If there was an exception in one of the services outside the client.
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
      *
      * @see BlobSourceInfo
      * @see IngestionProperties
@@ -57,14 +55,13 @@ public interface IngestClient {
      * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
-     * @param  resultSetSourceInfo includes information about the result set, like: {@code resultSet}
-     * @param  ingestionProperties includes ingestion properties relevant to the destination Kusto database,
-     *                             like: <code>databaseName, tableName, reportMethod</code>...
+     * @param resultSetSourceInfo The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
      *
      * @return {@link IngestionResult} object including the ingestion result.
      *
-     * @throws IngestionClientException If there was an exception in the client.
-     * @throws IngestionServiceException If there was an exception in one of the services outside the client.
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
      *
      * @see ResultSetSourceInfo
      * @see IngestionProperties
@@ -73,18 +70,37 @@ public interface IngestClient {
             throws IngestionClientException, IngestionServiceException;
 
     /**
+     * <p>Ingest data from a Result Set into Kusto database, using a local temp storage.</p>
+     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param resultSetSourceInfo The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @param tempStoragePath     A local folder path that will be used as a temporary storage, data will be deleted on successful ingestion
+     *
+     * @return {@link IngestionResult} object including the ingestion result.
+     *
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     *
+     * @see ResultSetSourceInfo
+     * @see IngestionProperties
+     */
+    IngestionResult ingestFromResultSet (ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath)
+            throws IngestionClientException, IngestionServiceException;
+
+    /**
      * <p>Ingest data from an input stream, into Kusto database.</p>
      * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
-     * @param  streamSourceInfo includes information about the input stream, like: {@code stream} and {@code leaveOpen}
-     * @param  ingestionProperties includes ingestion properties relevant to the destination Kusto database,
-     *                             like: <code>databaseName, tableName, reportMethod</code>...
+     * @param streamSourceInfo    The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
      *
      * @return {@link IngestionResult} object including the ingestion result.
      *
-     * @throws IngestionClientException If there was an exception in the client.
-     * @throws IngestionServiceException If there was an exception in one of the services outside the client.
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
      *
      * @see StreamSourceInfo
      * @see IngestionProperties
