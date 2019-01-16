@@ -38,7 +38,7 @@ public class FileSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-    public void validate(){
+    public void validate() {
         validateIsNotEmpty(filePath, "filePath is empty");
     }
 }

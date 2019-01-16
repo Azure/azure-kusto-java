@@ -17,18 +17,15 @@ public interface IngestClient {
      * This method ingests the data from a given file, described in {@code fileSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
-     * @param  fileSourceInfo      The specific SourceInfo to be ingested
-     * @param  ingestionProperties Settings used to customize the ingestion operation
-     *
+     * @param fileSourceInfo      The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result.
-     *
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
-     *
      * @see FileSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromFile (FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
     /**
@@ -38,16 +35,13 @@ public interface IngestClient {
      *
      * @param blobSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     *
      * @return {@link IngestionResult} object including the ingestion result.
-     *
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
-     *
      * @see BlobSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromBlob (BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
     /**
@@ -57,16 +51,13 @@ public interface IngestClient {
      *
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     *
      * @return {@link IngestionResult} object including the ingestion result.
-     *
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
-     *
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet (ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
     /**
@@ -77,16 +68,13 @@ public interface IngestClient {
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @param tempStoragePath     A local folder path that will be used as a temporary storage, data will be deleted on successful ingestion
-     *
      * @return {@link IngestionResult} object including the ingestion result.
-     *
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
-     *
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet (ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath)
+    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath)
             throws IngestionClientException, IngestionServiceException;
 
     /**
@@ -96,22 +84,19 @@ public interface IngestClient {
      *
      * @param streamSourceInfo    The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     *
      * @return {@link IngestionResult} object including the ingestion result.
-     *
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
-     *
      * @see StreamSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromStream (StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
-    CompletableFuture<IngestionResult> ingestFromFileAsync (FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
+    CompletableFuture<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
 
-    CompletableFuture<IngestionResult> ingestFromStreamAsync (StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
+    CompletableFuture<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
 
-    CompletableFuture<IngestionResult> ingestFromBlobAsync (BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
+    CompletableFuture<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
 
 }

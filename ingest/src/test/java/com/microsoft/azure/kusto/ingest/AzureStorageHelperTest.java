@@ -28,9 +28,9 @@ class AzureStorageHelperTest {
 
     @BeforeAll
     static void setUp() throws IOException, StorageException, URISyntaxException {
-        testFilePath = Paths.get("src","test","resources","testdata.json").toString();
+        testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         testFile = new File(testFilePath);
-        testFilePathCompressed = Paths.get("src","test","resources","testdata.json.gz").toString();
+        testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
         blob = new CloudBlockBlob(new URI("https://ms.com/storageUri"));
 
         azureStorageHelperSpy = spy(azureStorageHelper);
@@ -61,13 +61,13 @@ class AzureStorageHelperTest {
 
     @Test
     void uploadLocalFileToBlobCompressAndUploadWhenFileIsUncompressed() throws IOException, StorageException, URISyntaxException {
-        azureStorageHelperSpy.uploadLocalFileToBlob(testFilePath, "blobName","https://ms.com/blob");
+        azureStorageHelperSpy.uploadLocalFileToBlob(testFilePath, "blobName", "https://ms.com/blob");
         verify(azureStorageHelperSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
     }
 
     @Test
     void uploadLocalFileToBlobUploadFileWhenFileIsCompressed() throws IOException, StorageException, URISyntaxException {
-        azureStorageHelperSpy.uploadLocalFileToBlob(testFilePathCompressed, "blobName","https://ms.com/blob");
+        azureStorageHelperSpy.uploadLocalFileToBlob(testFilePathCompressed, "blobName", "https://ms.com/blob");
         verify(azureStorageHelperSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
     }
 
@@ -163,7 +163,7 @@ class AzureStorageHelperTest {
     @Test
     void getBlobPathWithSasThrowExceptionWhenArgumentIsNull() {
         assertThrows(IllegalArgumentException.class,
-                    () -> azureStorageHelper.getBlobPathWithSas(null));
+                () -> azureStorageHelper.getBlobPathWithSas(null));
     }
 
     @Test

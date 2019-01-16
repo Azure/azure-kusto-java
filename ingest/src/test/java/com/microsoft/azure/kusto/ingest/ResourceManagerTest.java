@@ -51,29 +51,29 @@ class ResourceManagerTest {
     @Test
     void getStorageUriVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
         String storage;
-        HashMap<String,Integer> m = new HashMap();
+        HashMap<String, Integer> m = new HashMap();
 
-        for(int i=0; i<10; i++){
+        for (int i = 0; i < 10; i++) {
             storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-            m.put(storage,m.getOrDefault(storage,0)+1);
+            m.put(storage, m.getOrDefault(storage, 0) + 1);
         }
 
-        assertEquals(5, (int)m.get(STORAGE_2));
-        assertEquals(5, (int)m.get(STORAGE_1));
+        assertEquals(5, (int) m.get(STORAGE_2));
+        assertEquals(5, (int) m.get(STORAGE_1));
     }
 
     @Test
     void getAggregationQueueVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
         String queueName;
-        HashMap<String,Integer> m = new HashMap();
+        HashMap<String, Integer> m = new HashMap();
 
-        for(int i=0; i<10; i++){
+        for (int i = 0; i < 10; i++) {
             queueName = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-            m.put(queueName,m.getOrDefault(queueName,0)+1);
+            m.put(queueName, m.getOrDefault(queueName, 0) + 1);
         }
 
-        assertEquals(5, (int)m.get(QUEUE_1));
-        assertEquals(5, (int)m.get(QUEUE_2));
+        assertEquals(5, (int) m.get(QUEUE_1));
+        assertEquals(5, (int) m.get(QUEUE_2));
     }
 
     @Test
@@ -96,21 +96,21 @@ class ResourceManagerTest {
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
 
-        colNameToIndexMap.put("colNameToIndexMap",0);
-        colNameToIndexMap.put("StorageRoot",1);
+        colNameToIndexMap.put("colNameToIndexMap", 0);
+        colNameToIndexMap.put("StorageRoot", 1);
 
-        colNameToTypeMap.put("colNameToIndexMap","String");
-        colNameToTypeMap.put("StorageRoot","String");
+        colNameToTypeMap.put("colNameToIndexMap", "String");
+        colNameToTypeMap.put("StorageRoot", "String");
 
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue",FAILED_QUEUE))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue",SUCCESS_QUEUE))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_1))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable",STATUS_TABLE))));
+        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
+        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
 
-        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
     }
 
     private static Results generateIngestionAuthTokenResult() {
@@ -118,10 +118,10 @@ class ResourceManagerTest {
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
 
-        colNameToIndexMap.put("AuthorizationContext",0);
-        colNameToTypeMap.put("AuthorizationContext","String");
+        colNameToIndexMap.put("AuthorizationContext", 0);
+        colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
     }
 }

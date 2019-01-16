@@ -5,7 +5,7 @@ import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription
 import java.util.Map;
 import java.util.UUID;
 
-final public class IngestionBlobInfo{
+final public class IngestionBlobInfo {
     public String blobPath;
     public Long rawDataSize;
     public String databaseName;

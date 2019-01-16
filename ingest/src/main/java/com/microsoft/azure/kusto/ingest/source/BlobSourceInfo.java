@@ -42,7 +42,7 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-    public void validate(){
+    public void validate() {
         validateIsNotEmpty(blobPath, "blobPath is empty");
     }
 }

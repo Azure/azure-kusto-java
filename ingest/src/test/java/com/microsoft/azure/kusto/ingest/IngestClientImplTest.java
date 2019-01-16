@@ -146,7 +146,7 @@ class IngestClientImplTest {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
 
         InputStream stream = new FileInputStream(testFilePath);
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         IngestionResult result = ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
         assert result.getIngestionStatusesLength() == 0;
 
@@ -177,7 +177,7 @@ class IngestClientImplTest {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
 
         InputStream stream = new FileInputStream(testFilePath);
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false);
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
 
         assertNotNull(cf);

@@ -14,7 +14,7 @@ class SourceInfoTest {
 
     @Test
     void validateFileSourceInfo() {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo("",0);
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("", 0);
         assertThrows(IllegalArgumentException.class, fileSourceInfo::validate);
     }
 

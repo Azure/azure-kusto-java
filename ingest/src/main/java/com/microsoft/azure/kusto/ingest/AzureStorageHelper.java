@@ -68,9 +68,9 @@ class AzureStorageHelper {
         boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed?"":".gz"));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
 
-        if(!isCompressed){
+        if (!isCompressed) {
             compressAndUploadFileToBlob(filePath, blob);
         } else {
             uploadFileToBlob(sourceFile, blob);
@@ -81,7 +81,7 @@ class AzureStorageHelper {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        validateIsNotEmpty(filePath,"filePath is empty");
+        validateIsNotEmpty(filePath, "filePath is empty");
         validateIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
@@ -114,9 +114,9 @@ class AzureStorageHelper {
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
-        if(compress){
+        if (compress) {
             compressAndStreamToBlob(inputStream, blob);
-        }else{
+        } else {
             streamToBlob(inputStream, blob);
         }
         return blob;
@@ -128,7 +128,7 @@ class AzureStorageHelper {
         validateIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
-        copyStream(inputStream,bos,STREAM_BUFFER_SIZE);
+        copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
         bos.close();
     }
 
@@ -139,7 +139,7 @@ class AzureStorageHelper {
 
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
-        copyStream(inputStream,gzout,GZIP_BUFFER_SIZE);
+        copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         gzout.close();
     }
 

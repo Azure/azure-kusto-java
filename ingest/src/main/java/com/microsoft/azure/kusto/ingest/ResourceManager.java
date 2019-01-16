@@ -63,7 +63,7 @@ class ResourceManager {
         init();
     }
 
-    private void init(){
+    private void init() {
         ingestionResources = new ConcurrentHashMap<>();
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
@@ -152,9 +152,9 @@ class ResourceManager {
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -186,9 +186,9 @@ class ResourceManager {
                     identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }

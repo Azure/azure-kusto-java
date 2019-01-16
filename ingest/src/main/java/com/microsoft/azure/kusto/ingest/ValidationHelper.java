@@ -8,19 +8,19 @@ import java.io.FileNotFoundException;
 public class ValidationHelper {
 
     public static void validateIsNotEmpty(String str, String message) {
-        if(StringUtils.isBlank(str)){
+        if (StringUtils.isBlank(str)) {
             throw new IllegalArgumentException(message);
         }
     }
 
     public static void validateIsNotNull(Object obj, String message) {
-        if(obj == null){
+        if (obj == null) {
             throw new IllegalArgumentException(message);
         }
     }
 
     public static void validateFileExists(File file, String message) throws FileNotFoundException {
-        if(!file.exists()){
+        if (!file.exists()) {
             throw new FileNotFoundException(message);
         }
     }

@@ -41,7 +41,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-    public void validate(){
+    public void validate() {
         validateIsNotNull(stream, "stream is null");
     }
 
