@@ -137,7 +137,7 @@ class IngestClientImplTest {
     void ingestFromFileThrowExceptionWhenFileDoesNotExist() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(IngestionClientException.class,
                 () -> ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties));
     }
 

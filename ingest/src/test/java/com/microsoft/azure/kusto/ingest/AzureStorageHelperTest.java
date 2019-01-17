@@ -86,7 +86,7 @@ class AzureStorageHelperTest {
     @Test
     void uploadLocalFileToBlobThrowExceptionWhenFileDoesNotExist() {
         String notExistingFilePath = "not.existing.file.path";
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(IOException.class,
                 () -> azureStorageHelper.uploadLocalFileToBlob(notExistingFilePath, "blobName", "storageUri"));
     }
 
