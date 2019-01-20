@@ -241,7 +241,7 @@ class IngestClientImpl implements IngestClient {
     private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
         long blobSize = azureStorageHelper.getBlobSize(blobPath);
 
-        return blobPath.contains(".zip") || blobPath.contains(".gz") ?
+        return blobPath.endsWith(".zip") || blobPath.endsWith(".gz") ?
                 blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
@@ -249,7 +249,7 @@ class IngestClientImpl implements IngestClient {
         File file = new File(filePath);
         long fileSize = file.length();
 
-        return filePath.contains(".zip") || filePath.contains(".gz") ?
+        return filePath.endsWith(".zip") || filePath.endsWith(".gz") ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
