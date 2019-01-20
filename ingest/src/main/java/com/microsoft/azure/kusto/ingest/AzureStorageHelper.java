@@ -23,7 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotBlank;
 import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
 import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateFileExists;
 
@@ -35,8 +35,8 @@ class AzureStorageHelper {
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Validation
-        validateIsNotEmpty(queuePath, "queuePath is empty");
-        validateIsNotEmpty(content, "content is empty");
+        validateIsNotBlank(queuePath, "queuePath is empty");
+        validateIsNotBlank(content, "content is empty");
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
         queue.addMessage(queueMessage);
@@ -44,7 +44,7 @@ class AzureStorageHelper {
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
         // Validation
-        validateIsNotEmpty(tableUri, "tableUri is empty");
+        validateIsNotBlank(tableUri, "tableUri is empty");
         validateIsNotNull(entity, "entity is null");
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
@@ -57,9 +57,9 @@ class AzureStorageHelper {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Validation
-        validateIsNotEmpty(filePath, "filePath is empty");
-        validateIsNotEmpty(blobName, "blobName is empty");
-        validateIsNotEmpty(storageUri, "storageUri is empty");
+        validateIsNotBlank(filePath, "filePath is empty");
+        validateIsNotBlank(blobName, "blobName is empty");
+        validateIsNotBlank(storageUri, "storageUri is empty");
 
         File sourceFile = new File(filePath);
         validateFileExists(sourceFile, "The file does not exist: " + filePath);
@@ -81,7 +81,7 @@ class AzureStorageHelper {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        validateIsNotEmpty(filePath, "filePath is empty");
+        validateIsNotBlank(filePath, "filePath is empty");
         validateIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
@@ -108,8 +108,8 @@ class AzureStorageHelper {
 
         // Validation
         validateIsNotNull(inputStream, "inputStream is null");
-        validateIsNotEmpty(blobName, "blobName is empty");
-        validateIsNotEmpty(storageUri, "storageUri is empty");
+        validateIsNotBlank(blobName, "blobName is empty");
+        validateIsNotBlank(storageUri, "storageUri is empty");
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
@@ -159,7 +159,7 @@ class AzureStorageHelper {
     }
 
     long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
-        validateIsNotEmpty(blobPath, "blobPath is empty");
+        validateIsNotBlank(blobPath, "blobPath is empty");
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();

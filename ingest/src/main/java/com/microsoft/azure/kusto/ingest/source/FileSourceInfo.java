@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import java.util.UUID;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotBlank;
 
 
 public class FileSourceInfo extends AbstractSourceInfo {
@@ -39,6 +39,6 @@ public class FileSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        validateIsNotEmpty(filePath, "filePath is empty");
+        validateIsNotBlank(filePath, "filePath is empty");
     }
 }

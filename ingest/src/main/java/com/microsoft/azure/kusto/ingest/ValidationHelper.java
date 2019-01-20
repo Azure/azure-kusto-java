@@ -7,7 +7,7 @@ import java.io.FileNotFoundException;
 
 public class ValidationHelper {
 
-    public static void validateIsNotEmpty(String str, String message) {
+    public static void validateIsNotBlank(String str, String message) {
         if (StringUtils.isBlank(str)) {
             throw new IllegalArgumentException(message);
         }

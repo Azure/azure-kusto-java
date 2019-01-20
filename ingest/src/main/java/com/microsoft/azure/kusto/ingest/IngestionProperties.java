@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotEmpty;
+import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotBlank;
 import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
 
 public class IngestionProperties {
@@ -140,8 +140,8 @@ public class IngestionProperties {
      * Validate the minimum non-empty values needed for data ingestion.
      */
     void validate() {
-        validateIsNotEmpty(databaseName, "databaseName is empty");
-        validateIsNotEmpty(tableName, "tableName is empty");
+        validateIsNotBlank(databaseName, "databaseName is empty");
+        validateIsNotBlank(tableName, "tableName is empty");
         validateIsNotNull(reportMethod, "reportMethod is null");
     }
 }
