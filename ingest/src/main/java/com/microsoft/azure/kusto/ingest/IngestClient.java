@@ -19,7 +19,7 @@ public interface IngestClient {
      *
      * @param fileSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return {@link IngestionResult} object including the ingestion result.
+     * @return {@link IngestionResult} object including the ingestion result
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      * @see FileSourceInfo
@@ -35,7 +35,7 @@ public interface IngestClient {
      *
      * @param blobSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return {@link IngestionResult} object including the ingestion result.
+     * @return {@link IngestionResult} object including the ingestion result
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      * @see BlobSourceInfo
@@ -51,7 +51,7 @@ public interface IngestClient {
      *
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return {@link IngestionResult} object including the ingestion result.
+     * @return {@link IngestionResult} object including the ingestion result
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      * @see ResultSetSourceInfo
@@ -68,7 +68,7 @@ public interface IngestClient {
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @param tempStoragePath     A local folder path that will be used as a temporary storage, data will be deleted on successful ingestion
-     * @return {@link IngestionResult} object including the ingestion result.
+     * @return {@link IngestionResult} object including the ingestion result
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      * @see ResultSetSourceInfo
@@ -84,7 +84,7 @@ public interface IngestClient {
      *
      * @param streamSourceInfo    The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return {@link IngestionResult} object including the ingestion result.
+     * @return {@link IngestionResult} object including the ingestion result
      * @throws IngestionClientException  An exception originating from a client activity
      * @throws IngestionServiceException An exception returned from the service
      * @see StreamSourceInfo
