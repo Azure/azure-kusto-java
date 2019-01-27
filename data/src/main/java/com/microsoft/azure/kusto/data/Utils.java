@@ -25,7 +25,7 @@ import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs, String originApplicationVersion) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -50,13 +50,7 @@ class Utils {
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
 
-        String version = Utils.class.getPackage().getImplementationVersion();
-        String clientVersion = "Kusto.Java.Client";
-        if (StringUtils.isNotBlank(version)) {
-            clientVersion += ":" + version;
-        }
-        
-        httpPost.addHeader("x-ms-client-version", clientVersion);
+        httpPost.addHeader("x-ms-client-version", originApplicationVersion);
         httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
 
         try {
