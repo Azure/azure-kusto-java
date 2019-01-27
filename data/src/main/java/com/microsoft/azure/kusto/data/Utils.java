@@ -25,7 +25,7 @@ import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs, String originApplicationVersion) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs, String clientVersionForTracing) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -50,7 +50,7 @@ class Utils {
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
 
-        httpPost.addHeader("x-ms-client-version", originApplicationVersion);
+        httpPost.addHeader("x-ms-client-version", clientVersionForTracing);
         httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
 
         try {
