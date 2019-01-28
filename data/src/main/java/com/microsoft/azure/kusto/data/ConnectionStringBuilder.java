@@ -23,7 +23,7 @@ public class ConnectionStringBuilder {
     String getApplicationClientId() { return applicationClientId; }
     String getApplicationKey() { return applicationKey; }
     String getAuthorityId() { return aadAuthorityId; }
-    String clientVersionForTracing() { return clientVersionForTracing; }
+    String getClientVersionForTracing() { return clientVersionForTracing; }
     X509Certificate getX509Certificate() { return x509Certificate; }
     PrivateKey getPrivateKey(){ return  privateKey; }
     private ConnectionStringBuilder(String resourceUri)
@@ -128,7 +128,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public void SetClientVersionForTracing(String clientVersionForTracing){
+    public void setClientVersionForTracing(String clientVersionForTracing){
         this.clientVersionForTracing = clientVersionForTracing;
     }
 }

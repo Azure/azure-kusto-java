@@ -105,4 +105,8 @@ class Utils {
         }
         return null;
     }
+
+    static String GetPackageVersion(){
+        return Utils.class.getPackage().getImplementationVersion();
+    }
 }

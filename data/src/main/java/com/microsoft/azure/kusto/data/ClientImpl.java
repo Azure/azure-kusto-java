@@ -24,15 +24,15 @@ public class ClientImpl implements Client {
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
-        if(csb.clientVersionForTracing() == null){
-            String version = Utils.class.getPackage().getImplementationVersion();
+        if(StringUtils.isNotBlank(csb.getClientVersionForTracing()) ){
             clientVersionForTracing = "Kusto.Java.Client";
+            String version = Utils.GetPackageVersion();
             if (StringUtils.isNotBlank(version)) {
                 clientVersionForTracing += ":" + version;
             }
         }
         else{
-            clientVersionForTracing = csb.clientVersionForTracing();
+            clientVersionForTracing = csb.getClientVersionForTracing();
         }
     }
 
