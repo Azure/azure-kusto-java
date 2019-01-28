@@ -15,7 +15,7 @@ public class ConnectionStringBuilder {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
-    private String originApplicationVersion;
+    private String clientVersionForTracing;
 
     String getClusterUrl() { return clusterUri; }
     String getUserUsername() { return username; }
@@ -23,7 +23,7 @@ public class ConnectionStringBuilder {
     String getApplicationClientId() { return applicationClientId; }
     String getApplicationKey() { return applicationKey; }
     String getAuthorityId() { return aadAuthorityId; }
-    String originApplicationVersion() { return originApplicationVersion; }
+    String clientVersionForTracing() { return clientVersionForTracing; }
     X509Certificate getX509Certificate() { return x509Certificate; }
     PrivateKey getPrivateKey(){ return  privateKey; }
     private ConnectionStringBuilder(String resourceUri)
@@ -96,17 +96,6 @@ public class ConnectionStringBuilder {
         return createWithAadApplicationCredentials(resourceUri, applicationClientId, applicationKey, null);
     }
 
-    public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
-                                                                              String applicationClientId,
-                                                                              String applicationKey,
-                                                                              String authorityId,
-                                                                              String originApplicationVersion)
-    {
-        ConnectionStringBuilder csb = createWithAadApplicationCredentials(resourceUri, applicationClientId, applicationKey, authorityId);
-        csb.originApplicationVersion = originApplicationVersion;
-        return csb;
-    }
-
     public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri){
         if (StringUtils.isEmpty(resourceUri)){
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
@@ -139,4 +128,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
+    public void SetClientVersionForTracing(String clientVersionForTracing){
+        this.clientVersionForTracing = clientVersionForTracing;
+    }
 }

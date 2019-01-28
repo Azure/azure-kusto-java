@@ -19,20 +19,20 @@ public class ClientImpl implements Client {
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
-    private String originApplicationVersion;
+    private String clientVersionForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
-        if(csb.originApplicationVersion() == null){
+        if(csb.clientVersionForTracing() == null){
             String version = Utils.class.getPackage().getImplementationVersion();
-            originApplicationVersion = "Kusto.Java.Client";
+            clientVersionForTracing = "Kusto.Java.Client";
             if (StringUtils.isNotBlank(version)) {
-                originApplicationVersion += ":" + version;
+                clientVersionForTracing += ":" + version;
             }
         }
         else{
-            originApplicationVersion = csb.originApplicationVersion();
+            clientVersionForTracing = csb.clientVersionForTracing();
         }
     }
 
@@ -85,6 +85,6 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue(), originApplicationVersion);
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue(), clientVersionForTracing);
     }
 }
