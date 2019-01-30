@@ -16,6 +16,7 @@ public class ConnectionStringBuilder {
     private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
     private String clientVersionForTracing;
+    private String applicationNameForTracing;
 
     String getClusterUrl() {
         return clusterUri;
@@ -39,6 +40,10 @@ public class ConnectionStringBuilder {
 
     String getAuthorityId() {
         return aadAuthorityId;
+    }
+
+    String getApplicationNameForTracing() {
+        return applicationNameForTracing;
     }
 
     String getClientVersionForTracing() {
@@ -152,5 +157,9 @@ public class ConnectionStringBuilder {
 
     public void setClientVersionForTracing(String clientVersionForTracing) {
         this.clientVersionForTracing = clientVersionForTracing;
+    }
+
+    public void setApplicationNameForTracing(String applicationNameForTracing) {
+        this.applicationNameForTracing = applicationNameForTracing;
     }
 }

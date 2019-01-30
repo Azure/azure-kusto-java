@@ -20,6 +20,7 @@ public class ClientImpl implements Client {
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
     private String clientVersionForTracing;
+    private String applicationNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
@@ -33,6 +34,7 @@ public class ClientImpl implements Client {
         if (StringUtils.isNotBlank(csb.getClientVersionForTracing())) {
             clientVersionForTracing += "[" + csb.getClientVersionForTracing() + "]";
         }
+        applicationNameForTracing = csb.getApplicationNameForTracing();
     }
 
     public Results execute(String command) throws DataServiceException, DataClientException {
@@ -84,6 +86,6 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue(), clientVersionForTracing);
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue(), clientVersionForTracing, applicationNameForTracing);
     }
 }
