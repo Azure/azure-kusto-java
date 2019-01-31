@@ -46,8 +46,16 @@ public class ConnectionStringBuilder {
         return applicationNameForTracing;
     }
 
+    public void setApplicationNameForTracing(String applicationNameForTracing) {
+        this.applicationNameForTracing = applicationNameForTracing;
+    }
+
     String getClientVersionForTracing() {
         return clientVersionForTracing;
+    }
+
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
     }
 
     X509Certificate getX509Certificate() {
@@ -147,19 +155,10 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
 
-
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;
         csb.x509Certificate = x509Certificate;
         csb.privateKey = privateKey;
         return csb;
-    }
-
-    public void setClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = clientVersionForTracing;
-    }
-
-    public void setApplicationNameForTracing(String applicationNameForTracing) {
-        this.applicationNameForTracing = applicationNameForTracing;
     }
 }
