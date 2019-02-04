@@ -42,7 +42,8 @@ class AzureStorageHelper {
         queue.addMessage(queueMessage);
     }
 
-    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException, URISyntaxException {
+    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
+            URISyntaxException {
         // Validation
         validateIsNotBlank(tableUri, "tableUri is empty");
         validateIsNotNull(entity, "entity is null");
@@ -53,7 +54,8 @@ class AzureStorageHelper {
         table.execute(insert);
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri) throws URISyntaxException, StorageException, IOException {
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri)
+            throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Validation
@@ -64,7 +66,7 @@ class AzureStorageHelper {
         File sourceFile = validateFileExists(filePath, "The file does not exist: " + filePath);
 
         // Check if the file is already compressed:
-        boolean isCompressed = checkIfCompressed(filePath);
+        boolean isCompressed = isCompressed(filePath);
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
@@ -102,7 +104,8 @@ class AzureStorageHelper {
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
 
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
+    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress)
+            throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Validation
@@ -153,7 +156,8 @@ class AzureStorageHelper {
     String getBlobPathWithSas(CloudBlockBlob blob) {
         validateIsNotNull(blob, "blob is null");
 
-        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
+        StorageCredentialsSharedAccessSignature signature =
+                (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 
@@ -165,7 +169,7 @@ class AzureStorageHelper {
         return blockBlob.getProperties().getLength();
     }
 
-    boolean checkIfCompressed(String fileName){
+    boolean isCompressed(String fileName) {
         return fileName.endsWith(".gz") || fileName.endsWith(".zip");
     }
 }
