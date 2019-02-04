@@ -27,9 +27,9 @@ import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotBla
 import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
 import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateFileExists;
 
-class AzureStorageHelper {
+class AzureStorageClient {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureStorageHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureStorageClient.class);
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 

@@ -43,25 +43,25 @@ class IngestClientImpl implements IngestClient {
 
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
-    private AzureStorageHelper azureStorageHelper;
+    private AzureStorageClient azureStorageClient;
 
     IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);
-        this.azureStorageHelper = new AzureStorageHelper();
+        this.azureStorageClient = new AzureStorageClient();
     }
 
     IngestClientImpl(ResourceManager resourceManager) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
-        azureStorageHelper = new AzureStorageHelper();
+        azureStorageClient = new AzureStorageClient();
     }
 
-    IngestClientImpl(ResourceManager resourceManager, AzureStorageHelper azureStorageHelper) {
+    IngestClientImpl(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
-        this.azureStorageHelper = azureStorageHelper;
+        this.azureStorageClient = azureStorageClient;
     }
 
     @Override
@@ -108,14 +108,14 @@ class IngestClientImpl implements IngestClient {
                 status.ingestionSourceId = ingestionBlobInfo.id;
                 status.setIngestionSourcePath(blobSourceInfo.getBlobPath());
 
-                azureStorageHelper.azureTableInsertEntity(tableStatusUri, status);
+                azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            azureStorageHelper.postMessageToQueue(
+            azureStorageClient.postMessageToQueue(
                     resourceManager
                             .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
@@ -162,9 +162,9 @@ class IngestClientImpl implements IngestClient {
             String fileName = file.getName();
             String blobName = genBlobName(
                     fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = azureStorageHelper.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
+            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
-            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
+            String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath);
 
@@ -210,13 +210,13 @@ class IngestClientImpl implements IngestClient {
             }
             String blobName = genBlobName(
                     "StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            CloudBlockBlob blob = azureStorageHelper.uploadStreamToBlob(
+            CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
                     true
             );
-            String blobPath = azureStorageHelper.getBlobPathWithSas(blob);
+            String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                     blobPath, 0); // TODO: check if we can get the rawDataSize locally
 
@@ -248,9 +248,9 @@ class IngestClientImpl implements IngestClient {
     }
 
     private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
-        long blobSize = azureStorageHelper.getBlobSize(blobPath);
+        long blobSize = azureStorageClient.getBlobSize(blobPath);
 
-        return azureStorageHelper.isCompressed(blobPath) ?
+        return azureStorageClient.isCompressed(blobPath) ?
                 blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
@@ -258,7 +258,7 @@ class IngestClientImpl implements IngestClient {
         File file = new File(filePath);
         long fileSize = file.length();
 
-        return azureStorageHelper.isCompressed(filePath) ?
+        return azureStorageClient.isCompressed(filePath) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 

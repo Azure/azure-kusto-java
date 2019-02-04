@@ -31,13 +31,13 @@ import static org.mockito.Mockito.*;
 class IngestClientImplTest {
 
     private static ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    private static AzureStorageHelper azureStorageHelperMock = mock(AzureStorageHelper.class);
+    private static AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static IngestClientImpl ingestClientImpl;
     private static IngestionProperties ingestionProperties;
 
     @BeforeAll
     static void setUp() throws Exception {
-        ingestClientImpl = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        ingestClientImpl = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
 
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                 .thenReturn("queue1")
@@ -53,21 +53,21 @@ class IngestClientImplTest {
         when(resourceManagerMock.getIdentityToken())
                 .thenReturn("identityToken");
 
-        when(azureStorageHelperMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
+        when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
                 .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-        when(azureStorageHelperMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
+        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
                 .thenReturn("https://ms.com/storageUri");
 
-        when(azureStorageHelperMock.getBlobSize(anyString())).thenReturn(100L);
+        when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
 
-        when(azureStorageHelperMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
+        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
                 .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
-        doNothing().when(azureStorageHelperMock)
+        doNothing().when(azureStorageClientMock)
                 .azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageHelperMock)
+        doNothing().when(azureStorageClientMock)
                 .postMessageToQueue(anyString(), anyString());
     }
 
@@ -116,7 +116,7 @@ class IngestClientImplTest {
 
         assert result.getIngestionStatusesLength() == 0;
 
-        verify(azureStorageHelperMock).getBlobPathWithSas(any(CloudBlockBlob.class));
+        verify(azureStorageClientMock).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
     @Test
@@ -200,7 +200,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromResultSet_DefaultTempFolder_Success() throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept calls to internal methods so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
         TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
@@ -223,7 +223,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromResultSet_SpecifyTempFolder_Success() throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         IngestClientImpl ingestClientSpy = spy(ingestClient);
         TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
 
@@ -253,7 +253,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromResultSet_ResultSetToCsv_Error() throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
         TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
@@ -271,7 +271,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromResultSet_FileIngest_IngestionClientException() throws IngestionClientException, IngestionServiceException, SQLException {
-        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -287,7 +287,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromResultSet_FileIngest_IngestionServiceException() throws IngestionClientException, IngestionServiceException, SQLException {
-        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -303,7 +303,7 @@ class IngestClientImplTest {
 
     @Test
     void resultSetToCsv_Success() throws SQLException, IngestionClientException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
         StringWriter stringWriter = new StringWriter();
         long numberOfCharsActual = ingestClient.resultSetToCsv(resultSet, stringWriter, false);
@@ -316,7 +316,7 @@ class IngestClientImplTest {
 
     @Test
     void resultSetToCsv_ClosedResultSet_Exception() throws SQLException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
         resultSet.close();
         StringWriter stringWriter = new StringWriter();
@@ -327,7 +327,7 @@ class IngestClientImplTest {
 
     @Test
     void resultSetToCsv_Writer_Exception() throws SQLException, IOException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageHelperMock);
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
 
         Writer writer = mock(Writer.class);
