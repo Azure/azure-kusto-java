@@ -24,4 +24,10 @@ public class ValidationHelper {
             throw new FileNotFoundException(message);
         }
     }
+
+    public static File validateFileExists(String filePath, String message) throws FileNotFoundException {
+        File file = new File(filePath);
+        validateFileExists(file, message);
+        return file;
+    }
 }

@@ -36,8 +36,8 @@ class AzureStorageHelperTest {
         azureStorageHelperSpy = spy(azureStorageHelper);
         doNothing().when(azureStorageHelperSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
         doNothing().when(azureStorageHelperSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
-        doNothing().when(azureStorageHelperSpy).compressAndStreamToBlob(any(InputStream.class), any(CloudBlockBlob.class));
-        doNothing().when(azureStorageHelperSpy).streamToBlob(any(InputStream.class), any(CloudBlockBlob.class));
+        doNothing().when(azureStorageHelperSpy).compressAndUploadStream(any(InputStream.class), any(CloudBlockBlob.class));
+        doNothing().when(azureStorageHelperSpy).uploadStream(any(InputStream.class), any(CloudBlockBlob.class));
     }
 
     @Test
@@ -94,7 +94,7 @@ class AzureStorageHelperTest {
     void uploadStreamToBlobNotCompressModeCallsStreamToBlob() throws IOException, URISyntaxException, StorageException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
             azureStorageHelperSpy.uploadStreamToBlob(stream, "blobName", "https://ms.com/storageUri", false);
-            verify(azureStorageHelperSpy).streamToBlob(isA(InputStream.class), isA(CloudBlockBlob.class));
+            verify(azureStorageHelperSpy).uploadStream(isA(InputStream.class), isA(CloudBlockBlob.class));
         }
     }
 
@@ -102,7 +102,7 @@ class AzureStorageHelperTest {
     void uploadStreamToBlobCompressModeCallsCompressAndUploadStreamToBlob() throws IOException, URISyntaxException, StorageException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
             azureStorageHelperSpy.uploadStreamToBlob(stream, "blobName", "https://ms.com/storageUri", true);
-            verify(azureStorageHelperSpy).compressAndStreamToBlob(isA(InputStream.class), isA(CloudBlockBlob.class));
+            verify(azureStorageHelperSpy).compressAndUploadStream(isA(InputStream.class), isA(CloudBlockBlob.class));
         }
     }
 
@@ -142,10 +142,10 @@ class AzureStorageHelperTest {
     void streamToBlobThrowExceptionWhenArgumentIsNull() throws IOException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
             assertThrows(IllegalArgumentException.class,
-                    () -> azureStorageHelper.streamToBlob(null, blob));
+                    () -> azureStorageHelper.uploadStream(null, blob));
 
             assertThrows(IllegalArgumentException.class,
-                    () -> azureStorageHelper.streamToBlob(stream, null));
+                    () -> azureStorageHelper.uploadStream(stream, null));
         }
     }
 
@@ -153,10 +153,10 @@ class AzureStorageHelperTest {
     void compressAndStreamToBlobThrowExceptionWhenArgumentIsNull() throws IOException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
             assertThrows(IllegalArgumentException.class,
-                    () -> azureStorageHelper.compressAndStreamToBlob(null, blob));
+                    () -> azureStorageHelper.compressAndUploadStream(null, blob));
 
             assertThrows(IllegalArgumentException.class,
-                    () -> azureStorageHelper.compressAndStreamToBlob(stream, null));
+                    () -> azureStorageHelper.compressAndUploadStream(stream, null));
         }
     }
 

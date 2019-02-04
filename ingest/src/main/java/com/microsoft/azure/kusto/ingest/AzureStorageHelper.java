@@ -61,11 +61,10 @@ class AzureStorageHelper {
         validateIsNotBlank(blobName, "blobName is empty");
         validateIsNotBlank(storageUri, "storageUri is empty");
 
-        File sourceFile = new File(filePath);
-        validateFileExists(sourceFile, "The file does not exist: " + filePath);
+        File sourceFile = validateFileExists(filePath, "The file does not exist: " + filePath);
 
         // Check if the file is already compressed:
-        boolean isCompressed = filePath.endsWith(".gz") || filePath.endsWith(".zip");
+        boolean isCompressed = checkIfCompressed(filePath);
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
@@ -98,13 +97,13 @@ class AzureStorageHelper {
         // Validation
         validateIsNotNull(blob, "blob is null");
         validateIsNotNull(sourceFile, "sourceFile is null");
-        validateFileExists(sourceFile, "The file does not exist");
+        validateFileExists(sourceFile, "The sourceFile does not exist");
 
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress) throws IOException, URISyntaxException, StorageException {
-        log.debug("uploadLocalFileToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Validation
         validateIsNotNull(inputStream, "inputStream is null");
@@ -115,14 +114,14 @@ class AzureStorageHelper {
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
         if (compress) {
-            compressAndStreamToBlob(inputStream, blob);
+            compressAndUploadStream(inputStream, blob);
         } else {
-            streamToBlob(inputStream, blob);
+            uploadStream(inputStream, blob);
         }
         return blob;
     }
 
-    void streamToBlob(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
+    void uploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Validation
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotNull(blob, "blob is null");
@@ -132,7 +131,7 @@ class AzureStorageHelper {
         bos.close();
     }
 
-    void compressAndStreamToBlob(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
+    void compressAndUploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Validation
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotNull(blob, "blob is null");
@@ -164,5 +163,9 @@ class AzureStorageHelper {
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();
         return blockBlob.getProperties().getLength();
+    }
+
+    boolean checkIfCompressed(String fileName){
+        return fileName.endsWith(".gz") || fileName.endsWith(".zip");
     }
 }

@@ -154,7 +154,7 @@ class IngestClientImpl implements IngestClient {
         try {
             String filePath = fileSourceInfo.getFilePath();
             File file = new File(filePath);
-            validateFileExists(file, "The file does not exist: " + filePath);
+            validateFileExists(filePath, "The file does not exist: " + filePath);
 
             String fileName = file.getName();
             String blobName = genBlobName(fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
@@ -241,7 +241,7 @@ class IngestClientImpl implements IngestClient {
     private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
         long blobSize = azureStorageHelper.getBlobSize(blobPath);
 
-        return blobPath.endsWith(".zip") || blobPath.endsWith(".gz") ?
+        return azureStorageHelper.checkIfCompressed(blobPath) ?
                 blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
@@ -249,7 +249,7 @@ class IngestClientImpl implements IngestClient {
         File file = new File(filePath);
         long fileSize = file.length();
 
-        return filePath.endsWith(".zip") || filePath.endsWith(".gz") ?
+        return azureStorageHelper.checkIfCompressed(filePath) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
