@@ -97,13 +97,16 @@ class IngestClientImplTest {
     void ingestFromBlobThrowExceptionWhenArgumentIsNull() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(null, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(blobSourceInfo, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(null, ingestionProperties));
     }
 
@@ -123,13 +126,16 @@ class IngestClientImplTest {
     void ingestFromFileThrowExceptionWhenArgumentIsNull() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(null, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(fileSourceInfo, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(null, ingestionProperties));
     }
 
@@ -137,7 +143,8 @@ class IngestClientImplTest {
     void ingestFromFileThrowExceptionWhenFileDoesNotExist() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
 
-        assertThrows(IngestionClientException.class,
+        assertThrows(
+                IngestionClientException.class,
                 () -> ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties));
     }
 
@@ -155,7 +162,8 @@ class IngestClientImplTest {
     @Test
     void ingestFromBlobAsyncCheckIngestionStatusEmpty() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath", 100);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
+        CompletableFuture<IngestionResult> cf = ingestClientImpl
+                .ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
         assert cf.get().getIngestionStatusesLength() == 0;
@@ -166,7 +174,8 @@ class IngestClientImplTest {
         String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromFileAsync(fileSourceInfo, ingestionProperties);
+        CompletableFuture<IngestionResult> cf = ingestClientImpl
+                .ingestFromFileAsync(fileSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
         assert cf.get().getIngestionStatusesLength() == 0;
@@ -178,7 +187,8 @@ class IngestClientImplTest {
 
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl.ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
+        CompletableFuture<IngestionResult> cf = ingestClientImpl
+                .ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
         assert cf.get().getIngestionStatusesLength() == 0;
@@ -188,13 +198,16 @@ class IngestClientImplTest {
     void ingestFromStreamThrowExceptionWhenArgumentIsNull() {
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(null);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(null, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(streamSourceInfo, null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(null, ingestionProperties));
     }
 
@@ -233,7 +246,8 @@ class IngestClientImplTest {
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
-        File tempPath = new File(Paths.get(System.getProperty("java.io.tmpdir"), String.valueOf(System.currentTimeMillis())).toString());
+        File tempPath = new File(
+                Paths.get(System.getProperty("java.io.tmpdir"), String.valueOf(System.currentTimeMillis())).toString());
         //noinspection ResultOfMethodCallIgnored
         tempPath.mkdirs();
 
@@ -265,39 +279,46 @@ class IngestClientImplTest {
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
-        assertThrows(IngestionClientException.class,
+        assertThrows(
+                IngestionClientException.class,
                 () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
     }
 
     @Test
-    void ingestFromResultSet_FileIngest_IngestionClientException() throws IngestionClientException, IngestionServiceException, SQLException {
+    void ingestFromResultSet_FileIngest_IngestionClientException()
+            throws IngestionClientException, IngestionServiceException, SQLException {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
-        IngestionClientException ingestionClientException = new IngestionClientException("Client exception in ingestFromFile");
+        IngestionClientException ingestionClientException = new IngestionClientException(
+                "Client exception in ingestFromFile");
         doThrow(ingestionClientException).when(ingestClientSpy).ingestFromFile(any(), any());
 
         ResultSet resultSet = getSampleResultSet();
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        assertThrows(IngestionClientException.class,
+        assertThrows(
+                IngestionClientException.class,
                 () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
     }
 
     @Test
-    void ingestFromResultSet_FileIngest_IngestionServiceException() throws IngestionClientException, IngestionServiceException, SQLException {
+    void ingestFromResultSet_FileIngest_IngestionServiceException()
+            throws IngestionClientException, IngestionServiceException, SQLException {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
-        IngestionServiceException ingestionServiceException = new IngestionServiceException("Service exception in ingestFromFile");
+        IngestionServiceException ingestionServiceException = new IngestionServiceException(
+                "Service exception in ingestFromFile");
         doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromFile(any(), any());
 
         ResultSet resultSet = getSampleResultSet();
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        assertThrows(IngestionServiceException.class,
+        assertThrows(
+                IngestionServiceException.class,
                 () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
     }
 
@@ -321,7 +342,8 @@ class IngestClientImplTest {
         resultSet.close();
         StringWriter stringWriter = new StringWriter();
 
-        assertThrows(IngestionClientException.class,
+        assertThrows(
+                IngestionClientException.class,
                 () -> ingestClient.resultSetToCsv(resultSet, stringWriter, false));
     }
 
@@ -333,7 +355,8 @@ class IngestClientImplTest {
         Writer writer = mock(Writer.class);
         doThrow(new IOException("Some exception")).when(writer).write(anyString());
 
-        assertThrows(IngestionClientException.class,
+        assertThrows(
+                IngestionClientException.class,
                 () -> ingestClient.resultSetToCsv(resultSet, writer, false));
     }
 

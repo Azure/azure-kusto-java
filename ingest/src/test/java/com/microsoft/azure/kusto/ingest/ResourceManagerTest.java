@@ -9,10 +9,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -50,16 +47,17 @@ class ResourceManagerTest {
 
     @Test
     void getStorageUriVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
-        String storage;
-        HashMap<String, Integer> m = new HashMap();
+        List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
+
+        String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        int lastIndex = availableStorages.indexOf(storage);
 
         for (int i = 0; i < 10; i++) {
             storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-            m.put(storage, m.getOrDefault(storage, 0) + 1);
+            int currIdx = availableStorages.indexOf(storage);
+            assertEquals((lastIndex + 1) % availableStorages.size(), currIdx);
+            lastIndex = currIdx;
         }
-
-        assertEquals(5, (int) m.get(STORAGE_2));
-        assertEquals(5, (int) m.get(STORAGE_1));
     }
 
     @Test
@@ -68,7 +66,8 @@ class ResourceManagerTest {
         HashMap<String, Integer> m = new HashMap();
 
         for (int i = 0; i < 10; i++) {
-            queueName = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+            queueName = resourceManager
+                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
             m.put(queueName, m.getOrDefault(queueName, 0) + 1);
         }
 
@@ -78,17 +77,23 @@ class ResourceManagerTest {
 
     @Test
     void getStatusTableReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
-        assertEquals(STATUS_TABLE, resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
+        assertEquals(
+                STATUS_TABLE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
     }
 
     @Test
     void getFailedQueueReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
-        assertEquals(FAILED_QUEUE, resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
+        assertEquals(
+                FAILED_QUEUE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
     }
 
     @Test
     void getSuccessQueueReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
-        assertEquals(SUCCESS_QUEUE, resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
+        assertEquals(
+                SUCCESS_QUEUE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
     private static Results generateIngestionResourcesResult() {

@@ -36,57 +36,68 @@ class AzureStorageClientTest {
         azureStorageClientSpy = spy(azureStorageClient);
         doNothing().when(azureStorageClientSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
         doNothing().when(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
-        doNothing().when(azureStorageClientSpy).compressAndUploadStream(any(InputStream.class), any(CloudBlockBlob.class));
+        doNothing().when(azureStorageClientSpy)
+                .compressAndUploadStream(any(InputStream.class), any(CloudBlockBlob.class));
         doNothing().when(azureStorageClientSpy).uploadStream(any(InputStream.class), any(CloudBlockBlob.class));
     }
 
     @Test
     void postMessageToQueueThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.postMessageToQueue(null, "content"));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.postMessageToQueue("queuePath", null));
     }
 
     @Test
     void azureTableInsertEntityThrowExceptionWhenArgumentIsNull() {
         TableServiceEntity serviceEntity = new TableServiceEntity();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.azureTableInsertEntity("tableUri", null));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.azureTableInsertEntity(null, serviceEntity));
     }
 
     @Test
-    void uploadLocalFileToBlobCompressAndUploadWhenFileIsUncompressed() throws IOException, StorageException, URISyntaxException {
+    void uploadLocalFileToBlobCompressAndUploadWhenFileIsUncompressed()
+            throws IOException, StorageException, URISyntaxException {
         azureStorageClientSpy.uploadLocalFileToBlob(testFilePath, "blobName", "https://ms.com/blob");
         verify(azureStorageClientSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
     }
 
     @Test
-    void uploadLocalFileToBlobUploadFileWhenFileIsCompressed() throws IOException, StorageException, URISyntaxException {
+    void uploadLocalFileToBlobUploadFileWhenFileIsCompressed()
+            throws IOException, StorageException, URISyntaxException {
         azureStorageClientSpy.uploadLocalFileToBlob(testFilePathCompressed, "blobName", "https://ms.com/blob");
         verify(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
     }
 
     @Test
     void uploadLocalFileToBlobThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.uploadLocalFileToBlob(null, "blobName", "storageUri"));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.uploadLocalFileToBlob("filePath", null, "storageUri"));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.uploadLocalFileToBlob("filePath", "blobName", null));
     }
 
     @Test
     void uploadLocalFileToBlobThrowExceptionWhenFileDoesNotExist() {
         String notExistingFilePath = "not.existing.file.path";
-        assertThrows(IOException.class,
+        assertThrows(
+                IOException.class,
                 () -> azureStorageClient.uploadLocalFileToBlob(notExistingFilePath, "blobName", "storageUri"));
     }
 
@@ -99,7 +110,8 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void uploadStreamToBlobCompressModeCallsCompressAndUploadStreamToBlob() throws IOException, URISyntaxException, StorageException {
+    void uploadStreamToBlobCompressModeCallsCompressAndUploadStreamToBlob()
+            throws IOException, URISyntaxException, StorageException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName", "https://ms.com/storageUri", true);
             verify(azureStorageClientSpy).compressAndUploadStream(isA(InputStream.class), isA(CloudBlockBlob.class));
@@ -109,42 +121,51 @@ class AzureStorageClientTest {
     @Test
     void uploadStreamToBlobThrowExceptionWhenArgumentIsNull() throws IOException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStreamToBlob(null, "blobName", "storageUri", false));
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStreamToBlob(stream, null, "storageUri", false));
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStreamToBlob(stream, "blobName", null, false));
         }
     }
 
     @Test
     void compressAndUploadFileToBlobThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.compressAndUploadFileToBlob(null, blob));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.compressAndUploadFileToBlob(testFilePath, null));
     }
 
     @Test
     void uploadFileToBlobThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.uploadFileToBlob(null, blob));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.uploadFileToBlob(testFile, null));
     }
 
     @Test
     void streamToBlobThrowExceptionWhenArgumentIsNull() throws IOException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStream(null, blob));
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStream(stream, null));
         }
     }
@@ -152,23 +173,27 @@ class AzureStorageClientTest {
     @Test
     void compressAndStreamToBlobThrowExceptionWhenArgumentIsNull() throws IOException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.compressAndUploadStream(null, blob));
 
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> azureStorageClient.compressAndUploadStream(stream, null));
         }
     }
 
     @Test
     void getBlobPathWithSasThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.getBlobPathWithSas(null));
     }
 
     @Test
     void getBlobSizeThrowExceptionWhenArgumentIsNull() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> azureStorageClient.getBlobSize(null));
     }
 }
