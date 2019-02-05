@@ -15,17 +15,58 @@ public class ConnectionStringBuilder {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private String aadAuthorityId; // AAD tenant Id (GUID)
+    private String clientVersionForTracing;
+    private String applicationNameForTracing;
 
-    String getClusterUrl() { return clusterUri; }
-    String getUserUsername() { return username; }
-    String getUserPassword() { return password; }
-    String getApplicationClientId() { return applicationClientId; }
-    String getApplicationKey() { return applicationKey; }
-    String getAuthorityId() { return aadAuthorityId; }
-    X509Certificate getX509Certificate() { return x509Certificate; }
-    PrivateKey getPrivateKey(){ return  privateKey; }
-    private ConnectionStringBuilder(String resourceUri)
-    {
+    String getClusterUrl() {
+        return clusterUri;
+    }
+
+    String getUserUsername() {
+        return username;
+    }
+
+    String getUserPassword() {
+        return password;
+    }
+
+    String getApplicationClientId() {
+        return applicationClientId;
+    }
+
+    String getApplicationKey() {
+        return applicationKey;
+    }
+
+    String getAuthorityId() {
+        return aadAuthorityId;
+    }
+
+    String getApplicationNameForTracing() {
+        return applicationNameForTracing;
+    }
+
+    public void setApplicationNameForTracing(String applicationNameForTracing) {
+        this.applicationNameForTracing = applicationNameForTracing;
+    }
+
+    String getClientVersionForTracing() {
+        return clientVersionForTracing;
+    }
+
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
+    }
+
+    X509Certificate getX509Certificate() {
+        return x509Certificate;
+    }
+
+    PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
         username = null;
         password = null;
@@ -37,17 +78,16 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
-                                                                        String username,
-                                                                        String password,
-                                                                        String authorityId)
-    {
-        if (StringUtils.isEmpty(resourceUri)){
+                                                                       String username,
+                                                                       String password,
+                                                                       String authorityId) {
+        if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
-        if (StringUtils.isEmpty(username)){
+        if (StringUtils.isEmpty(username)) {
             throw new IllegalArgumentException("username cannot be null or empty");
         }
-        if (StringUtils.isEmpty(password)){
+        if (StringUtils.isEmpty(password)) {
             throw new IllegalArgumentException("password cannot be null or empty");
         }
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
@@ -59,24 +99,22 @@ public class ConnectionStringBuilder {
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
                                                                        String username,
-                                                                       String password)
-    {
+                                                                       String password) {
         return createWithAadUserCredentials(resourceUri, username, password, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
-                                                                               String applicationClientId,
-                                                                               String applicationKey,
-                                                                               String authorityId)
-    {
+                                                                              String applicationClientId,
+                                                                              String applicationKey,
+                                                                              String authorityId) {
 
-        if (StringUtils.isEmpty(resourceUri)){
+        if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
-        if (StringUtils.isEmpty(applicationClientId)){
+        if (StringUtils.isEmpty(applicationClientId)) {
             throw new IllegalArgumentException("applicationClientId cannot be null or empty");
         }
-        if (StringUtils.isEmpty(applicationKey)){
+        if (StringUtils.isEmpty(applicationKey)) {
             throw new IllegalArgumentException("applicationKey cannot be null or empty");
         }
 
@@ -89,13 +127,12 @@ public class ConnectionStringBuilder {
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
                                                                               String applicationClientId,
-                                                                              String applicationKey)
-    {
+                                                                              String applicationKey) {
         return createWithAadApplicationCredentials(resourceUri, applicationClientId, applicationKey, null);
     }
 
-    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri){
-        if (StringUtils.isEmpty(resourceUri)){
+    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri) {
+        if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
         return new ConnectionStringBuilder(resourceUri);
@@ -104,20 +141,19 @@ public class ConnectionStringBuilder {
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String resourceUri,
                                                                               String applicationClientId,
                                                                               X509Certificate x509Certificate,
-                                                                              PrivateKey privateKey){
-        if (StringUtils.isEmpty(resourceUri)){
+                                                                              PrivateKey privateKey) {
+        if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
-        if (StringUtils.isEmpty(applicationClientId)){
+        if (StringUtils.isEmpty(applicationClientId)) {
             throw new IllegalArgumentException("applicationClientId cannot be null or empty");
         }
-        if (x509Certificate == null){
+        if (x509Certificate == null) {
             throw new IllegalArgumentException("certificate cannot be null");
         }
-        if (privateKey == null){
+        if (privateKey == null) {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
-
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;
@@ -125,5 +161,4 @@ public class ConnectionStringBuilder {
         csb.privateKey = privateKey;
         return csb;
     }
-
 }
