@@ -25,7 +25,7 @@ import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs, String clientVersionForTracing, String applicationNameForTracing) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -42,7 +42,6 @@ class Utils {
                 payload,
                 ContentType.APPLICATION_JSON);
 
-
         httpPost.setEntity(requestEntity);
 
         httpPost.addHeader("Authorization", String.format("Bearer %s", aadAccessToken));
@@ -50,14 +49,11 @@ class Utils {
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         httpPost.addHeader("Fed", "True");
 
-        String version = Utils.class.getPackage().getImplementationVersion();
-        String clientVersion = "Kusto.Java.Client";
-        if (StringUtils.isNotBlank(version)) {
-            clientVersion += ":" + version;
-        }
-        
-        httpPost.addHeader("x-ms-client-version", clientVersion);
+        httpPost.addHeader("x-ms-client-version", clientVersionForTracing);
         httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+        if (StringUtils.isNotBlank(applicationNameForTracing)) {
+            httpPost.addHeader("x-ms-app", applicationNameForTracing);
+        }
 
         try {
             //Execute and get the response.
@@ -110,5 +106,9 @@ class Utils {
             throw new DataClientException(url, "Error in post request", e);
         }
         return null;
+    }
+
+    static String GetPackageVersion() {
+        return Utils.class.getPackage().getImplementationVersion();
     }
 }
