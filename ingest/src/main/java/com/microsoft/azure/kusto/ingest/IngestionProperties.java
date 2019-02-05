@@ -105,12 +105,12 @@ public class IngestionProperties {
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
      * The default values of the rest of the properties are:
-     * <blockquote><code>
-     * <p>reportLevel = IngestionReportLevel.FailuresOnly;</p>
-     * <p>reportMethod = IngestionReportMethod.Queue;</p>
-     * <p>flushImmediately = false;</p>
-     * <p>additionalProperties = new HashMap();</p>
-     * </code></blockquote>
+     * <blockquote>
+     * <p>{@code reportLevel} : {@code IngestionReportLevel.FailuresOnly;}</p>
+     * <p>{@code reportMethod} : {@code IngestionReportMethod.Queue;}</p>
+     * <p>{@code flushImmediately} : {@code false;}</p>
+     * <p>{@code additionalProperties} : {@code new HashMap();}</p>
+     * </blockquote>
      *
      * @param databaseName the name of the database in the destination Kusto cluster.
      * @param tableName    the name of the table in the destination database.
