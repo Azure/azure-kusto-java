@@ -4,6 +4,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public class ValidationHelper {
 
@@ -20,14 +22,27 @@ public class ValidationHelper {
     }
 
     public static void validateFileExists(File file, String message) throws FileNotFoundException {
+        validateIsNotNull(file, "file is null");
+
         if (!file.exists()) {
             throw new FileNotFoundException(message);
         }
     }
 
-    public static File validateFileExists(String filePath, String message) throws FileNotFoundException {
+    public static File validateFileExists(String filePath) throws FileNotFoundException {
+        validateIsNotBlank(filePath, "filePath is blank");
+
         File file = new File(filePath);
-        validateFileExists(file, message);
+        validateFileExists(file, "file does not exist: " + filePath);
         return file;
+    }
+
+    public static URI validateUri(String uri) {
+        validateIsNotBlank(uri, "uri is blank");
+        try {
+            return new URI(uri);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("not a valid uri: " + uri);
+        }
     }
 }

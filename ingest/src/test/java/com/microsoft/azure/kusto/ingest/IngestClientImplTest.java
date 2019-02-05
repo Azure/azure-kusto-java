@@ -1,8 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.TableReportIngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -10,8 +10,8 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -19,13 +19,10 @@ import org.mockito.ArgumentCaptor;
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.concurrent.CompletableFuture;
 import java.sql.*;
+import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
@@ -196,7 +193,7 @@ class IngestClientImplTest {
 
     @Test
     void ingestFromStreamThrowExceptionWhenArgumentIsNull() {
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(null);
+        StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
 
         assertThrows(
                 IllegalArgumentException.class,

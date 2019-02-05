@@ -156,8 +156,7 @@ class IngestClientImpl implements IngestClient {
 
         try {
             String filePath = fileSourceInfo.getFilePath();
-            File file = new File(filePath);
-            validateFileExists(filePath, "The file does not exist: " + filePath);
+            File file = validateFileExists(filePath);
 
             String fileName = file.getName();
             String blobName = genBlobName(

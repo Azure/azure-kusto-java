@@ -22,7 +22,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void setLeaveOpen(boolean leaveOpen) {
-        setLeaveOpen(leaveOpen);
+        this.leaveOpen = leaveOpen;
     }
 
     public StreamSourceInfo(InputStream stream) {

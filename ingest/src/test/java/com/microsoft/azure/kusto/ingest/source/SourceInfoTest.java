@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SourceInfoTest {
 
@@ -20,7 +20,6 @@ class SourceInfoTest {
 
     @Test
     void validateStreamSourceInfo() {
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(null);
-        assertThrows(IllegalArgumentException.class, streamSourceInfo::validate);
+        assertThrows(NullPointerException.class, () -> new StreamSourceInfo(null));
     }
 }
