@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.*;
+import static com.microsoft.azure.kusto.ingest.Validation.*;
 
 class AzureStorageClient {
 

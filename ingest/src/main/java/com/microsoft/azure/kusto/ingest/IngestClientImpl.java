@@ -34,8 +34,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateFileExists;
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
+import static com.microsoft.azure.kusto.ingest.Validation.validateFileExists;
+import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
 
 class IngestClientImpl implements IngestClient {
 

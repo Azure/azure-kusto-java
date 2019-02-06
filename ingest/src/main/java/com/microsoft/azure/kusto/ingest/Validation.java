@@ -7,7 +7,7 @@ import java.io.FileNotFoundException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ValidationHelper {
+public class Validation {
 
     public static void validateIsNotBlank(String str, String message) {
         if (StringUtils.isBlank(str)) {

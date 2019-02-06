@@ -3,8 +3,8 @@ package com.microsoft.azure.kusto.ingest;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotBlank;
-import static com.microsoft.azure.kusto.ingest.ValidationHelper.validateIsNotNull;
+import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotBlank;
+import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
 
 public class IngestionProperties {
     private String databaseName;
