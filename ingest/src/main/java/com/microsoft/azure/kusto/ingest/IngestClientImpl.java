@@ -34,7 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.Validation.validateFileExists;
 import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
 
 class IngestClientImpl implements IngestClient {
@@ -156,7 +155,7 @@ class IngestClientImpl implements IngestClient {
 
         try {
             String filePath = fileSourceInfo.getFilePath();
-            File file = validateFileExists(filePath);
+            File file = Validation.validateAndCreateFile(filePath);
 
             String fileName = file.getName();
             String blobName = genBlobName(

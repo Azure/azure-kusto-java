@@ -29,7 +29,7 @@ public class Validation {
         }
     }
 
-    public static File validateFileExists(String filePath) throws FileNotFoundException {
+    public static File validateAndCreateFile(String filePath) throws FileNotFoundException {
         validateIsNotBlank(filePath, "filePath is blank");
 
         File file = new File(filePath);
@@ -37,7 +37,7 @@ public class Validation {
         return file;
     }
 
-    public static URI validateUri(String uri) {
+    public static URI validateAndCreateUri(String uri) {
         validateIsNotBlank(uri, "uri is blank");
         try {
             return new URI(uri);

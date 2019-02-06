@@ -35,7 +35,7 @@ class AzureStorageClient {
     void postMessageToQueue(String queuePath, String content) throws StorageException {
         // Validation
         validateIsNotBlank(content, "content is empty");
-        URI queueUri = validateUri(queuePath);
+        URI queueUri = validateAndCreateUri(queuePath);
 
         CloudQueue queue = new CloudQueue(queueUri);
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
@@ -45,7 +45,7 @@ class AzureStorageClient {
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException {
         // Validation
         validateIsNotNull(entity, "entity is null");
-        URI tableUriObj = validateUri(tableUri);
+        URI tableUriObj = validateAndCreateUri(tableUri);
 
         CloudTable table = new CloudTable(tableUriObj);
         // Create an operation to add the new customer to the table basics table.
@@ -60,8 +60,8 @@ class AzureStorageClient {
 
         // Validation
         validateIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = validateUri(storageUri);
-        File sourceFile = validateFileExists(filePath);
+        URI storageUriObj = validateAndCreateUri(storageUri);
+        File sourceFile = validateAndCreateFile(filePath);
 
         // Check if the file is already compressed:
         boolean isCompressed = isCompressed(filePath);
@@ -80,7 +80,7 @@ class AzureStorageClient {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        validateFileExists(filePath);
+        validateAndCreateFile(filePath);
         validateIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
@@ -108,7 +108,7 @@ class AzureStorageClient {
         // Validation
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = validateUri(storageUri);
+        URI storageUriObj = validateAndCreateUri(storageUri);
 
         CloudBlobContainer container = new CloudBlobContainer(storageUriObj);
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
@@ -159,7 +159,7 @@ class AzureStorageClient {
     }
 
     long getBlobSize(String blobPath) throws StorageException {
-        URI blobUri = validateUri(blobPath);
+        URI blobUri = validateAndCreateUri(blobPath);
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(blobUri);
         blockBlob.downloadAttributes();
