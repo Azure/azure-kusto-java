@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -27,11 +28,11 @@ import static com.microsoft.azure.kusto.ingest.ValidationHelper.*;
 
 class AzureStorageClient {
 
-    private static final Logger log = LoggerFactory.getLogger(AzureStorageClient.class);
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
-    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+    void postMessageToQueue(String queuePath, String content) throws StorageException {
         // Validation
         validateIsNotBlank(content, "content is empty");
         URI queueUri = validateUri(queuePath);
@@ -41,8 +42,7 @@ class AzureStorageClient {
         queue.addMessage(queueMessage);
     }
 
-    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-            URISyntaxException {
+    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException {
         // Validation
         validateIsNotNull(entity, "entity is null");
         URI tableUriObj = validateUri(tableUri);
@@ -158,7 +158,7 @@ class AzureStorageClient {
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 
-    long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
+    long getBlobSize(String blobPath) throws StorageException {
         URI blobUri = validateUri(blobPath);
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(blobUri);
