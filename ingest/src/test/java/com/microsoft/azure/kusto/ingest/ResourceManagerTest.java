@@ -62,17 +62,17 @@ class ResourceManagerTest {
 
     @Test
     void getAggregationQueueVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
-        String queueName;
-        HashMap<String, Integer> m = new HashMap();
+        List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
+
+        String queue = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+        int lastIndex = availableQueues.indexOf(queue);
 
         for (int i = 0; i < 10; i++) {
-            queueName = resourceManager
-                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-            m.put(queueName, m.getOrDefault(queueName, 0) + 1);
+            queue = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+            int currIdx = availableQueues.indexOf(queue);
+            assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
+            lastIndex = currIdx;
         }
-
-        assertEquals(5, (int) m.get(QUEUE_1));
-        assertEquals(5, (int) m.get(QUEUE_2));
     }
 
     @Test

@@ -91,17 +91,15 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromBlobThrowExceptionWhenArgumentIsNull() {
+    void ingestFromBlobThrowExceptionWhenIngestionPropertiesIsNull() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromBlob(null, null));
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(blobSourceInfo, null));
+    }
 
+    @Test
+    void ingestFromBlobThrowExceptionWhenBlobSourceInfoIsNull() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(null, ingestionProperties));
@@ -120,17 +118,15 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromFileThrowExceptionWhenArgumentIsNull() {
+    void ingestFromFileThrowExceptionWhenIngestionPropertiesIsNull() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromFile(null, null));
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(fileSourceInfo, null));
+    }
 
+    @Test
+    void ingestFromFileThrowExceptionWhenFileSourceInfoIsNull() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(null, ingestionProperties));
@@ -139,7 +135,6 @@ class IngestClientImplTest {
     @Test
     void ingestFromFileThrowExceptionWhenFileDoesNotExist() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
-
         assertThrows(
                 IngestionClientException.class,
                 () -> ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties));
@@ -192,17 +187,15 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromStreamThrowExceptionWhenArgumentIsNull() {
+    void ingestFromStreamThrowExceptionWhenIngestionPropertiesIsNull() {
         StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromStream(null, null));
-
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(streamSourceInfo, null));
+    }
 
+    @Test
+    void ingestFromStreamThrowExceptionWhenStreamSourceInfoIsNull() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(null, ingestionProperties));
