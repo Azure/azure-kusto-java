@@ -41,12 +41,13 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getIdentityTokenReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+    void GetIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
         assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
     }
 
     @Test
-    void getStorageUriVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void GetIngestionResource_TempStorage_VerifyRoundRubin()
+            throws IngestionServiceException, IngestionClientException {
         List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
         String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
@@ -61,14 +62,17 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getAggregationQueueVerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
+            throws IngestionServiceException, IngestionClientException {
         List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
-        String queue = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+        String queue = resourceManager
+                .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
         int lastIndex = availableQueues.indexOf(queue);
 
         for (int i = 0; i < 10; i++) {
-            queue = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+            queue = resourceManager
+                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
             int currIdx = availableQueues.indexOf(queue);
             assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
             lastIndex = currIdx;
@@ -76,21 +80,24 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getStatusTableReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+    void GetIngestionResource_StatusTable_ReturnCorrectTable()
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 STATUS_TABLE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
     }
 
     @Test
-    void getFailedQueueReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+    void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 FAILED_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
     }
 
     @Test
-    void getSuccessQueueReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+    void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 SUCCESS_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));

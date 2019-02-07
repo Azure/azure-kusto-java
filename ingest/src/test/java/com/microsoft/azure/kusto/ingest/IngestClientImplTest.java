@@ -31,9 +31,11 @@ class IngestClientImplTest {
     private static AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static IngestClientImpl ingestClientImpl;
     private static IngestionProperties ingestionProperties;
+    private static String testFilePath;
 
     @BeforeAll
     static void setUp() throws Exception {
+        testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         ingestClientImpl = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
 
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
@@ -75,14 +77,14 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromBlobCheckIngestionStatusEmpty() throws Exception {
+    void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assert result.getIngestionStatusesLength() == 0;
     }
 
     @Test
-    void ingestFromBlobCheckIngestionStatusNotEmptyInTableReportMethod() throws Exception {
+    void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
@@ -91,7 +93,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromBlobThrowExceptionWhenIngestionPropertiesIsNull() {
+    void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -99,26 +101,21 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromBlobThrowExceptionWhenBlobSourceInfoIsNull() {
+    void IngestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromBlob(null, ingestionProperties));
     }
 
     @Test
-    void ingestFromFileCheckIngestionStatusEmpty() throws Exception {
-        String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-
+    void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        IngestionResult result = ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties);
-
-        assert result.getIngestionStatusesLength() == 0;
-
-        verify(azureStorageClientMock).getBlobPathWithSas(any(CloudBlockBlob.class));
+        ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
     @Test
-    void ingestFromFileThrowExceptionWhenIngestionPropertiesIsNull() {
+    void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -126,14 +123,14 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromFileThrowExceptionWhenFileSourceInfoIsNull() {
+    void IngestFromFile_NullFileSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromFile(null, ingestionProperties));
     }
 
     @Test
-    void ingestFromFileThrowExceptionWhenFileDoesNotExist() {
+    void IngestFromFile_FileDoesNotExist_IngestionClientException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IngestionClientException.class,
@@ -141,53 +138,52 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromStreamCheckIngestionStatusEmpty() throws Exception {
-        String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-
+    void IngestFromStream_GetBlobPathWithSasIsCalled() throws Exception {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        IngestionResult result = ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
-        assert result.getIngestionStatusesLength() == 0;
-
+        ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
     @Test
-    void ingestFromBlobAsyncCheckIngestionStatusEmpty() throws Exception {
+    void IngestFromStream_UploadStreamToBlobIsCalled() throws Exception {
+        InputStream stream = new FileInputStream(testFilePath);
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
+        ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeastOnce())
+                .uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean());
+    }
+
+    @Test
+    void IngestFromBlobAsync_ReturnsCompletableFuture() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath", 100);
         CompletableFuture<IngestionResult> cf = ingestClientImpl
                 .ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
-        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
-    void ingestFromFileAsyncCheckIngestionStatusEmpty() throws Exception {
-        String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-
+    void IngestFromFileAsync_ReturnsCompletableFuture() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
         CompletableFuture<IngestionResult> cf = ingestClientImpl
                 .ingestFromFileAsync(fileSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
-        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
-    void ingestFromStreamAsyncCheckIngestionStatusEmpty() throws Exception {
-        String testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-
+    void IngestFromStreamAsync_ReturnsCompletableFuture() throws Exception {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         CompletableFuture<IngestionResult> cf = ingestClientImpl
                 .ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
 
         assertNotNull(cf);
-        assert cf.get().getIngestionStatusesLength() == 0;
     }
 
     @Test
-    void ingestFromStreamThrowExceptionWhenIngestionPropertiesIsNull() {
+    void IngestFromStream_NullIngestionProperties_IllegalArgumentException() {
         StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
@@ -195,14 +191,14 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromStreamThrowExceptionWhenStreamSourceInfoIsNull() {
+    void IngestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> ingestClientImpl.ingestFromStream(null, ingestionProperties));
     }
 
     @Test
-    void ingestFromResultSet_DefaultTempFolder_Success() throws IngestionClientException, IngestionServiceException {
+    void IngestFromResultSet_DefaultTempFolder_Success() throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept calls to internal methods so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
@@ -225,7 +221,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_SpecifyTempFolder_Success() throws IngestionClientException, IngestionServiceException {
+    void IngestFromResultSet_SpecifyTempFolder_Success() throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         IngestClientImpl ingestClientSpy = spy(ingestClient);
         TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
@@ -256,7 +252,8 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_ResultSetToCsv_Error() throws IngestionClientException, IngestionServiceException {
+    void IngestFromResultSet_ResultSetToCsv_IngestionClientException()
+            throws IngestionClientException, IngestionServiceException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
         IngestClientImpl ingestClientSpy = spy(ingestClient);
@@ -275,7 +272,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_FileIngest_IngestionClientException()
+    void IngestFromResultSet_FileIngest_IngestionClientException()
             throws IngestionClientException, IngestionServiceException, SQLException {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
@@ -294,7 +291,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ingestFromResultSet_FileIngest_IngestionServiceException()
+    void IngestFromResultSet_FileIngest_IngestionServiceException()
             throws IngestionClientException, IngestionServiceException, SQLException {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
@@ -313,7 +310,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void resultSetToCsv_Success() throws SQLException, IngestionClientException {
+    void ResultSetToCsv_Success() throws SQLException, IngestionClientException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
         StringWriter stringWriter = new StringWriter();
@@ -326,7 +323,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void resultSetToCsv_ClosedResultSet_Exception() throws SQLException {
+    void ResultSetToCsv_ClosedResultSet_Exception() throws SQLException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
         resultSet.close();
@@ -338,7 +335,7 @@ class IngestClientImplTest {
     }
 
     @Test
-    void resultSetToCsv_Writer_Exception() throws SQLException, IOException {
+    void ResultSetToCsv_Writer_Exception() throws SQLException, IOException {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
 

@@ -7,19 +7,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class SourceInfoTest {
 
     @Test
-    void validateBlobSourceInfo() {
+    void Validate_BlankBlobPath_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("");
         assertThrows(IllegalArgumentException.class, blobSourceInfo::validate);
     }
 
     @Test
-    void validateFileSourceInfo() {
+    void Validate_BlankFilePath_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("", 0);
         assertThrows(IllegalArgumentException.class, fileSourceInfo::validate);
     }
 
     @Test
-    void validateStreamSourceInfo() {
+    void StreamSourceInfoConstructor_StreamIsNull_NullPointerException() {
         assertThrows(NullPointerException.class, () -> new StreamSourceInfo(null));
     }
 }
