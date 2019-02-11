@@ -30,8 +30,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.zip.GZIPOutputStream;
 
 import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
@@ -128,22 +126,6 @@ class IngestClientImpl implements IngestClient {
     }
 
     @Override
-    public CompletableFuture<IngestionResult> ingestFromBlobAsync(
-            BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return ingestFromBlob(blobSourceInfo, ingestionProperties);
-                    } catch (IngestionClientException | IngestionServiceException e) {
-                        log.error("Failed to ingest from blob (async)", e);
-                        // Here we throw a CompletionException which extends the RuntimeException.
-                        // the real exception itself would be in the <cause> of this CompletionException
-                        throw new CompletionException(e);
-                    }
-                });
-    }
-
-    @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
@@ -175,20 +157,6 @@ class IngestClientImpl implements IngestClient {
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         }
-    }
-
-    @Override
-    public CompletableFuture<IngestionResult> ingestFromFileAsync(
-            FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return ingestFromFile(fileSourceInfo, ingestionProperties);
-                    } catch (IngestionClientException | IngestionServiceException e) {
-                        log.error("Failed to ingest from file (async)", e);
-                        throw new CompletionException(e);
-                    }
-                });
     }
 
     @Override
@@ -229,20 +197,6 @@ class IngestClientImpl implements IngestClient {
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
         }
-    }
-
-    @Override
-    public CompletableFuture<IngestionResult> ingestFromStreamAsync(
-            StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return ingestFromStream(streamSourceInfo, ingestionProperties);
-                    } catch (IngestionClientException | IngestionServiceException e) {
-                        log.error("Failed to ingest from stream (async)", e);
-                        throw new CompletionException(e);
-                    }
-                });
     }
 
     private long estimateBlobRawSize(String blobPath) throws StorageException {

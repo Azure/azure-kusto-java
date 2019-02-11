@@ -20,9 +20,9 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 class IngestClientImplTest {
@@ -152,34 +152,6 @@ class IngestClientImplTest {
         ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeastOnce())
                 .uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean());
-    }
-
-    @Test
-    void IngestFromBlobAsync_ReturnsCompletableFuture() {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath", 100);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl
-                .ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
-
-        assertNotNull(cf);
-    }
-
-    @Test
-    void IngestFromFileAsync_ReturnsCompletableFuture() {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 0);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl
-                .ingestFromFileAsync(fileSourceInfo, ingestionProperties);
-
-        assertNotNull(cf);
-    }
-
-    @Test
-    void IngestFromStreamAsync_ReturnsCompletableFuture() throws Exception {
-        InputStream stream = new FileInputStream(testFilePath);
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        CompletableFuture<IngestionResult> cf = ingestClientImpl
-                .ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
-
-        assertNotNull(cf);
     }
 
     @Test
