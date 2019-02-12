@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.concurrent.*;
 
 public class AadAuthenticationHelper {
@@ -29,6 +30,7 @@ public class AadAuthenticationHelper {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
+    private AuthenticationResult lastAuthenticationResult;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
@@ -62,23 +64,30 @@ public class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException  {
+        if(lastAuthenticationResult != null && lastAuthenticationResult.getExpiresOnDate().after(new Date())){
+            return lastAuthenticationResult.getAccessToken();
+        }
+
         try {
             switch (authenticationType) {
                 case AAD_APPLICATION_KEY:
-                    return acquireAadApplicationAccessToken().getAccessToken();
+                    lastAuthenticationResult = acquireAadApplicationAccessToken();
+                    return lastAuthenticationResult.getAccessToken();
                 case AAD_USERNAME_PASSWORD:
-                    return acquireAadUserAccessToken().getAccessToken();
+                    lastAuthenticationResult = acquireAadUserAccessToken();
+                    return lastAuthenticationResult.getAccessToken();
                 case AAD_DEVICE_LOGIN:
-                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
+                    lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
+                    return lastAuthenticationResult.getAccessToken();
                 case AAD_APPLICATION_CERTIFICATE:
-                    return acquireWithClientCertificate().getAccessToken();
+                    lastAuthenticationResult = acquireWithClientCertificate();
+                    return lastAuthenticationResult.getAccessToken();
                 default:
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
         } catch (Exception e) {
             throw new DataServiceException(e.getMessage());
         }
-
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
@@ -131,8 +140,8 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
+        AuthenticationContext context;
+        AuthenticationResult result;
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
