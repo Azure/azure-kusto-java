@@ -29,12 +29,14 @@ public class AadAuthenticationHelper {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
+    private String userToken;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
         AAD_APPLICATION_KEY,
         AAD_DEVICE_LOGIN,
-        AAD_APPLICATION_CERTIFICATE
+        AAD_APPLICATION_CERTIFICATE,
+        AAD_USER_TOKEN
     }
 
     public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
@@ -52,6 +54,9 @@ public class AadAuthenticationHelper {
             privateKey = csb.getPrivateKey();
             clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
+        } else if (StringUtils.isNotEmpty(csb.getUserToken())){
+            authenticationType = AuthenticationType.AAD_USER_TOKEN;
+            userToken = csb.getUserToken();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
@@ -72,13 +77,14 @@ public class AadAuthenticationHelper {
                     return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
                 case AAD_APPLICATION_CERTIFICATE:
                     return acquireWithClientCertificate().getAccessToken();
+                case AAD_USER_TOKEN:
+                    return userToken;
                 default:
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
         } catch (Exception e) {
             throw new DataServiceException(e.getMessage());
         }
-
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
