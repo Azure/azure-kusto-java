@@ -118,4 +118,22 @@ public class ConnectionStringBuilderTest {
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("resource.uri", "appID", x509Certificate, null));
     }
+
+    @Test
+    @DisplayName("validate createWithAadUserTokenAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    void createWithAadUserTokenAuthentication(){
+
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ConnectionStringBuilder
+                        .createWithAadUserTokenAuthentication(null, "token"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ConnectionStringBuilder
+                        .createWithAadUserTokenAuthentication("","token"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ConnectionStringBuilder
+                        .createWithAadUserTokenAuthentication("resource.uri", null));
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ConnectionStringBuilder
+                        .createWithAadUserTokenAuthentication("resource.uri",""));
+    }
 }

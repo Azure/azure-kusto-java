@@ -172,6 +172,9 @@ public class ConnectionStringBuilder {
         if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
+        if (StringUtils.isEmpty(token)) {
+            throw new IllegalArgumentException("token cannot be null or empty");
+        }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.userToken = token;
