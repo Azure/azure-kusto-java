@@ -21,6 +21,7 @@ public class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    private final static long ONE_MINUTE_IN_MILLIS = 60000;
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -64,30 +65,29 @@ public class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException  {
-        if(lastAuthenticationResult != null && lastAuthenticationResult.getExpiresOnDate().after(new Date())){
-            return lastAuthenticationResult.getAccessToken();
-        }
-
-        try {
-            switch (authenticationType) {
-                case AAD_APPLICATION_KEY:
-                    lastAuthenticationResult = acquireAadApplicationAccessToken();
-                    return lastAuthenticationResult.getAccessToken();
-                case AAD_USERNAME_PASSWORD:
-                    lastAuthenticationResult = acquireAadUserAccessToken();
-                    return lastAuthenticationResult.getAccessToken();
-                case AAD_DEVICE_LOGIN:
-                    lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
-                    return lastAuthenticationResult.getAccessToken();
-                case AAD_APPLICATION_CERTIFICATE:
-                    lastAuthenticationResult = acquireWithClientCertificate();
-                    return lastAuthenticationResult.getAccessToken();
-                default:
-                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+        if(lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
+            try {
+                switch (authenticationType) {
+                    case AAD_APPLICATION_KEY:
+                        lastAuthenticationResult = acquireAadApplicationAccessToken();
+                        break;
+                    case AAD_USERNAME_PASSWORD:
+                        lastAuthenticationResult = acquireAadUserAccessToken();
+                        break;
+                    case AAD_DEVICE_LOGIN:
+                        lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
+                        break;
+                    case AAD_APPLICATION_CERTIFICATE:
+                        lastAuthenticationResult = acquireWithClientCertificate();
+                        break;
+                    default:
+                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                }
+            } catch (Exception e) {
+                throw new DataServiceException(e.getMessage());
             }
-        } catch (Exception e) {
-            throw new DataServiceException(e.getMessage());
         }
+        return lastAuthenticationResult.getAccessToken();
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
