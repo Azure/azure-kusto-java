@@ -135,5 +135,7 @@ public class ConnectionStringBuilderTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadUserTokenAuthentication("resource.uri",""));
+        Assertions.assertDoesNotThrow( () -> ConnectionStringBuilder
+                .createWithAadUserTokenAuthentication("resource.uri","token"));
     }
 }
