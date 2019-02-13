@@ -64,8 +64,8 @@ public class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws DataServiceException  {
-        if(lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
+    String acquireAccessToken() throws DataServiceException {
+        if (lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
             try {
                 switch (authenticationType) {
                     case AAD_APPLICATION_KEY:
@@ -145,7 +145,7 @@ public class AadAuthenticationHelper {
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext( aadAuthorityUri, true, service);
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
@@ -167,23 +167,23 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
-            throws  InterruptedException{
+            throws InterruptedException {
         int timeout = 15 * 1000;
         AuthenticationResult result = null;
-        while (timeout > 0){
-            try{
+        while (timeout > 0) {
+            try {
                 Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
                 return futureResult.get();
             } catch (ExecutionException e) {
-                    Thread.sleep(1000);
-                    timeout -= 1000;
+                Thread.sleep(1000);
+                timeout -= 1000;
             }
         }
         return result;
     }
 
     AuthenticationResult acquireWithClientCertificate()
-            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
+            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException {
 
         AuthenticationContext context;
         AuthenticationResult result;
