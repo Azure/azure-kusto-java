@@ -65,7 +65,7 @@ public class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException {
-        if (lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
+        if (lastAuthenticationResult == null || lastAuthenticationResult.getRefreshToken() == null) {
             try {
                 switch (authenticationType) {
                     case AAD_APPLICATION_KEY:
@@ -79,6 +79,26 @@ public class AadAuthenticationHelper {
                         break;
                     case AAD_APPLICATION_CERTIFICATE:
                         lastAuthenticationResult = acquireWithClientCertificate();
+                        break;
+                    default:
+                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                }
+            } catch (Exception e) {
+                throw new DataServiceException(e.getMessage());
+            }
+        }
+        else if(lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
+            try {
+                ExecutorService service = Executors.newSingleThreadExecutor();
+                AuthenticationContext context = new AuthenticationContext(aadAuthorityUri, true, service);
+                switch (authenticationType) {
+                    case AAD_APPLICATION_KEY:
+                    case AAD_APPLICATION_CERTIFICATE:
+                        lastAuthenticationResult = context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), clientCredential, null).get();
+                        break;
+                    case AAD_USERNAME_PASSWORD:
+                    case AAD_DEVICE_LOGIN:
+                        lastAuthenticationResult = context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), CLIENT_ID, clusterUrl, null).get();
                         break;
                     default:
                         throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
