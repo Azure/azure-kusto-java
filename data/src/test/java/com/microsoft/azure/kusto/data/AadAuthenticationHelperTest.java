@@ -1,6 +1,9 @@
 package com.microsoft.azure.kusto.data;
 
 
+import com.microsoft.aad.adal4j.AuthenticationResult;
+import com.microsoft.aad.adal4j.UserInfo;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -25,16 +28,19 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
-import org.junit.jupiter.api.BeforeEach;
 
-import static org.mockito.ArgumentMatchers.any;
+import javax.naming.ServiceUnavailableException;
+
+import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.ONE_MINUTE_IN_MILLIS;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
 
-    private AadAuthenticationHelper aadAuthenticationHelper = spy(AadAuthenticationHelper.class);
 
 
     @Test
@@ -91,11 +97,36 @@ public class AadAuthenticationHelperTest {
     }
 
     @Test
-    @DisplayName("validate auth with cached token")
-    void useCachedTokenAndRefreshWhenNeeded(){
-        //if less than minute - he will refresh
-        //try override
-        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
+    @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
+    void useCachedTokenAndRefreshWhenNeeded() throws InterruptedException, ExecutionException, ServiceUnavailableException, IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException {
+        String certFilePath = Paths.get("src","test","resources", "cert.cer").toString();
+        String privateKeyPath = Paths.get("src","test","resources","key.pem").toString();
+
+        X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
+        PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
+
+        ConnectionStringBuilder csb = ConnectionStringBuilder
+                .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
+
+        AadAuthenticationHelper aadAuthenticationHelperSpy = spy(new AadAuthenticationHelper(csb));
+
+        AuthenticationResult authenticationResult = new AuthenticationResult("testType", "firstToken","refreshToken",0,"id", mock(UserInfo.class),false);
+        AuthenticationResult authenticationResultFromRefresh = new AuthenticationResult("testType", "fromRefresh",null,90,"id", mock(UserInfo.class),false);
+        AuthenticationResult authenticationResultNullRefreshTokenResult = new AuthenticationResult("testType", "nullRefreshResult",null,0,"id", mock(UserInfo.class),false);
+
+        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).refreshToken();
+        doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
+
+        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+
+        // If no refresh token - it will authenticate again,
+        doReturn(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS * 2)).when(aadAuthenticationHelperSpy).dateInAMinute();
+        doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
+
+        assertEquals("nullRefreshResult", aadAuthenticationHelperSpy.acquireAccessToken());
+        // Null refreshToken
 
     }
 }

@@ -21,7 +21,7 @@ public class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    private final static long ONE_MINUTE_IN_MILLIS = 60000;
+    public final static long ONE_MINUTE_IN_MILLIS = 60000;
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -32,6 +32,8 @@ public class AadAuthenticationHelper {
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
     private AuthenticationResult lastAuthenticationResult;
+    ExecutorService service = Executors.newSingleThreadExecutor();
+    AuthenticationContext context;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
@@ -53,7 +55,7 @@ public class AadAuthenticationHelper {
         } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
             x509Certificate = csb.getX509Certificate();
             privateKey = csb.getPrivateKey();
-            clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
+            clientCredential = new ClientCredential(csb.getApplicationClientId(), "null");
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
@@ -65,7 +67,9 @@ public class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException {
-        if (lastAuthenticationResult == null || lastAuthenticationResult.getRefreshToken() == null) {
+        boolean isAccessTokenExpired;
+        if (lastAuthenticationResult == null || ((isAccessTokenExpired = lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute()))
+                                                                                                                    && lastAuthenticationResult.getRefreshToken() == null)) {
             try {
                 switch (authenticationType) {
                     case AAD_APPLICATION_KEY:
@@ -86,47 +90,27 @@ public class AadAuthenticationHelper {
             } catch (Exception e) {
                 throw new DataServiceException(e.getMessage());
             }
-        } else if (lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
-            try {
-                ExecutorService service = Executors.newSingleThreadExecutor();
-                AuthenticationContext context = new AuthenticationContext(aadAuthorityUri, true, service);
-                switch (authenticationType) {
-                    case AAD_APPLICATION_KEY:
-                    case AAD_APPLICATION_CERTIFICATE:
-                        lastAuthenticationResult = context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), clientCredential, null).get();
-                        break;
-                    case AAD_USERNAME_PASSWORD:
-                    case AAD_DEVICE_LOGIN:
-                        lastAuthenticationResult = context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), CLIENT_ID, clusterUrl, null).get();
-                        break;
-                    default:
-                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
-                }
-            } catch (Exception e) {
-                throw new DataServiceException(e.getMessage());
-            }
+        } else if (lastAuthenticationResult.getRefreshToken() != null && isAccessTokenExpired){
+            lastAuthenticationResult = refreshToken();
         }
+
         return lastAuthenticationResult.getAccessToken();
     }
 
-    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
-        AuthenticationContext context;
+    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
+        if(context == null){
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
+        }
+
         AuthenticationResult result;
         ExecutorService service = null;
         try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-
             Future<AuthenticationResult> future = context.acquireToken(
                     clusterUrl, CLIENT_ID, userUsername, userPassword,
                     null);
             result = future.get();
-        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new DataClientException(clusterUrl, "Error in acquiring UserAccessToken", e);
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
         }
 
         if (result == null) {
@@ -135,21 +119,17 @@ public class AadAuthenticationHelper {
         return result;
     }
 
-    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException {
-        AuthenticationContext context;
-        AuthenticationResult result;
-        ExecutorService service = null;
-        try {
-            service = Executors.newSingleThreadExecutor();
+    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
+        if(context == null){
             context = new AuthenticationContext(aadAuthorityUri, true, service);
+        }
+
+        AuthenticationResult result;
+        try {
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
             result = future.get();
-        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
+        } catch (InterruptedException | ExecutionException e) {
             throw new DataClientException(clusterUrl, "Error in acquiring ApplicationAccessToken", e);
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
         }
 
         if (result == null) {
@@ -159,26 +139,19 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        AuthenticationContext context;
-        AuthenticationResult result;
-        ExecutorService service = null;
-        try {
-            service = Executors.newSingleThreadExecutor();
+        if(context == null){
             context = new AuthenticationContext(aadAuthorityUri, true, service);
-            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
-            DeviceCode deviceCode = future.get();
-            System.out.println(deviceCode.getMessage());
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
-            }
-            result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
-
-
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
         }
+
+        AuthenticationResult result;
+        Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
+        DeviceCode deviceCode = future.get();
+        System.out.println(deviceCode.getMessage());
+        if (Desktop.isDesktopSupported()) {
+            Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
+        }
+        result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
+
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
         }
@@ -203,27 +176,40 @@ public class AadAuthenticationHelper {
 
     AuthenticationResult acquireWithClientCertificate()
             throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException {
-
-        AuthenticationContext context;
-        AuthenticationResult result;
-        ExecutorService service = null;
-
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, false, service);
-            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
-                    privateKey, x509Certificate);
-            // pass null value for optional callback function and acquire access token
-            result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
+        if(context == null){
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
         }
+        AuthenticationResult result;
+
+        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+                privateKey, x509Certificate);
+        // pass null value for optional callback function and acquire access token
+        result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
         }
         return result;
     }
 
+    AuthenticationResult refreshToken() throws DataServiceException {
+        try {
+            switch (authenticationType) {
+                case AAD_APPLICATION_KEY:
+                case AAD_APPLICATION_CERTIFICATE:
+                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), clientCredential, null).get();
+                case AAD_USERNAME_PASSWORD:
+                case AAD_DEVICE_LOGIN:
+                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), CLIENT_ID, clusterUrl, null).get();
+                default:
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+            }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
+        }
+    }
+
+    Date dateInAMinute(){
+        return new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS);
+    }
 }
