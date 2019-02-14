@@ -30,22 +30,23 @@ class AzureStorageClient {
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
-    void postMessageToQueue(String queuePath, String content) throws StorageException {
+    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Ensure
+        Ensure.stringIsNotBlank(queuePath, "queuePath is empty");
         Ensure.stringIsNotBlank(content, "content is empty");
-        URI queueUri = Ensure.validateAndCreateUri(queuePath);
 
-        CloudQueue queue = new CloudQueue(queueUri);
+        CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
         queue.addMessage(queueMessage);
     }
 
-    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException {
+    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
+            URISyntaxException {
         // Ensure
+        Ensure.stringIsNotBlank(tableUri, "tableUri is empty");
         Ensure.argIsNotNull(entity, "entity is null");
-        URI tableUriObj = Ensure.validateAndCreateUri(tableUri);
 
-        CloudTable table = new CloudTable(tableUriObj);
+        CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
         TableOperation insert = TableOperation.insert(entity);
         // Submit the operation to the table service.
@@ -57,14 +58,14 @@ class AzureStorageClient {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
-        Ensure.stringIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = Ensure.validateAndCreateUri(storageUri);
         Ensure.fileExists(filePath);
+        Ensure.stringIsNotBlank(blobName, "blobName is empty");
+        Ensure.stringIsNotBlank(storageUri, "storageUri is empty");
 
         // Check if the file is already compressed:
         boolean isCompressed = isCompressed(filePath);
 
-        CloudBlobContainer container = new CloudBlobContainer(storageUriObj);
+        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
 
         if (!isCompressed) {
@@ -107,9 +108,9 @@ class AzureStorageClient {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream is null");
         Ensure.stringIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = Ensure.validateAndCreateUri(storageUri);
+        Ensure.stringIsNotBlank(storageUri, "storageUri is empty");
 
-        CloudBlobContainer container = new CloudBlobContainer(storageUriObj);
+        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
         if (compress) {
@@ -157,10 +158,10 @@ class AzureStorageClient {
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 
-    long getBlobSize(String blobPath) throws StorageException {
-        URI blobUri = Ensure.validateAndCreateUri(blobPath);
+    long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
+        Ensure.stringIsNotBlank(blobPath, "blobPath is null");
 
-        CloudBlockBlob blockBlob = new CloudBlockBlob(blobUri);
+        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();
         return blockBlob.getProperties().getLength();
     }

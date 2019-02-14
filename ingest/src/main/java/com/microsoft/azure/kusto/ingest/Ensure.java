@@ -4,8 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 public class Ensure {
 
@@ -36,12 +34,4 @@ public class Ensure {
         fileExists(file, "file does not exist: " + filePath);
     }
 
-    public static URI validateAndCreateUri(String uri) {
-        stringIsNotBlank(uri, "uri is blank");
-        try {
-            return new URI(uri);
-        } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("not a valid uri: " + uri);
-        }
-    }
 }

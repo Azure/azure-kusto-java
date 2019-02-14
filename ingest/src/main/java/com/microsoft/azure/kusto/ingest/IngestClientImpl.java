@@ -118,7 +118,7 @@ class IngestClientImpl implements IngestClient {
 
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         }
     }
@@ -197,7 +197,7 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private long estimateBlobRawSize(String blobPath) throws StorageException {
+    private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
         long blobSize = azureStorageClient.getBlobSize(blobPath);
 
         return azureStorageClient.isCompressed(blobPath) ?

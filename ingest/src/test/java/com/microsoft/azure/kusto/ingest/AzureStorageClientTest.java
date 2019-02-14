@@ -101,14 +101,14 @@ class AzureStorageClientTest {
     void UploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob("filePath", null, "storageUri"));
+                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, null, "storageUri"));
     }
 
     @Test
     void UploadLocalFileToBlob_NullStorageUri_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob("filePath", "blobName", null));
+                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, "blobName", null));
     }
 
     @Test
