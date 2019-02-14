@@ -32,9 +32,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.Ensure.validateFileExists;
-import static com.microsoft.azure.kusto.ingest.Ensure.validateIsNotNull;
-
 class IngestClientImpl implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -67,8 +64,8 @@ class IngestClientImpl implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        validateIsNotNull(blobSourceInfo, "blobSourceInfo is null");
-        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo is null");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
 
         blobSourceInfo.validate();
         ingestionProperties.validate();
@@ -130,15 +127,15 @@ class IngestClientImpl implements IngestClient {
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        validateIsNotNull(fileSourceInfo, "fileSourceInfo is null");
-        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo is null");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
 
         fileSourceInfo.validate();
         ingestionProperties.validate();
 
         try {
             String filePath = fileSourceInfo.getFilePath();
-            validateFileExists(filePath);
+            Ensure.fileExists(filePath);
 
             File file = new File(filePath);
             String blobName = genBlobName(
@@ -164,8 +161,8 @@ class IngestClientImpl implements IngestClient {
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        validateIsNotNull(streamSourceInfo, "streamSourceInfo is null");
-        validateIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo is null");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
 
         streamSourceInfo.validate();
         ingestionProperties.validate();

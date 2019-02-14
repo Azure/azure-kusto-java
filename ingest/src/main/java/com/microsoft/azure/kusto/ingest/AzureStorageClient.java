@@ -24,8 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.Ensure.*;
-
 class AzureStorageClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -34,8 +32,8 @@ class AzureStorageClient {
 
     void postMessageToQueue(String queuePath, String content) throws StorageException {
         // Ensure
-        validateIsNotBlank(content, "content is empty");
-        URI queueUri = validateAndCreateUri(queuePath);
+        Ensure.stringIsNotBlank(content, "content is empty");
+        URI queueUri = Ensure.validateAndCreateUri(queuePath);
 
         CloudQueue queue = new CloudQueue(queueUri);
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
@@ -44,8 +42,8 @@ class AzureStorageClient {
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException {
         // Ensure
-        validateIsNotNull(entity, "entity is null");
-        URI tableUriObj = validateAndCreateUri(tableUri);
+        Ensure.argIsNotNull(entity, "entity is null");
+        URI tableUriObj = Ensure.validateAndCreateUri(tableUri);
 
         CloudTable table = new CloudTable(tableUriObj);
         // Create an operation to add the new customer to the table basics table.
@@ -59,9 +57,9 @@ class AzureStorageClient {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
-        validateIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = validateAndCreateUri(storageUri);
-        validateFileExists(filePath);
+        Ensure.stringIsNotBlank(blobName, "blobName is empty");
+        URI storageUriObj = Ensure.validateAndCreateUri(storageUri);
+        Ensure.fileExists(filePath);
 
         // Check if the file is already compressed:
         boolean isCompressed = isCompressed(filePath);
@@ -81,8 +79,8 @@ class AzureStorageClient {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Ensure
-        validateFileExists(filePath);
-        validateIsNotNull(blob, "blob is null");
+        Ensure.fileExists(filePath);
+        Ensure.argIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
         BlobOutputStream bos = blob.openOutputStream();
@@ -96,8 +94,8 @@ class AzureStorageClient {
 
     void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
         // Ensure
-        validateIsNotNull(blob, "blob is null");
-        validateFileExists(sourceFile, "The sourceFile does not exist");
+        Ensure.argIsNotNull(blob, "blob is null");
+        Ensure.fileExists(sourceFile, "The sourceFile does not exist");
 
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
@@ -107,9 +105,9 @@ class AzureStorageClient {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure
-        validateIsNotNull(inputStream, "inputStream is null");
-        validateIsNotBlank(blobName, "blobName is empty");
-        URI storageUriObj = validateAndCreateUri(storageUri);
+        Ensure.argIsNotNull(inputStream, "inputStream is null");
+        Ensure.stringIsNotBlank(blobName, "blobName is empty");
+        URI storageUriObj = Ensure.validateAndCreateUri(storageUri);
 
         CloudBlobContainer container = new CloudBlobContainer(storageUriObj);
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
@@ -124,8 +122,8 @@ class AzureStorageClient {
 
     void uploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Ensure
-        validateIsNotNull(inputStream, "inputStream is null");
-        validateIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(inputStream, "inputStream is null");
+        Ensure.argIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
         copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
@@ -134,8 +132,8 @@ class AzureStorageClient {
 
     void compressAndUploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Ensure
-        validateIsNotNull(inputStream, "inputStream is null");
-        validateIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(inputStream, "inputStream is null");
+        Ensure.argIsNotNull(blob, "blob is null");
 
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
@@ -152,7 +150,7 @@ class AzureStorageClient {
     }
 
     String getBlobPathWithSas(CloudBlockBlob blob) {
-        validateIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(blob, "blob is null");
 
         StorageCredentialsSharedAccessSignature signature =
                 (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
@@ -160,7 +158,7 @@ class AzureStorageClient {
     }
 
     long getBlobSize(String blobPath) throws StorageException {
-        URI blobUri = validateAndCreateUri(blobPath);
+        URI blobUri = Ensure.validateAndCreateUri(blobPath);
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(blobUri);
         blockBlob.downloadAttributes();
