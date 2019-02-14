@@ -29,12 +29,11 @@ public class Validation {
         }
     }
 
-    public static File validateAndCreateFile(String filePath) throws FileNotFoundException {
+    public static void validateFileExists(String filePath) throws FileNotFoundException {
         validateIsNotBlank(filePath, "filePath is blank");
 
         File file = new File(filePath);
         validateFileExists(file, "file does not exist: " + filePath);
-        return file;
     }
 
     public static URI validateAndCreateUri(String uri) {

@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
+import static com.microsoft.azure.kusto.ingest.Validation.validateFileExists;
 import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
 
 class IngestClientImpl implements IngestClient {
@@ -137,11 +138,11 @@ class IngestClientImpl implements IngestClient {
 
         try {
             String filePath = fileSourceInfo.getFilePath();
-            File file = Validation.validateAndCreateFile(filePath);
+            validateFileExists(filePath);
 
-            String fileName = file.getName();
+            File file = new File(filePath);
             String blobName = genBlobName(
-                    fileName, ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+                    file.getName(), ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);

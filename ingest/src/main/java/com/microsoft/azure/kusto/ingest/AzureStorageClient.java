@@ -61,7 +61,7 @@ class AzureStorageClient {
         // Validation
         validateIsNotBlank(blobName, "blobName is empty");
         URI storageUriObj = validateAndCreateUri(storageUri);
-        File sourceFile = validateAndCreateFile(filePath);
+        validateFileExists(filePath);
 
         // Check if the file is already compressed:
         boolean isCompressed = isCompressed(filePath);
@@ -72,7 +72,8 @@ class AzureStorageClient {
         if (!isCompressed) {
             compressAndUploadFileToBlob(filePath, blob);
         } else {
-            uploadFileToBlob(sourceFile, blob);
+            File file = new File(filePath);
+            uploadFileToBlob(file, blob);
         }
 
         return blob;
@@ -80,7 +81,7 @@ class AzureStorageClient {
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Validation
-        validateAndCreateFile(filePath);
+        validateFileExists(filePath);
         validateIsNotNull(blob, "blob is null");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
