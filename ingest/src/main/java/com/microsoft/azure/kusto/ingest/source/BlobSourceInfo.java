@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import java.util.UUID;
 
-import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotBlank;
+import static com.microsoft.azure.kusto.ingest.Ensure.validateIsNotBlank;
 
 
 public class BlobSourceInfo extends AbstractSourceInfo {

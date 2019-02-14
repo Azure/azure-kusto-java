@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.Validation.*;
+import static com.microsoft.azure.kusto.ingest.Ensure.*;
 
 class AzureStorageClient {
 
@@ -33,7 +33,7 @@ class AzureStorageClient {
     private static final int STREAM_BUFFER_SIZE = 16384;
 
     void postMessageToQueue(String queuePath, String content) throws StorageException {
-        // Validation
+        // Ensure
         validateIsNotBlank(content, "content is empty");
         URI queueUri = validateAndCreateUri(queuePath);
 
@@ -43,7 +43,7 @@ class AzureStorageClient {
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException {
-        // Validation
+        // Ensure
         validateIsNotNull(entity, "entity is null");
         URI tableUriObj = validateAndCreateUri(tableUri);
 
@@ -58,7 +58,7 @@ class AzureStorageClient {
             throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
-        // Validation
+        // Ensure
         validateIsNotBlank(blobName, "blobName is empty");
         URI storageUriObj = validateAndCreateUri(storageUri);
         validateFileExists(filePath);
@@ -80,7 +80,7 @@ class AzureStorageClient {
     }
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
-        // Validation
+        // Ensure
         validateFileExists(filePath);
         validateIsNotNull(blob, "blob is null");
 
@@ -95,7 +95,7 @@ class AzureStorageClient {
     }
 
     void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
-        // Validation
+        // Ensure
         validateIsNotNull(blob, "blob is null");
         validateFileExists(sourceFile, "The sourceFile does not exist");
 
@@ -106,7 +106,7 @@ class AzureStorageClient {
             throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
-        // Validation
+        // Ensure
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotBlank(blobName, "blobName is empty");
         URI storageUriObj = validateAndCreateUri(storageUri);
@@ -123,7 +123,7 @@ class AzureStorageClient {
     }
 
     void uploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
-        // Validation
+        // Ensure
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotNull(blob, "blob is null");
 
@@ -133,7 +133,7 @@ class AzureStorageClient {
     }
 
     void compressAndUploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
-        // Validation
+        // Ensure
         validateIsNotNull(inputStream, "inputStream is null");
         validateIsNotNull(blob, "blob is null");
 

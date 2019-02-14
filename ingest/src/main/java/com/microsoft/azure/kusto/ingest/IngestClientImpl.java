@@ -32,8 +32,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.Validation.validateFileExists;
-import static com.microsoft.azure.kusto.ingest.Validation.validateIsNotNull;
+import static com.microsoft.azure.kusto.ingest.Ensure.validateFileExists;
+import static com.microsoft.azure.kusto.ingest.Ensure.validateIsNotNull;
 
 class IngestClientImpl implements IngestClient {
 
