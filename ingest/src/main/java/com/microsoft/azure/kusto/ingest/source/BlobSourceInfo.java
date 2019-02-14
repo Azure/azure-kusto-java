@@ -43,6 +43,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        stringIsNotBlank(blobPath, "blobPath is empty");
+        stringIsNotBlank(blobPath, "blobPath");
     }
 }

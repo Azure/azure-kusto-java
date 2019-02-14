@@ -39,6 +39,6 @@ public class FileSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        stringIsNotBlank(filePath, "filePath is empty");
+        stringIsNotBlank(filePath, "filePath");
     }
 }
