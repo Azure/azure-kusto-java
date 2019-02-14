@@ -137,8 +137,8 @@ public class IngestionProperties {
      * Validate the minimum non-empty values needed for data ingestion.
      */
     void validate() {
-        Ensure.stringIsNotBlank(databaseName, "databaseName is empty");
-        Ensure.stringIsNotBlank(tableName, "tableName is empty");
-        Ensure.argIsNotNull(reportMethod, "reportMethod is null");
+        Ensure.stringIsNotBlank(databaseName, "databaseName");
+        Ensure.stringIsNotBlank(tableName, "tableName");
+        Ensure.argIsNotNull(reportMethod, "reportMethod");
     }
 }

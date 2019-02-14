@@ -64,8 +64,8 @@ class IngestClientImpl implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
 
         // Argument validation:
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo is null");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         blobSourceInfo.validate();
         ingestionProperties.validate();
@@ -127,8 +127,8 @@ class IngestClientImpl implements IngestClient {
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo is null");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         fileSourceInfo.validate();
         ingestionProperties.validate();
@@ -161,8 +161,8 @@ class IngestClientImpl implements IngestClient {
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
-        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo is null");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties is null");
+        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         streamSourceInfo.validate();
         ingestionProperties.validate();
@@ -170,7 +170,7 @@ class IngestClientImpl implements IngestClient {
         try {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
-                throw new IngestionClientException("Stream is empty");
+                throw new IngestionClientException("Stream");
             }
             String blobName = genBlobName(
                     "StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());

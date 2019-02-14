@@ -32,8 +32,8 @@ class AzureStorageClient {
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Ensure
-        Ensure.stringIsNotBlank(queuePath, "queuePath is empty");
-        Ensure.stringIsNotBlank(content, "content is empty");
+        Ensure.stringIsNotBlank(queuePath, "queuePath");
+        Ensure.stringIsNotBlank(content, "content");
 
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
@@ -43,8 +43,8 @@ class AzureStorageClient {
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
             URISyntaxException {
         // Ensure
-        Ensure.stringIsNotBlank(tableUri, "tableUri is empty");
-        Ensure.argIsNotNull(entity, "entity is null");
+        Ensure.stringIsNotBlank(tableUri, "tableUri");
+        Ensure.argIsNotNull(entity, "entity");
 
         CloudTable table = new CloudTable(new URI(tableUri));
         // Create an operation to add the new customer to the table basics table.
@@ -59,8 +59,8 @@ class AzureStorageClient {
 
         // Ensure
         Ensure.fileExists(filePath);
-        Ensure.stringIsNotBlank(blobName, "blobName is empty");
-        Ensure.stringIsNotBlank(storageUri, "storageUri is empty");
+        Ensure.stringIsNotBlank(blobName, "blobName");
+        Ensure.stringIsNotBlank(storageUri, "storageUri");
 
         // Check if the file is already compressed:
         boolean isCompressed = isCompressed(filePath);
@@ -81,7 +81,7 @@ class AzureStorageClient {
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
         // Ensure
         Ensure.fileExists(filePath);
-        Ensure.argIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(blob, "blob");
 
         InputStream fin = Files.newInputStream(Paths.get(filePath));
         BlobOutputStream bos = blob.openOutputStream();
@@ -95,8 +95,8 @@ class AzureStorageClient {
 
     void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
         // Ensure
-        Ensure.argIsNotNull(blob, "blob is null");
-        Ensure.fileExists(sourceFile, "The sourceFile does not exist");
+        Ensure.argIsNotNull(blob, "blob");
+        Ensure.fileExists(sourceFile, "sourceFile");
 
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
@@ -106,9 +106,9 @@ class AzureStorageClient {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure
-        Ensure.argIsNotNull(inputStream, "inputStream is null");
-        Ensure.stringIsNotBlank(blobName, "blobName is empty");
-        Ensure.stringIsNotBlank(storageUri, "storageUri is empty");
+        Ensure.argIsNotNull(inputStream, "inputStream");
+        Ensure.stringIsNotBlank(blobName, "blobName");
+        Ensure.stringIsNotBlank(storageUri, "storageUri");
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
@@ -123,8 +123,8 @@ class AzureStorageClient {
 
     void uploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Ensure
-        Ensure.argIsNotNull(inputStream, "inputStream is null");
-        Ensure.argIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(inputStream, "inputStream");
+        Ensure.argIsNotNull(blob, "blob");
 
         BlobOutputStream bos = blob.openOutputStream();
         copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
@@ -133,8 +133,8 @@ class AzureStorageClient {
 
     void compressAndUploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
         // Ensure
-        Ensure.argIsNotNull(inputStream, "inputStream is null");
-        Ensure.argIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(inputStream, "inputStream");
+        Ensure.argIsNotNull(blob, "blob");
 
         BlobOutputStream bos = blob.openOutputStream();
         GZIPOutputStream gzout = new GZIPOutputStream(bos);
@@ -151,7 +151,7 @@ class AzureStorageClient {
     }
 
     String getBlobPathWithSas(CloudBlockBlob blob) {
-        Ensure.argIsNotNull(blob, "blob is null");
+        Ensure.argIsNotNull(blob, "blob");
 
         StorageCredentialsSharedAccessSignature signature =
                 (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
@@ -159,7 +159,7 @@ class AzureStorageClient {
     }
 
     long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
-        Ensure.stringIsNotBlank(blobPath, "blobPath is null");
+        Ensure.stringIsNotBlank(blobPath, "blobPath");
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
         blockBlob.downloadAttributes();

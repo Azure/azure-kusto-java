@@ -7,31 +7,31 @@ import java.io.FileNotFoundException;
 
 public class Ensure {
 
-    public static void stringIsNotBlank(String str, String message) {
+    public static void stringIsNotBlank(String str, String varName) {
         if (StringUtils.isBlank(str)) {
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException(varName + " is blank.");
         }
     }
 
-    public static void argIsNotNull(Object arg, String message) {
+    public static void argIsNotNull(Object arg, String varName) {
         if (arg == null) {
-            throw new IllegalArgumentException(message);
+            throw new IllegalArgumentException(varName + " is null.");
         }
     }
 
-    public static void fileExists(File file, String message) throws FileNotFoundException {
-        argIsNotNull(file, "file is null");
+    public static void fileExists(File file, String argFile) throws FileNotFoundException {
+        argIsNotNull(file, argFile);
 
         if (!file.exists()) {
-            throw new FileNotFoundException(message);
+            throw new FileNotFoundException(argFile);
         }
     }
 
     public static void fileExists(String filePath) throws FileNotFoundException {
-        stringIsNotBlank(filePath, "filePath is blank");
+        stringIsNotBlank(filePath, "filePath");
 
         File file = new File(filePath);
-        fileExists(file, "file does not exist: " + filePath);
+        fileExists(file, filePath);
     }
 
 }
