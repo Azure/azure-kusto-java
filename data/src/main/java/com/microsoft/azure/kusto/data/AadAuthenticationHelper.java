@@ -54,7 +54,7 @@ public class AadAuthenticationHelper {
             privateKey = csb.getPrivateKey();
             clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
-        } else if (StringUtils.isNotEmpty(csb.getUserToken())) {
+        } else if (StringUtils.isNotBlank(csb.getUserToken())) {
             authenticationType = AuthenticationType.AAD_USER_TOKEN;
             userToken = csb.getUserToken();
         } else {
