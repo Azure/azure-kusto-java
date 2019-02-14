@@ -86,8 +86,7 @@ public class AadAuthenticationHelper {
             } catch (Exception e) {
                 throw new DataServiceException(e.getMessage());
             }
-        }
-        else if(lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
+        } else if (lastAuthenticationResult.getExpiresOnDate().before(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS))) {
             try {
                 ExecutorService service = Executors.newSingleThreadExecutor();
                 AuthenticationContext context = new AuthenticationContext(aadAuthorityUri, true, service);

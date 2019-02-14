@@ -26,8 +26,16 @@ import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.BeforeEach;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
+
+    private AadAuthenticationHelper aadAuthenticationHelper = spy(AadAuthenticationHelper.class);
+
 
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
@@ -47,7 +55,6 @@ public class AadAuthenticationHelperTest {
 
         Assertions.assertThrows(ExecutionException.class,
                 () -> aadAuthenticationHelper.acquireWithClientCertificate());
-
     }
 
     static KeyCert readPem(String path, String password)
@@ -83,4 +90,12 @@ public class AadAuthenticationHelperTest {
         return keycert;
     }
 
+    @Test
+    @DisplayName("validate auth with cached token")
+    void useCachedTokenAndRefreshWhenNeeded(){
+        //if less than minute - he will refresh
+        //try override
+        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
+
+    }
 }
