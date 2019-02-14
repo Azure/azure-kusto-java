@@ -120,22 +120,22 @@ public class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithAadUserTokenAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadUserTokenAuthentication(){
+    @DisplayName("validate createWithAadAccessTokenAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    void createWithAadAccessTokenAuthentication(){
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadUserTokenAuthentication(null, "token"));
+                        .createWithAadAccessTokenAuthentication(null, "token"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadUserTokenAuthentication("","token"));
+                        .createWithAadAccessTokenAuthentication("","token"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadUserTokenAuthentication("resource.uri", null));
+                        .createWithAadAccessTokenAuthentication("resource.uri", null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadUserTokenAuthentication("resource.uri",""));
+                        .createWithAadAccessTokenAuthentication("resource.uri",""));
         Assertions.assertDoesNotThrow( () -> ConnectionStringBuilder
-                .createWithAadUserTokenAuthentication("resource.uri","token"));
+                .createWithAadAccessTokenAuthentication("resource.uri","token"));
     }
 }

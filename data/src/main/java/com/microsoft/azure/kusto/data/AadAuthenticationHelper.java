@@ -29,7 +29,7 @@ public class AadAuthenticationHelper {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
-    private String userToken;
+    private String accessToken;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
@@ -54,9 +54,9 @@ public class AadAuthenticationHelper {
             privateKey = csb.getPrivateKey();
             clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
-        } else if (StringUtils.isNotBlank(csb.getUserToken())) {
+        } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
             authenticationType = AuthenticationType.AAD_USER_TOKEN;
-            userToken = csb.getUserToken();
+            accessToken = csb.getAccessToken();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
@@ -78,7 +78,7 @@ public class AadAuthenticationHelper {
                 case AAD_APPLICATION_CERTIFICATE:
                     return acquireWithClientCertificate().getAccessToken();
                 case AAD_USER_TOKEN:
-                    return userToken;
+                    return accessToken;
                 default:
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
