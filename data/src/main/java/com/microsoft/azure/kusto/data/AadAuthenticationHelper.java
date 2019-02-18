@@ -37,6 +37,7 @@ public class AadAuthenticationHelper {
     private ExecutorService service = Executors.newSingleThreadExecutor();
     private AuthenticationContext context;
     private Lock lastAuthenticationResultLock = new ReentrantLock();
+    private String applicationClientId;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
@@ -58,7 +59,7 @@ public class AadAuthenticationHelper {
         } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
             x509Certificate = csb.getX509Certificate();
             privateKey = csb.getPrivateKey();
-            clientCredential = new ClientCredential(csb.getApplicationClientId(), "null");
+            applicationClientId = csb.getApplicationClientId();
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
@@ -70,40 +71,20 @@ public class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException {
-        boolean isAccessTokenExpired;
-        if (lastAuthenticationResult == null || ((isAccessTokenExpired = lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute()))
-                && lastAuthenticationResult.getRefreshToken() == null)) {
-            lastAuthenticationResultLock.lock();
-            if (lastAuthenticationResult == null || (lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute())
-                    && lastAuthenticationResult.getRefreshToken() == null)) {
-                try {
-                    switch (authenticationType) {
-                        case AAD_APPLICATION_KEY:
-                            lastAuthenticationResult = acquireAadApplicationAccessToken();
-                            break;
-                        case AAD_USERNAME_PASSWORD:
-                            lastAuthenticationResult = acquireAadUserAccessToken();
-                            break;
-                        case AAD_DEVICE_LOGIN:
-                            lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
-                            break;
-                        case AAD_APPLICATION_CERTIFICATE:
-                            lastAuthenticationResult = acquireWithClientCertificate();
-                            break;
-                        default:
-                            throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+        if (lastAuthenticationResult == null) {
+            aquireTokenByType();
+        } else {
+            if (isTokenExpired()) {
+                if (lastAuthenticationResult.getRefreshToken() == null) {
+                    aquireTokenByType();
+                } else {
+                    lastAuthenticationResultLock.lock();
+                    if (isTokenExpired()) {
+                        lastAuthenticationResult = refreshToken();
                     }
-                } catch (Exception e) {
-                    throw new DataServiceException(e.getMessage());
+                    lastAuthenticationResultLock.unlock();
                 }
             }
-            lastAuthenticationResultLock.unlock();
-        } else if (lastAuthenticationResult.getRefreshToken() != null && isAccessTokenExpired) {
-            lastAuthenticationResultLock.lock();
-            if (lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute())) {
-                lastAuthenticationResult = refreshToken();
-            }
-            lastAuthenticationResultLock.unlock();
         }
 
         return lastAuthenticationResult.getAccessToken();
@@ -115,7 +96,6 @@ public class AadAuthenticationHelper {
         }
 
         AuthenticationResult result;
-        ExecutorService service = null;
         try {
             Future<AuthenticationResult> future = context.acquireToken(
                     clusterUrl, CLIENT_ID, userUsername, userPassword,
@@ -193,7 +173,7 @@ public class AadAuthenticationHelper {
         }
         AuthenticationResult result;
 
-        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+        AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(applicationClientId,
                 privateKey, x509Certificate);
         // pass null value for optional callback function and acquire access token
         result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
@@ -202,6 +182,37 @@ public class AadAuthenticationHelper {
             throw new ServiceUnavailableException("authentication result was null");
         }
         return result;
+    }
+
+    private void aquireTokenByType() throws DataServiceException {
+        lastAuthenticationResultLock.lock();
+        if(lastAuthenticationResult == null || isTokenExpired()) {
+            try {
+                switch (authenticationType) {
+                    case AAD_APPLICATION_KEY:
+                        lastAuthenticationResult = acquireAadApplicationAccessToken();
+                        break;
+                    case AAD_USERNAME_PASSWORD:
+                        lastAuthenticationResult = acquireAadUserAccessToken();
+                        break;
+                    case AAD_DEVICE_LOGIN:
+                        lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
+                        break;
+                    case AAD_APPLICATION_CERTIFICATE:
+                        lastAuthenticationResult = acquireWithClientCertificate();
+                        break;
+                    default:
+                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                }
+            } catch (Exception e) {
+                throw new DataServiceException(e.getMessage());
+            }
+        }
+        lastAuthenticationResultLock.unlock();
+    }
+
+    private boolean isTokenExpired(){
+        return lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
     }
 
     AuthenticationResult refreshToken() throws DataServiceException {
