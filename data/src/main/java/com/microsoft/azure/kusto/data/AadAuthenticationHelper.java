@@ -16,6 +16,8 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class AadAuthenticationHelper {
 
@@ -32,8 +34,9 @@ public class AadAuthenticationHelper {
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
     private AuthenticationResult lastAuthenticationResult;
-    ExecutorService service = Executors.newSingleThreadExecutor();
-    AuthenticationContext context;
+    private ExecutorService service = Executors.newSingleThreadExecutor();
+    private AuthenticationContext context;
+    private Lock lastAuthenticationResultLock = new ReentrantLock();
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
@@ -69,36 +72,45 @@ public class AadAuthenticationHelper {
     String acquireAccessToken() throws DataServiceException {
         boolean isAccessTokenExpired;
         if (lastAuthenticationResult == null || ((isAccessTokenExpired = lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute()))
-                                                                                                                    && lastAuthenticationResult.getRefreshToken() == null)) {
-            try {
-                switch (authenticationType) {
-                    case AAD_APPLICATION_KEY:
-                        lastAuthenticationResult = acquireAadApplicationAccessToken();
-                        break;
-                    case AAD_USERNAME_PASSWORD:
-                        lastAuthenticationResult = acquireAadUserAccessToken();
-                        break;
-                    case AAD_DEVICE_LOGIN:
-                        lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
-                        break;
-                    case AAD_APPLICATION_CERTIFICATE:
-                        lastAuthenticationResult = acquireWithClientCertificate();
-                        break;
-                    default:
-                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                && lastAuthenticationResult.getRefreshToken() == null)) {
+            lastAuthenticationResultLock.lock();
+            if (lastAuthenticationResult == null || (lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute())
+                    && lastAuthenticationResult.getRefreshToken() == null)) {
+                try {
+                    switch (authenticationType) {
+                        case AAD_APPLICATION_KEY:
+                            lastAuthenticationResult = acquireAadApplicationAccessToken();
+                            break;
+                        case AAD_USERNAME_PASSWORD:
+                            lastAuthenticationResult = acquireAadUserAccessToken();
+                            break;
+                        case AAD_DEVICE_LOGIN:
+                            lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
+                            break;
+                        case AAD_APPLICATION_CERTIFICATE:
+                            lastAuthenticationResult = acquireWithClientCertificate();
+                            break;
+                        default:
+                            throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                    }
+                } catch (Exception e) {
+                    throw new DataServiceException(e.getMessage());
                 }
-            } catch (Exception e) {
-                throw new DataServiceException(e.getMessage());
             }
-        } else if (lastAuthenticationResult.getRefreshToken() != null && isAccessTokenExpired){
-            lastAuthenticationResult = refreshToken();
+            lastAuthenticationResultLock.unlock();
+        } else if (lastAuthenticationResult.getRefreshToken() != null && isAccessTokenExpired) {
+            lastAuthenticationResultLock.lock();
+            if (lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute())) {
+                lastAuthenticationResult = refreshToken();
+            }
+            lastAuthenticationResultLock.unlock();
         }
 
         return lastAuthenticationResult.getAccessToken();
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
-        if(context == null){
+        if (context == null) {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
         }
 
@@ -120,7 +132,7 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
-        if(context == null){
+        if (context == null) {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
         }
 
@@ -139,18 +151,18 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        if(context == null){
+        if (context == null) {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
         }
 
         AuthenticationResult result;
         Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
         DeviceCode deviceCode = future.get();
-        System.out.println(deviceCode.getMessage());
+        System.out.println(deviceCode.getMessage() + " " + Thread.currentThread());
         if (Desktop.isDesktopSupported()) {
             Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
         }
-        result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
+        result = waitAndAcquireTokenByDeviceCode(deviceCode);
 
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
@@ -158,7 +170,7 @@ public class AadAuthenticationHelper {
         return result;
     }
 
-    private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
+    private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode)
             throws InterruptedException {
         int timeout = 15 * 1000;
         AuthenticationResult result = null;
@@ -176,7 +188,7 @@ public class AadAuthenticationHelper {
 
     AuthenticationResult acquireWithClientCertificate()
             throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException {
-        if(context == null){
+        if (context == null) {
             context = new AuthenticationContext(aadAuthorityUri, true, service);
         }
         AuthenticationResult result;
@@ -209,7 +221,7 @@ public class AadAuthenticationHelper {
         }
     }
 
-    Date dateInAMinute(){
+    Date dateInAMinute() {
         return new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS);
     }
 }
