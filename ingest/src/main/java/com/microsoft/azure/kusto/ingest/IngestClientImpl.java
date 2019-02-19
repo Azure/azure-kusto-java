@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -41,7 +42,7 @@ class IngestClientImpl implements IngestClient {
     private final ResourceManager resourceManager;
     private AzureStorageHelper azureStorageHelper;
 
-    IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+    IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException, MalformedURLException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);
