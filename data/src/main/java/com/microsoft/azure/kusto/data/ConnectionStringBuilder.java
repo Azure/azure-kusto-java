@@ -17,6 +17,7 @@ public class ConnectionStringBuilder {
     private String aadAuthorityId; // AAD tenant Id (GUID)
     private String clientVersionForTracing;
     private String applicationNameForTracing;
+    private String accessToken;
 
     String getClusterUrl() {
         return clusterUri;
@@ -66,6 +67,10 @@ public class ConnectionStringBuilder {
         return privateKey;
     }
 
+    String getAccessToken() {
+        return accessToken;
+    }
+
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
         username = null;
@@ -75,6 +80,7 @@ public class ConnectionStringBuilder {
         aadAuthorityId = null;
         x509Certificate = null;
         privateKey = null;
+        accessToken = null;
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -159,6 +165,19 @@ public class ConnectionStringBuilder {
         csb.applicationClientId = applicationClientId;
         csb.x509Certificate = x509Certificate;
         csb.privateKey = privateKey;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAadAccessTokenAuthentication(String resourceUri, String token) {
+        if (StringUtils.isEmpty(resourceUri)) {
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
+        if (StringUtils.isEmpty(token)) {
+            throw new IllegalArgumentException("token cannot be null or empty");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.accessToken = token;
         return csb;
     }
 }
