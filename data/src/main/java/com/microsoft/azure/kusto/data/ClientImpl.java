@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
@@ -22,7 +23,7 @@ public class ClientImpl implements Client {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
 
-    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException, MalformedURLException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
         clientVersionForTracing = "Kusto.Java.Client";

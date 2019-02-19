@@ -29,12 +29,10 @@ public class AadAuthenticationHelper {
     private String userUsername;
     private String userPassword;
     private String clusterUrl;
-    private String aadAuthorityUri;
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
     private AuthenticationResult lastAuthenticationResult;
-    private ExecutorService service = Executors.newSingleThreadExecutor();
     private AuthenticationContext context;
     private Lock lastAuthenticationResultLock = new ReentrantLock();
     private String applicationClientId;
@@ -46,7 +44,8 @@ public class AadAuthenticationHelper {
         AAD_APPLICATION_CERTIFICATE
     }
 
-    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException, MalformedURLException {
+
         URI clusterUri = new URI(csb.getClusterUrl());
         clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
@@ -67,16 +66,18 @@ public class AadAuthenticationHelper {
 
         // Set the AAD Authority URI
         String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
-        aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+        String aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+        ExecutorService service = Executors.newSingleThreadExecutor();
+        context = new AuthenticationContext(aadAuthorityUri, true, service);
     }
 
     String acquireAccessToken() throws DataServiceException {
         if (lastAuthenticationResult == null) {
-            aquireTokenByType();
+            acquireToken();
         } else {
             if (isTokenExpired()) {
                 if (lastAuthenticationResult.getRefreshToken() == null) {
-                    aquireTokenByType();
+                    acquireToken();
                 } else {
                     lastAuthenticationResultLock.lock();
                     if (isTokenExpired()) {
@@ -90,11 +91,7 @@ public class AadAuthenticationHelper {
         return lastAuthenticationResult.getAccessToken();
     }
 
-    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
-        if (context == null) {
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-        }
-
+    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
         AuthenticationResult result;
         try {
             Future<AuthenticationResult> future = context.acquireToken(
@@ -111,11 +108,7 @@ public class AadAuthenticationHelper {
         return result;
     }
 
-    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException, MalformedURLException {
-        if (context == null) {
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-        }
-
+    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException {
         AuthenticationResult result;
         try {
             Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
@@ -131,10 +124,6 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        if (context == null) {
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-        }
-
         AuthenticationResult result;
         Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
         DeviceCode deviceCode = future.get();
@@ -167,10 +156,7 @@ public class AadAuthenticationHelper {
     }
 
     AuthenticationResult acquireWithClientCertificate()
-            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException {
-        if (context == null) {
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-        }
+            throws InterruptedException, ExecutionException, ServiceUnavailableException {
         AuthenticationResult result;
 
         AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(applicationClientId,
@@ -184,7 +170,7 @@ public class AadAuthenticationHelper {
         return result;
     }
 
-    private void aquireTokenByType() throws DataServiceException {
+    private void acquireToken() throws DataServiceException {
         lastAuthenticationResultLock.lock();
         if(lastAuthenticationResult == null || isTokenExpired()) {
             try {
