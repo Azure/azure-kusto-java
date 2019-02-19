@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -53,15 +54,18 @@ class ResourceManager {
     private String identityToken;
 
     private Client client;
-    private final Logger log = LoggerFactory.getLogger(ResourceManager.class);
+    private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
     ResourceManager(Client client) {
         this.client = client;
-        ingestionResources = new ConcurrentHashMap<>();
+        init();
+    }
 
+    private void init() {
+        ingestionResources = new ConcurrentHashMap<>();
         TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
             @Override
             public void run() {
@@ -149,9 +153,9 @@ class ResourceManager {
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionResources", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -183,9 +187,9 @@ class ResourceManager {
                     identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),"Error in refreshing IngestionAuthToken", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }

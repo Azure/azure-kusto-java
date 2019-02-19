@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.UUID;
 
 public class StreamSourceInfo extends AbstractSourceInfo {
@@ -13,7 +14,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void setStream(InputStream stream) {
-        this.stream = stream;
+        this.stream = Objects.requireNonNull(stream, "stream cannot be null");
     }
 
     public boolean isLeaveOpen() {
@@ -25,24 +26,22 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public StreamSourceInfo(InputStream stream) {
-        this.stream = stream;
+        setStream(stream);
     }
 
     public StreamSourceInfo(InputStream stream, boolean leaveOpen) {
-        this.stream = stream;
-        this.leaveOpen = leaveOpen;
+        setLeaveOpen(leaveOpen);
+        setStream(stream);
     }
 
     public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId) {
-        this.stream = stream;
-        this.leaveOpen = leaveOpen;
-        this.setSourceId(sourceId);
+        setLeaveOpen(leaveOpen);
+        setStream(stream);
+        setSourceId(sourceId);
     }
 
-    public void validate(){
-        if(stream == null){
-            throw new IllegalArgumentException("stream is null");
-        }
+    public void validate() {
+        //nothing to validate as of now.
     }
 
     @Override
@@ -50,4 +49,3 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 }
-
