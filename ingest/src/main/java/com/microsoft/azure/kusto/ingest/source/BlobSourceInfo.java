@@ -1,8 +1,9 @@
 package com.microsoft.azure.kusto.ingest.source;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.UUID;
+
+import static com.microsoft.azure.kusto.ingest.Ensure.stringIsNotBlank;
+
 
 public class BlobSourceInfo extends AbstractSourceInfo {
 
@@ -41,9 +42,7 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-    public void validate(){
-        if(StringUtils.isEmpty(blobPath)){
-            throw new IllegalArgumentException("blobPath is empty");
-        }
+    public void validate() {
+        stringIsNotBlank(blobPath, "blobPath");
     }
 }

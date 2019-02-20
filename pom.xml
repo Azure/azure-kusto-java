@@ -6,7 +6,7 @@
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-client</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0-BETA-02</version>
+    <version>1.0.0-BETA-03</version>
 
     <scm>
         <url>scm:git:https://github.com/Azure/azure-kusto-java</url>

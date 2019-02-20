@@ -32,6 +32,7 @@ class AadAuthenticationHelper {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
+    private String accessToken;
     private AuthenticationResult lastAuthenticationResult;
     private Lock lastAuthenticationResultLock = new ReentrantLock();
     private String applicationClientId;
@@ -40,7 +41,8 @@ class AadAuthenticationHelper {
         AAD_USERNAME_PASSWORD,
         AAD_APPLICATION_KEY,
         AAD_DEVICE_LOGIN,
-        AAD_APPLICATION_CERTIFICATE
+        AAD_APPLICATION_CERTIFICATE,
+        AAD_ACCESS_TOKEN
     }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
@@ -59,6 +61,9 @@ class AadAuthenticationHelper {
             privateKey = csb.getPrivateKey();
             applicationClientId = csb.getApplicationClientId();
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
+        } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
+            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
+            accessToken = csb.getAccessToken();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
@@ -69,6 +74,10 @@ class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException {
+        if(authenticationType == AuthenticationType.AAD_ACCESS_TOKEN){
+            return accessToken;
+        }
+
         if (lastAuthenticationResult == null) {
             acquireToken();
         } else {
@@ -143,7 +152,7 @@ class AadAuthenticationHelper {
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
+            context = new AuthenticationContext( aadAuthorityUri, true, service);
             Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
@@ -201,7 +210,6 @@ class AadAuthenticationHelper {
                 service.shutdown();
             }
         }
-
         if (result == null) {
             throw new ServiceUnavailableException("authentication result was null");
         }
