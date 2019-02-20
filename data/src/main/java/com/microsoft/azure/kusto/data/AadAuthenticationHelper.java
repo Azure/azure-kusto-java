@@ -74,23 +74,21 @@ class AadAuthenticationHelper {
     }
 
     String acquireAccessToken() throws DataServiceException {
-        if(authenticationType == AuthenticationType.AAD_ACCESS_TOKEN){
+        if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN) {
             return accessToken;
         }
 
         if (lastAuthenticationResult == null) {
             acquireToken();
-        } else {
-            if (isTokenExpired()) {
-                if (lastAuthenticationResult.getRefreshToken() == null) {
-                    acquireToken();
-                } else {
-                    lastAuthenticationResultLock.lock();
-                    if (isTokenExpired()) {
-                        lastAuthenticationResult = acquireAccessTokenByRefreshToken();
-                    }
-                    lastAuthenticationResultLock.unlock();
+        } else if (isTokenExpired()) {
+            if (lastAuthenticationResult.getRefreshToken() == null) {
+                acquireToken();
+            } else {
+                lastAuthenticationResultLock.lock();
+                if (isTokenExpired()) {
+                    lastAuthenticationResult = acquireAccessTokenByRefreshToken();
                 }
+                lastAuthenticationResultLock.unlock();
             }
         }
 
@@ -152,7 +150,7 @@ class AadAuthenticationHelper {
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext( aadAuthorityUri, true, service);
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
