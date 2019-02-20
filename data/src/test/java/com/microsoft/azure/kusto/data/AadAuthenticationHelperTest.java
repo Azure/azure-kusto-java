@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.naming.ServiceUnavailableException;
 
-import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.ONE_MINUTE_IN_MILLIS;
+import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
@@ -114,7 +114,7 @@ public class AadAuthenticationHelperTest {
         AuthenticationResult authenticationResultFromRefresh = new AuthenticationResult("testType", "fromRefresh",null,90,"id", mock(UserInfo.class),false);
         AuthenticationResult authenticationResultNullRefreshTokenResult = new AuthenticationResult("testType", "nullRefreshResult",null,0,"id", mock(UserInfo.class),false);
 
-        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).refreshToken();
+        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenByRefreshToken();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
 
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
@@ -122,7 +122,7 @@ public class AadAuthenticationHelperTest {
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
         // If no refresh token - it will authenticate again,
-        doReturn(new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS * 2)).when(aadAuthenticationHelperSpy).dateInAMinute();
+        doReturn(new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS * 2)).when(aadAuthenticationHelperSpy).dateInAMinute();
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
 
         assertEquals("nullRefreshResult", aadAuthenticationHelperSpy.acquireAccessToken());

@@ -18,11 +18,11 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class AadAuthenticationHelper {
+class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    public final static long ONE_MINUTE_IN_MILLIS = 60000;
+    final static long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -43,7 +43,7 @@ public class AadAuthenticationHelper {
         AAD_APPLICATION_CERTIFICATE
     }
 
-    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
 
         URI clusterUri = new URI(csb.getClusterUrl());
         clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
@@ -78,7 +78,7 @@ public class AadAuthenticationHelper {
                 } else {
                     lastAuthenticationResultLock.lock();
                     if (isTokenExpired()) {
-                        lastAuthenticationResult = refreshToken();
+                        lastAuthenticationResult = acquireAccessTokenByRefreshToken();
                     }
                     lastAuthenticationResultLock.unlock();
                 }
@@ -239,7 +239,7 @@ public class AadAuthenticationHelper {
         return lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
     }
 
-    AuthenticationResult refreshToken() throws DataServiceException {
+    AuthenticationResult acquireAccessTokenByRefreshToken() throws DataServiceException {
         AuthenticationContext context;
         ExecutorService service = null;
 
@@ -266,6 +266,6 @@ public class AadAuthenticationHelper {
     }
 
     Date dateInAMinute() {
-        return new Date(System.currentTimeMillis() + ONE_MINUTE_IN_MILLIS);
+        return new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS);
     }
 }
