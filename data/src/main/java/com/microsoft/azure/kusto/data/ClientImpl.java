@@ -23,7 +23,7 @@ public class ClientImpl implements Client {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
 
-    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException, MalformedURLException {
+    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
         clientVersionForTracing = "Kusto.Java.Client";
