@@ -2,14 +2,14 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.Results;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -17,113 +17,123 @@ import static org.mockito.Mockito.when;
 
 class ResourceManagerTest {
 
-    private ResourceManager resourceManager;
-    private Client clientMock = mock(Client.class);
+    private static ResourceManager resourceManager;
+    private static Client clientMock = mock(Client.class);
 
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
     private static final String STORAGE_1 = "storage1";
     private static final String STORAGE_2 = "storage2";
     private static final String AUTH_TOKEN = "AuthenticationToken";
+    private static final String STATUS_TABLE = "statusTable";
+    private static final String FAILED_QUEUE = "failedQueue";
+    private static final String SUCCESS_QUEUE = "successQueue";
 
-    @BeforeEach
-    void setUp() {
-        try {
-            Results ingestionResourcesResult = generateIngestionResourcesResult();
-            Results ingestionAuthTokenResult = generateIngestionAuthTokenResult();
+    @BeforeAll
+    static void setUp() throws DataClientException, DataServiceException {
+        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenReturn(generateIngestionResourcesResult());
 
-            when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                    .thenReturn(ingestionResourcesResult);
+        when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
+                .thenReturn(generateIngestionAuthTokenResult());
 
-            when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
-                    .thenReturn(ingestionAuthTokenResult);
-
-            resourceManager = new ResourceManager(clientMock);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @AfterEach
-    void tearDown() {
+        resourceManager = new ResourceManager(clientMock);
     }
 
     @Test
-    void getIdentityToken() {
-        try {
-            assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    void GetIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+        assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
     }
 
     @Test
-    void getStorageUri() {
-        try {
-            String storage;
-            HashMap<String,Integer> m = new HashMap();
+    void GetIngestionResource_TempStorage_VerifyRoundRubin()
+            throws IngestionServiceException, IngestionClientException {
+        List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
-            for(int i=0; i<10; i++){
-                storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-                m.put(storage,m.getOrDefault(storage,0)+1);
-            }
+        String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        int lastIndex = availableStorages.indexOf(storage);
 
-            assertEquals(10, m.get(STORAGE_1) + m.get(STORAGE_2));
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (int i = 0; i < 10; i++) {
+            storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+            int currIdx = availableStorages.indexOf(storage);
+            assertEquals((lastIndex + 1) % availableStorages.size(), currIdx);
+            lastIndex = currIdx;
         }
     }
 
     @Test
-    void getAggregationQueue() {
-        try {
-            String queueName;
-            HashMap<String,Integer> m = new HashMap();
+    void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
+            throws IngestionServiceException, IngestionClientException {
+        List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
-            for(int i=0; i<10; i++){
-                queueName = resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-                m.put(queueName,m.getOrDefault(queueName,0)+1);
-            }
+        String queue = resourceManager
+                .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+        int lastIndex = availableQueues.indexOf(queue);
 
-            assertEquals(10, m.get(QUEUE_1) + m.get(QUEUE_2));
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (int i = 0; i < 10; i++) {
+            queue = resourceManager
+                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+            int currIdx = availableQueues.indexOf(queue);
+            assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
+            lastIndex = currIdx;
         }
     }
 
-    private Results generateIngestionResourcesResult() {
+    @Test
+    void GetIngestionResource_StatusTable_ReturnCorrectTable()
+            throws IngestionServiceException, IngestionClientException {
+        assertEquals(
+                STATUS_TABLE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
+    }
+
+    @Test
+    void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
+            throws IngestionServiceException, IngestionClientException {
+        assertEquals(
+                FAILED_QUEUE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
+    }
+
+    @Test
+    void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
+            throws IngestionServiceException, IngestionClientException {
+        assertEquals(
+                SUCCESS_QUEUE,
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
+    }
+
+    private static Results generateIngestionResourcesResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
 
-        colNameToIndexMap.put("colNameToIndexMap",0);
-        colNameToIndexMap.put("StorageRoot",1);
+        colNameToIndexMap.put("colNameToIndexMap", 0);
+        colNameToIndexMap.put("StorageRoot", 1);
 
-        colNameToTypeMap.put("colNameToIndexMap","String");
-        colNameToTypeMap.put("StorageRoot","String");
+        colNameToTypeMap.put("colNameToIndexMap", "String");
+        colNameToTypeMap.put("StorageRoot", "String");
 
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue","failedQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue","successQueue"))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_1))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage",STORAGE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable","statusTable"))));
+        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
+        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
 
-        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
     }
 
-    private Results generateIngestionAuthTokenResult() {
+    private static Results generateIngestionAuthTokenResult() {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
 
-        colNameToIndexMap.put("AuthorizationContext",0);
-        colNameToTypeMap.put("AuthorizationContext","String");
+        colNameToIndexMap.put("AuthorizationContext", 0);
+        colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new Results(colNameToIndexMap,colNameToTypeMap,valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
     }
 }

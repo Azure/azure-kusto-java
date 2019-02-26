@@ -18,7 +18,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> GetIngestionStatusCollection() throws StorageException, URISyntaxException {
+    public List<IngestionStatus> getIngestionStatusCollection() throws StorageException, URISyntaxException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             CloudTable table = new CloudTable(new URI(descriptor.TableConnectionString));
@@ -28,6 +28,11 @@ public class TableReportIngestionResult implements IngestionResult {
         }
 
         return results;
+    }
+
+    @Override
+    public int getIngestionStatusesLength() {
+        return descriptors.size();
     }
 
 }
