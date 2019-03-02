@@ -50,11 +50,11 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <excludes>
-                        <!--<exclude>**/ResourceManagerTest*</exclude>-->
                     </excludes>
                 </configuration>
                 <!-- JUnit 5 Support -->
