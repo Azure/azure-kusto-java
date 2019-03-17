@@ -8,6 +8,7 @@
     <packaging>pom</packaging>
     <version>${revision}</version>
 
+    <url>https://github.com/Azure/azure-kusto-java</url>
     <scm>
         <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
         <connection>scm:git:https://github.com/Azure/azure-kusto-java</connection>
