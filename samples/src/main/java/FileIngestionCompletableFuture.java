@@ -14,26 +14,6 @@ import java.util.concurrent.CompletionException;
  * This class includes a sample of how to use the ingestFromFile() method within a CompletableFuture
  */
 public class FileIngestionCompletableFuture {
-    /**
-     * This method wraps the client's ingestFromFile() method, and returns a CompletableFuture.
-     *
-     * @param client IngestClient that is connected to the Kusto cluster.
-     * @param fileSourceInfo The specific FileSourceInfo to be ingested
-     * @param ingestionProperties Settings used to customize the ingestion operation
-     * @return a {@link CompletableFuture}
-     */
-    private static CompletableFuture<IngestionResult> ingestFromFileAsync(
-            IngestClient client, FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return client.ingestFromFile(fileSourceInfo, ingestionProperties);
-                    } catch (IngestionClientException | IngestionServiceException e) {
-                        throw new CompletionException(e);
-                    }
-                });
-    }
-
     public static void main(String[] args) {
         try {
             // Creating the connection string:
@@ -57,7 +37,7 @@ public class FileIngestionCompletableFuture {
 
             // Ingest From File ASYNC returns a CompletableFuture:
             CompletableFuture<IngestionResult> cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);
-            
+
             // In case of exception during File Ingestion, a CompletionException will be thrown by the
             // CompletableFuture, that contains in its cause the original exception that occurred during the
             // ingestion itself.
@@ -83,6 +63,29 @@ public class FileIngestionCompletableFuture {
         }
     }
 
+    /**
+     * This method wraps the client's ingestFromFile() method, and returns a CompletableFuture.
+     *
+     * @param client              IngestClient that is connected to the Kusto cluster.
+     * @param fileSourceInfo      The specific FileSourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return a {@link CompletableFuture}
+     */
+    private static CompletableFuture<IngestionResult> ingestFromFileAsync(
+            IngestClient client, FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        return client.ingestFromFile(fileSourceInfo, ingestionProperties);
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        throw new CompletionException(e);
+                    }
+                });
+    }
+
+    /**
+     * In this example we just printing a message to the standard output, but the user can decide what to do here.
+     */
     private static void doSomethingWithIngestionResult(IngestionResult ingestionResult) {
         if (ingestionResult != null) {
             System.out.println("IngestionResults: " + ingestionResult.toString());
