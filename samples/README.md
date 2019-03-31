@@ -106,6 +106,13 @@ mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
 
 ```    
 
+### Using CompletableFutures
+
+Take a look at this [Sample Code](src/main/java/FileIngestionCompletableFuture.java) to learn how to run File Ingestion using CompletableFutures in order to make the calls asynchronously.
+
+*_Note: The implementation itself of the File Ingestion API, like all the other APIs in this version, is not asynchronous._*
+
+
 ## Query Table Status Sample
 
 This sample will demonstrate how to retrieve ingestion status.  
