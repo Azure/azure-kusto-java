@@ -1,7 +1,11 @@
 # Microsoft Azure Kusto (Azure Data Explorer) SDK for Java
 
-master: [![Build Status](https://travis-ci.org/Azure/azure-kusto-java.svg)](https://travis-ci.org/Azure/azure-kusto-java) 
-dev: [![Build Status](https://travis-ci.org/Azure/azure-kusto-java.svg?branch=dev)](https://travis-ci.org/Azure/azure-kusto-java)
+![Released Version](https://img.shields.io/maven-central/v/com.microsoft.azure.kusto/kusto-ingest.svg)
+
+
+master: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
+dev: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=dev)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
+
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
@@ -11,6 +15,16 @@ This library contains 3 different modules:
 
 # Install
 
+## Maven
+
+This method is the easiest to follow, just add the following dependency to your pom.xml:
+```xml
+<dependency>
+    <groupId>com.microsoft.azure.kusto</groupId>
+    <artifactId>kusto-ingest</artifactId>
+    <version>1.0.0-BETA-04</version>
+</dependency>
+```
 
 ## Clone
 Download the source code, compile and install locally.
@@ -21,32 +35,6 @@ git clone git://github.com/Azure/azure-kusto-java.git
 cd azure-kusto-java
 mvn install
 ```
-## JitPack
-Using [JitPack](https://jitpack.io/), you can point your package manager to a git repo.
-For example using maven, you need to add JitPack as a repository:
-
-```xml
-<repositories>
-  <repository>
-      <id>jitpack.io</id>
-      <url>https://jitpack.io</url>
-  </repository>
-</repositories>
-```
-
-Afterwhich you will able to include it using maven:
-
-```xml
-<dependency>
-  <groupId>com.github.Azure</groupId>
-  <artifactId>azure-kusto-java</artifactId>
-  <version>v0.2.0</version>
-</dependency>
-```
-
-## Maven
-
-In the near future this library will be available directly off Maven.
 
 # Prerequisites
 
@@ -63,7 +51,7 @@ In the near future this library will be available directly off Maven.
 - **Have a feature request for SDKs?** Please post it on [User Voice](https://feedback.azure.com/forums/915733-azure-data-explorer) to help us prioritize
 - **Have a technical question?** Ask on [Stack Overflow with tag "azure-data-explorer"](https://stackoverflow.com/questions/tagged/azure-data-explorer)
 - **Need Support?** Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from Microsoft support team
-- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Azure/azure-kusto-python/issues/new).
+- **Found a bug?** Please help us fix it by thoroughly documenting it and [filing an issue](https://github.com/Azure/azure-kusto-java/issues/new).
 
 # Looking for SDKs for other languages/platforms?
 - [Node](https://github.com/azure/azure-kusto-node)

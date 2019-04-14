@@ -32,13 +32,13 @@ public class TableStatus {
             ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
             IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
-            List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
+            List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();
 
             // step 3: poll on the result.
             while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
                 Thread.sleep(1000);
                 timeoutInSec -= 1;
-                statuses = ingestionResult.GetIngestionStatusCollection();
+                statuses = ingestionResult.getIngestionStatusCollection();
             }
 
             ObjectMapper objectMapper = new ObjectMapper();

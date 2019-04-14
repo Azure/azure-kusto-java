@@ -8,18 +8,21 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.naming.ServiceUnavailableException;
 import java.awt.*;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class AadAuthenticationHelper {
+class AadAuthenticationHelper {
 
     private final static String DEFAULT_AAD_TENANT = "common";
     private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    final static long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
 
     private ClientCredential clientCredential;
     private String userUsername;
@@ -29,15 +32,21 @@ public class AadAuthenticationHelper {
     private X509Certificate x509Certificate;
     private PrivateKey privateKey;
     private AuthenticationType authenticationType;
+    private String accessToken;
+    private AuthenticationResult lastAuthenticationResult;
+    private Lock lastAuthenticationResultLock = new ReentrantLock();
+    private String applicationClientId;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
         AAD_APPLICATION_KEY,
         AAD_DEVICE_LOGIN,
-        AAD_APPLICATION_CERTIFICATE
+        AAD_APPLICATION_CERTIFICATE,
+        AAD_ACCESS_TOKEN
     }
 
-    public AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+
         URI clusterUri = new URI(csb.getClusterUrl());
         clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
@@ -50,8 +59,11 @@ public class AadAuthenticationHelper {
         } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
             x509Certificate = csb.getX509Certificate();
             privateKey = csb.getPrivateKey();
-            clientCredential = new ClientCredential(csb.getApplicationClientId(), null);
+            applicationClientId = csb.getApplicationClientId();
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
+        } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
+            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
+            accessToken = csb.getAccessToken();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
@@ -61,24 +73,26 @@ public class AadAuthenticationHelper {
         aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
     }
 
-    String acquireAccessToken() throws DataServiceException  {
-        try {
-            switch (authenticationType) {
-                case AAD_APPLICATION_KEY:
-                    return acquireAadApplicationAccessToken().getAccessToken();
-                case AAD_USERNAME_PASSWORD:
-                    return acquireAadUserAccessToken().getAccessToken();
-                case AAD_DEVICE_LOGIN:
-                    return acquireAccessTokenUsingDeviceCodeFlow().getAccessToken();
-                case AAD_APPLICATION_CERTIFICATE:
-                    return acquireWithClientCertificate().getAccessToken();
-                default:
-                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
-            }
-        } catch (Exception e) {
-            throw new DataServiceException(e.getMessage());
+    String acquireAccessToken() throws DataServiceException {
+        if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN) {
+            return accessToken;
         }
 
+        if (lastAuthenticationResult == null) {
+            acquireToken();
+        } else if (isTokenExpired()) {
+            if (lastAuthenticationResult.getRefreshToken() == null) {
+                acquireToken();
+            } else {
+                lastAuthenticationResultLock.lock();
+                if (isTokenExpired()) {
+                    lastAuthenticationResult = acquireAccessTokenByRefreshToken();
+                }
+                lastAuthenticationResultLock.unlock();
+            }
+        }
+
+        return lastAuthenticationResult.getAccessToken();
     }
 
     private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
@@ -136,7 +150,7 @@ public class AadAuthenticationHelper {
         ExecutorService service = null;
         try {
             service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext( aadAuthorityUri, true, service);
+            context = new AuthenticationContext(aadAuthorityUri, true, service);
             Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
             DeviceCode deviceCode = future.get();
             System.out.println(deviceCode.getMessage());
@@ -158,35 +172,37 @@ public class AadAuthenticationHelper {
     }
 
     private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
-            throws  InterruptedException{
+            throws InterruptedException {
         int timeout = 15 * 1000;
         AuthenticationResult result = null;
-        while (timeout > 0){
-            try{
+        while (timeout > 0) {
+            try {
                 Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
                 return futureResult.get();
             } catch (ExecutionException e) {
-                    Thread.sleep(1000);
-                    timeout -= 1000;
+                Thread.sleep(1000);
+                timeout -= 1000;
             }
         }
         return result;
     }
 
     AuthenticationResult acquireWithClientCertificate()
-            throws IOException, InterruptedException, ExecutionException, ServiceUnavailableException{
+            throws InterruptedException, ExecutionException, ServiceUnavailableException {
 
         AuthenticationContext context;
-        AuthenticationResult result;
+        AuthenticationResult result = null;
         ExecutorService service = null;
 
         try {
             service = Executors.newSingleThreadExecutor();
             context = new AuthenticationContext(aadAuthorityUri, false, service);
-            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(clientCredential.getClientId(),
+            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(applicationClientId,
                     privateKey, x509Certificate);
             // pass null value for optional callback function and acquire access token
             result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
         } finally {
             if (service != null) {
                 service.shutdown();
@@ -198,4 +214,64 @@ public class AadAuthenticationHelper {
         return result;
     }
 
+    private void acquireToken() throws DataServiceException {
+        lastAuthenticationResultLock.lock();
+        if (lastAuthenticationResult == null || isTokenExpired()) {
+            try {
+                switch (authenticationType) {
+                    case AAD_APPLICATION_KEY:
+                        lastAuthenticationResult = acquireAadApplicationAccessToken();
+                        break;
+                    case AAD_USERNAME_PASSWORD:
+                        lastAuthenticationResult = acquireAadUserAccessToken();
+                        break;
+                    case AAD_DEVICE_LOGIN:
+                        lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
+                        break;
+                    case AAD_APPLICATION_CERTIFICATE:
+                        lastAuthenticationResult = acquireWithClientCertificate();
+                        break;
+                    default:
+                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+                }
+            } catch (Exception e) {
+                throw new DataServiceException(e.getMessage());
+            }
+        }
+        lastAuthenticationResultLock.unlock();
+    }
+
+    private boolean isTokenExpired() {
+        return lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
+    }
+
+    AuthenticationResult acquireAccessTokenByRefreshToken() throws DataServiceException {
+        AuthenticationContext context;
+        ExecutorService service = null;
+
+        try {
+            service = Executors.newSingleThreadExecutor();
+            context = new AuthenticationContext(aadAuthorityUri, false, service);
+            switch (authenticationType) {
+                case AAD_APPLICATION_KEY:
+                case AAD_APPLICATION_CERTIFICATE:
+                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), clientCredential, null).get();
+                case AAD_USERNAME_PASSWORD:
+                case AAD_DEVICE_LOGIN:
+                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), CLIENT_ID, clusterUrl, null).get();
+                default:
+                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
+            }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage());
+        } finally {
+            if (service != null) {
+                service.shutdown();
+            }
+        }
+    }
+
+    Date dateInAMinute() {
+        return new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS);
+    }
 }
