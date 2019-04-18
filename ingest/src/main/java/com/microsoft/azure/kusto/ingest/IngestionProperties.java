@@ -1,5 +1,9 @@
 package com.microsoft.azure.kusto.ingest;
 
+import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,6 +13,11 @@ public class IngestionProperties {
     private boolean flushImmediately;
     private IngestionReportLevel reportLevel;
     private IngestionReportMethod reportMethod;
+    private ArrayList<String> dropByTags;
+    private ArrayList<String> ingestByTags;
+    private ArrayList<String> additionalTags;
+    private ArrayList<String> ingestIfNotExists;
+
     private Map<String, String> additionalProperties;
 
     public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, json, singlejson, avro, parquet}
@@ -33,7 +42,54 @@ public class IngestionProperties {
         return reportMethod;
     }
 
-    public Map<String, String> getAdditionalProperties() {
+    public ArrayList<String> getDropByTags() {
+        return dropByTags;
+    }
+
+    public ArrayList<String> getIngestByTags() {
+        return ingestByTags;
+    }
+
+    public ArrayList<String> getAdditionalTags() {
+        return additionalTags;
+    }
+
+    public ArrayList<String> getIngestIfNotExists() {
+        return ingestIfNotExists;
+    }
+
+    public Map<String, String> getAdditionalProperties() throws IOException {
+        if(!dropByTags.isEmpty() || !ingestByTags.isEmpty() || !additionalTags.isEmpty()){
+            ArrayList<String> tags = new ArrayList<>();
+            if (!additionalTags.isEmpty())
+            {
+                tags.addAll(additionalTags);
+            }
+            if (!ingestByTags.isEmpty())
+            {
+                for(String t : ingestByTags){
+                    tags.add(String.format("%s%s", "drop-by:", t));
+                }
+            }
+            if (!dropByTags.isEmpty())
+            {
+                for(String t : ingestByTags){
+                    tags.add(String.format("%s%s", "ingest-by:", t));
+                }
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            String tagsAsJson = objectMapper.writeValueAsString(tags);
+            additionalProperties.put("tags", tagsAsJson);
+        }
+
+        if (!ingestIfNotExists.isEmpty())
+        {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String ingestIfNotExistsJson = objectMapper.writeValueAsString(ingestIfNotExists);
+            additionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson );
+        }
+
         return additionalProperties;
     }
 
@@ -99,6 +155,19 @@ public class IngestionProperties {
         additionalProperties.put("authorizationContext", token);
     }
 
+    public void setDropByTags(ArrayList<String> dropByTags) {
+        this.dropByTags = dropByTags;
+    }
+    public void setIngestByTags(ArrayList<String> ingestByTags) {
+        this.ingestByTags = ingestByTags;
+    }
+    public void setAdditionalTags(ArrayList<String> additionalTags) {
+        this.additionalTags = additionalTags;
+    }
+    public void setIngestIfNotExists(ArrayList<String> ingestIfNotExists) {
+        this.ingestIfNotExists = ingestIfNotExists;
+    }
+
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
      * The default values of the rest of the properties are:
@@ -119,6 +188,10 @@ public class IngestionProperties {
         this.reportMethod = IngestionReportMethod.Queue;
         this.flushImmediately = false;
         this.additionalProperties = new HashMap<>();
+        this.dropByTags = new ArrayList<String>();
+        this.ingestByTags = new ArrayList<String>();
+        this.ingestIfNotExists = new ArrayList<String>();
+        this.additionalTags = new ArrayList<String>();
     }
 
     public enum IngestionReportLevel {
