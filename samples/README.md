@@ -170,7 +170,7 @@ List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
 while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
     Thread.sleep(1000);
     timeoutInSec -= 1;
-    statuses = ingestionResult.GetIngestionStatusCollection();
+    statuses = ingestionResult.getIngestionStatusCollection();
 }
 ```
 
