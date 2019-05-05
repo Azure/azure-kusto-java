@@ -44,8 +44,4 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     public void validate() {
         stringIsNotBlank(blobPath, "blobPath");
     }
-
-    public String getBlobPathWithoutSecrets() {
-        return this.blobPath.split("[?]", 2)[0];
-    }
 }

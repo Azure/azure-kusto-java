@@ -101,7 +101,7 @@ class IngestClientImpl implements IngestClient {
                 status.status = OperationStatus.Pending;
                 status.updatedOn = Date.from(Instant.now());
                 status.ingestionSourceId = ingestionBlobInfo.id;
-                status.setIngestionSourcePath(blobSourceInfo.getBlobPathWithoutSecrets());
+                status.setIngestionSourcePath(SecretsHandler.removeSecretsFromUrl(blobSourceInfo.getBlobPath()));
 
                 azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
