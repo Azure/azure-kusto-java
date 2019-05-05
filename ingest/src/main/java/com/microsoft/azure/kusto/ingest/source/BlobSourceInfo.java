@@ -8,8 +8,6 @@ import static com.microsoft.azure.kusto.ingest.Ensure.stringIsNotBlank;
 public class BlobSourceInfo extends AbstractSourceInfo {
 
     private String blobPath;
-    private String blobPathWithoutSecrets;
-
 
     public String getBlobPath() {
         return blobPath;
@@ -31,7 +29,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
 
     public BlobSourceInfo(String blobPath) {
         this.blobPath = blobPath;
-        this.blobPathWithoutSecrets = blobPath.split(";",2)[0].split("[?]",2)[0];
     }
 
     public BlobSourceInfo(String blobPath, long rawSizeInBytes) {
@@ -40,7 +37,7 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     }
 
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
-        this(blobPath,rawSizeInBytes);
+        this(blobPath, rawSizeInBytes);
         this.setSourceId(sourceId);
     }
 
@@ -49,6 +46,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     }
 
     public String getBlobPathWithoutSecrets() {
-        return blobPathWithoutSecrets;
+        return this.blobPath.split("[?]", 2)[0];
     }
 }
