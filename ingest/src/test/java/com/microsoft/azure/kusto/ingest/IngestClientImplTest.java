@@ -350,6 +350,6 @@ class IngestClientImplTest {
         ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
-        assert(((IngestionStatus)captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 }
