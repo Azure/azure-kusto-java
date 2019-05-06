@@ -58,7 +58,8 @@ public class IngestionProperties {
         return ingestIfNotExists;
     }
 
-    public Map<String, String> getAdditionalProperties() throws IOException {
+    Map<String, String> getAdditionalProperties() throws IOException {
+        Map<String, String> fullAdditionalProperties = new HashMap<>();
         if(!dropByTags.isEmpty() || !ingestByTags.isEmpty() || !additionalTags.isEmpty()){
             ArrayList<String> tags = new ArrayList<>();
             if (!additionalTags.isEmpty())
@@ -80,17 +81,17 @@ public class IngestionProperties {
 
             ObjectMapper objectMapper = new ObjectMapper();
             String tagsAsJson = objectMapper.writeValueAsString(tags);
-            additionalProperties.put("tags", tagsAsJson);
+            fullAdditionalProperties.put("tags", tagsAsJson);
         }
 
         if (!ingestIfNotExists.isEmpty())
         {
             ObjectMapper objectMapper = new ObjectMapper();
             String ingestIfNotExistsJson = objectMapper.writeValueAsString(ingestIfNotExists);
-            additionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson );
+            fullAdditionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson );
         }
-
-        return additionalProperties;
+        fullAdditionalProperties.putAll(additionalProperties);
+        return fullAdditionalProperties;
     }
 
     public void setFlushImmediately(boolean flushImmediately) {
