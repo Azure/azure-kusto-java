@@ -84,7 +84,7 @@ public class IngestionProperties {
 
     /**
      * Drop-by tags are tags added to the ingested data bulk inorder to be able to delete it.
-     * This should be used with care - See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#drop-by-extent-tags">kusto docs/a>
+     * This should be used with care - See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#drop-by-extent-tags">kusto docs</a>
      *
      * @param dropByTags - suffixes tags list to tag the data being ingested, the resulted tag will be trailed by "drop-by"
      */
@@ -98,7 +98,7 @@ public class IngestionProperties {
 
     /**
      * Tags that start with an ingest-by: prefix can be used to ensure that data is only ingested once.
-     * This should be used with care - See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#ingest-by-extent-tags">kusto docs/a>
+     * This should be used with care - See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#ingest-by-extent-tags">kusto docs</a>
      *
      * @param ingestByTags - suffixes tags list to tag the data being ingested, the resulted tag will be trailed by "ingest-by"
      */
@@ -125,7 +125,7 @@ public class IngestionProperties {
 
     /**
      * Will trigger a check if there's already an extent with this specific "ingest-by" tag prefix
-     * See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#ingest-by-extent-tags">kusto docs/a>
+     * See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#ingest-by-extent-tags">kusto docs</a>
      *
      * @param ingestIfNotExists
      */
