@@ -80,13 +80,13 @@ class AadAuthenticationHelper {
 
         if (lastAuthenticationResult == null) {
             acquireToken();
-        } else if (isTokenNullOrExpired()) {
+        } else if (IsInvalidToken()) {
             if (lastAuthenticationResult.getRefreshToken() == null) {
                 acquireToken();
             } else {
                 lastAuthenticationResultLock.lock();
                 try{
-                    if (isTokenNullOrExpired()) {
+                    if (IsInvalidToken()) {
                         lastAuthenticationResult = acquireAccessTokenByRefreshToken();
                     }
                 }finally {
@@ -220,7 +220,7 @@ class AadAuthenticationHelper {
     private void acquireToken() throws DataServiceException {
         lastAuthenticationResultLock.lock();
         try {
-            if (isTokenNullOrExpired()) {
+            if (IsInvalidToken()) {
                 switch (authenticationType) {
                     case AAD_APPLICATION_KEY:
                         lastAuthenticationResult = acquireAadApplicationAccessToken();
@@ -247,7 +247,7 @@ class AadAuthenticationHelper {
         }
     }
 
-    private boolean isTokenNullOrExpired() {
+    private boolean IsInvalidToken() {
         return lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
     }
 
