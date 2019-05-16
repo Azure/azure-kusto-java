@@ -165,12 +165,12 @@ IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestio
 5. Retrieve ingestion status and wait for result
 
 ```java
-List<IngestionStatus> statuses = ingestionResult.GetIngestionStatusCollection();
+List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();
 
 while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
     Thread.sleep(1000);
     timeoutInSec -= 1;
-    statuses = ingestionResult.GetIngestionStatusCollection();
+    statuses = ingestionResult.getIngestionStatusCollection();
 }
 ```
 

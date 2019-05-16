@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.TableReportIngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -338,5 +339,17 @@ class IngestClientImplTest {
         return System.getProperty("line.separator").equals("\n") ?
                 "\"1\",\"leo\"\n\"2\",\"yui\"\n" :
                 "\"1\",\"leo\"\r\n\"2\",\"yui\"\r\n";
+    }
+
+    @Test
+    void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
+        ArgumentCaptor<TableServiceEntity> captur = ArgumentCaptor.forClass(TableServiceEntity.class);
+
+        ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
+        assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 }
