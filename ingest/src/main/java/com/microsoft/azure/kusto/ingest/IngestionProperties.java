@@ -122,7 +122,9 @@ public class IngestionProperties {
     /**
      * @param additionalProperties - Set additional properties to the ingestion properties
      */
-    public void setAdditionalProperties(Map<String, String> additionalProperties) { this.additionalProperties = additionalProperties; }
+    public void setAdditionalProperties(Map<String, String> additionalProperties) {
+        this.additionalProperties = additionalProperties;
+    }
 
     public ArrayList<String> getIngestIfNotExists() {
         return ingestIfNotExists;
