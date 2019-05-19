@@ -240,7 +240,7 @@ class AadAuthenticationHelper {
             }
         }
         catch (Exception e) {
-            throw new DataServiceException(e.getMessage());
+            throw new DataServiceException(e.getMessage(), e);
         }
         finally {
             lastAuthenticationResultLock.unlock();
@@ -269,7 +269,7 @@ class AadAuthenticationHelper {
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
         } catch (Exception e) {
-            throw new DataServiceException(e.getMessage());
+            throw new DataServiceException(e.getMessage(), e);
         } finally {
             if (service != null) {
                 service.shutdown();
