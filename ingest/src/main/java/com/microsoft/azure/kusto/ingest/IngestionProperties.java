@@ -119,6 +119,11 @@ public class IngestionProperties {
         this.additionalTags = additionalTags;
     }
 
+    /**
+     * @param additionalProperties - Set additional properties to the ingestion properties
+     */
+    public void setAdditionalProperties(Map<String, String> additionalProperties) { this.additionalProperties = additionalProperties; }
+
     public ArrayList<String> getIngestIfNotExists() {
         return ingestIfNotExists;
     }
@@ -133,7 +138,7 @@ public class IngestionProperties {
         this.ingestIfNotExists = ingestIfNotExists;
     }
 
-    Map<String, String> getAdditionalProperties() throws IOException {
+    Map<String, String> getIngestionProperties() throws IOException {
         Map<String, String> fullAdditionalProperties = new HashMap<>();
         if (!dropByTags.isEmpty() || !ingestByTags.isEmpty() || !additionalTags.isEmpty()) {
             ArrayList<String> tags = new ArrayList<>();
