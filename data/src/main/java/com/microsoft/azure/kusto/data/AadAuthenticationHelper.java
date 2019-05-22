@@ -85,11 +85,11 @@ class AadAuthenticationHelper {
                 acquireToken();
             } else {
                 lastAuthenticationResultLock.lock();
-                try{
+                try {
                     if (IsInvalidToken()) {
                         lastAuthenticationResult = acquireAccessTokenByRefreshToken();
                     }
-                }finally {
+                } finally {
                     lastAuthenticationResultLock.unlock();
                 }
             }
@@ -238,11 +238,9 @@ class AadAuthenticationHelper {
                         throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new DataServiceException(e.getMessage(), e);
-        }
-        finally {
+        } finally {
             lastAuthenticationResultLock.unlock();
         }
     }

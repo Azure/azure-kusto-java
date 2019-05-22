@@ -30,17 +30,38 @@
     </developers>
 
     <properties>
-        <revision>1.0.0-BETA-04</revision>
+        <revision>1.0.0-BETA-05</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <slf4j.version>1.8.0-beta2</slf4j.version>
+
+        <!-- Versions below are  for several dependencies we're using in the data & ingest modules
+         -->
+
+        <!-- Compile dependencies -->
+        <slf4j.version>1.8.0-beta4</slf4j.version>
+        <commons-lang3.version>3.9</commons-lang3.version>
+        <adal4j.version>1.6.4</adal4j.version>
+        <httpclient.version>4.5.8</httpclient.version>
+        <httpcore.version>4.4.11</httpcore.version>
+        <json.version>20090211</json.version>
+        <jackson-mapper-asl.version>1.9.13</jackson-mapper-asl.version>
+        <azure-storage.version>8.3.0</azure-storage.version>
+
+        <!-- Test dependencies -->
+        <bouncycastle.version>1.61</bouncycastle.version>
+        <jsonassert.version>1.5.0</jsonassert.version>
+        <sqlite-jdbc.version>3.27.2.1</sqlite-jdbc.version>
+        <annotations.version>17.0.0</annotations.version>
+
+        <!-- Other dependencies -->
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.1.1</maven-assembly-plugin.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-        <junit.version>5.4.0</junit.version>
-        <mockito.version>2.24.0</mockito.version>
+        <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
+        <junit.version>5.4.2</junit.version>
+        <mockito.version>2.27.0</mockito.version>
     </properties>
 
     <modules>
