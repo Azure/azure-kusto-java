@@ -82,7 +82,7 @@ class IngestClientImpl implements IngestClient {
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
-            ingestionBlobInfo.additionalProperties = ingestionProperties.getAdditionalProperties();
+            ingestionBlobInfo.additionalProperties = ingestionProperties.getIngestionProperties();
             if (blobSourceInfo.getSourceId() != null) {
                 ingestionBlobInfo.id = blobSourceInfo.getSourceId();
             }
@@ -101,7 +101,7 @@ class IngestClientImpl implements IngestClient {
                 status.status = OperationStatus.Pending;
                 status.updatedOn = Date.from(Instant.now());
                 status.ingestionSourceId = ingestionBlobInfo.id;
-                status.setIngestionSourcePath(blobSourceInfo.getBlobPath());
+                status.setIngestionSourcePath(SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath()));
 
                 azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);

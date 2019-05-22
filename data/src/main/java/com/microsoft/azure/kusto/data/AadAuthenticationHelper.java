@@ -80,15 +80,18 @@ class AadAuthenticationHelper {
 
         if (lastAuthenticationResult == null) {
             acquireToken();
-        } else if (isTokenExpired()) {
+        } else if (IsInvalidToken()) {
             if (lastAuthenticationResult.getRefreshToken() == null) {
                 acquireToken();
             } else {
                 lastAuthenticationResultLock.lock();
-                if (isTokenExpired()) {
-                    lastAuthenticationResult = acquireAccessTokenByRefreshToken();
+                try {
+                    if (IsInvalidToken()) {
+                        lastAuthenticationResult = acquireAccessTokenByRefreshToken();
+                    }
+                } finally {
+                    lastAuthenticationResultLock.unlock();
                 }
-                lastAuthenticationResultLock.unlock();
             }
         }
 
@@ -216,8 +219,8 @@ class AadAuthenticationHelper {
 
     private void acquireToken() throws DataServiceException {
         lastAuthenticationResultLock.lock();
-        if (lastAuthenticationResult == null || isTokenExpired()) {
-            try {
+        try {
+            if (IsInvalidToken()) {
                 switch (authenticationType) {
                     case AAD_APPLICATION_KEY:
                         lastAuthenticationResult = acquireAadApplicationAccessToken();
@@ -234,15 +237,16 @@ class AadAuthenticationHelper {
                     default:
                         throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
                 }
-            } catch (Exception e) {
-                throw new DataServiceException(e.getMessage());
             }
+        } catch (Exception e) {
+            throw new DataServiceException(e.getMessage(), e);
+        } finally {
+            lastAuthenticationResultLock.unlock();
         }
-        lastAuthenticationResultLock.unlock();
     }
 
-    private boolean isTokenExpired() {
-        return lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
+    private boolean IsInvalidToken() {
+        return lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
     }
 
     AuthenticationResult acquireAccessTokenByRefreshToken() throws DataServiceException {
@@ -263,7 +267,7 @@ class AadAuthenticationHelper {
                     throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
             }
         } catch (Exception e) {
-            throw new DataServiceException(e.getMessage());
+            throw new DataServiceException(e.getMessage(), e);
         } finally {
             if (service != null) {
                 service.shutdown();
