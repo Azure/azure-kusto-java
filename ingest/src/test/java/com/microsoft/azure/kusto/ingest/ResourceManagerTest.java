@@ -122,7 +122,7 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
     }
 
     private static Results generateIngestionAuthTokenResult() {
@@ -134,6 +134,6 @@ class ResourceManagerTest {
         colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList);
+        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
     }
 }

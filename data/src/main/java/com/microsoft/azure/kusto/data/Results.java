@@ -7,12 +7,14 @@ public class Results {
     private HashMap<String, Integer> columnNameToIndex;
     private HashMap<String, String> columnNameToType;
     private ArrayList<ArrayList<String>> values;
+    private String exceptionMessage;
 
     public Results(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
-                   ArrayList<ArrayList<String>> values) {
+                   ArrayList<ArrayList<String>> values, String exceptionMessage) {
         this.columnNameToIndex = columnNameToIndex;
         this.columnNameToType = columnNameToType;
         this.values = values;
+        this.exceptionMessage = exceptionMessage;
     }
 
     public HashMap<String, Integer> getColumnNameToIndex() {
@@ -33,5 +35,9 @@ public class Results {
 
     public ArrayList<ArrayList<String>> getValues() {
         return values;
+    }
+
+    public String getExceptions() {
+        return exceptionMessage;
     }
 }
