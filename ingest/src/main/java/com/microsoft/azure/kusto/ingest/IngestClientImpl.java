@@ -82,7 +82,7 @@ class IngestClientImpl implements IngestClient {
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
-            ingestionBlobInfo.additionalProperties = ingestionProperties.getAdditionalProperties();
+            ingestionBlobInfo.additionalProperties = ingestionProperties.getIngestionProperties();
             if (blobSourceInfo.getSourceId() != null) {
                 ingestionBlobInfo.id = blobSourceInfo.getSourceId();
             }
