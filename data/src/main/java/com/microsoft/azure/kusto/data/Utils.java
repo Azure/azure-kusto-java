@@ -11,6 +11,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
+import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -20,12 +21,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, Integer timeoutMs, String clientVersionForTracing, String applicationNameForTracing) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, String clientVersionForTracing, String applicationNameForTracing) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -38,19 +40,30 @@ class Utils {
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
-        StringEntity requestEntity = new StringEntity(
-                payload,
-                ContentType.APPLICATION_JSON);
+
+        HttpEntity requestEntity = null;
+        if (stream == null)
+        {
+            requestEntity = new StringEntity(
+                    payload,
+                    ContentType.APPLICATION_JSON);
+
+            httpPost.addHeader("Content-Type", "application/json");
+            httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+            httpPost.addHeader("Fed", "True");
+        }
+        else
+        {
+            requestEntity = new InputStreamEntity(stream);
+            httpPost.addHeader("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+        }
 
         httpPost.setEntity(requestEntity);
 
         httpPost.addHeader("Authorization", String.format("Bearer %s", aadAccessToken));
-        httpPost.addHeader("Content-Type", "application/json");
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        httpPost.addHeader("Fed", "True");
-
         httpPost.addHeader("x-ms-client-version", clientVersionForTracing);
-        httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+
         if (StringUtils.isNotBlank(applicationNameForTracing)) {
             httpPost.addHeader("x-ms-app", applicationNameForTracing);
         }

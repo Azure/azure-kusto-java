@@ -6,6 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
@@ -16,6 +17,7 @@ public class ClientImpl implements Client {
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
+    private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
@@ -37,14 +39,17 @@ public class ClientImpl implements Client {
         applicationNameForTracing = csb.getApplicationNameForTracing();
     }
 
+    @Override
     public Results execute(String command) throws DataServiceException, DataClientException {
         return execute(DEFAULT_DATABASE_NAME, command);
     }
 
+    @Override
     public Results execute(String database, String command) throws DataServiceException, DataClientException {
         return execute(database, command, null);
     }
 
+    @Override
     public Results execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation:
         if (StringUtils.isAnyEmpty(database, command)) {
@@ -86,6 +91,26 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, timeoutMs.intValue(), clientVersionForTracing, applicationNameForTracing);
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), clientVersionForTracing, applicationNameForTracing);
+    }
+
+    @Override
+    public Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName) throws DataServiceException, DataClientException {
+
+        if (StringUtils.isAnyEmpty(database,table,streamFormat))
+        {
+            throw new IllegalArgumentException("database, table or streamFormat are empty");
+        }
+
+        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s",clusterUrl,API_VERSION,database,table,streamFormat);
+
+        if (!StringUtils.isEmpty(mappingName))
+        {
+            clusterEndpoint.concat(String.format("&mappingName=%s",mappingName));
+        }
+
+        String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
+
+        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, STREAMING_INGEST_TIMEOUT_IN_MILLISECS.intValue(), clientVersionForTracing, applicationNameForTracing);
     }
 }
