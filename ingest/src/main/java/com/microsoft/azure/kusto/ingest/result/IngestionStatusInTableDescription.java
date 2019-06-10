@@ -1,6 +1,8 @@
 package com.microsoft.azure.kusto.ingest.result;
 
-public class IngestionStatusInTableDescription {
+import java.io.Serializable;
+
+public class IngestionStatusInTableDescription implements Serializable {
     public String TableConnectionString;
     public String PartitionKey;
     public String RowKey;
