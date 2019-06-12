@@ -64,7 +64,7 @@ class Utils {
 
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
-                String exception = null;
+                String exceptions = null;
                 if (statusLine.getStatusCode() == 200) {
 
                     JSONObject jsonObject = new JSONObject(responseContent);
@@ -86,7 +86,7 @@ class Utils {
                     for (int i = 0; i < resultsRows.length(); i++) {
                         Object row = resultsRows.get(i);
                         if (row instanceof JSONObject) {
-                            exception = ((JSONObject) row).get("Exceptions").toString();
+                            exceptions = ((JSONObject) row).get("Exceptions").toString();
                         }
                         JSONArray rowAsJsonArray = resultsRows.getJSONArray(i);
                         ArrayList<String> rowVector = new ArrayList<>();
@@ -101,7 +101,7 @@ class Utils {
                         values.add(rowVector);
                     }
 
-                    return new Results(columnNameToIndex, columnNameToType, values, exception);
+                    return new Results(columnNameToIndex, columnNameToType, values, exceptions);
                 } else {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
