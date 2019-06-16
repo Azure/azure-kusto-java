@@ -13,5 +13,5 @@ public interface Client {
 
     Results execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName) throws DataServiceException, DataClientException;
+    Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
 }

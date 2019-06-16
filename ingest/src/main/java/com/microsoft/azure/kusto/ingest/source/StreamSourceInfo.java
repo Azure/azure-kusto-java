@@ -8,6 +8,8 @@ public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;
+    private boolean isCompressed;
+    private long size = -1;
 
     public InputStream getStream() {
         return stream;
@@ -24,6 +26,14 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     public void setLeaveOpen(boolean leaveOpen) {
         this.leaveOpen = leaveOpen;
     }
+
+    public void setIsCompressed(boolean isCompressed) {this.isCompressed = isCompressed;}
+
+    public boolean getIsCompressed() { return isCompressed;}
+
+    public void setSize(long size) { this.size = size;}
+
+    public long getSize() { return this.size; }
 
     public StreamSourceInfo(InputStream stream) {
         setStream(stream);

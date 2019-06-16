@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -24,10 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, String clientVersionForTracing, String applicationNameForTracing) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, ClientRequestProperties properties, boolean leaveOpen) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -40,35 +40,27 @@ class Utils {
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
-
-        HttpEntity requestEntity = null;
-        if (stream == null)
-        {
-            requestEntity = new StringEntity(
-                    payload,
-                    ContentType.APPLICATION_JSON);
-
-            httpPost.addHeader("Content-Type", "application/json");
-            httpPost.addHeader("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
-            httpPost.addHeader("Fed", "True");
-        }
-        else
-        {
-            requestEntity = new InputStreamEntity(stream);
-            httpPost.addHeader("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
-        }
-
+        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
+                                                    : new InputStreamEntity(stream);
         httpPost.setEntity(requestEntity);
-
         httpPost.addHeader("Authorization", String.format("Bearer %s", aadAccessToken));
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        httpPost.addHeader("x-ms-client-version", clientVersionForTracing);
 
-        if (StringUtils.isNotBlank(applicationNameForTracing)) {
-            httpPost.addHeader("x-ms-app", applicationNameForTracing);
-        }
+        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null ){
+            JSONObject jsonProperties = properties.toJson();
+            Iterator keyIterator = jsonProperties.keys();
+            if (keyIterator != null )
+            {
+                while(keyIterator.hasNext())
+                {
+                    String key = (String) keyIterator.next();
+                    if (!key.equals("properties")){
+                        String value = jsonProperties.getString(key);
+                        httpPost.addHeader(key, value);
+                    }
+                }
+            }
 
-        try {
             //Execute and get the response.
             HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();

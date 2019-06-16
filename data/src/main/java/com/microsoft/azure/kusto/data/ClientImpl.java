@@ -91,11 +91,21 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), clientVersionForTracing, applicationNameForTracing);
+        if (properties == null )
+        {
+            properties = new ClientRequestProperties();
+        }
+        properties.setOption("x-ms-client-version", clientVersionForTracing);
+        properties.setOption("x-ms-app", applicationNameForTracing);
+        properties.setOption("Content-Type", "application/json");
+        properties.setOption("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+        properties.setOption("Fed", "True");
+
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), properties, false);
     }
 
     @Override
-    public Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName) throws DataServiceException, DataClientException {
+    public Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
 
         if (StringUtils.isAnyEmpty(database,table,streamFormat))
         {
@@ -106,11 +116,15 @@ public class ClientImpl implements Client {
 
         if (!StringUtils.isEmpty(mappingName))
         {
-            clusterEndpoint.concat(String.format("&mappingName=%s",mappingName));
+            clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s",mappingName));
         }
 
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
-        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, STREAMING_INGEST_TIMEOUT_IN_MILLISECS.intValue(), clientVersionForTracing, applicationNameForTracing);
+        properties.setOption("x-ms-client-version", clientVersionForTracing);
+        properties.setOption("x-ms-app", applicationNameForTracing);
+        properties.setOption("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+
+        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, STREAMING_INGEST_TIMEOUT_IN_MILLISECS.intValue(), properties, leaveOpen);
     }
 }
