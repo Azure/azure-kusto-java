@@ -5,12 +5,13 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 
 public class ClientImpl implements Client {
 
@@ -109,58 +110,64 @@ public class ClientImpl implements Client {
     @Override
     public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, boolean compressStream, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
 
-        if (stream == null)
-        {
+        if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
-
-        if (StringUtils.isAnyEmpty(database,table,streamFormat))
-        {
+        if (StringUtils.isAnyEmpty(database,table,streamFormat)) {
             throw new IllegalArgumentException("Parameter database, table or streamFormat is empty.");
         }
-
         String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s",clusterUrl,API_VERSION,database,table,streamFormat);
 
-        if (!StringUtils.isEmpty(mappingName))
-        {
+        if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s",mappingName));
         }
-
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
-        if (applicationNameForTracing != null)
-        {
+        if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);
         }
         headers.put("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
-        if (compressStream)
-        {
-            headers.put("Content-Encoding" , "gzip");
-        }
 
-        Long timeoutMs;
-        if (properties != null) {
-            timeoutMs = properties.getTimeoutInMilliSec();
-            try
-            {
+        File tempFile = null;
+        Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+        try {
+            if (compressStream) {
+                tempFile = File.createTempFile("kusto-temp-stream", ".csv.gz");
+                FileOutputStream fos = new FileOutputStream(tempFile, false);
+                GZIPOutputStream gzipos = new GZIPOutputStream(fos);
+                byte[] b = new byte[1024];
+                int read = 0;
+                while((read = stream.read(b)) != -1) {
+                    gzipos.write(b,0,read);
+                }
+                gzipos.flush();
+                gzipos.close();
+                stream = new FileInputStream(tempFile);
+                headers.put("Content-Encoding" , "gzip");
+            }
+            if (properties != null) {
+                timeoutMs = properties.getTimeoutInMilliSec();
                 JSONObject json = properties.toJson().getJSONObject("Options");
                 Iterator<String> keys = json.keys();
-                while (keys.hasNext())
-                {
+                while (keys.hasNext()) {
                     String key = keys.next();
                     headers.put( key, json.getString(key));
                 }
-            } catch (JSONException e) {
-                throw new DataClientException(e.getMessage(), e);
+            }
+            return Utils.post(clusterEndpoint, aadAccessToken, null, stream, timeoutMs.intValue(), headers, leaveOpen);
+        } catch (FileNotFoundException e) {
+            throw new DataClientException(e.getMessage(), e);
+        } catch (IOException e) {
+            throw new DataClientException(e.getMessage(), e);
+        } catch (JSONException e) {
+            throw new DataClientException(e.getMessage(), e);
+        } finally {
+            if (tempFile != null)
+            {
+                tempFile.deleteOnExit();
             }
         }
-        else
-        {
-            timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
-        }
-
-        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, timeoutMs.intValue(), headers, leaveOpen);
     }
 }

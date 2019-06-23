@@ -135,17 +135,12 @@ public class StreamingIngestClient implements IngestClient {
         String mappingReference = getMappingReference(ingestionProperties, format);
 
         try{
-            InputStream stream = streamSourceInfo.getStream();
-            if (stream == null) {
-                throw new IngestionClientException("Stream is null.");
-            }
-
             this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    stream,
+                    streamSourceInfo.getStream(),
                     null,
                     format,
-                    streamSourceInfo.getIsCompressed(),
+                    !streamSourceInfo.getIsCompressed(),
                     mappingReference,
                     streamSourceInfo.isLeaveOpen());
         }

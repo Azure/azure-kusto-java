@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest.source;
 
+import com.microsoft.azure.kusto.ingest.Ensure;
+
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
@@ -46,7 +48,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        //nothing to validate as of now.
+        Ensure.argIsNotNull(this.stream, "stream");
     }
 
     @Override
