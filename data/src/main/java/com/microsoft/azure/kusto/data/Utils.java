@@ -23,11 +23,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Map;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, ClientRequestProperties properties, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
 
         HttpClient httpClient;
         if (timeoutMs != null) {
@@ -45,22 +45,11 @@ class Utils {
         httpPost.setEntity(requestEntity);
         httpPost.addHeader("Authorization", String.format("Bearer %s", aadAccessToken));
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
+        for (Map.Entry<String, String> entry : headers.entrySet() ) {
+            httpPost.addHeader(entry.getKey(), entry.getValue());
+        }
 
-        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null ){
-            JSONObject jsonProperties = properties.toJson();
-            Iterator keyIterator = jsonProperties.keys();
-            if (keyIterator != null )
-            {
-                while(keyIterator.hasNext())
-                {
-                    String key = (String) keyIterator.next();
-                    if (!key.equals("properties")){
-                        String value = jsonProperties.getString(key);
-                        httpPost.addHeader(key, value);
-                    }
-                }
-            }
-
+        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null ) {
             //Execute and get the response.
             HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();

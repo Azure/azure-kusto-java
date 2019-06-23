@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
@@ -13,14 +14,14 @@ import java.util.HashMap;
  */
 public class ClientRequestProperties {
     private static final String OPTIONS_KEY = "Options";
+    private static final String PARAMETERS_KEY = "Parameters";
     private static final String OPTION_SERVER_TIMEOUT = "servertimeout";
-    private HashMap<String, Object> properties;
+    private HashMap<String, Object> parameters;
     private HashMap<String, Object> options;
 
     public ClientRequestProperties() {
-        properties = new HashMap<>();
+        parameters = new HashMap<>();
         options = new HashMap<>();
-        properties.put(OPTIONS_KEY, options);
     }
 
     public void setOption(String name, Object value) {
@@ -39,6 +40,19 @@ public class ClientRequestProperties {
         options.clear();
     }
 
+    public void setParameter(String name, Object value) { parameters.put(name, value); }
+
+    public Object getParameter(String name) { return parameters.get(name); }
+
+    public void removeParameter(String name) {
+        parameters.remove(name);
+    }
+
+    public void clearParameters() {
+        parameters.clear();
+    }
+
+
     public Long getTimeoutInMilliSec() {
         return (Long) getOption(OPTION_SERVER_TIMEOUT);
     }
@@ -48,7 +62,17 @@ public class ClientRequestProperties {
     }
 
     JSONObject toJson() {
-        return new JSONObject(properties);
+        JSONObject json = new JSONObject();
+        JSONObject options = new JSONObject(this.options);
+        JSONObject parameters = new JSONObject(this.parameters);
+
+        try {
+            json.put(OPTIONS_KEY, options);
+            json.put(PARAMETERS_KEY, parameters);
+        } catch (JSONException e) {
+            return null;
+        }
+        return json;
     }
 
     public String toString() {

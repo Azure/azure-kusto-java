@@ -5,9 +5,11 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client {
@@ -91,25 +93,30 @@ public class ClientImpl implements Client {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        if (properties == null )
+        Map<String, String> headers = new HashMap<>();
+        headers.put("x-ms-client-version", clientVersionForTracing);
+        if (applicationNameForTracing != null)
         {
-            properties = new ClientRequestProperties();
+            headers.put("x-ms-app", applicationNameForTracing);
         }
-        properties.setOption("x-ms-client-version", clientVersionForTracing);
-        properties.setOption("x-ms-app", applicationNameForTracing);
-        properties.setOption("Content-Type", "application/json");
-        properties.setOption("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
-        properties.setOption("Fed", "True");
+        headers.put("Content-Type", "application/json");
+        headers.put("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+        headers.put("Fed", "True");
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), properties, false);
+        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), headers, false);
     }
 
     @Override
-    public Results executeStreamingIngest(String database, String table, InputStream stream, String streamFormat, ClientRequestProperties properties, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, boolean compressStream, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+
+        if (stream == null)
+        {
+            throw new IllegalArgumentException("The provided stream is null.");
+        }
 
         if (StringUtils.isAnyEmpty(database,table,streamFormat))
         {
-            throw new IllegalArgumentException("database, table or streamFormat are empty");
+            throw new IllegalArgumentException("Parameter database, table or streamFormat is empty.");
         }
 
         String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s",clusterUrl,API_VERSION,database,table,streamFormat);
@@ -121,10 +128,39 @@ public class ClientImpl implements Client {
 
         String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
 
-        properties.setOption("x-ms-client-version", clientVersionForTracing);
-        properties.setOption("x-ms-app", applicationNameForTracing);
-        properties.setOption("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+        Map<String, String> headers = new HashMap<>();
+        headers.put("x-ms-client-version", clientVersionForTracing);
+        if (applicationNameForTracing != null)
+        {
+            headers.put("x-ms-app", applicationNameForTracing);
+        }
+        headers.put("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+        if (compressStream)
+        {
+            headers.put("Content-Encoding" , "gzip");
+        }
 
-        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, STREAMING_INGEST_TIMEOUT_IN_MILLISECS.intValue(), properties, leaveOpen);
+        Long timeoutMs;
+        if (properties != null) {
+            timeoutMs = properties.getTimeoutInMilliSec();
+            try
+            {
+                JSONObject json = properties.toJson().getJSONObject("Options");
+                Iterator<String> keys = json.keys();
+                while (keys.hasNext())
+                {
+                    String key = keys.next();
+                    headers.put( key, json.getString(key));
+                }
+            } catch (JSONException e) {
+                throw new DataClientException(e.getMessage(), e);
+            }
+        }
+        else
+        {
+            timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+        }
+
+        return Utils.post(clusterEndpoint, aadAccessToken, null, stream, timeoutMs.intValue(), headers, leaveOpen);
     }
 }

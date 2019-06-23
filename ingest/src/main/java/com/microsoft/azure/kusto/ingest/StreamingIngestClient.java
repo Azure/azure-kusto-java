@@ -29,7 +29,7 @@ public class StreamingIngestClient implements IngestClient {
     private Client client;
     private List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
 
-    public StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         this.client = ClientFactory.createClient(csb);
         this.azureStorageClient = new AzureStorageClient();
@@ -48,7 +48,6 @@ public class StreamingIngestClient implements IngestClient {
             InputStream stream = new FileInputStream(filePath);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false, fileSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
-            streamSourceInfo.setSize(fileSourceInfo.getRawSizeInBytes());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         }
         catch (FileNotFoundException e) {
@@ -62,13 +61,10 @@ public class StreamingIngestClient implements IngestClient {
         {
             String blobPath = blobSourceInfo.getBlobPath();
             CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobPath));
-            CloudBlobContainer container = cloudBlockBlob.getContainer();
-            BlobInputStream blobInputStream = container.getBlockBlobReference(blobPath).openInputStream();
+            InputStream stream = cloudBlockBlob.openInputStream();
 
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(blobInputStream, false, blobSourceInfo.getSourceId());
-
-            streamSourceInfo.setSize(this.azureStorageClient.getBlobSize(blobPath));
-            streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath.split("\\?")[0]));
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
+            streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
 
             return ingestFromStream(streamSourceInfo, ingestionProperties);
 
@@ -140,26 +136,18 @@ public class StreamingIngestClient implements IngestClient {
 
         try{
             InputStream stream = streamSourceInfo.getStream();
-            if (stream == null || stream.available() <= 0) {
-                throw new IngestionClientException("Stream is null or empty.");
+            if (stream == null) {
+                throw new IngestionClientException("Stream is null.");
             }
-
-            ClientRequestProperties properties = new ClientRequestProperties();
-            properties.setOption("isCompressed", streamSourceInfo.getIsCompressed());
-            long size = streamSourceInfo.getSize() < 0 ? stream.available() : streamSourceInfo.getSize();
-
-            properties.setOption("Content-Length", size);
 
             this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
+                    null,
                     format,
-                    properties,
+                    streamSourceInfo.getIsCompressed(),
                     mappingReference,
                     streamSourceInfo.isLeaveOpen());
-        }catch (IOException e)
-        {
-            throw new IngestionClientException("Failed to ingest from stream, check stream validity.",e);
         }
         catch (DataClientException e) {
             throw new IngestionClientException(e.getMessage(),e);
