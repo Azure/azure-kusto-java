@@ -4,8 +4,7 @@ public class IngestionMapping {
     public INGESTION_MAPPING_KIND IngestionMappingKind;
     public String IngestionMappingReference;
 
-    public IngestionMapping()
-    {
+    public IngestionMapping() {
         IngestionMappingKind = INGESTION_MAPPING_KIND.unknown;
     }
 

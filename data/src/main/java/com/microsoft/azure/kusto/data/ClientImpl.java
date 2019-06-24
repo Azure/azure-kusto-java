@@ -96,8 +96,7 @@ public class ClientImpl implements Client {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
-        if (applicationNameForTracing != null)
-        {
+        if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);
         }
         headers.put("Content-Type", "application/json");
@@ -109,7 +108,6 @@ public class ClientImpl implements Client {
 
     @Override
     public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, boolean compressStream, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
-
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }

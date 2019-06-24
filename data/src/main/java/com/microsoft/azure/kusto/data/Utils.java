@@ -18,7 +18,6 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.Map;
 class Utils {
 
     static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
-
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -36,7 +34,6 @@ class Utils {
         } else {
             httpClient = HttpClients.createSystem();
         }
-
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.

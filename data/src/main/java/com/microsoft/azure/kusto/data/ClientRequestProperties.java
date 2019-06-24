@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.HashMap;
 
 /*
@@ -40,9 +39,13 @@ public class ClientRequestProperties {
         options.clear();
     }
 
-    public void setParameter(String name, Object value) { parameters.put(name, value); }
+    public void setParameter(String name, Object value) {
+        parameters.put(name, value);
+    }
 
-    public Object getParameter(String name) { return parameters.get(name); }
+    public Object getParameter(String name) {
+        return parameters.get(name);
+    }
 
     public void removeParameter(String name) {
         parameters.remove(name);
@@ -51,7 +54,6 @@ public class ClientRequestProperties {
     public void clearParameters() {
         parameters.clear();
     }
-
 
     public Long getTimeoutInMilliSec() {
         return (Long) getOption(OPTION_SERVER_TIMEOUT);
@@ -62,17 +64,14 @@ public class ClientRequestProperties {
     }
 
     JSONObject toJson() {
-        JSONObject json = new JSONObject();
-        JSONObject options = new JSONObject(this.options);
-        JSONObject parameters = new JSONObject(this.parameters);
-
         try {
-            json.put(OPTIONS_KEY, options);
-            json.put(PARAMETERS_KEY, parameters);
+            JSONObject json = new JSONObject();
+            json.put(OPTIONS_KEY, new JSONObject(this.options));
+            json.put(PARAMETERS_KEY, new JSONObject(this.parameters));
+            return json;
         } catch (JSONException e) {
             return null;
         }
-        return json;
     }
 
     public String toString() {

@@ -189,8 +189,7 @@ public class IngestionProperties {
         }
     }
 
-    public String getDataFormat()
-    {
+    public String getDataFormat() {
         return additionalProperties.get("format");
     }
 

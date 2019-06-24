@@ -9,8 +9,7 @@ public class IngestionStatusResult implements IngestionResult {
 
     private IngestionStatus ingestionStatus;
 
-    public IngestionStatusResult(IngestionStatus ingestionStatus)
-    {
+    public IngestionStatusResult(IngestionStatus ingestionStatus) {
         this.ingestionStatus = ingestionStatus;
     }
 

@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
 import java.io.InputStream;
 
 public interface Client {

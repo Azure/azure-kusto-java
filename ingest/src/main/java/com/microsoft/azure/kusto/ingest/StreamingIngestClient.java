@@ -47,8 +47,7 @@ public class StreamingIngestClient implements IngestClient {
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false, fileSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
-        }
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             throw new IngestionClientException("IO exception - check file path.", e);
         }
     }
@@ -67,12 +66,9 @@ public class StreamingIngestClient implements IngestClient {
             String blobPath = blobSourceInfo.getBlobPath();
             CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobPath));
             InputStream stream = cloudBlockBlob.openInputStream();
-
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
-
             return ingestFromStream(streamSourceInfo, ingestionProperties);
-
         } catch (URISyntaxException | IllegalArgumentException e) {
             throw new IngestionClientException("Invalid blob path.", e);
         } catch (StorageException e) {
@@ -95,19 +91,16 @@ public class StreamingIngestClient implements IngestClient {
 
         try {
             File tempFile;
-
             if (StringUtils.isBlank(tempStoragePath)) {
                 tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
             } else {
                 log.debug("Temp file will be created in a user specified folder: {}", tempStoragePath);
                 tempFile = File.createTempFile("kusto-resultset", ".csv.gz", new File(tempStoragePath));
             }
-
             FileOutputStream fos = new FileOutputStream(tempFile, false);
             GZIPOutputStream gzipos = new GZIPOutputStream(fos);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
             log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
-
             long numberOfChars = Utils.resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
             // utf8 chars are 2 bytes each
@@ -116,7 +109,6 @@ public class StreamingIngestClient implements IngestClient {
 
             //noinspection ResultOfMethodCallIgnored
             tempFile.delete();
-
             return ingestionResult;
         } catch (IngestionClientException | IngestionServiceException ex) {
             log.error("Unexpected error when ingesting a result set.", ex);
@@ -138,7 +130,7 @@ public class StreamingIngestClient implements IngestClient {
 
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
-        try{
+        try {
             this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     streamSourceInfo.getStream(),
@@ -147,8 +139,7 @@ public class StreamingIngestClient implements IngestClient {
                     !streamSourceInfo.getIsCompressed(),
                     mappingReference,
                     streamSourceInfo.isLeaveOpen());
-        }
-        catch (DataClientException e) {
+        } catch (DataClientException e) {
             throw new IngestionClientException(e.getMessage(),e);
         } catch (DataServiceException e) {
             throw new IngestionServiceException(e.getMessage(),e);
@@ -161,11 +152,9 @@ public class StreamingIngestClient implements IngestClient {
         return new IngestionStatusResult(ingestionStatus);
     }
 
-    private String getFormat(IngestionProperties ingestionProperties)
-    {
+    private String getFormat(IngestionProperties ingestionProperties) {
         String format = ingestionProperties.getDataFormat();
-        if (format == null)
-        {
+        if (format == null) {
             return "csv";
         }
         return format;
@@ -173,8 +162,7 @@ public class StreamingIngestClient implements IngestClient {
 
     private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
         String mappingReference = ingestionProperties.getIngestionMapping().IngestionMappingReference;
-        if (mappingRequiredFormats.contains(format) && StringUtils.isAnyEmpty(mappingReference))
-        {
+        if (mappingRequiredFormats.contains(format) && StringUtils.isAnyEmpty(mappingReference)) {
             throw new IngestionClientException("Mapping reference must be specified for json, singlejson and avro formats.");
         }
         return mappingReference;
