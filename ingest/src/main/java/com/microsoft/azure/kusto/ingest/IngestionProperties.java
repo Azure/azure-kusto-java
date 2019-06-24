@@ -150,12 +150,12 @@ public class IngestionProperties {
             }
             if (!ingestByTags.isEmpty()) {
                 for (String t : ingestByTags) {
-                    tags.add(String.format("%s%s", "drop-by:", t));
+                    tags.add(String.format("%s%s", "ingest-by:", t));
                 }
             }
             if (!dropByTags.isEmpty()) {
-                for (String t : ingestByTags) {
-                    tags.add(String.format("%s%s", "ingest-by:", t));
+                for (String t : dropByTags) {
+                    tags.add(String.format("%s%s", "drop-by:", t));
                 }
             }
 

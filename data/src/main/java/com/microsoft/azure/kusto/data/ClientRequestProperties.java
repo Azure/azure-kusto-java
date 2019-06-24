@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.HashMap;
+import java.util.Iterator;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
@@ -76,5 +77,20 @@ public class ClientRequestProperties {
 
     public String toString() {
         return toJson().toString();
+    }
+
+    public static ClientRequestProperties fromString (String json) throws JSONException {
+        if (StringUtils.isNotBlank(json)) {
+            ClientRequestProperties crp = new ClientRequestProperties();
+            JSONObject jsonObj = new JSONObject(json);
+            Iterator it = jsonObj.keys();
+            while (it.hasNext()) {
+                String optionName = (String) it.next();
+                crp.setOption(optionName, jsonObj.get(optionName));
+            }
+            return crp;
+        }
+
+        return null;
     }
 }
