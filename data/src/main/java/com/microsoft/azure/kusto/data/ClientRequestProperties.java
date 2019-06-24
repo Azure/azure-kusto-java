@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.HashMap;
