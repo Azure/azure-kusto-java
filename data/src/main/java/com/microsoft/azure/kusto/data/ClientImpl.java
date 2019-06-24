@@ -129,6 +129,7 @@ public class ClientImpl implements Client {
             headers.put("x-ms-app", applicationNameForTracing);
         }
         headers.put("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+        headers.put("Content-Encoding" , "gzip");
 
         File tempFile = null;
         Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
@@ -145,7 +146,6 @@ public class ClientImpl implements Client {
                 gzipos.flush();
                 gzipos.close();
                 stream = new FileInputStream(tempFile);
-                headers.put("Content-Encoding" , "gzip");
             }
             if (properties != null) {
                 timeoutMs = properties.getTimeoutInMilliSec();
@@ -159,11 +159,9 @@ public class ClientImpl implements Client {
             return Utils.post(clusterEndpoint, aadAccessToken, null, stream, timeoutMs.intValue(), headers, leaveOpen);
         } catch (FileNotFoundException e) {
             throw new DataClientException(e.getMessage(), e);
-        } catch (IOException e) {
+        } catch (IOException | JSONException e) {
             throw new DataClientException(e.getMessage(), e);
-        } catch (JSONException e) {
-            throw new DataClientException(e.getMessage(), e);
-        } finally {
+        }  finally {
             if (tempFile != null)
             {
                 tempFile.deleteOnExit();

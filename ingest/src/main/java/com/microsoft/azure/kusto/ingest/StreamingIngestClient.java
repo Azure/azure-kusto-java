@@ -8,8 +8,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobInputStream;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -57,6 +55,13 @@ public class StreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+
+        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        blobSourceInfo.validate();
+        ingestionProperties.validate();
+
         try
         {
             String blobPath = blobSourceInfo.getBlobPath();
@@ -68,8 +73,8 @@ public class StreamingIngestClient implements IngestClient {
 
             return ingestFromStream(streamSourceInfo, ingestionProperties);
 
-        } catch (URISyntaxException e) {
-            throw new IngestionClientException("URTSyntaxExpression - check URI.", e);
+        } catch (URISyntaxException | IllegalArgumentException e) {
+            throw new IngestionClientException("Invalid blob path.", e);
         } catch (StorageException e) {
             throw new IngestionClientException("StorageException", e);
         }
@@ -133,7 +138,6 @@ public class StreamingIngestClient implements IngestClient {
 
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
-
         try{
             this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
