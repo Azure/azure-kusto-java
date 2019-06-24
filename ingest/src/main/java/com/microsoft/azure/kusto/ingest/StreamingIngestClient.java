@@ -48,6 +48,7 @@ public class StreamingIngestClient implements IngestClient {
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
+            log.error("File not found error when ingesting a file.", e);
             throw new IngestionClientException("IO exception - check file path.", e);
         }
     }
@@ -70,9 +71,13 @@ public class StreamingIngestClient implements IngestClient {
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (URISyntaxException | IllegalArgumentException e) {
-            throw new IngestionClientException("Invalid blob path.", e);
+            String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
+            log.error(msg, e);
+            throw new IngestionClientException(msg, e);
         } catch (StorageException e) {
-            throw new IngestionClientException("StorageException", e);
+            String msg = "Unexpected Storage error when ingesting a blob.";
+            log.error(msg, e);
+            throw new IngestionClientException(msg, e);
         }
     }
 
@@ -111,12 +116,13 @@ public class StreamingIngestClient implements IngestClient {
             tempFile.delete();
             return ingestionResult;
         } catch (IngestionClientException | IngestionServiceException ex) {
-            log.error("Unexpected error when ingesting a result set.", ex);
-            throw ex;
+            String msg = "Unexpected error when ingesting a result set.";
+            log.error(msg, ex);
+            throw new IngestionClientException(msg, ex);
         } catch (IOException ex) {
             String msg = "Failed to write or delete local file";
             log.error(msg, ex);
-            throw new IngestionClientException(msg);
+            throw new IngestionClientException(msg, ex);
         }
     }
 
@@ -131,6 +137,7 @@ public class StreamingIngestClient implements IngestClient {
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
         try {
+            log.debug("Executing streaming ingest");
             this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     streamSourceInfo.getStream(),
@@ -140,11 +147,14 @@ public class StreamingIngestClient implements IngestClient {
                     mappingReference,
                     streamSourceInfo.isLeaveOpen());
         } catch (DataClientException e) {
+            log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(),e);
         } catch (DataServiceException e) {
+            log.error(e.getMessage(), e);
             throw new IngestionServiceException(e.getMessage(),e);
         }
 
+        log.debug("Stream was ingested successfully.");
         IngestionStatus ingestionStatus = new IngestionStatus();
         ingestionStatus.status = OperationStatus.Succeeded;
         ingestionStatus.table = ingestionProperties.getTableName();
@@ -163,6 +173,7 @@ public class StreamingIngestClient implements IngestClient {
     private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
         String mappingReference = ingestionProperties.getIngestionMapping().IngestionMappingReference;
         if (mappingRequiredFormats.contains(format) && StringUtils.isAnyEmpty(mappingReference)) {
+            log.error("Mapping reference must be specified for json, singlejson and avro formats.");
             throw new IngestionClientException("Mapping reference must be specified for json, singlejson and avro formats.");
         }
         return mappingReference;
