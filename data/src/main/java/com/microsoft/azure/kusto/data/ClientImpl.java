@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
 
-public class ClientImpl implements Client {
+public class ClientImpl implements Client, StreamingIngestProvider {
 
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String API_VERSION = "v1";

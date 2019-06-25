@@ -24,12 +24,12 @@ public class StreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private AzureStorageClient azureStorageClient;
-    private Client client;
+    private StreamingIngestProvider streamingIngestProvider;
     private List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
-        this.client = ClientFactory.createClient(csb);
+        this.streamingIngestProvider = ClientFactory.createStreamingIngestProvider(csb);
         this.azureStorageClient = new AzureStorageClient();
     }
 
@@ -138,7 +138,7 @@ public class StreamingIngestClient implements IngestClient {
         String mappingReference = getMappingReference(ingestionProperties, format);
         try {
             log.debug("Executing streaming ingest");
-            this.client.executeStreamingIngest(ingestionProperties.getDatabaseName(),
+            this.streamingIngestProvider.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     streamSourceInfo.getStream(),
                     null,
