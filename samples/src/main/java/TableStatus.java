@@ -20,13 +20,13 @@ public class TableStatus {
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
             ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials( System.getProperty("clusterPath"),
+                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
                             System.getProperty("appId"),
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
             IngestClient client = IngestClientFactory.createClient(csb);
 
-            IngestionProperties ingestionProperties = new IngestionProperties( System.getProperty("dbName"),
+            IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                     System.getProperty("tableName"));
             ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.INGESTION_MAPPING_KIND.json);
             ingestionProperties.setReportMethod(QueueAndTable);

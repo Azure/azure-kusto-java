@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class ClientRequestProperties {
         return toJson().toString();
     }
 
-    public static ClientRequestProperties fromString (String json) throws JSONException {
+    public static ClientRequestProperties fromString(String json) throws JSONException {
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
             JSONObject jsonObj = new JSONObject(json);

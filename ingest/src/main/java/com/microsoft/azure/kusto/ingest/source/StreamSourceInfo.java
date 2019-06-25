@@ -28,9 +28,13 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         this.leaveOpen = leaveOpen;
     }
 
-    public void setIsCompressed(boolean isCompressed) {this.isCompressed = isCompressed;}
+    public void setIsCompressed(boolean isCompressed) {
+        this.isCompressed = isCompressed;
+    }
 
-    public boolean getIsCompressed() { return isCompressed;}
+    public boolean getIsCompressed() {
+        return isCompressed;
+    }
 
     public StreamSourceInfo(InputStream stream) {
         setStream(stream);

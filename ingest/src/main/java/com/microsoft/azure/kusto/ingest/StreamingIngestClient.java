@@ -12,6 +12,7 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
@@ -41,10 +42,10 @@ public class StreamingIngestClient implements IngestClient {
         fileSourceInfo.validate();
         ingestionProperties.validate();
 
-        try{
+        try {
             String filePath = fileSourceInfo.getFilePath();
             InputStream stream = new FileInputStream(filePath);
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream,false, fileSourceInfo.getSourceId());
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
@@ -62,8 +63,7 @@ public class StreamingIngestClient implements IngestClient {
         blobSourceInfo.validate();
         ingestionProperties.validate();
 
-        try
-        {
+        try {
             String blobPath = blobSourceInfo.getBlobPath();
             CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobPath));
             InputStream stream = cloudBlockBlob.openInputStream();
@@ -148,10 +148,10 @@ public class StreamingIngestClient implements IngestClient {
                     streamSourceInfo.isLeaveOpen());
         } catch (DataClientException e) {
             log.error(e.getMessage(), e);
-            throw new IngestionClientException(e.getMessage(),e);
+            throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
-            throw new IngestionServiceException(e.getMessage(),e);
+            throw new IngestionServiceException(e.getMessage(), e);
         }
 
         log.debug("Stream was ingested successfully.");

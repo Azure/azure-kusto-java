@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+
 import java.io.*;
 import java.nio.charset.Charset;
 
@@ -36,7 +37,7 @@ public class StreamingIngest {
     }
 
     static void IngestFromStream() throws Exception {
-        IngestionProperties ingestionProperties = new IngestionProperties(database,table);
+        IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Create Stream from string and Ingest
         String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
@@ -48,14 +49,14 @@ public class StreamingIngest {
         String resourcesDirectorty = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Open CSV File Stream and Ingest
-        InputStream fs = new FileInputStream( resourcesDirectorty + "dataset.csv");
+        InputStream fs = new FileInputStream(resourcesDirectorty + "dataset.csv");
         ss.setStream(fs);
         ss.setLeaveOpen(false);
         status = streamingIngestClient.ingestFromStream(ss, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
         // Open compressed CSV File Stream and Ingest
-        fs = new FileInputStream( resourcesDirectorty + "dataset.csv.gz");
+        fs = new FileInputStream(resourcesDirectorty + "dataset.csv.gz");
         ss.setStream(fs);
         ss.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(ss, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -63,7 +64,7 @@ public class StreamingIngest {
 
         // Open TSV File Stream and Ingest
         ingestionProperties.setDataFormat("tsv");
-        fs = new FileInputStream( resourcesDirectorty + "dataset.tsv");
+        fs = new FileInputStream(resourcesDirectorty + "dataset.tsv");
         ss.setStream(fs);
         ss.setIsCompressed(false);
         status = streamingIngestClient.ingestFromStream(ss, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -78,7 +79,7 @@ public class StreamingIngest {
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
         // Open compressed JSON File Stream and Ingest
-        fs = new FileInputStream( resourcesDirectorty + "dataset.jsonz.gz");
+        fs = new FileInputStream(resourcesDirectorty + "dataset.jsonz.gz");
         ss.setStream(fs);
         ss.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(ss, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -86,30 +87,30 @@ public class StreamingIngest {
     }
 
     static void IngestFromFile() throws Exception {
-        IngestionProperties ingestionProperties = new IngestionProperties(database,table);
+        IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectorty = System.getProperty("user.dir") + "/samples/src/main/resources/";
         //Ingest CSV file
-        String path  = resourcesDirectorty + "dataset.csv";
+        String path = resourcesDirectorty + "dataset.csv";
         FileSourceInfo fis = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
         //Ingest compressed CSV file
         path = resourcesDirectorty + "dataset.csv.gz";
-        fis = new FileSourceInfo(path , new File(path).length());
+        fis = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
         //Ingest TSV file
-        path =  resourcesDirectorty + "dataset.tsv";
-        fis = new FileSourceInfo(path , new File(path).length());
+        path = resourcesDirectorty + "dataset.tsv";
+        fis = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat("tsv");
         status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
         //Ingest JSON file
         path = resourcesDirectorty + "dataset.json";
-        fis = new FileSourceInfo(path , new File(path).length());
+        fis = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat("json");
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
         status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -117,13 +118,13 @@ public class StreamingIngest {
 
         //Ingest compressed JSON file
         path = resourcesDirectorty + "dataset.jsonz.gz";
-        fis = new FileSourceInfo(path , new File(path).length());
+        fis = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
     }
 
     static void IngestFromBlob() throws Exception {
-        IngestionProperties ingestionProperties = new IngestionProperties(database,table);
+        IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Ingest CSV blob
         BlobSourceInfo bis = new BlobSourceInfo(blobContainer + "dataset.csv");

@@ -175,8 +175,7 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
-        switch (ingestionMapping.IngestionMappingKind)
-        {
+        switch (ingestionMapping.IngestionMappingKind) {
             case csv:
                 fullAdditionalProperties.put(CsvMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
                 break;
@@ -212,8 +211,9 @@ public class IngestionProperties {
 
     /**
      * Sets the predefined ingestion mapping name:
-     * @param mappingReference The name of a the mapping declared in the destination Kusto database, that
-     *                        describes the mapping between fields of a object and columns of a Kusto table.
+     *
+     * @param mappingReference     The name of a the mapping declared in the destination Kusto database, that
+     *                             describes the mapping between fields of a object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(String mappingReference, IngestionMapping.INGESTION_MAPPING_KIND ingestionMappingKind) {
@@ -225,8 +225,7 @@ public class IngestionProperties {
         this.ingestionMapping = ingestionMapping;
     }
 
-    public IngestionMapping getIngestionMapping()
-    {
+    public IngestionMapping getIngestionMapping() {
         return this.ingestionMapping;
     }
 

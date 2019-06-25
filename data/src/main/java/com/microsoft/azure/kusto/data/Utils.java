@@ -18,6 +18,7 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -38,14 +39,14 @@ class Utils {
 
         // Request parameters and other properties.
         HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                                                    : new InputStreamEntity(stream);
+                : new InputStreamEntity(stream);
         httpPost.setEntity(requestEntity);
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        for (Map.Entry<String, String> entry : headers.entrySet() ) {
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
             httpPost.addHeader(entry.getKey(), entry.getValue());
         }
 
-        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null ) {
+        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null) {
             //Execute and get the response.
             HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
