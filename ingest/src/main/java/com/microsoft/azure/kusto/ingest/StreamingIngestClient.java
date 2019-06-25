@@ -48,7 +48,7 @@ public class StreamingIngestClient implements IngestClient {
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
-            log.error("File not found error when ingesting a file.", e);
+            log.error("File not found when ingesting a file.", e);
             throw new IngestionClientException("IO exception - check file path.", e);
         }
     }
@@ -112,7 +112,7 @@ public class StreamingIngestClient implements IngestClient {
             FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
             IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
 
-            //noinspection ResultOfMethodCallIgnored
+            // noinspection ResultOfMethodCallIgnored
             tempFile.delete();
             return ingestionResult;
         } catch (IngestionClientException | IngestionServiceException ex) {
@@ -172,7 +172,7 @@ public class StreamingIngestClient implements IngestClient {
 
     private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
         String mappingReference = ingestionProperties.getIngestionMapping().IngestionMappingReference;
-        if (mappingRequiredFormats.contains(format) && StringUtils.isAnyEmpty(mappingReference)) {
+        if (mappingRequiredFormats.contains(format) && StringUtils.isBlank(mappingReference)) {
             log.error("Mapping reference must be specified for json, singlejson and avro formats.");
             throw new IngestionClientException("Mapping reference must be specified for json, singlejson and avro formats.");
         }

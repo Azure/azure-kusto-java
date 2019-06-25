@@ -35,7 +35,6 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (StringUtils.isNotBlank(version)) {
             clientVersionForTracing += ":" + version;
         }
-
         if (StringUtils.isNotBlank(csb.getClientVersionForTracing())) {
             clientVersionForTracing += "[" + csb.getClientVersionForTracing() + "]";
         }
@@ -58,12 +57,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (StringUtils.isAnyEmpty(database, command)) {
             throw new IllegalArgumentException("database or command are empty");
         }
-
-        Long timeoutMs = null;
-
-        if (properties != null) {
-            timeoutMs = properties.getTimeoutInMilliSec();
-        }
+        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
 
         String clusterEndpoint;
         if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
@@ -78,7 +72,6 @@ public class ClientImpl implements Client, StreamingIngestProvider {
             }
         }
 
-        String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
         String jsonString;
         try {
             JSONObject json = new JSONObject()
@@ -94,16 +87,12 @@ public class ClientImpl implements Client, StreamingIngestProvider {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("x-ms-client-version", clientVersionForTracing);
-        if (applicationNameForTracing != null) {
-            headers.put("x-ms-app", applicationNameForTracing);
-        }
+        Map<String, String> headers = initHeaders();
         headers.put("Content-Type", "application/json");
         headers.put("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
         headers.put("Fed", "True");
 
-        return Utils.post(clusterEndpoint, aadAccessToken, jsonString, null, timeoutMs.intValue(), headers, false);
+        return Utils.post(clusterEndpoint, jsonString, null, timeoutMs.intValue(), headers, false);
     }
 
     @Override
@@ -114,20 +103,14 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (StringUtils.isAnyEmpty(database,table,streamFormat)) {
             throw new IllegalArgumentException("Parameter database, table or streamFormat is empty.");
         }
-        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s",clusterUrl,API_VERSION,database,table,streamFormat);
+        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, API_VERSION, database, table, streamFormat);
 
         if (!StringUtils.isEmpty(mappingName)) {
-            clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s",mappingName));
+            clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        String aadAccessToken = aadAuthenticationHelper.acquireAccessToken();
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put("x-ms-client-version", clientVersionForTracing);
-        if (applicationNameForTracing != null) {
-            headers.put("x-ms-app", applicationNameForTracing);
-        }
-        headers.put("x-ms-client-request-id" , String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
-        headers.put("Content-Encoding" , "gzip");
+        Map<String, String> headers = initHeaders();
+        headers.put("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
+        headers.put("Content-Encoding", "gzip");
 
         File tempFile = null;
         Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
@@ -147,17 +130,16 @@ public class ClientImpl implements Client, StreamingIngestProvider {
             }
             if (properties != null) {
                 timeoutMs = properties.getTimeoutInMilliSec();
-                JSONObject json = properties.toJson().getJSONObject("Options");
-                Iterator<String> keys = json.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    headers.put( key, json.getString(key));
+                Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, Object> pair = iterator.next();
+                    headers.put(pair.getKey(), pair.getValue().toString());
                 }
             }
-            return Utils.post(clusterEndpoint, aadAccessToken, null, stream, timeoutMs.intValue(), headers, leaveOpen);
+            return Utils.post(clusterEndpoint,null, stream, timeoutMs.intValue(), headers, leaveOpen);
         } catch (FileNotFoundException e) {
             throw new DataClientException(e.getMessage(), e);
-        } catch (IOException | JSONException e) {
+        } catch (IOException e) {
             throw new DataClientException(e.getMessage(), e);
         }  finally {
             if (tempFile != null)
@@ -165,5 +147,15 @@ public class ClientImpl implements Client, StreamingIngestProvider {
                 tempFile.deleteOnExit();
             }
         }
+    }
+
+    private Map<String, String> initHeaders() throws DataServiceException {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("x-ms-client-version", clientVersionForTracing);
+        if (applicationNameForTracing != null) {
+            headers.put("x-ms-app", applicationNameForTracing);
+        }
+        headers.put("Authorization", String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+        return headers;
     }
 }

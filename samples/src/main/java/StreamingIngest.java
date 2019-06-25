@@ -1,4 +1,5 @@
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.StreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
@@ -70,7 +71,7 @@ public class StreamingIngest {
 
         // Open JSON File Stream and Ingest
         ingestionProperties.setDataFormat("json");
-        ingestionProperties.setJsonMappingName("JsonMapping");
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
         fs = new FileInputStream(resourcesDirectorty + "dataset.json");
         ss.setStream(fs);
         status = streamingIngestClient.ingestFromStream(ss, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -110,7 +111,7 @@ public class StreamingIngest {
         path = resourcesDirectorty + "dataset.json";
         fis = new FileSourceInfo(path , new File(path).length());
         ingestionProperties.setDataFormat("json");
-        ingestionProperties.setJsonMappingName("JsonMapping");
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
         status = streamingIngestClient.ingestFromFile(fis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
@@ -140,7 +141,7 @@ public class StreamingIngest {
 
         bis = new BlobSourceInfo(blobContainer + "dataset.json");
         ingestionProperties.setDataFormat("json");
-        ingestionProperties.setJsonMappingName("JsonMapping");
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
         status = streamingIngestClient.ingestFromBlob(bis, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 

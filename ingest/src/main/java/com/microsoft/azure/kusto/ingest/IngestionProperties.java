@@ -20,6 +20,10 @@ public class IngestionProperties {
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
 
+    private final String CsvMappingReferencePropertyName = "csvMappingReference";
+    private final String JsonMappingReferencePropertyName = "jsonMappingReference";
+    private final String AvroMappingReferencePropertyName = "avroMappingReference";
+
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
      * The default values of the rest of the properties are:
@@ -170,6 +174,19 @@ public class IngestionProperties {
             fullAdditionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson);
         }
         fullAdditionalProperties.putAll(additionalProperties);
+
+        switch (ingestionMapping.IngestionMappingKind)
+        {
+            case csv:
+                fullAdditionalProperties.put(CsvMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                break;
+            case json:
+                fullAdditionalProperties.put(JsonMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                break;
+            case avro:
+                fullAdditionalProperties.put(AvroMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                break;
+        }
         return fullAdditionalProperties;
     }
 
@@ -194,33 +211,18 @@ public class IngestionProperties {
     }
 
     /**
-     * Sets the predefined json ingestion mapping name:
-     * @param jsonMappingName The name of a JSON mapping declared in the destination Kusto database, that
-     *                        describes the mapping between fields of a JSON object and columns of a Kusto table.
+     * Sets the predefined ingestion mapping name:
+     * @param mappingReference The name of a the mapping declared in the destination Kusto database, that
+     *                        describes the mapping between fields of a object and columns of a Kusto table.
+     * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setJsonMappingName(String jsonMappingName) {
-        this.ingestionMapping.IngestionMappingReference = jsonMappingName;
-        this.ingestionMapping.IngestionMappingKind = IngestionMapping.INGESTION_MAPPING_KIND.json;
+    public void setIngestionMapping(String mappingReference, IngestionMapping.INGESTION_MAPPING_KIND ingestionMappingKind) {
+        this.ingestionMapping.IngestionMappingReference = mappingReference;
+        this.ingestionMapping.IngestionMappingKind = ingestionMappingKind;
     }
 
-    /**
-     * Sets the predefined csv ingestion mapping name:
-     * @param csvMappingName The name of a CSV mapping declared in the destination Kusto database, that
-     *                       describes the mapping between fields of a CSV file and columns of a Kusto table.
-     */
-    public void setCsvMappingName(String csvMappingName) {
-        this.ingestionMapping.IngestionMappingReference = csvMappingName;
-        this.ingestionMapping.IngestionMappingKind = IngestionMapping.INGESTION_MAPPING_KIND.csv;
-    }
-
-    /**
-     * Sets the predefined avro ingestion mapping name:
-     * @param avroMappingName The name of a AVRO mapping declared in the destination Kusto database, that
-     *                       describes the mapping between fields of a AVRO file and columns of a Kusto table.
-     */
-    public void setAvroMappingName(String avroMappingName) {
-        this.ingestionMapping.IngestionMappingReference = avroMappingName;
-        this.ingestionMapping.IngestionMappingKind = IngestionMapping.INGESTION_MAPPING_KIND.avro;
+    public void setIngestionMapping(IngestionMapping ingestionMapping) {
+        this.ingestionMapping = ingestionMapping;
     }
 
     public IngestionMapping getIngestionMapping()

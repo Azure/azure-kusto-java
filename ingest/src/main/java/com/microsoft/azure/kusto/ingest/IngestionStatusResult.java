@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class IngestionStatusResult implements IngestionResult {
@@ -15,7 +15,7 @@ public class IngestionStatusResult implements IngestionResult {
 
     @Override
     public List<IngestionStatus> getIngestionStatusCollection() {
-        return Arrays.asList(this.ingestionStatus);
+        return Collections.singletonList(this.ingestionStatus);
     }
 
     @Override

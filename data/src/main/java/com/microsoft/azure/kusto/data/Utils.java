@@ -26,7 +26,7 @@ import java.util.Map;
 
 class Utils {
 
-    static Results post(String url, String aadAccessToken, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static Results post(String url, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -40,7 +40,6 @@ class Utils {
         HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
                                                     : new InputStreamEntity(stream);
         httpPost.setEntity(requestEntity);
-        httpPost.addHeader("Authorization", String.format("Bearer %s", aadAccessToken));
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
         for (Map.Entry<String, String> entry : headers.entrySet() ) {
             httpPost.addHeader(entry.getKey(), entry.getValue());
