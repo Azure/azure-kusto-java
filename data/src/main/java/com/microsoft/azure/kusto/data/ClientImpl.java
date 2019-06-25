@@ -5,6 +5,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -100,7 +101,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
-        if (StringUtils.isAnyEmpty(database,table,streamFormat)) {
+        if (StringUtils.isAnyEmpty(database, table, streamFormat)) {
             throw new IllegalArgumentException("Parameter database, table or streamFormat is empty.");
         }
         String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, API_VERSION, database, table, streamFormat);
@@ -121,8 +122,8 @@ public class ClientImpl implements Client, StreamingIngestProvider {
                 GZIPOutputStream gzipos = new GZIPOutputStream(fos);
                 byte[] b = new byte[1024];
                 int read = 0;
-                while((read = stream.read(b)) != -1) {
-                    gzipos.write(b,0,read);
+                while ((read = stream.read(b)) != -1) {
+                    gzipos.write(b, 0, read);
                 }
                 gzipos.flush();
                 gzipos.close();
@@ -136,14 +137,13 @@ public class ClientImpl implements Client, StreamingIngestProvider {
                     headers.put(pair.getKey(), pair.getValue().toString());
                 }
             }
-            return Utils.post(clusterEndpoint,null, stream, timeoutMs.intValue(), headers, leaveOpen);
+            return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue(), headers, leaveOpen);
         } catch (FileNotFoundException e) {
             throw new DataClientException(e.getMessage(), e);
         } catch (IOException e) {
             throw new DataClientException(e.getMessage(), e);
-        }  finally {
-            if (tempFile != null)
-            {
+        } finally {
+            if (tempFile != null) {
                 tempFile.deleteOnExit();
             }
         }
