@@ -34,7 +34,7 @@ public class Utils {
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
-    public static long resultSetToCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow)
+    public static long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow)
             throws IngestionClientException {
         final String LINE_SEPARATOR = System.getProperty("line.separator");
 

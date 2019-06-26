@@ -225,7 +225,7 @@ class IngestClientImpl implements IngestClient {
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
             log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
 
-            long numberOfChars = resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
+            long numberOfChars = writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
             // utf8 chars are 2 bytes each
             FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
@@ -245,7 +245,7 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    long resultSetToCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
-        return Utils.resultSetToCsv(resultSet, writer, includeHeaderAsFirstRow);
+    long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+        return Utils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 }

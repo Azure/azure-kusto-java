@@ -95,30 +95,14 @@ public class StreamingIngestClient implements IngestClient {
         ingestionProperties.validate();
 
         try {
-            File tempFile;
-            if (StringUtils.isBlank(tempStoragePath)) {
-                tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
-            } else {
-                log.debug("Temp file will be created in a user specified folder: {}", tempStoragePath);
-                tempFile = File.createTempFile("kusto-resultset", ".csv.gz", new File(tempStoragePath));
-            }
-            FileOutputStream fos = new FileOutputStream(tempFile, false);
-            GZIPOutputStream gzipos = new GZIPOutputStream(fos);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            GZIPOutputStream gzipos = new GZIPOutputStream(byteArrayOutputStream);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
-            log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
-            long numberOfChars = Utils.resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
-
-            // utf8 chars are 2 bytes each
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
-            IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
-
-            // noinspection ResultOfMethodCallIgnored
-            tempFile.delete();
-            return ingestionResult;
-        } catch (IngestionClientException | IngestionServiceException ex) {
-            String msg = "Unexpected error when ingesting a result set.";
-            log.error(msg, ex);
-            throw new IngestionClientException(msg, ex);
+            Utils.writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false);
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            streamSourceInfo.setIsCompressed(true);
+            return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to write or delete local file";
             log.error(msg, ex);

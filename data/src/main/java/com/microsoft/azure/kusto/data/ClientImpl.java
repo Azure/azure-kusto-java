@@ -22,6 +22,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
+    private static final int STREAM_COMPRESS_BUFFER_SIZE = 1024;
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
@@ -117,17 +118,16 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         try {
             if (compressStream) {
-                tempFile = File.createTempFile("kusto-temp-stream", ".csv.gz");
-                FileOutputStream fos = new FileOutputStream(tempFile, false);
-                GZIPOutputStream gzipos = new GZIPOutputStream(fos);
-                byte[] b = new byte[1024];
-                int read = 0;
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+                byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
+                int read;
                 while ((read = stream.read(b)) != -1) {
-                    gzipos.write(b, 0, read);
+                    gzipOutputStream.write(b, 0, read);
                 }
-                gzipos.flush();
-                gzipos.close();
-                stream = new FileInputStream(tempFile);
+                gzipOutputStream.flush();
+                gzipOutputStream.close();
+                stream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
             }
             if (properties != null) {
                 timeoutMs = properties.getTimeoutInMilliSec();
