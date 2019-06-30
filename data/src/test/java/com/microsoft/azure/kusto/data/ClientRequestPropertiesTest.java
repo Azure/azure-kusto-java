@@ -16,7 +16,7 @@ public class ClientRequestPropertiesTest {
         Long expected = TimeUnit.MINUTES.toMillis(100);
 
         // before setting value should be null
-        Assertions.assertEquals(null, props.getTimeoutInMilliSec());
+        Assertions.assertNull(props.getTimeoutInMilliSec());
 
         props.setTimeoutInMilliSec(expected);
         Assertions.assertEquals(expected, props.getTimeoutInMilliSec());

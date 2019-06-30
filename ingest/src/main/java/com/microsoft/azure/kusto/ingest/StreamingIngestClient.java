@@ -18,6 +18,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
@@ -26,11 +27,18 @@ public class StreamingIngestClient implements IngestClient {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private AzureStorageClient azureStorageClient;
     private StreamingIngestProvider streamingIngestProvider;
-    private List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
+    private final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
+    private static final int STREAM_COMPRESS_BUFFER_SIZE = 1024;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        log.info("Creating a new IngestClient");
+        log.info("Creating a new StreamingIngestClient");
         this.streamingIngestProvider = ClientFactory.createStreamingIngestProvider(csb);
+        this.azureStorageClient = new AzureStorageClient();
+    }
+
+    StreamingIngestClient(StreamingIngestProvider streamingIngestProvider) {
+        log.info("Creating a new StreamingIngestClient");
+        this.streamingIngestProvider = streamingIngestProvider;
         this.azureStorageClient = new AzureStorageClient();
     }
 
@@ -44,6 +52,10 @@ public class StreamingIngestClient implements IngestClient {
 
         try {
             String filePath = fileSourceInfo.getFilePath();
+            File file = new File(filePath);
+            if (file.length() == 0) {
+                throw new IngestionClientException("Empty file.");
+            }
             InputStream stream = new FileInputStream(filePath);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
@@ -56,7 +68,6 @@ public class StreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -64,12 +75,8 @@ public class StreamingIngestClient implements IngestClient {
         ingestionProperties.validate();
 
         try {
-            String blobPath = blobSourceInfo.getBlobPath();
-            CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobPath));
-            InputStream stream = cloudBlockBlob.openInputStream();
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
-            streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
-            return ingestFromStream(streamSourceInfo, ingestionProperties);
+            CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobSourceInfo.getBlobPath()));
+            return ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob);
         } catch (URISyntaxException | IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
             log.error(msg, e);
@@ -96,15 +103,17 @@ public class StreamingIngestClient implements IngestClient {
 
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            GZIPOutputStream gzipos = new GZIPOutputStream(byteArrayOutputStream);
-            Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
-            Utils.writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false);
+            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+            Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipOutputStream), StandardCharsets.UTF_8);
+            if (writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false) == 0) {
+                throw new IngestionClientException("Empty ResultSet.");
+            }
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(true);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
-            String msg = "Failed to write or delete local file";
+            String msg = "Unexpected error when ingesting a ResultSet.";
             log.error(msg, ex);
             throw new IngestionClientException(msg, ex);
         }
@@ -121,16 +130,16 @@ public class StreamingIngestClient implements IngestClient {
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
         try {
-            log.debug("Executing streaming ingest");
+            InputStream stream = (streamSourceInfo.getIsCompressed()) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
+            log.debug("Executing streaming ingest.");
             this.streamingIngestProvider.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    streamSourceInfo.getStream(),
+                    stream,
                     null,
                     format,
-                    !streamSourceInfo.getIsCompressed(),
                     mappingReference,
-                    streamSourceInfo.isLeaveOpen());
-        } catch (DataClientException e) {
+                    streamSourceInfo.getIsCompressed() && streamSourceInfo.isLeaveOpen());
+        } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
@@ -155,11 +164,52 @@ public class StreamingIngestClient implements IngestClient {
     }
 
     private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
-        String mappingReference = ingestionProperties.getIngestionMapping().IngestionMappingReference;
-        if (mappingRequiredFormats.contains(format) && StringUtils.isBlank(mappingReference)) {
-            log.error("Mapping reference must be specified for json, singlejson and avro formats.");
-            throw new IngestionClientException("Mapping reference must be specified for json, singlejson and avro formats.");
+        IngestionMapping ingestionMapping = ingestionProperties.getIngestionMapping();
+        String mappingReference = ingestionMapping.IngestionMappingReference;
+        IngestionMapping.INGESTION_MAPPING_KIND ingestionMappingKind = ingestionMapping.IngestionMappingKind;
+        if (mappingRequiredFormats.contains(format) && (!format.equals(ingestionMappingKind.name()) || StringUtils.isBlank(mappingReference))) {
+            String message = "Mapping reference must be specified for json, singlejson and avro formats.";
+            log.error(message);
+            throw new IngestionClientException(message);
         }
         return mappingReference;
+    }
+
+    private InputStream compressStream(InputStream uncompressedStream, boolean leaveOpen) throws IngestionClientException, IOException {
+        log.debug("Compressing the stream.");
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+        byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
+        int read = uncompressedStream.read(b);
+        if (read == -1) {
+            throw new IngestionClientException("Empty stream.");
+        }
+        do {
+            gzipOutputStream.write(b, 0, read);
+        } while ((read = uncompressedStream.read(b)) != -1);
+        gzipOutputStream.flush();
+        gzipOutputStream.close();
+        InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        byteArrayOutputStream.close();
+        if (!leaveOpen) {
+            uncompressedStream.close();
+        }
+        return inputStream;
+    }
+
+    long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+        return Utils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
+    }
+
+    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
+        String blobPath = blobSourceInfo.getBlobPath();
+        cloudBlockBlob.downloadAttributes();
+        if (cloudBlockBlob.getProperties().getLength() == 0) {
+            throw new IngestionClientException("Empty blob.");
+        }
+        InputStream stream = cloudBlockBlob.openInputStream();
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
+        streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
+        return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 }

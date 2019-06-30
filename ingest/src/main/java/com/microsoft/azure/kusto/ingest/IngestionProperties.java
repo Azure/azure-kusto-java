@@ -44,10 +44,10 @@ public class IngestionProperties {
         this.reportMethod = IngestionReportMethod.Queue;
         this.flushImmediately = false;
         this.additionalProperties = new HashMap<>();
-        this.dropByTags = new ArrayList<String>();
-        this.ingestByTags = new ArrayList<String>();
-        this.ingestIfNotExists = new ArrayList<String>();
-        this.additionalTags = new ArrayList<String>();
+        this.dropByTags = new ArrayList<>();
+        this.ingestByTags = new ArrayList<>();
+        this.ingestIfNotExists = new ArrayList<>();
+        this.additionalTags = new ArrayList<>();
         this.ingestionMapping = new IngestionMapping();
     }
 

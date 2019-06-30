@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPOutputStream;
 
 public class ClientImpl implements Client, StreamingIngestProvider {
 
@@ -22,7 +21,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
-    private static final int STREAM_COMPRESS_BUFFER_SIZE = 1024;
+
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
@@ -98,7 +97,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
     }
 
     @Override
-    public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, boolean compressStream, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -114,39 +113,16 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         headers.put("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
         headers.put("Content-Encoding", "gzip");
 
-        File tempFile = null;
         Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
-        try {
-            if (compressStream) {
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-                byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
-                int read;
-                while ((read = stream.read(b)) != -1) {
-                    gzipOutputStream.write(b, 0, read);
-                }
-                gzipOutputStream.flush();
-                gzipOutputStream.close();
-                stream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-            }
-            if (properties != null) {
-                timeoutMs = properties.getTimeoutInMilliSec();
-                Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Object> pair = iterator.next();
-                    headers.put(pair.getKey(), pair.getValue().toString());
-                }
-            }
-            return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue(), headers, leaveOpen);
-        } catch (FileNotFoundException e) {
-            throw new DataClientException(e.getMessage(), e);
-        } catch (IOException e) {
-            throw new DataClientException(e.getMessage(), e);
-        } finally {
-            if (tempFile != null) {
-                tempFile.deleteOnExit();
+        if (properties != null) {
+            timeoutMs = properties.getTimeoutInMilliSec();
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Object> pair = iterator.next();
+                headers.put(pair.getKey(), pair.getValue().toString());
             }
         }
+        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue(), headers, leaveOpen);
     }
 
     private Map<String, String> initHeaders() throws DataServiceException {
