@@ -11,7 +11,7 @@ public interface StreamingIngestProvider {
      * <p>Ingest data from a given stream directly into Kusto database.</p>
      * This method ingests the data from a given stream directly into Kusto database, using streaming ingestion endpoint,
      * with additional properties mentioned in {@code ingestionProperties}
-     * It is recommended not to use this method directly, but the StreamingIngestClient from the Ingest package.
+     * It is not recommended to use this method directly, but the StreamingIngestClient from the Ingest package.
      *
      * @param database     The target database to ingest to
      * @param table        The target table to ingest to

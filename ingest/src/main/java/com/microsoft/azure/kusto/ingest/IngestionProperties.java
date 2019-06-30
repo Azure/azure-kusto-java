@@ -20,10 +20,6 @@ public class IngestionProperties {
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
 
-    private final String CsvMappingReferencePropertyName = "csvMappingReference";
-    private final String JsonMappingReferencePropertyName = "jsonMappingReference";
-    private final String AvroMappingReferencePropertyName = "avroMappingReference";
-
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
      * The default values of the rest of the properties are:
@@ -177,13 +173,13 @@ public class IngestionProperties {
 
         switch (ingestionMapping.IngestionMappingKind) {
             case csv:
-                fullAdditionalProperties.put(CsvMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("csvMappingReference", ingestionMapping.IngestionMappingReference);
                 break;
             case json:
-                fullAdditionalProperties.put(JsonMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("jsonMappingReference", ingestionMapping.IngestionMappingReference);
                 break;
             case avro:
-                fullAdditionalProperties.put(AvroMappingReferencePropertyName, ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("avroMappingReference", ingestionMapping.IngestionMappingReference);
                 break;
         }
         return fullAdditionalProperties;

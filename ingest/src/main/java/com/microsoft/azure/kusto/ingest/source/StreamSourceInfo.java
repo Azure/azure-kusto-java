@@ -52,7 +52,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        Ensure.argIsNotNull(this.stream, "stream");
+        // nothing to validate as of now.
     }
 
     @Override

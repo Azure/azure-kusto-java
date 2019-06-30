@@ -76,7 +76,7 @@ class IngestClientImpl implements IngestClient {
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes() > 0L ? blobSourceInfo.getRawSizeInBytes()
-                    : estimateBlobRawSize(azureStorageClient, blobSourceInfo.getBlobPath());
+                    : estimateBlobRawSize(blobSourceInfo.getBlobPath());
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
@@ -142,7 +142,7 @@ class IngestClientImpl implements IngestClient {
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(azureStorageClient, filePath);
+                    estimateFileRawSize(filePath);
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
@@ -195,15 +195,14 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-
-    private long estimateBlobRawSize(AzureStorageClient azureStorageClient, String blobPath) throws StorageException, URISyntaxException {
+    private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
         long blobSize = azureStorageClient.getBlobSize(blobPath);
 
         return azureStorageClient.isCompressed(blobPath) ?
                 blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
-    private long estimateFileRawSize(AzureStorageClient azureStorageClient, String filePath) {
+    private long estimateFileRawSize(String filePath) {
         File file = new File(filePath);
         long fileSize = file.length();
 
