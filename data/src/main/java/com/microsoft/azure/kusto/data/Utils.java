@@ -23,11 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 class Utils {
 
-    static Results post(String url, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static Results post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -42,7 +41,7 @@ class Utils {
                 : new InputStreamEntity(stream);
         httpPost.setEntity(requestEntity);
         httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
+        for (HashMap.Entry<String, String> entry : headers.entrySet()) {
             httpPost.addHeader(entry.getKey(), entry.getValue());
         }
 

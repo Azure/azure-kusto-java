@@ -54,7 +54,9 @@ public class StreamingIngestClient implements IngestClient {
             String filePath = fileSourceInfo.getFilePath();
             File file = new File(filePath);
             if (file.length() == 0) {
-                throw new IngestionClientException("Empty file.");
+                String message = "Empty file.";
+                log.error(message);
+                throw new IngestionClientException(message);
             }
             InputStream stream = new FileInputStream(filePath);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
@@ -106,16 +108,18 @@ public class StreamingIngestClient implements IngestClient {
             GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipOutputStream), StandardCharsets.UTF_8);
             if (writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false) == 0) {
-                throw new IngestionClientException("Empty ResultSet.");
+                String message = "Empty ResultSet.";
+                log.error(message);
+                throw new IngestionClientException(message);
             }
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             streamSourceInfo.setIsCompressed(true);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
-            String msg = "Unexpected error when ingesting a ResultSet.";
-            log.error(msg, ex);
-            throw new IngestionClientException(msg, ex);
+            String message = "Unexpected error when ingesting a ResultSet.";
+            log.error(message, ex);
+            throw new IngestionClientException(message, ex);
         }
     }
 
@@ -182,7 +186,9 @@ public class StreamingIngestClient implements IngestClient {
         byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
         int read = uncompressedStream.read(b);
         if (read == -1) {
-            throw new IngestionClientException("Empty stream.");
+            String message = "Empty stream.";
+            log.error(message);
+            throw new IngestionClientException(message);
         }
         do {
             gzipOutputStream.write(b, 0, read);
@@ -205,7 +211,9 @@ public class StreamingIngestClient implements IngestClient {
         String blobPath = blobSourceInfo.getBlobPath();
         cloudBlockBlob.downloadAttributes();
         if (cloudBlockBlob.getProperties().getLength() == 0) {
-            throw new IngestionClientException("Empty blob.");
+            String message = "Empty blob.";
+            log.error(message);
+            throw new IngestionClientException(message);
         }
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());

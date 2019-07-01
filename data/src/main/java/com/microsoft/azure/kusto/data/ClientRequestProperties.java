@@ -6,7 +6,6 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
@@ -97,7 +96,7 @@ public class ClientRequestProperties {
         return null;
     }
 
-    public Iterator<Map.Entry<String, Object>> getOptions() {
+    public Iterator<HashMap.Entry<String, Object>> getOptions() {
         return options.entrySet().iterator();
     }
 }

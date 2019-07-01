@@ -6,11 +6,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.*;
+
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client, StreamingIngestProvider {
@@ -88,7 +88,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error in executing command: %s, in database: %s", command, database), e);
         }
 
-        Map<String, String> headers = initHeaders();
+        HashMap<String, String> headers = initHeaders();
         headers.put("Content-Type", "application/json");
         headers.put("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
         headers.put("Fed", "True");
@@ -109,24 +109,28 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = initHeaders();
+        HashMap<String, String> headers = initHeaders();
         headers.put("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
         headers.put("Content-Encoding", "gzip");
 
-        Long timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+        Long timeoutMs = null;
         if (properties != null) {
             timeoutMs = properties.getTimeoutInMilliSec();
-            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            Iterator<HashMap.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
-                Map.Entry<String, Object> pair = iterator.next();
+                HashMap.Entry<String, Object> pair = iterator.next();
                 headers.put(pair.getKey(), pair.getValue().toString());
             }
+        }
+
+        if (timeoutMs == null) {
+           timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
         return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue(), headers, leaveOpen);
     }
 
-    private Map<String, String> initHeaders() throws DataServiceException {
-        Map<String, String> headers = new HashMap<>();
+    private HashMap<String, String> initHeaders() throws DataServiceException {
+        HashMap<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);

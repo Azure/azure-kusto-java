@@ -1,7 +1,5 @@
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.ingest.Ensure;
-
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
