@@ -6,7 +6,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -21,7 +20,6 @@ public class ClientImpl implements Client, StreamingIngestProvider {
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
-
 
     private AadAuthenticationHelper aadAuthenticationHelper;
     private String clusterUrl;
@@ -124,7 +122,7 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         }
 
         if (timeoutMs == null) {
-           timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+            timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
         return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue(), headers, leaveOpen);
     }
