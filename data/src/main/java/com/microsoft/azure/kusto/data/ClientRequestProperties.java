@@ -61,6 +61,9 @@ public class ClientRequestProperties {
     public Long getTimeoutInMilliSec() {
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         Long timeout = null;
+        if (timeoutObj instanceof Long) {
+            timeout = (Long) timeoutObj;
+        }
         if (timeoutObj instanceof String) {
             timeout = Long.valueOf((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
