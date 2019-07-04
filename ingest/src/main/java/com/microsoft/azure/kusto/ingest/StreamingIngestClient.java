@@ -28,7 +28,7 @@ public class StreamingIngestClient implements IngestClient {
     private AzureStorageClient azureStorageClient;
     private StreamingIngestProvider streamingIngestProvider;
     private final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
-    private static final int STREAM_COMPRESS_BUFFER_SIZE = 1024;
+    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
@@ -169,12 +169,20 @@ public class StreamingIngestClient implements IngestClient {
 
     private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
         IngestionMapping ingestionMapping = ingestionProperties.getIngestionMapping();
-        String mappingReference = ingestionMapping.IngestionMappingReference;
-        IngestionMapping.INGESTION_MAPPING_KIND ingestionMappingKind = ingestionMapping.IngestionMappingKind;
-        if (mappingRequiredFormats.contains(format) && (!format.equals(ingestionMappingKind.name()) || StringUtils.isBlank(mappingReference))) {
-            String message = "Mapping reference must be specified for json, singlejson and avro formats.";
-            log.error(message);
-            throw new IngestionClientException(message);
+        String mappingReference = ingestionMapping.getIngestionMappingReference();
+        IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
+        if (mappingRequiredFormats.contains(format)) {
+            String message = null;
+            if (!format.equals(ingestionMappingKind.name())) {
+                message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", format, ingestionMappingKind.name());
+            }
+            if (StringUtils.isBlank(mappingReference)) {
+                message = String.format("Mapping reference must be specified for %s format.", format);
+            }
+            if (message != null) {
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
         }
         return mappingReference;
     }
@@ -204,7 +212,7 @@ public class StreamingIngestClient implements IngestClient {
     }
 
     long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
-        return Utils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
+        return ResultSetUtils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {

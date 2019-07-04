@@ -99,8 +99,14 @@ public class ClientImpl implements Client, StreamingIngestProvider {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
-        if (StringUtils.isAnyEmpty(database, table, streamFormat)) {
-            throw new IllegalArgumentException("Parameter database, table or streamFormat is empty.");
+        if (StringUtils.isBlank(database)) {
+            throw new IllegalArgumentException("Parameter database is empty.");
+        }
+        if (StringUtils.isBlank(table)) {
+            throw new IllegalArgumentException("Parameter table is empty.");
+        }
+        if (StringUtils.isBlank(streamFormat)) {
+            throw new IllegalArgumentException("Parameter streamFormat is empty.");
         }
         String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, API_VERSION, database, table, streamFormat);
 

@@ -171,15 +171,15 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
-        switch (ingestionMapping.IngestionMappingKind) {
+        switch (ingestionMapping.getIngestionMappingKind()) {
             case csv:
-                fullAdditionalProperties.put("csvMappingReference", ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("csvMappingReference", ingestionMapping.getIngestionMappingReference());
                 break;
             case json:
-                fullAdditionalProperties.put("jsonMappingReference", ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("jsonMappingReference", ingestionMapping.getIngestionMappingReference());
                 break;
             case avro:
-                fullAdditionalProperties.put("avroMappingReference", ingestionMapping.IngestionMappingReference);
+                fullAdditionalProperties.put("avroMappingReference", ingestionMapping.getIngestionMappingReference());
                 break;
         }
         return fullAdditionalProperties;
@@ -212,9 +212,8 @@ public class IngestionProperties {
      *                             describes the mapping between fields of a object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setIngestionMapping(String mappingReference, IngestionMapping.INGESTION_MAPPING_KIND ingestionMappingKind) {
-        this.ingestionMapping.IngestionMappingReference = mappingReference;
-        this.ingestionMapping.IngestionMappingKind = ingestionMappingKind;
+    public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+        this.ingestionMapping.setIngestionMapping(mappingReference, ingestionMappingKind);
     }
 
     public void setIngestionMapping(IngestionMapping ingestionMapping) {

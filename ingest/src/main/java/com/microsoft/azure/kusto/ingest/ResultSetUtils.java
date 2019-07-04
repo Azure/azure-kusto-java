@@ -11,7 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-class Utils {
+class ResultSetUtils {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     static long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow)

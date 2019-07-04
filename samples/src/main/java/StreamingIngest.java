@@ -13,24 +13,29 @@ import java.nio.charset.Charset;
 
 public class StreamingIngest {
 
-    static private final String cluster = "https://<cluster>.kusto.windows.net";
-    static private final String appId = "";
-    static private final String appKey = "";
-    static private final String tenant = "";
-    static private final String database = "";
-    static private final String table = "";
-    static private final String blobContainer = "https://<storage_account>.blob.core.windows.net/<container>/";
+    static private String database;
+    static private String table;
+    static private String mapping;
 
     private static ConnectionStringBuilder csb;
     private static StreamingIngestClient streamingIngestClient;
 
     public static void main(String[] args) {
         try {
-            csb = ConnectionStringBuilder.createWithAadApplicationCredentials(cluster, appId, appKey, tenant);
+            csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"), // "https://<cluster>.kusto.windows.net"
+                    System.getProperty("app-id"),
+                    System.getProperty("appKey"),
+                    System.getProperty("tenant"));
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(csb);
+
+            database = System.getProperty("dbName");
+            table = System.getProperty("tableName");
+            mapping = System.getProperty("dataMappingName");
+
             IngestFromStream();
             IngestFromFile();
-            IngestFromBlob();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -51,7 +56,6 @@ public class StreamingIngest {
         // Open CSV File Stream and Ingest
         FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv");
         streamSourceInfo.setStream(fileInputStream);
-        streamSourceInfo.setLeaveOpen(false);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
@@ -72,7 +76,7 @@ public class StreamingIngest {
 
         // Open JSON File Stream and Ingest
         ingestionProperties.setDataFormat("json");
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -112,7 +116,7 @@ public class StreamingIngest {
         path = resourcesDirectory + "dataset.json";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat("json");
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
@@ -120,34 +124,6 @@ public class StreamingIngest {
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-    }
-
-    static void IngestFromBlob() throws Exception {
-        IngestionProperties ingestionProperties = new IngestionProperties(database, table);
-
-        // Ingest CSV blob
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobContainer + "dataset.csv");
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        blobSourceInfo = new BlobSourceInfo(blobContainer + "dataset.csv.gz");
-        status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        blobSourceInfo = new BlobSourceInfo(blobContainer + "dataset.tsv");
-        ingestionProperties.setDataFormat("tsv");
-        status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        blobSourceInfo = new BlobSourceInfo(blobContainer + "dataset.json");
-        ingestionProperties.setDataFormat("json");
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
-        status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        blobSourceInfo = new BlobSourceInfo(blobContainer + "dataset.jsonz.gz");
-        status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
     }
 }

@@ -262,6 +262,6 @@ class IngestClientImpl implements IngestClient {
     }
 
     long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
-        return Utils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
+        return ResultSetUtils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 }

@@ -74,7 +74,7 @@ class StreamingIngestClientTest {
         inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
@@ -136,14 +136,14 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
 
         // Json format with incompatible mapping reference
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.INGESTION_MAPPING_KIND.csv);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
         ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found csv mapping kind."));
     }
 
     @Test
@@ -155,14 +155,14 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for avro format."));
 
         // Avro format with incompatible mapping reference
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.INGESTION_MAPPING_KIND.csv);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
         ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format avro, found csv mapping kind."));
     }
 
     @Test
@@ -188,7 +188,7 @@ class StreamingIngestClientTest {
         path = resourcesDirectory + "testdata.json";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 
@@ -196,7 +196,7 @@ class StreamingIngestClientTest {
         path = resourcesDirectory + "testdata.json";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.INGESTION_MAPPING_KIND.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
     }
@@ -258,14 +258,14 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
 
         // Json format with incompatible mapping reference
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.INGESTION_MAPPING_KIND.csv);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
         ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json, singlejson and avro formats."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found csv mapping kind."));
     }
 
     @Test

@@ -31,4 +31,16 @@ public class ClientRequestPropertiesTest {
 
         JSONAssert.assertEquals("{\"Options\": {\"a\":1, \"b\":\"hello\"}}", props.toString(), false);
     }
+
+    @Test
+    @DisplayName("test ClientRequestProperties fromString")
+    void stringToProperties() throws JSONException {
+        String properties = "{\"Options\":{\"servertimeout\":100000, \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
+        ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
+
+        assert crp.getTimeoutInMilliSec() != null;
+        assert crp.getOption("Content-Encoding").equals("gzip");
+        assert crp.getParameter("birthday").equals("datetime(1970-05-11)");
+        assert crp.getParameter("courses").equals("dynamic(['Java', 'C++'])");
+    }
 }
