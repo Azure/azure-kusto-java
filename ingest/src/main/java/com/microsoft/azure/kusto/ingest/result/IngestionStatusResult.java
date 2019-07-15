@@ -1,7 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
-
-import com.microsoft.azure.kusto.ingest.result.IngestionResult;
-import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+package com.microsoft.azure.kusto.ingest.result;
 
 import java.util.Collections;
 import java.util.List;

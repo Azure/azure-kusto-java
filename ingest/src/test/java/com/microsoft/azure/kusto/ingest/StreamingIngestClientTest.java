@@ -24,21 +24,21 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPOutputStream;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class StreamingIngestClientTest {
 
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
+    private static StreamingIngestProvider streamingIngestProviderMock;
 
     @BeforeAll
     static void setUp() throws Exception {
-        StreamingIngestProvider streamingIngestProvider = mock(StreamingIngestProvider.class);
-        streamingIngestClient = new StreamingIngestClient(streamingIngestProvider);
+        streamingIngestProviderMock = mock(StreamingIngestProvider.class);
+        streamingIngestClient = new StreamingIngestClient(streamingIngestProviderMock);
 
-        when(streamingIngestProvider.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        when(streamingIngestProviderMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
     }
 
@@ -48,78 +48,118 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream() throws Exception {
-        // Create CSV stream from String and ingest
+    void IngestFromStream_CsvStream() throws Exception {
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+    }
 
-        // Create Compressed CSV stream and ingest
+    @Test
+    void IngestFromStream_CompressedCsvStream() throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
         byte[] inputArray = Charset.forName("UTF-8").encode("Name, Age, Weight, Height").array();
         gzipOutputStream.write(inputArray, 0, inputArray.length);
         gzipOutputStream.flush();
         gzipOutputStream.close();
-        inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        streamSourceInfo.setStream(inputStream);
+        InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         streamSourceInfo.setIsCompressed(true);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        // Create JSON stream from String and ingest
-        data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
-        inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
-        streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        // Create Compressed JSON stream and ingest
-        byteArrayOutputStream = new ByteArrayOutputStream();
-        gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-        inputArray = Charset.forName("UTF-8").encode("{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}").array();
-        gzipOutputStream.write(inputArray, 0, inputArray.length);
-        gzipOutputStream.flush();
-        gzipOutputStream.close();
-        inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        streamSourceInfo.setStream(inputStream);
-        streamSourceInfo.setIsCompressed(true);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
     }
 
     @Test
-    void IngestFromStream_StreamSourceInfo_IllegalArgumentException() {
+    void IngestFromStream_JsonStream() throws Exception {
+        String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+    }
+
+    @Test
+    void IngestFromStream_CompressedJsonStream() throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+        byte[] inputArray = Charset.forName("UTF-8").encode("{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}").array();
+        gzipOutputStream.write(inputArray, 0, inputArray.length);
+        gzipOutputStream.flush();
+        gzipOutputStream.close();
+        InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        streamSourceInfo.setIsCompressed(true);
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+    }
+
+    @Test
+    void IngestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(null, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
     }
 
     @Test
-    void IngestFromStream_IngestionProperties_IllegalArgumentException() {
+    void IngestFromStream_NullIngestionProperties_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, null),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
+    @Test
+    void IngestFromStream_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties(null, "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromStream_IngestionPropertiesWithEmptyDatabase_IllegalArgumentException() {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("", "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromStream_IngestionPropertiesWithNullTable_IllegalArgumentException() {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("database", null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromStream_IngestionPropertiesWithEmptyTable_IllegalArgumentException() {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("database", "");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
@@ -127,8 +167,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_JsonFormat_NoMappingReference() {
-        // Json format without mapping reference
+    void IngestFromStream_JsonNoMappingReference_IngestionClientException() {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -137,18 +176,23 @@ class StreamingIngestClientTest {
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+    }
 
-        // Json format with incompatible mapping reference
+    @Test
+    void IngestFromStream_JsonWrongMappingKind_IngestionClientException() {
+        String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
+        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
-        ingestionClientException = assertThrows(IngestionClientException.class,
+        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found csv mapping kind."));
     }
 
     @Test
-    void IngestFromStream_AvroFormat_NoMappingReference() {
-        // Avro format without mapping reference
+    void IngestFromStream_AvroNoMappingReference_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.avro);
@@ -156,17 +200,22 @@ class StreamingIngestClientTest {
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for avro format."));
+    }
 
-        // Avro format with incompatible mapping reference
+    @Test
+    void IngestFromStream_AvroWrongMappingKind_IngestionClientException() {
+        InputStream inputStream = new ByteArrayInputStream(new byte[10]);
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.avro);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
-        ingestionClientException = assertThrows(IngestionClientException.class,
+        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format avro, found csv mapping kind."));
     }
 
     @Test
-    void IngestFromStream_EmptyStream() {
+    void IngestFromStream_EmptyStream_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[0]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
@@ -176,44 +225,59 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile() throws Exception {
+    void IngestFromFile_Csv() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        //Ingest CSV file
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        //Ingest JSON file
-        path = resourcesDirectory + "testdata.json";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
-
-        //Ingest Compressed JSON file
-        path = resourcesDirectory + "testdata.json";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
     }
 
     @Test
-    void IngestFromFile_FileSourceInfo_IllegalArgumentException() {
+    void IngestFromFile_Json() throws Exception {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.json";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+    }
+
+    @Test
+    void IngestFromFile_CompressedJson() throws Exception {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.json";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+    }
+
+    @Test
+    void IngestFromFile_NullFileSourceInfo_IllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(null, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
-        // Null Path
+    @Test
+    void IngestFromFile_FileSourceInfoWithNullFilePath_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo1 = new FileSourceInfo(null, 0);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo1, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
-        // Blank path
+    @Test
+    void IngestFromFile_FileSourceInfoWithBlankFilePath_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo2 = new FileSourceInfo("", 0);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo2, ingestionProperties),
@@ -221,27 +285,53 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_IngestionProperties_IllegalArgumentException() {
+    void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        //Ingest CSV file
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, null),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
+    @Test
+    void IngestFromFile_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.csv";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties(null, "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromFile_IngestionPropertiesWithBlankDatabase_IllegalArgumentException() {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.csv";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("", "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromFile_IngestionPropertiesWithNullTable_IllegalArgumentException() {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.csv";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromFile_IngestionPropertiesWithBlankTable_IllegalArgumentException() {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.csv";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", "");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
@@ -249,9 +339,8 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonFormat_NoMappingReference() {
+    void IngestFromFile_JsonNoMappingReference_IngestionClientException() {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        // Json format without mapping reference
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
@@ -259,17 +348,23 @@ class StreamingIngestClientTest {
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+    }
 
-        // Json format with incompatible mapping reference
+    @Test
+    void IngestFromFile_JsonWrongMappingKind_IngestionClientException() {
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.json";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.csv);
-        ingestionClientException = assertThrows(IngestionClientException.class,
+        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found csv mapping kind."));
     }
 
     @Test
-    void IngestFromFile_EmptyFile() {
+    void IngestFromFile_EmptyFile_IngestionClientException() {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
@@ -296,22 +391,28 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
         OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
     }
 
     @Test
-    void IngestFromBlob_BlobSourceInfo_IllegalArgumentException() {
+    void IngestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(null, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
-        // Null Path
+    @Test
+    void IngestFromBlob_BlobSourceInfoWithNullBlobPath_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo1, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
-        // Blank path
+    @Test
+    void IngestFromBlob_BlobSourceInfoWithBlankBlobPath_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo("");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
@@ -319,25 +420,48 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionProperties_IllegalArgumentException() {
+    void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
         String path = "blobPath";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, null),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
+    @Test
+    void IngestFromBlob_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
+        String path = "blobPath";
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         ingestionProperties = new IngestionProperties(null, "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromBlob_IngestionPropertiesWithBlankDatabase_IllegalArgumentException() {
+        String path = "blobPath";
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         ingestionProperties = new IngestionProperties("", "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromBlob_IngestionPropertiesWithNullTable_IllegalArgumentException() {
+        String path = "blobPath";
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         ingestionProperties = new IngestionProperties("database", null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromBlob_IngestionPropertiesWithEmptyTable_IllegalArgumentException() {
+        String path = "blobPath";
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         ingestionProperties = new IngestionProperties("database", "");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
@@ -348,24 +472,26 @@ class StreamingIngestClientTest {
     void IngestFromBlob_InvalidBlobPath_IngestionClientException() {
         String path = "wrongURI";
         BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(path);
-
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo1, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
 
         assertTrue(ingestionClientException.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."));
+    }
 
-        path = "https://storageaccount.blob.core.windows.net/container/blob.csv";
+    @Test
+    void IngestFromBlob_BlobNotFound_IngestionClientException() {
+        String path = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo(path);
 
-        ingestionClientException = assertThrows(IngestionClientException.class,
+        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Unexpected Storage error when ingesting a blob."));
     }
 
     @Test
-    void IngestFromBlob_EmptyBlob() throws Exception {
+    void IngestFromBlob_EmptyBlob_IngestClientException() throws Exception {
         CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
@@ -397,36 +523,62 @@ class StreamingIngestClientTest {
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        assertEquals(status, OperationStatus.Succeeded);
+        verify(streamingIngestProviderMock, times(1)).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                any(ClientRequestProperties.class), any(String.class), any(String.class), any(boolean.class));
+
     }
 
     @Test
-    void IngestFromResultSet_ResultSetSourceInfo_IllegalArgumentException() {
+    void IngestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(null, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
     }
 
     @Test
-    void IngestFromResultSet_IngestionProperties_IllegalArgumentException() {
+    void IngestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
         ResultSet resultSet = mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, null),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
 
+    @Test
+    void IngestFromResultSet_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
+        ResultSet resultSet = mock(ResultSet.class);
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         ingestionProperties = new IngestionProperties(null, "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromResultSet_IngestionPropertiesWithEmptyDatabase_IllegalArgumentException() {
+        ResultSet resultSet = mock(ResultSet.class);
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         ingestionProperties = new IngestionProperties("", "table");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromResultSet_IngestionPropertiesWithNullTable_IllegalArgumentException() {
+        ResultSet resultSet = mock(ResultSet.class);
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         ingestionProperties = new IngestionProperties("database", null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
+    }
+
+    @Test
+    void IngestFromResultSet_IngestionPropertiesWithEmptyTable_IllegalArgumentException() {
+        ResultSet resultSet = mock(ResultSet.class);
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         ingestionProperties = new IngestionProperties("database", "");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
@@ -434,7 +586,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet_EmptyResultSet() throws Exception {
+    void IngestFromResultSet_EmptyResultSet_IngestionClientException() throws Exception {
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         ResultSet resultSet = mock(ResultSet.class);
 

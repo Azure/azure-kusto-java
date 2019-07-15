@@ -49,7 +49,7 @@ public class StreamingIngest {
         InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
@@ -57,14 +57,14 @@ public class StreamingIngest {
         FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv");
         streamSourceInfo.setStream(fileInputStream);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         // Open compressed CSV File Stream and Ingest
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
         streamSourceInfo.setStream(fileInputStream);
         streamSourceInfo.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         // Open TSV File Stream and Ingest
         ingestionProperties.setDataFormat("tsv");
@@ -72,7 +72,7 @@ public class StreamingIngest {
         streamSourceInfo.setStream(fileInputStream);
         streamSourceInfo.setIsCompressed(false);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
         ingestionProperties.setDataFormat("json");
@@ -80,14 +80,14 @@ public class StreamingIngest {
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         // Open compressed JSON File Stream and Ingest
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.jsonz.gz");
         streamSourceInfo.setStream(fileInputStream);
         streamSourceInfo.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
     }
 
     static void IngestFromFile() throws Exception {
@@ -97,20 +97,20 @@ public class StreamingIngest {
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         //Ingest compressed CSV file
         path = resourcesDirectory + "dataset.csv.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         //Ingest TSV file
         path = resourcesDirectory + "dataset.tsv";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat("tsv");
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         //Ingest JSON file
         path = resourcesDirectory + "dataset.json";
@@ -118,12 +118,12 @@ public class StreamingIngest {
         ingestionProperties.setDataFormat("json");
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
 
         //Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
+        System.out.println(status.toString());
     }
 }
