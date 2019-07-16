@@ -166,13 +166,11 @@ FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length()
 From stream:
 ```java
 OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 ```
 
 From File:
 ```java
 OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-assert status == OperationStatus.Succeeded : "Ingestion failed with status: " + status.toString();
 ```
 
 ### How to run this sample
