@@ -80,8 +80,8 @@ public class StreamingIngest {
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
-        //Ingest JSON file
-        path = resourcesDirectory + "dataset.json";
+        //Ingest compressed JSON file
+        path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
