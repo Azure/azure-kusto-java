@@ -48,44 +48,24 @@ public class StreamingIngest {
         String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
-        // Open CSV File Stream and Ingest
-        FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv");
-        streamSourceInfo.setStream(fileInputStream);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
         // Open compressed CSV File Stream and Ingest
-        fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
+        FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
         streamSourceInfo.setStream(fileInputStream);
         streamSourceInfo.setIsCompressed(true);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
-        // Open TSV File Stream and Ingest
-        ingestionProperties.setDataFormat("tsv");
-        fileInputStream = new FileInputStream(resourcesDirectory + "dataset.tsv");
-        streamSourceInfo.setStream(fileInputStream);
-        streamSourceInfo.setIsCompressed(false);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
-        ingestionProperties.setDataFormat("json");
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
-        // Open compressed JSON File Stream and Ingest
-        fileInputStream = new FileInputStream(resourcesDirectory + "dataset.jsonz.gz");
-        streamSourceInfo.setStream(fileInputStream);
-        streamSourceInfo.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
     }
@@ -96,33 +76,15 @@ public class StreamingIngest {
         //Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
-        //Ingest compressed CSV file
-        path = resourcesDirectory + "dataset.csv.gz";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
-        //Ingest TSV file
-        path = resourcesDirectory + "dataset.tsv";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat("tsv");
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         //Ingest JSON file
         path = resourcesDirectory + "dataset.json";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat("json");
+        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
-        //Ingest compressed JSON file
-        path = resourcesDirectory + "dataset.jsonz.gz";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
     }
