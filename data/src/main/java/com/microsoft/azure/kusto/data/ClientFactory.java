@@ -8,7 +8,7 @@ public class ClientFactory {
         return new ClientImpl(csb);
     }
 
-    public static StreamingIngestProvider createStreamingIngestProvider(ConnectionStringBuilder csb) throws URISyntaxException {
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new ClientImpl(csb);
     }
 }

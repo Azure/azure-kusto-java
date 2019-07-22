@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
-public class ClientImpl implements Client, StreamingIngestProvider {
+public class ClientImpl implements Client, StreamingClient {
 
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String API_VERSION = "v1";

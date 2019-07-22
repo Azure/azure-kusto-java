@@ -57,6 +57,9 @@ public class StreamingIngest {
         // Open compressed CSV File Stream and Ingest
         FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
         streamSourceInfo.setStream(fileInputStream);
+        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
+         * When the given stream content is already compressed, we should set this property true to avoid double compression.
+         */
         streamSourceInfo.setIsCompressed(true);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());

@@ -26,19 +26,19 @@ public class StreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private AzureStorageClient azureStorageClient;
-    private StreamingIngestProvider streamingIngestProvider;
+    private StreamingClient streamingClient;
     private final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingIngestProvider = ClientFactory.createStreamingIngestProvider(csb);
+        this.streamingClient = ClientFactory.createStreamingClient(csb);
         this.azureStorageClient = new AzureStorageClient();
     }
 
-    StreamingIngestClient(StreamingIngestProvider streamingIngestProvider) {
+    StreamingIngestClient(StreamingClient streamingClient) {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingIngestProvider = streamingIngestProvider;
+        this.streamingClient = streamingClient;
         this.azureStorageClient = new AzureStorageClient();
     }
 
@@ -137,7 +137,7 @@ public class StreamingIngestClient implements IngestClient {
         try {
             InputStream stream = (streamSourceInfo.getIsCompressed()) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
             log.debug("Executing streaming ingest.");
-            this.streamingIngestProvider.executeStreamingIngest(ingestionProperties.getDatabaseName(),
+            this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
                     null,

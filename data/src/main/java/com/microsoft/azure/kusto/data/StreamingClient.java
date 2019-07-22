@@ -5,7 +5,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import java.io.InputStream;
 
-public interface StreamingIngestProvider {
+public interface StreamingClient {
 
     /**
      * <p>Ingest data from a given stream directly into Kusto database.</p>
