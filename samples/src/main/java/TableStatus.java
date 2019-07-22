@@ -1,6 +1,7 @@
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
@@ -19,15 +20,15 @@ public class TableStatus {
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
             ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials( System.getProperty("clusterPath"),
+                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
                             System.getProperty("appId"),
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
             IngestClient client = IngestClientFactory.createClient(csb);
 
-            IngestionProperties ingestionProperties = new IngestionProperties( System.getProperty("dbName"),
+            IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                     System.getProperty("tableName"));
-            ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.json);
             ingestionProperties.setReportMethod(QueueAndTable);
             ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);

@@ -17,7 +17,7 @@ public class IngestionProperties {
     private ArrayList<String> ingestByTags;
     private ArrayList<String> additionalTags;
     private ArrayList<String> ingestIfNotExists;
-
+    private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
 
     /**
@@ -40,10 +40,11 @@ public class IngestionProperties {
         this.reportMethod = IngestionReportMethod.Queue;
         this.flushImmediately = false;
         this.additionalProperties = new HashMap<>();
-        this.dropByTags = new ArrayList<String>();
-        this.ingestByTags = new ArrayList<String>();
-        this.ingestIfNotExists = new ArrayList<String>();
-        this.additionalTags = new ArrayList<String>();
+        this.dropByTags = new ArrayList<>();
+        this.ingestByTags = new ArrayList<>();
+        this.ingestIfNotExists = new ArrayList<>();
+        this.additionalTags = new ArrayList<>();
+        this.ingestionMapping = new IngestionMapping();
     }
 
     public String getDatabaseName() {
@@ -169,6 +170,18 @@ public class IngestionProperties {
             fullAdditionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson);
         }
         fullAdditionalProperties.putAll(additionalProperties);
+
+        switch (ingestionMapping.getIngestionMappingKind()) {
+            case csv:
+                fullAdditionalProperties.put("csvMappingReference", ingestionMapping.getIngestionMappingReference());
+                break;
+            case json:
+                fullAdditionalProperties.put("jsonMappingReference", ingestionMapping.getIngestionMappingReference());
+                break;
+            case avro:
+                fullAdditionalProperties.put("avroMappingReference", ingestionMapping.getIngestionMappingReference());
+                break;
+        }
         return fullAdditionalProperties;
     }
 
@@ -188,34 +201,27 @@ public class IngestionProperties {
         }
     }
 
-    /**
-     * Adds to the {@code additionalProperties} map, the following key-value pairs:
-     * <blockquote>
-     * <p>{@code jsonMappingReference} : the value of the {@code jsonMappingName} parameter
-     * <p>{@code format} : {@code DATA_FORMAT.json}</p>
-     * </blockquote>
-     *
-     * @param jsonMappingName The name of a JSON mapping declared in the destination Kusto database, that
-     *                        describes the mapping between fields of a JSON object and columns of a Kusto table.
-     */
-    public void setJsonMappingName(String jsonMappingName) {
-        additionalProperties.put("jsonMappingReference", jsonMappingName);
-        additionalProperties.put("format", DATA_FORMAT.json.name());
+    public String getDataFormat() {
+        return additionalProperties.get("format");
     }
 
     /**
-     * Adds to the {@code additionalProperties} map, the following key-value pairs:
-     * <blockquote>
-     * <p>{@code csvMappingReference} : the value of the {@code csvMappingName} parameter
-     * <p>{@code format} : {@code DATA_FORMAT.csv}</p>
-     * </blockquote>
+     * Sets the predefined ingestion mapping name:
      *
-     * @param csvMappingName The name of a CSV mapping declared in the destination Kusto database, that
-     *                       describes the mapping between fields of a CSV file and columns of a Kusto table.
+     * @param mappingReference     The name of a the mapping declared in the destination Kusto database, that
+     *                             describes the mapping between fields of a object and columns of a Kusto table.
+     * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setCsvMappingName(String csvMappingName) {
-        additionalProperties.put("csvMappingReference", csvMappingName);
-        additionalProperties.put("format", DATA_FORMAT.csv.name());
+    public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+        this.ingestionMapping.setIngestionMapping(mappingReference, ingestionMappingKind);
+    }
+
+    public void setIngestionMapping(IngestionMapping ingestionMapping) {
+        this.ingestionMapping = ingestionMapping;
+    }
+
+    public IngestionMapping getIngestionMapping() {
+        return this.ingestionMapping;
     }
 
     public void setAuthorizationContextToken(String token) {

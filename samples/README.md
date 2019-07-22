@@ -104,7 +104,89 @@ mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
                               -DdataMappingName="dataMappingName" \
                               -DfilePath="file/path"
 
-```    
+```
+
+## StreamingIngest Sample
+
+This sample will demonstrate how to ingest data using the streaming ingest client.
+{Sample Code](src/main/java/StreamingIngest)
+
+### Prerequisites
+
+  - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
+  - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
+  - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table):
+```kql
+.create table StreamingIngest (rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)
+```
+
+  - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping) :
+```kql
+.create table StreamingIngest ingestion json mapping "JsonMapping" '[{"column":"rownumber","path": "$.rownumber", "datatype":"int" },{"column":"rowguid", "path":"$.rowguid","datatype":"string" },{"column":"xdouble", "path":"$.xdouble", "datatype":"real" },{"column":"xfloat", "path":"$.xfloat", "datatype":"real" },{"column":"xbool", "path":"$.xbool", "datatype":"bool" },{"column":"xint16", "path":"$.xint16", "datatype":"int" },{"column":"xint32", "path":"$.xint32", "datatype":"int" },{"column":"xint64", "path":"$.xint64", "datatype":"long" },{"column":"xuint8", "path":"$.xuint8", "datatype":"long"},{"column":"xuint16", "path":"$.xuint16", "datatype":"long"},{"column":"xuint32", "path":"$.xuint32", "datatype":"long"},{"column":"xuint64", "path":"$.xuint64", "datatype":"long"},{"column":"xdate", "path":"$.xdate", "datatype":"datetime"},{"column":"xsmalltext", "path":"$.xsmalltext","datatype":"string"},{"column":"xtext", "path":"$.xtext","datatype":"string"},{"column":"xnumberAsText", "path":"$.xnumberAsText","datatype":"string"},{"column":"xtime", "path":"$.xtime","datatype":"timespan"}, {"column":"xtextWithNulls", "path":"$.xtextWithNulls","datatype":"string"}, {"column":"xdynamicWithNulls", "path":"$.xdynamicWithNulls","datatype":"dynamic"}]'
+```
+
+### Steps to follow
+
+1. Build connection string and initialize
+
+```java
+ConnectionStringBuilder csb =
+                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
+                            System.getProperty("appId"),
+                            System.getProperty("appKey"),
+                            System.getProperty("appTenant"));
+```
+2. Initialize client and it's properties
+
+```java
+IngestClient client = IngestClientFactory.createClient(csb);
+
+IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
+                    System.getProperty("tableName"));
+```
+3. Create Source info
+
+StreamSourceInfo:
+```java
+InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+```
+If the data is compressed:
+```java
+streamSourceInfo.setIsCompressed(true);
+```
+
+FileSourceInfo:
+```java
+FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+```
+
+4. Ingest into table and verify ingestion status
+
+From stream:
+```java
+OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+```
+
+From File:
+```java
+OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+```
+
+### How to run this sample
+
+```sh
+mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
+                              -Dexec.mainClass="StreamingIngest" \
+                              -DclusterPath="cluster/path" \
+                              -DappId="app-id" \
+                              -DappKey="appKey" \
+                              -DappTenant="subscription-id" \
+                              -DdbName="dbName" \
+                              -DtableName="tableName" \
+                              -DdataMappingName="dataMappingName"
+```
+
 
 ### Using CompletableFutures
 

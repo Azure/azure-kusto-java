@@ -8,6 +8,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;
+    private boolean isCompressed = false;
 
     public InputStream getStream() {
         return stream;
@@ -23,6 +24,14 @@ public class StreamSourceInfo extends AbstractSourceInfo {
 
     public void setLeaveOpen(boolean leaveOpen) {
         this.leaveOpen = leaveOpen;
+    }
+
+    public void setIsCompressed(boolean isCompressed) {
+        this.isCompressed = isCompressed;
+    }
+
+    public boolean getIsCompressed() {
+        return isCompressed;
     }
 
     public StreamSourceInfo(InputStream stream) {
@@ -41,7 +50,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        //nothing to validate as of now.
+        // nothing to validate as of now.
     }
 
     @Override

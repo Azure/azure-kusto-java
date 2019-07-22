@@ -7,7 +7,11 @@ import java.net.URISyntaxException;
 
 public class IngestClientFactory {
 
-    public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException, MalformedURLException {
+    public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new IngestClientImpl(csb);
+    }
+
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+        return new StreamingIngestClient(csb);
     }
 }

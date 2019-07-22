@@ -1,6 +1,7 @@
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -31,7 +32,7 @@ public class FileIngestionCompletableFuture {
             IngestionProperties ingestionProperties = new IngestionProperties(
                     System.getProperty("dbName"),
                     System.getProperty("tableName"));
-            ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.json);
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 

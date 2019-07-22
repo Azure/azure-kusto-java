@@ -16,14 +16,14 @@ import java.util.Iterator;
  */
 public class ClientRequestProperties {
     private static final String OPTIONS_KEY = "Options";
+    private static final String PARAMETERS_KEY = "Parameters";
     private static final String OPTION_SERVER_TIMEOUT = "servertimeout";
-    private HashMap<String, Object> properties;
+    private HashMap<String, Object> parameters;
     private HashMap<String, Object> options;
 
     public ClientRequestProperties() {
-        properties = new HashMap<>();
+        parameters = new HashMap<>();
         options = new HashMap<>();
-        properties.put(OPTIONS_KEY, options);
     }
 
     public void setOption(String name, Object value) {
@@ -42,8 +42,34 @@ public class ClientRequestProperties {
         options.clear();
     }
 
+    public void setParameter(String name, Object value) {
+        parameters.put(name, value);
+    }
+
+    public Object getParameter(String name) {
+        return parameters.get(name);
+    }
+
+    public void removeParameter(String name) {
+        parameters.remove(name);
+    }
+
+    public void clearParameters() {
+        parameters.clear();
+    }
+
     public Long getTimeoutInMilliSec() {
-        return (Long) getOption(OPTION_SERVER_TIMEOUT);
+        Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
+        Long timeout = null;
+        if (timeoutObj instanceof Long) {
+            timeout = (Long) timeoutObj;
+        }
+        if (timeoutObj instanceof String) {
+            timeout = Long.valueOf((String) timeoutObj);
+        } else if (timeoutObj instanceof Integer) {
+            timeout = Long.valueOf((Integer) timeoutObj).longValue();
+        }
+        return timeout;
     }
 
     public void setTimeoutInMilliSec(Long timeoutInMs) {
@@ -51,25 +77,50 @@ public class ClientRequestProperties {
     }
 
     JSONObject toJson() {
-        return new JSONObject(properties);
+        try {
+            JSONObject json = new JSONObject();
+            json.put(OPTIONS_KEY, new JSONObject(this.options));
+            json.put(PARAMETERS_KEY, new JSONObject(this.parameters));
+            return json;
+        } catch (JSONException e) {
+            return null;
+        }
     }
 
     public String toString() {
         return toJson().toString();
     }
 
-    public static ClientRequestProperties fromString (String json) throws JSONException {
+    public static ClientRequestProperties fromString(String json) throws JSONException {
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
             JSONObject jsonObj = new JSONObject(json);
-            Iterator it = jsonObj.keys();
+            Iterator<String> it = jsonObj.keys();
             while (it.hasNext()) {
-                String optionName = (String) it.next();
-                crp.setOption(optionName, jsonObj.get(optionName));
+                String propertyName = it.next();
+                if (propertyName.equals(OPTIONS_KEY)) {
+                    JSONObject options = (JSONObject) jsonObj.get(propertyName);
+                    Iterator<String> optionsIt = options.keys();
+                    while (optionsIt.hasNext()) {
+                        String optionName = optionsIt.next();
+                        crp.setOption(optionName, options.get(optionName));
+                    }
+                } else if (propertyName.equals(PARAMETERS_KEY)) {
+                    JSONObject parameters = (JSONObject) jsonObj.get(propertyName);
+                    Iterator<String> parametersIt = parameters.keys();
+                    while (parametersIt.hasNext()) {
+                        String parameterName = parametersIt.next();
+                        crp.setParameter(parameterName, parameters.get(parameterName));
+                    }
+                }
             }
             return crp;
         }
 
         return null;
+    }
+
+    Iterator<HashMap.Entry<String, Object>> getOptions() {
+        return options.entrySet().iterator();
     }
 }

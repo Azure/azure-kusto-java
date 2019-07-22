@@ -23,8 +23,6 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
@@ -243,7 +241,7 @@ class IngestClientImpl implements IngestClient {
             Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
             log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
 
-            long numberOfChars = resultSetToCsv(resultSetSourceInfo.getResultSet(), writer, false);
+            long numberOfChars = writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false);
 
             // utf8 chars are 2 bytes each
             FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
@@ -263,78 +261,7 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    long resultSetToCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow)
-            throws IngestionClientException {
-        final String LINE_SEPARATOR = System.getProperty("line.separator");
-
-        try {
-            String columnSeparator = "";
-
-            ResultSetMetaData metaData = resultSet.getMetaData();
-            int numberOfColumns = metaData.getColumnCount();
-
-            if (includeHeaderAsFirstRow) {
-                for (int column = 0; column < numberOfColumns; column++) {
-                    writer.write(columnSeparator);
-                    writer.write(metaData.getColumnLabel(column + 1));
-
-                    columnSeparator = ",";
-                }
-
-                writer.write(LINE_SEPARATOR);
-            }
-
-            int numberOfRecords = 0;
-            long numberOfChars = 0;
-
-            // Get all rows.
-            while (resultSet.next()) {
-                numberOfChars += writeResultSetRow(resultSet, writer, numberOfColumns);
-                writer.write(LINE_SEPARATOR);
-                // Increment row count
-                numberOfRecords++;
-            }
-
-            log.debug("Number of chars written from column values: {}", numberOfChars);
-
-            long totalNumberOfChars = numberOfChars + numberOfRecords * LINE_SEPARATOR.length();
-
-            log.debug("Wrote resultset to file. CharsCount: {}, ColumnCount: {}, RecordCount: {}"
-                    , numberOfChars, numberOfColumns, numberOfRecords);
-
-            return totalNumberOfChars;
-        } catch (Exception ex) {
-            String msg = "Unexpected error when writing result set to temporary file.";
-            log.error(msg, ex);
-            throw new IngestionClientException(msg);
-        } finally {
-            try {
-                writer.close();
-            } catch (IOException e) { /* ignore */
-            }
-        }
-    }
-
-    private int writeResultSetRow(ResultSet resultSet, Writer writer, int numberOfColumns)
-            throws IOException, SQLException {
-        int numberOfChars = 0;
-        String columnString;
-        String columnSeparator = "";
-
-        for (int i = 1; i <= numberOfColumns; i++) {
-            writer.write(columnSeparator);
-            writer.write('"');
-            columnString = resultSet.getObject(i).toString().replace("\"", "\"\"");
-            writer.write(columnString);
-            writer.write('"');
-
-            columnSeparator = ",";
-            numberOfChars += columnString.length();
-        }
-
-        return numberOfChars
-                + numberOfColumns * 2 * columnSeparator.length() // 2 " per column
-                + numberOfColumns - 1 // last column doesn't have a separator
-                ;
+    long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
+        return ResultSetUtils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 }

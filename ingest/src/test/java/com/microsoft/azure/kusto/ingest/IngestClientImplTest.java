@@ -74,7 +74,7 @@ class IngestClientImplTest {
     @BeforeEach
     void setUpEach() {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        ingestionProperties.setJsonMappingName("mappingName");
+        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.json);
     }
 
     @Test
@@ -179,7 +179,7 @@ class IngestClientImplTest {
 
         doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
         long numberOfChars = 1000;
-        doReturn(numberOfChars).when(ingestClientSpy).resultSetToCsv(any(), any(), anyBoolean());
+        doReturn(numberOfChars).when(ingestClientSpy).writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
@@ -201,7 +201,7 @@ class IngestClientImplTest {
 
         doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
         long numberOfChars = 1000;
-        doReturn(numberOfChars).when(ingestClientSpy).resultSetToCsv(any(), any(), anyBoolean());
+        doReturn(numberOfChars).when(ingestClientSpy).writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
@@ -235,7 +235,7 @@ class IngestClientImplTest {
         doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
         doThrow(new IngestionClientException("error in resultSetToCsv"))
                 .when(ingestClientSpy)
-                .resultSetToCsv(any(), any(), anyBoolean());
+                .writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
 
@@ -287,7 +287,7 @@ class IngestClientImplTest {
         IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ResultSet resultSet = getSampleResultSet();
         StringWriter stringWriter = new StringWriter();
-        long numberOfCharsActual = ingestClient.resultSetToCsv(resultSet, stringWriter, false);
+        long numberOfCharsActual = ingestClient.writeResultSetToWriterAsCsv(resultSet, stringWriter, false);
 
         final String expected = getSampleResultSetDump();
 
@@ -304,7 +304,7 @@ class IngestClientImplTest {
 
         assertThrows(
                 IngestionClientException.class,
-                () -> ingestClient.resultSetToCsv(resultSet, stringWriter, false));
+                () -> ingestClient.writeResultSetToWriterAsCsv(resultSet, stringWriter, false));
     }
 
     @Test
@@ -317,7 +317,7 @@ class IngestClientImplTest {
 
         assertThrows(
                 IngestionClientException.class,
-                () -> ingestClient.resultSetToCsv(resultSet, writer, false));
+                () -> ingestClient.writeResultSetToWriterAsCsv(resultSet, writer, false));
     }
 
     private ResultSet getSampleResultSet() throws SQLException {
