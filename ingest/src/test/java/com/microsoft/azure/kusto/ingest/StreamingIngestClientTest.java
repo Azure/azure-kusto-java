@@ -675,6 +675,6 @@ class StreamingIngestClientTest {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
-        assertTrue(data.equals(output));
+        assertEquals(data, output);
     }
 }

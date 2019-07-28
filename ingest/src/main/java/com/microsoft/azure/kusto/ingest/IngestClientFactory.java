@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 public class IngestClientFactory {
