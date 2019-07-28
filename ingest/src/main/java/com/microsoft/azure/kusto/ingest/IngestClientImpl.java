@@ -12,23 +12,19 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.univocity.parsers.csv.CsvRoutines;
 
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.sql.Date;
-import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.zip.GZIPOutputStream;
 
 class IngestClientImpl implements IngestClient {
 
@@ -214,54 +210,26 @@ class IngestClientImpl implements IngestClient {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
 
-    public IngestionResult ingestFromResultSet(
-            ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
-        return ingestFromResultSet(resultSetSourceInfo, ingestionProperties, "");
-    }
+        // Argument validation:
+        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-    public IngestionResult ingestFromResultSet(
-            ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath)
-            throws IngestionClientException, IngestionServiceException {
+        resultSetSourceInfo.validate();
+        ingestionProperties.validate();
         try {
-            Objects.requireNonNull(resultSetSourceInfo, "resultSetSourceInfo cannot be null");
-            resultSetSourceInfo.validate();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
 
-            File tempFile;
-
-            if (StringUtils.isBlank(tempStoragePath)) {
-                tempFile = File.createTempFile("kusto-resultset", ".csv.gz");
-            } else {
-                log.debug("Temp file will be created in a user specified folder: {}", tempStoragePath);
-                tempFile = File.createTempFile("kusto-resultset", ".csv.gz", new File(tempStoragePath));
-            }
-
-            FileOutputStream fos = new FileOutputStream(tempFile, false);
-            GZIPOutputStream gzipos = new GZIPOutputStream(fos);
-            Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipos), StandardCharsets.UTF_8);
-            log.debug("Writing resultset to temp csv file: {}", tempFile.getAbsolutePath());
-
-            long numberOfChars = writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false);
-
-            // utf8 chars are 2 bytes each
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(tempFile.getAbsolutePath(), numberOfChars * 2);
-            IngestionResult ingestionResult = ingestFromFile(fileSourceInfo, ingestionProperties);
-
-            //noinspection ResultOfMethodCallIgnored
-            tempFile.delete();
-
-            return ingestionResult;
-        } catch (IngestionClientException | IngestionServiceException ex) {
-            log.error("Unexpected error when ingesting a result set.", ex);
-            throw ex;
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
-            String msg = "Failed to write or delete local file";
+            String msg = "Failed to read from ResultSet.";
             log.error(msg, ex);
-            throw new IngestionClientException(msg);
+            throw new IngestionClientException(msg, ex);
         }
-    }
-
-    long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
-        return ResultSetUtils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 }
