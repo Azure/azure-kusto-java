@@ -210,6 +210,7 @@ class IngestClientImpl implements IngestClient {
         return String.format("%s__%s__%s__%s", databaseName, tableName, UUID.randomUUID().toString(), fileName);
     }
 
+    @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
