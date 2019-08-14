@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.univocity.parsers.csv.CsvRoutines;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +18,6 @@ import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
@@ -93,34 +92,28 @@ public class StreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        return ingestFromResultSet(resultSetSourceInfo, ingestionProperties, "");
-    }
-
-    @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath) throws IngestionClientException, IngestionServiceException {
+        // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
         ingestionProperties.validate();
-
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-            Writer writer = new OutputStreamWriter(new BufferedOutputStream(gzipOutputStream), StandardCharsets.UTF_8);
-            if (writeResultSetToWriterAsCsv(resultSetSourceInfo.getResultSet(), writer, false) == 0) {
+            new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            if (byteArrayOutputStream.size() <= 0) {
                 String message = "Empty ResultSet.";
                 log.error(message);
                 throw new IngestionClientException(message);
             }
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
-            streamSourceInfo.setIsCompressed(true);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
-            String message = "Unexpected error when ingesting a ResultSet.";
-            log.error(message, ex);
-            throw new IngestionClientException(message, ex);
+            String msg = "Failed to read from ResultSet.";
+            log.error(msg, ex);
+            throw new IngestionClientException(msg, ex);
         }
     }
 
@@ -210,10 +203,6 @@ public class StreamingIngestClient implements IngestClient {
             uncompressedStream.close();
         }
         return inputStream;
-    }
-
-    long writeResultSetToWriterAsCsv(ResultSet resultSet, Writer writer, boolean includeHeaderAsFirstRow) throws IngestionClientException {
-        return ResultSetUtils.writeResultSetToWriterAsCsv(resultSet, writer, includeHeaderAsFirstRow);
     }
 
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {

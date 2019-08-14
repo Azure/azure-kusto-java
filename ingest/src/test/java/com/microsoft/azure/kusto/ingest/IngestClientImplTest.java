@@ -4,14 +4,12 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
-import com.microsoft.azure.kusto.ingest.result.TableReportIngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -109,6 +107,18 @@ class IngestClientImplTest {
     }
 
     @Test
+    void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
+        ArgumentCaptor<TableServiceEntity> captur = ArgumentCaptor.forClass(TableServiceEntity.class);
+
+        ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
+        assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+    }
+
+    @Test
     void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
         ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -171,89 +181,29 @@ class IngestClientImplTest {
     }
 
     @Test
-    void IngestFromResultSet_DefaultTempFolder_Success() throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept calls to internal methods so it wouldn't be called
-        IngestClientImpl ingestClientSpy = spy(ingestClient);
-        TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
-
-        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
-        long numberOfChars = 1000;
-        doReturn(numberOfChars).when(ingestClientSpy).writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
-
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
-
-        ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
-        verify(ingestClientSpy).ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
-
-        // captor to allow us to inspect the internal call values
-        ArgumentCaptor<FileSourceInfo> fileSourceInfoCaptor = ArgumentCaptor.forClass(FileSourceInfo.class);
-        verify(ingestClientSpy).ingestFromFile(fileSourceInfoCaptor.capture(), any(IngestionProperties.class));
-        FileSourceInfo fileSourceInfoActual = fileSourceInfoCaptor.getValue();
-        assertEquals(numberOfChars * 2, fileSourceInfoActual.getRawSizeInBytes());
-    }
-
-    @Test
-    void IngestFromResultSet_SpecifyTempFolder_Success() throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        IngestClientImpl ingestClientSpy = spy(ingestClient);
-        TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
-
-        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
-        long numberOfChars = 1000;
-        doReturn(numberOfChars).when(ingestClientSpy).writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
-
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
-
-        File tempPath = new File(
-                Paths.get(System.getProperty("java.io.tmpdir"), String.valueOf(System.currentTimeMillis())).toString());
-        //noinspection ResultOfMethodCallIgnored
-        tempPath.mkdirs();
-
-        String tempFolderPath = tempPath.toString();
-
-        ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties, tempFolderPath);
-        verify(ingestClientSpy).ingestFromResultSet(resultSetSourceInfo, ingestionProperties, tempFolderPath);
-
-        // captor to allow us to inspect the internal call values
-        ArgumentCaptor<FileSourceInfo> fileSourceInfoCaptor = ArgumentCaptor.forClass(FileSourceInfo.class);
-        verify(ingestClientSpy).ingestFromFile(fileSourceInfoCaptor.capture(), any(IngestionProperties.class));
-        FileSourceInfo fileSourceInfoActual = fileSourceInfoCaptor.getValue();
-        assertEquals(numberOfChars * 2, fileSourceInfoActual.getRawSizeInBytes());
-        // make sure the temp file was written to the folder we specified
-        Assertions.assertTrue(fileSourceInfoActual.getFilePath().startsWith(tempFolderPath));
-    }
-
-    @Test
-    void IngestFromResultSet_ResultSetToCsv_IngestionClientException()
-            throws IngestionClientException, IngestionServiceException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
-        IngestClientImpl ingestClientSpy = spy(ingestClient);
-        TableReportIngestionResult ingestionResultMock = mock(TableReportIngestionResult.class);
-
-        doReturn(ingestionResultMock).when(ingestClientSpy).ingestFromFile(any(), any());
-        doThrow(new IngestionClientException("error in resultSetToCsv"))
-                .when(ingestClientSpy)
-                .writeResultSetToWriterAsCsv(any(), any(), anyBoolean());
-
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mock(ResultSet.class));
-
+    void IngestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
+        ResultSetSourceInfo resultSetSourceInfo = mock(ResultSetSourceInfo.class);
         assertThrows(
-                IngestionClientException.class,
-                () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
+                IllegalArgumentException.class,
+                () -> ingestClientImpl.ingestFromResultSet(resultSetSourceInfo, null));
     }
 
     @Test
-    void IngestFromResultSet_FileIngest_IngestionClientException()
-            throws IngestionClientException, IngestionServiceException, SQLException {
+    void IngestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> ingestClientImpl.ingestFromResultSet(null, ingestionProperties));
+    }
+
+    @Test
+    void IngestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
+        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
         IngestionClientException ingestionClientException = new IngestionClientException(
                 "Client exception in ingestFromFile");
-        doThrow(ingestionClientException).when(ingestClientSpy).ingestFromFile(any(), any());
+        doThrow(ingestionClientException).when(ingestClientSpy).ingestFromStream(any(), any());
 
         ResultSet resultSet = getSampleResultSet();
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
@@ -264,15 +214,14 @@ class IngestClientImplTest {
     }
 
     @Test
-    void IngestFromResultSet_FileIngest_IngestionServiceException()
-            throws IngestionClientException, IngestionServiceException, SQLException {
+    void IngestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
         IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromFile so it wouldn't be called
+        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
         IngestionServiceException ingestionServiceException = new IngestionServiceException(
                 "Service exception in ingestFromFile");
-        doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromFile(any(), any());
+        doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromStream(any(), any());
 
         ResultSet resultSet = getSampleResultSet();
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
@@ -283,41 +232,28 @@ class IngestClientImplTest {
     }
 
     @Test
-    void ResultSetToCsv_Success() throws SQLException, IngestionClientException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+    void IngestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
+        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
+        IngestClient ingestClientSpy = spy(ingestClient);
+
+        doReturn(null).when(ingestClientSpy).ingestFromStream(any(), any());
+
         ResultSet resultSet = getSampleResultSet();
-        StringWriter stringWriter = new StringWriter();
-        long numberOfCharsActual = ingestClient.writeResultSetToWriterAsCsv(resultSet, stringWriter, false);
+        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        final String expected = getSampleResultSetDump();
+        ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
 
-        assertEquals(expected, stringWriter.toString()); // check the string values
-        assertEquals(expected.length(), numberOfCharsActual); // check the returned length
-    }
+        ArgumentCaptor<StreamSourceInfo> argumentCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
 
-    @Test
-    void ResultSetToCsv_ClosedResultSet_Exception() throws SQLException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        ResultSet resultSet = getSampleResultSet();
-        resultSet.close();
-        StringWriter stringWriter = new StringWriter();
+        verify(ingestClientSpy, atLeastOnce()).ingestFromStream(argumentCaptor.capture(), any());
+        InputStream ingestFromStreamReceivedStream = argumentCaptor.getValue().getStream();
 
-        assertThrows(
-                IngestionClientException.class,
-                () -> ingestClient.writeResultSetToWriterAsCsv(resultSet, stringWriter, false));
-    }
-
-    @Test
-    void ResultSetToCsv_Writer_Exception() throws SQLException, IOException {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        ResultSet resultSet = getSampleResultSet();
-
-        Writer writer = mock(Writer.class);
-        doThrow(new IOException("Some exception")).when(writer).write(anyString());
-
-        assertThrows(
-                IngestionClientException.class,
-                () -> ingestClient.writeResultSetToWriterAsCsv(resultSet, writer, false));
+        int len = ingestFromStreamReceivedStream.available();
+        byte[] streamContent = new byte[len];
+        ingestFromStreamReceivedStream.read(streamContent, 0, len);
+        String stringContent = new String(streamContent);
+        assertEquals(stringContent, getSampleResultSetDump());
     }
 
     private ResultSet getSampleResultSet() throws SQLException {
@@ -337,19 +273,9 @@ class IngestClientImplTest {
 
     private String getSampleResultSetDump() {
         return System.getProperty("line.separator").equals("\n") ?
-                "\"1\",\"leo\"\n\"2\",\"yui\"\n" :
-                "\"1\",\"leo\"\r\n\"2\",\"yui\"\r\n";
+                "1,leo\n2,yui\n" :
+                "1,leo\r\n2,yui\r\n";
     }
 
-    @Test
-    void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
-        ArgumentCaptor<TableServiceEntity> captur = ArgumentCaptor.forClass(TableServiceEntity.class);
 
-        ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
-
-        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
-        assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
-    }
 }

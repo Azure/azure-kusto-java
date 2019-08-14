@@ -582,11 +582,16 @@ class StreamingIngestClientTest {
 
         when(resultSetMetaData.getColumnCount()).thenReturn(3);
 
+        ArgumentCaptor<InputStream> argumentCaptor = ArgumentCaptor.forClass(InputStream.class);
+
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(ByteArrayInputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
+
+        InputStream stream = argumentCaptor.getValue();
+        verifyCompressedStreamContent(stream, "Name,Age,Weight");
     }
 
     @Test
@@ -670,6 +675,6 @@ class StreamingIngestClientTest {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
-        assertTrue(data.equals(output));
+        assertEquals(data, output);
     }
 }

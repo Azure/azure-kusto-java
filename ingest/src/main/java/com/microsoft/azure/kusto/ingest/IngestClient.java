@@ -59,23 +59,6 @@ public interface IngestClient {
             throws IngestionClientException, IngestionServiceException;
 
     /**
-     * <p>Ingest data from a Result Set into Kusto database, using a local temp storage.</p>
-     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
-     * according to the properties mentioned in {@code ingestionProperties}
-     *
-     * @param resultSetSourceInfo The specific SourceInfo to be ingested
-     * @param ingestionProperties Settings used to customize the ingestion operation
-     * @param tempStoragePath     A local folder path that will be used as a temporary storage, data will be deleted on successful ingestion
-     * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
-     * @see ResultSetSourceInfo
-     * @see IngestionProperties
-     */
-    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties, String tempStoragePath)
-            throws IngestionClientException, IngestionServiceException;
-
-    /**
      * <p>Ingest data from an input stream, into Kusto database.</p>
      * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}

@@ -67,7 +67,7 @@ public class ClientRequestProperties {
         if (timeoutObj instanceof String) {
             timeout = Long.valueOf((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
-            timeout = Long.valueOf((Integer) timeoutObj).longValue();
+            timeout = Long.valueOf((Integer) timeoutObj);
         }
         return timeout;
     }
