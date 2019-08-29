@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -171,17 +172,11 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
-        switch (ingestionMapping.getIngestionMappingKind()) {
-            case csv:
-                fullAdditionalProperties.put("csvMappingReference", ingestionMapping.getIngestionMappingReference());
-                break;
-            case json:
-                fullAdditionalProperties.put("jsonMappingReference", ingestionMapping.getIngestionMappingReference());
-                break;
-            case avro:
-                fullAdditionalProperties.put("avroMappingReference", ingestionMapping.getIngestionMappingReference());
-                break;
+        String mapping = ingestionMapping.getIngestionMappingReference();
+        if(StringUtils.isNotBlank(mapping)) {
+            fullAdditionalProperties.put("ingestionMappingReference", mapping);
         }
+
         return fullAdditionalProperties;
     }
 
