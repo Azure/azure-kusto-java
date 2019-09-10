@@ -172,9 +172,9 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
-        String mapping = ingestionMapping.getIngestionMappingReference();
-        if(StringUtils.isNotBlank(mapping)) {
-            fullAdditionalProperties.put("ingestionMappingReference", mapping);
+        String mappingReference = ingestionMapping.getIngestionMappingReference();
+        if(StringUtils.isNotBlank(mappingReference)) {
+            fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
         }
 
         return fullAdditionalProperties;
