@@ -104,9 +104,11 @@ class ResourceManagerTest {
     }
 
     private static Results generateIngestionResourcesResult() {
-        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
-        HashMap<String, String> colNameToTypeMap = new HashMap<>();
-        ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
+        Map<String, Integer> colNameToIndexMap = new HashMap<>();
+        Map<String, String> colNameToTypeMap = new HashMap<>();
+        List<List<String>> valuesList = new ArrayList<>();
+        List<String> headers = new ArrayList<>();
+        headers.add("AuthorizationContext");
 
         colNameToIndexMap.put("colNameToIndexMap", 0);
         colNameToIndexMap.put("StorageRoot", 1);
@@ -122,18 +124,20 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+        return new Results(colNameToIndexMap, headers, colNameToTypeMap, valuesList, "");
     }
 
     private static Results generateIngestionAuthTokenResult() {
-        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
-        HashMap<String, String> colNameToTypeMap = new HashMap<>();
-        ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
+        Map<String, Integer> colNameToIndexMap = new HashMap<>();
+        Map<String, String> colNameToTypeMap = new HashMap<>();
+        List<List<String>> valuesList = new ArrayList<>();
+        List<String> headers = new ArrayList<>();
+        headers.add("AuthorizationContext");
 
         colNameToIndexMap.put("AuthorizationContext", 0);
         colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+        return new Results(colNameToIndexMap, headers, colNameToTypeMap, valuesList, "");
     }
 }

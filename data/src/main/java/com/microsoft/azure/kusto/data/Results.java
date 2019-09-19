@@ -1,27 +1,31 @@
 package com.microsoft.azure.kusto.data;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class Results {
-    private HashMap<String, Integer> columnNameToIndex;
-    private HashMap<String, String> columnNameToType;
-    private ArrayList<ArrayList<String>> values;
-    private String exceptionsMessages;
+    private final Map<String, Integer> columnNameToIndex;
+    private final List<String> headers;
+    private final Map<String, String> columnNameToType;
+    private final List<List<String>> values;
+    private final String exceptionsMessages;
 
-    public Results(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
-                   ArrayList<ArrayList<String>> values, String exceptionsMessages) {
+    public Results(Map<String, Integer> columnNameToIndex,
+                   List<String> headers,
+                   Map<String, String> columnNameToType,
+                   List<List<String>> values,
+                   String exceptionsMessages) {
         this.columnNameToIndex = columnNameToIndex;
+        this.headers = headers;
         this.columnNameToType = columnNameToType;
         this.values = values;
         this.exceptionsMessages = exceptionsMessages;
     }
 
-    public HashMap<String, Integer> getColumnNameToIndex() {
+    public Map<String, Integer> getColumnNameToIndex() {
         return columnNameToIndex;
     }
 
-    public HashMap<String, String> getColumnNameToType() {
+    public Map<String, String> getColumnNameToType() {
         return columnNameToType;
     }
 
@@ -33,11 +37,15 @@ public class Results {
         return columnNameToType.get(columnName);
     }
 
-    public ArrayList<ArrayList<String>> getValues() {
+    public List<List<String>> getValues() {
         return values;
     }
 
     public String getExceptions() {
         return exceptionsMessages;
+    }
+
+    public List<String> getHeaders(){
+       return headers;
     }
 }
