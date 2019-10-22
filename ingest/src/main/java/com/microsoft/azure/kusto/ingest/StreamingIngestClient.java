@@ -18,7 +18,6 @@ import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient implements IngestClient {
@@ -26,7 +25,6 @@ public class StreamingIngestClient implements IngestClient {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private AzureStorageClient azureStorageClient;
     private StreamingClient streamingClient;
-    private final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
@@ -165,7 +163,7 @@ public class StreamingIngestClient implements IngestClient {
         IngestionMapping ingestionMapping = ingestionProperties.getIngestionMapping();
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        if (mappingRequiredFormats.contains(format)) {
+        if (IngestionMapping.mappingRequiredFormats.contains(format)) {
             String message = null;
             if (!format.equals(ingestionMappingKind.name())) {
                 message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", format, ingestionMappingKind.name());
