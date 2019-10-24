@@ -71,8 +71,13 @@ class IngestClientImpl implements IngestClient {
             // Create the ingestion message
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
-            ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes() > 0L ? blobSourceInfo.getRawSizeInBytes()
-                    : estimateBlobRawSize(blobSourceInfo.getBlobPath());
+            String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
+            if (blobSourceInfo.getRawSizeInBytes() > 0L) {
+                ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes();
+            } else {
+                log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
+            }
+
             ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
             ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
@@ -95,7 +100,7 @@ class IngestClientImpl implements IngestClient {
                 status.status = OperationStatus.Pending;
                 status.updatedOn = Date.from(Instant.now());
                 status.ingestionSourceId = ingestionBlobInfo.id;
-                status.setIngestionSourcePath(SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath()));
+                status.setIngestionSourcePath(urlWithoutSecrets);
 
                 azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
@@ -189,13 +194,6 @@ class IngestClientImpl implements IngestClient {
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
         }
-    }
-
-    private long estimateBlobRawSize(String blobPath) throws StorageException, URISyntaxException {
-        long blobSize = azureStorageClient.getBlobSize(blobPath);
-
-        return azureStorageClient.isCompressed(blobPath) ?
-                blobSize * COMPRESSED_FILE_MULTIPLIER : blobSize;
     }
 
     private long estimateFileRawSize(String filePath) {
