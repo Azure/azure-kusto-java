@@ -70,7 +70,12 @@ class AadAuthenticationHelper {
 
         // Set the AAD Authority URI
         String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
-        aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+        String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
+        if (aadAuthorityFromEnv == null){
+            aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+        } else {
+            aadAuthorityUri = String.format("%s%s%s", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
+        }
     }
 
     String acquireAccessToken() throws DataServiceException {
