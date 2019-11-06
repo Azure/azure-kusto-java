@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobOutputStream;
@@ -25,7 +26,6 @@ import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
-
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
@@ -63,12 +63,12 @@ class AzureStorageClient {
         Ensure.stringIsNotBlank(storageUri, "storageUri");
 
         // Check if the file is already compressed:
-        boolean isCompressed = isCompressed(filePath);
+        CompressionType compressionType = getCompression(filePath);
 
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName + (isCompressed ? "" : ".gz"));
+        CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
-        if (!isCompressed) {
+        if (compressionType == null) {
             compressAndUploadFileToBlob(filePath, blob);
         } else {
             File file = new File(filePath);
@@ -166,7 +166,14 @@ class AzureStorageClient {
         return blockBlob.getProperties().getLength();
     }
 
-    boolean isCompressed(String fileName) {
-        return fileName.endsWith(".gz") || fileName.endsWith(".zip");
+    CompressionType getCompression(String fileName) {
+        if (fileName.endsWith(".gz")) {
+            return CompressionType.gz;
+        }
+        if (fileName.endsWith(".zip")){
+            return CompressionType.zip;
+        }
+
+        return null;
     }
 }
