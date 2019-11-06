@@ -172,7 +172,9 @@ class IngestClientImpl implements IngestClient {
                 throw new IngestionClientException("Stream");
             }
             String blobName = genBlobName(
-                    "StreamUpload", ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+                    "StreamUpload",
+                    ingestionProperties.getDatabaseName(),
+                    ingestionProperties.getTableName()) + ".gz";
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
@@ -200,7 +202,7 @@ class IngestClientImpl implements IngestClient {
         File file = new File(filePath);
         long fileSize = file.length();
 
-        return azureStorageClient.isCompressed(filePath) ?
+        return azureStorageClient.getCompression(filePath) == null ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 

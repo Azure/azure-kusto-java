@@ -34,6 +34,8 @@ class Utils {
         } else {
             httpClient = HttpClients.createSystem();
         }
+
+        url = url.replace(" ", "%20");
         HttpPost httpPost = new HttpPost(url);
 
         // Request parameters and other properties.
@@ -56,7 +58,6 @@ class Utils {
                 String responseContent = EntityUtils.toString(entity);
                 String exceptions = null;
                 if (statusLine.getStatusCode() == 200) {
-
                     JSONObject jsonObject = new JSONObject(responseContent);
                     JSONArray tablesArray = jsonObject.getJSONArray("Tables");
                     JSONObject table0 = tablesArray.getJSONObject(0);
