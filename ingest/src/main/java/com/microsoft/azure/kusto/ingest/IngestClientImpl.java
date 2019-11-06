@@ -202,7 +202,7 @@ class IngestClientImpl implements IngestClient {
         File file = new File(filePath);
         long fileSize = file.length();
 
-        return azureStorageClient.getCompression(filePath) == null ?
+        return azureStorageClient.isCompressed(filePath) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
