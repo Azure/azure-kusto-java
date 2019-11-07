@@ -21,6 +21,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -35,8 +39,15 @@ class Utils {
             httpClient = HttpClients.createSystem();
         }
 
-        url = url.replace(" ", "%20");
-        HttpPost httpPost = new HttpPost(url);
+        URI uri = null;
+        try {
+            URL cleanUrl = new URL(url);
+            uri = new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
+        } catch (MalformedURLException | URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        HttpPost httpPost = new HttpPost(uri);
 
         // Request parameters and other properties.
         HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
