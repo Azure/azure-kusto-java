@@ -39,32 +39,25 @@ class Utils {
             httpClient = HttpClients.createSystem();
         }
 
-        URI uri = null;
-        try {
-            URL cleanUrl = new URL(url);
-            uri = new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
-        } catch (MalformedURLException | URISyntaxException e) {
-            e.printStackTrace();
-        }
-
-        HttpPost httpPost = new HttpPost(uri);
-
-        // Request parameters and other properties.
-        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                : new InputStreamEntity(stream);
-        httpPost.setEntity(requestEntity);
-        httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        for (HashMap.Entry<String, String> entry : headers.entrySet()) {
-            httpPost.addHeader(entry.getKey(), entry.getValue());
-        }
-
         try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null) {
+            URL cleanUrl = new URL(url);
+            URI uri = new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
+
+            HttpPost httpPost = new HttpPost(uri);
+
+            // Request parameters and other properties.
+            HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
+                    : new InputStreamEntity(stream);
+            httpPost.setEntity(requestEntity);
+            httpPost.addHeader("Accept-Encoding", "gzip,deflate");
+            for (HashMap.Entry<String, String> entry : headers.entrySet()) {
+                httpPost.addHeader(entry.getKey(), entry.getValue());
+            }
             //Execute and get the response.
             HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
 
             if (entity != null) {
-
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 String exceptions = null;
@@ -108,7 +101,7 @@ class Utils {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
             }
-        } catch (JSONException | IOException e) {
+        } catch (JSONException | IOException | URISyntaxException e) {
             throw new DataClientException(url, "Error in post request", e);
         }
         return null;
