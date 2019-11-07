@@ -3,6 +3,7 @@ import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.StreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -59,7 +60,7 @@ public class StreamingIngest {
         /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
          * When the given stream content is already compressed, we should set this property true to avoid double compression.
          */
-        streamSourceInfo.setIsCompressed(true);
+        streamSourceInfo.setCompressionType(CompressionType.gz);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 

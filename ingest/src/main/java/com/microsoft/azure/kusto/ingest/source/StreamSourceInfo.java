@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest.source;
 
+import com.microsoft.azure.kusto.ingest.Ensure;
+
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
@@ -8,7 +10,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;
-    private boolean isCompressed = false;
+    private CompressionType compressionType = null;
 
     public InputStream getStream() {
         return stream;
@@ -22,16 +24,21 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         return leaveOpen;
     }
 
+    /**
+     * Weather or not the stream will close after reading from it.
+     * NOTE!!! In the streamingIngestClient - the Http client closes the stream anyway, therefore it the stream was set
+     * as not compressed the stream will close regardless of the leaveOpen argument.
+     */
     public void setLeaveOpen(boolean leaveOpen) {
         this.leaveOpen = leaveOpen;
     }
 
-    public void setIsCompressed(boolean isCompressed) {
-        this.isCompressed = isCompressed;
+    public void setCompressionType(CompressionType compressionType) {
+        this.compressionType = compressionType;
     }
 
-    public boolean getIsCompressed() {
-        return isCompressed;
+    public CompressionType getCompressionType() {
+        return compressionType;
     }
 
     public StreamSourceInfo(InputStream stream) {
@@ -50,7 +57,8 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        // nothing to validate as of now.
+        Ensure.argIsNotNull(stream, "stream");
+        Ensure.isTrue(compressionType != CompressionType.zip, "streaming ingest is not working with zip compression");
     }
 
     @Override
@@ -58,3 +66,4 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 }
+

@@ -6,10 +6,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
@@ -92,7 +89,7 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         // When ingesting compressed data, we should set this property true to avoid double compression.
-        streamSourceInfo.setIsCompressed(true);
+        streamSourceInfo.setCompressionType(CompressionType.gz);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -129,7 +126,7 @@ class StreamingIngestClientTest {
         gzipOutputStream.close();
         InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        streamSourceInfo.setIsCompressed(true);
+        streamSourceInfo.setCompressionType(CompressionType.gz);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.json);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
