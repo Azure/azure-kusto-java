@@ -57,7 +57,7 @@ public class StreamingIngestClient implements IngestClient {
             }
             InputStream stream = new FileInputStream(filePath);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-            streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(filePath));
+            streamSourceInfo.setCompressionType(this.azureStorageClient.getCompression(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -126,7 +126,7 @@ public class StreamingIngestClient implements IngestClient {
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
         try {
-            InputStream stream = (streamSourceInfo.getIsCompressed()) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
+            InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
             log.debug("Executing streaming ingest.");
             this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
@@ -134,7 +134,7 @@ public class StreamingIngestClient implements IngestClient {
                     null,
                     format,
                     mappingReference,
-                    streamSourceInfo.getIsCompressed() && streamSourceInfo.isLeaveOpen());
+                    !(streamSourceInfo.getCompressionType() == null  || !streamSourceInfo.isLeaveOpen()));
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);
@@ -213,7 +213,7 @@ public class StreamingIngestClient implements IngestClient {
         }
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
-        streamSourceInfo.setIsCompressed(this.azureStorageClient.isCompressed(blobPath));
+        streamSourceInfo.setCompressionType(this.azureStorageClient.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 }
