@@ -62,39 +62,40 @@ class Utils {
                 String responseContent = EntityUtils.toString(entity);
                 String exceptions = null;
                 if (statusLine.getStatusCode() == 200) {
-                    JSONObject jsonObject = new JSONObject(responseContent);
-                    JSONArray tablesArray = jsonObject.getJSONArray("Tables");
-                    JSONObject table0 = tablesArray.getJSONObject(0);
-                    JSONArray resultsColumns = table0.getJSONArray("Columns");
-
-                    HashMap<String, Integer> columnNameToIndex = new HashMap<>();
-                    HashMap<String, String> columnNameToType = new HashMap<>();
-                    for (int i = 0; i < resultsColumns.length(); i++) {
-                        JSONObject column = resultsColumns.getJSONObject(i);
-                        String columnName = column.getString("ColumnName");
-                        columnNameToIndex.put(columnName, i);
-                        columnNameToType.put(columnName, column.getString("DataType"));
-                    }
-
-                    JSONArray resultsRows = table0.getJSONArray("Rows");
-                    ArrayList<ArrayList<String>> values = new ArrayList<>();
-                    for (int i = 0; i < resultsRows.length(); i++) {
-                        Object row = resultsRows.get(i);
-                        if (row instanceof JSONObject) {
-                            exceptions = ((JSONObject) row).get("Exceptions").toString();
-                        }
-                        JSONArray rowAsJsonArray = resultsRows.getJSONArray(i);
-                        ArrayList<String> rowVector = new ArrayList<>();
-                        for (int j = 0; j < rowAsJsonArray.length(); ++j) {
-                            Object obj = rowAsJsonArray.get(j);
-                            if (obj == JSONObject.NULL) {
-                                rowVector.add(null);
-                            } else {
-                                rowVector.add(obj.toString());
-                            }
-                        }
-                        values.add(rowVector);
-                    }
+                    return new KustoResponseDataSet(new JSONObject(response), url.endsWith("v2/rest/query"));
+//                    JSONObject jsonObject = new JSONObject(responseContent);
+//                    JSONArray tablesArray = jsonObject.getJSONArray("Tables");
+//                    JSONObject table0 = tablesArray.getJSONObject(0);
+//                    JSONArray resultsColumns = table0.getJSONArray("Columns");
+//
+//                    HashMap<String, Integer> columnNameToIndex = new HashMap<>();
+//                    HashMap<String, String> columnNameToType = new HashMap<>();
+//                    for (int i = 0; i < resultsColumns.length(); i++) {
+//                        JSONObject column = resultsColumns.getJSONObject(i);
+//                        String columnName = column.getString("ColumnName");
+//                        columnNameToIndex.put(columnName, i);
+//                        columnNameToType.put(columnName, column.getString("DataType"));
+//                    }
+//
+//                    JSONArray resultsRows = table0.getJSONArray("Rows");
+//                    ArrayList<ArrayList<String>> values = new ArrayList<>();
+//                    for (int i = 0; i < resultsRows.length(); i++) {
+//                        Object row = resultsRows.get(i);
+//                        if (row instanceof JSONObject) {
+//                            exceptions = ((JSONObject) row).get("Exceptions").toString();
+//                        }
+//                        JSONArray rowAsJsonArray = resultsRows.getJSONArray(i);
+//                        ArrayList<String> rowVector = new ArrayList<>();
+//                        for (int j = 0; j < rowAsJsonArray.length(); ++j) {
+//                            Object obj = rowAsJsonArray.get(j);
+//                            if (obj == JSONObject.NULL) {
+//                                rowVector.add(null);
+//                            } else {
+//                                rowVector.add(obj.toString());
+//                            }
+//                        }
+//                        values.add(rowVector);
+//                    }
 
                     return new Results(columnNameToIndex, columnNameToType, values, exceptions);
                 } else {
