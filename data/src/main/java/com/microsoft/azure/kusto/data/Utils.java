@@ -21,6 +21,10 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -34,29 +38,30 @@ class Utils {
         } else {
             httpClient = HttpClients.createSystem();
         }
-        HttpPost httpPost = new HttpPost(url);
-
-        // Request parameters and other properties.
-        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                : new InputStreamEntity(stream);
-        httpPost.setEntity(requestEntity);
-        httpPost.addHeader("Accept-Encoding", "gzip,deflate");
-        for (HashMap.Entry<String, String> entry : headers.entrySet()) {
-            httpPost.addHeader(entry.getKey(), entry.getValue());
-        }
 
         try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null) {
+            URL cleanUrl = new URL(url);
+            URI uri = new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
+
+            HttpPost httpPost = new HttpPost(uri);
+
+            // Request parameters and other properties.
+            HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
+                    : new InputStreamEntity(stream);
+            httpPost.setEntity(requestEntity);
+            httpPost.addHeader("Accept-Encoding", "gzip,deflate");
+            for (HashMap.Entry<String, String> entry : headers.entrySet()) {
+                httpPost.addHeader(entry.getKey(), entry.getValue());
+            }
             //Execute and get the response.
             HttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
 
             if (entity != null) {
-
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 String exceptions = null;
                 if (statusLine.getStatusCode() == 200) {
-
                     JSONObject jsonObject = new JSONObject(responseContent);
                     JSONArray tablesArray = jsonObject.getJSONArray("Tables");
                     JSONObject table0 = tablesArray.getJSONObject(0);
@@ -96,7 +101,7 @@ class Utils {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
             }
-        } catch (JSONException | IOException e) {
+        } catch (JSONException | IOException | URISyntaxException e) {
             throw new DataClientException(url, "Error in post request", e);
         }
         return null;

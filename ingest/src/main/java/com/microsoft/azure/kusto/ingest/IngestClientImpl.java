@@ -179,6 +179,7 @@ class IngestClientImpl implements IngestClient {
                     ingestionProperties.getTableName(),
                     ingestionProperties.getDataFormat(),
                     CompressionType.gz);
+
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
