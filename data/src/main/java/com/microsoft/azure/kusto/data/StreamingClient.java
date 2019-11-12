@@ -20,7 +20,7 @@ public interface StreamingClient {
      * @param streamFormat The format of the data in the provided stream
      * @param mappingName  Pre-defined mapping reference. Required for Json and Avro formats
      * @param leaveOpen    Specifies if the given stream should be closed after reading or be left open
-     * @return {@link Results} object including the ingestion result
+     * @return {@link KustoResponseResultSet} object including the ingestion result
      * @throws DataClientException  An exception originating from a client activity
      * @throws DataServiceException An exception returned from the service
      */

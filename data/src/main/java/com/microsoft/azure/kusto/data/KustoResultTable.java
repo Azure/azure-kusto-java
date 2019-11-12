@@ -16,6 +16,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.chrono.IsoChronology;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.util.*;
 
 public class KustoResultTable implements ResultSet {
@@ -105,10 +110,17 @@ public class KustoResultTable implements ResultSet {
         }
     }
 
+    public ArrayList<Object> getCurrentRow(){
+       return current;
+    }
+
     @Override
     public boolean next() {
-        current = iterator.next();
-        return iterator.hasNext();
+        boolean hasNext = iterator.hasNext();
+        if(hasNext) {
+            current = iterator.next();
+        }
+        return hasNext;
     }
 
     @Override
@@ -131,7 +143,7 @@ public class KustoResultTable implements ResultSet {
 
     @Override
     public String getString(int i)  {
-        return (String) get(i);
+        return get(i).toString();
     }
 
     @Override
@@ -156,7 +168,7 @@ public class KustoResultTable implements ResultSet {
 
     @Override
     public long getLong(int i)  {
-        return (long) get(i);
+        return ((Integer) get(i)).longValue();
     }
 
     @Override
@@ -179,8 +191,8 @@ public class KustoResultTable implements ResultSet {
     }
 
     @Override
-    public Date getDate(int i)  {
-        return (Date) get(i);
+    public Date getDate(int i) throws SQLException {
+        return getDate(i, Calendar.getInstance());
     }
 
     @Override
@@ -216,7 +228,7 @@ public class KustoResultTable implements ResultSet {
 
     @Override
     public String getString(String columnName)  {
-        return (String) get(columnName);
+        return get(columnName).toString();
     }
 
     @Override
@@ -265,8 +277,8 @@ public class KustoResultTable implements ResultSet {
     }
 
     @Override
-    public Date getDate(String columnName) {
-        return (Date) get(columnName);
+    public Date getDate(String columnName) throws SQLException {
+        return getDate(findColumn(columnName));
     }
 
     @Override
@@ -322,6 +334,14 @@ public class KustoResultTable implements ResultSet {
     @Override
     public Object getObject(String columnName) {
         return get(columnName);
+    }
+
+    public JSONObject getJSONObject(String colName){
+        return getJSONObject(findColumn(colName));
+    }
+
+    public JSONObject getJSONObject(int i){
+        return (JSONObject) get(i);
     }
 
     @Override
@@ -749,10 +769,16 @@ public class KustoResultTable implements ResultSet {
         if (calendar == null) {
             return getDate(i);
         }
+        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSXXX");
+//        LocalDateTime.parse("2015-05-09T00:10:23.999750900Z",DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
-        FastDateFormat dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", calendar.getTimeZone());
+
+        FastDateFormat dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", calendar.getTimeZone());
+        FastDateFormat shortDateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss'Z'", calendar.getTimeZone());
+
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
+            case "datetime":
                 try {
                     return new java.sql.Date(dateFormat.parse((getString(i))).getTime());
                 }
@@ -766,7 +792,7 @@ public class KustoResultTable implements ResultSet {
         throw new SQLException("Error parsing timestamp - expected srring or long columns.");      }
 
     @Override
-    public Date getDate(String columnName, Calendar calendar) {
+    public Date getDate(String columnName, Calendar calendar) throws SQLException {
          return getDate(findColumn(columnName));
     }
 
@@ -789,6 +815,7 @@ public class KustoResultTable implements ResultSet {
         FastDateFormat dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", calendar.getTimeZone());
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
+            case "datetime":
                 try {
                     return new Timestamp(dateFormat.parse(getString(i)).getTime());
                 }

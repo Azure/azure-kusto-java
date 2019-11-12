@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,7 +195,7 @@ class ResourceManager {
                     KustoResultTable resultTable = identityTokenResult.next();
                     resultTable.next();
 
-                    identityToken = resultTable.getString("AuthorizationContext");
+                    identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);

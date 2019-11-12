@@ -41,7 +41,7 @@ public class KustoResponseResultSet implements Iterator<KustoResultTable> {
         return it.next();
     }
 
-    public KustoResultTable primaryResults(){
+    public KustoResultTable getPrimaryResults(){
         if (resultTables.size() == 1) {
             return resultTables.get(0);
         }
