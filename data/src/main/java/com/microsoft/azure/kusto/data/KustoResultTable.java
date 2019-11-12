@@ -17,6 +17,7 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -764,32 +765,48 @@ public class KustoResultTable implements ResultSet {
         return getArray(findColumn(columnName));
     }
 
+    /**
+     * This will return the full dateTime from Kusto as sql.Date is less precise
+     */
+    public LocalDateTime getDateTime(int i) throws SQLException {
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
+        return LocalDateTime.parse(getString(i), dateTimeFormatter);
+    }
+
+    public LocalDateTime getDateTime(String columnName) throws SQLException {
+        return getDateTime(findColumn(columnName));
+    }
+
+    /**
+     * This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
+     */
     @Override
     public Date getDate(int i, Calendar calendar) throws SQLException {
         if (calendar == null) {
             return getDate(i);
         }
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSXXX");
-//        LocalDateTime.parse("2015-05-09T00:10:23.999750900Z",DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-
-
-        FastDateFormat dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", calendar.getTimeZone());
-        FastDateFormat shortDateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss'Z'", calendar.getTimeZone());
+        String dateString = getString(i);
+        FastDateFormat dateFormat;
+        if(dateString.length() < 21){
+            dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
+        } else {
+            dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
+        }
 
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
             case "datetime":
                 try {
-                    return new java.sql.Date(dateFormat.parse((getString(i))).getTime());
+                    return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
                 }
                 catch (Exception e) {
-                    throw new SQLException("Error parsing timestamp from string column");
+                    throw new SQLException("Error parsing Date");
                 }
 
             case "long":
                 return new Date(getLong(i));
         }
-        throw new SQLException("Error parsing timestamp - expected srring or long columns.");      }
+        throw new SQLException("Error parsing Date - expected string, long or datetime data type.");      }
 
     @Override
     public Date getDate(String columnName, Calendar calendar) throws SQLException {
@@ -798,7 +815,7 @@ public class KustoResultTable implements ResultSet {
 
     @Override
     public Time getTime(int i, Calendar calendar) throws SQLFeatureNotSupportedException {
-        throw new SQLFeatureNotSupportedException("Method not supported");
+        LocalTime.parse("00:10:23.999750");
     }
 
     @Override

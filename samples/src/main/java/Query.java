@@ -31,6 +31,8 @@ public class Query {
                 ArrayList<Object> currentRow = primaryResults.getCurrentRow();
                 System.out.println(currentRow.get(0).toString());
                 primaryResults.getDate(5);
+                primaryResults.getDate(10);
+
             }
         } catch (Exception e) {
             e.printStackTrace();
