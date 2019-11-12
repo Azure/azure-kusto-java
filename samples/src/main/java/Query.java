@@ -1,7 +1,4 @@
-import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.*;
 
 import java.util.concurrent.TimeUnit;
 
@@ -17,9 +14,9 @@ public class Query {
                     System.getProperty("appTenant"));
             ClientImpl client = new ClientImpl(csb);
 
-            Results results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
+            KustoResponseResultSet results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
 
-            System.out.println(String.format("Kusto sent back %s rows.", results.getValues().size()));
+            System.out.println(String.format("Kusto sent back %s rows.", results.primaryResults()));
 
             // in case we want to pass client request properties
             ClientRequestProperties clientRequestProperties = new ClientRequestProperties();

@@ -128,13 +128,13 @@ public class StreamingIngestClient implements IngestClient {
         try {
             InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
             log.debug("Executing streaming ingest.");
-            this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
+            KustoResponseResultSet kustoResponseDataSet = this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
                     null,
                     format,
                     mappingReference,
-                    !(streamSourceInfo.getCompressionType() == null  || !streamSourceInfo.isLeaveOpen()));
+                    !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);

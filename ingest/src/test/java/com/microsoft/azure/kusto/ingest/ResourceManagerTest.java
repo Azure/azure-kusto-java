@@ -1,14 +1,17 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.KustoResponseResultSet;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +33,7 @@ class ResourceManagerTest {
     private static final String SUCCESS_QUEUE = "successQueue";
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException {
+    static void setUp() throws DataClientException, DataServiceException, SQLException, JSONException, KustoServiceError {
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenReturn(generateIngestionResourcesResult());
 
@@ -103,7 +106,7 @@ class ResourceManagerTest {
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
-    private static Results generateIngestionResourcesResult() {
+    private static KustoResponseResultSet generateIngestionResourcesResult() throws SQLException, JSONException, KustoServiceError {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -122,10 +125,11 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+//        return new KustoResponseResultSet(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+        return new KustoResponseResultSet("", true);
     }
 
-    private static Results generateIngestionAuthTokenResult() {
+    private static KustoResponseResultSet generateIngestionAuthTokenResult() throws SQLException, JSONException, KustoServiceError {
         HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
         HashMap<String, String> colNameToTypeMap = new HashMap<>();
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
@@ -134,6 +138,7 @@ class ResourceManagerTest {
         colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+//        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");TODO
+        return new KustoResponseResultSet("", true);
     }
 }
