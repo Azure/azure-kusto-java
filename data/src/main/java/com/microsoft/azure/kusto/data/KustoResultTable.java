@@ -17,11 +17,8 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.chrono.IsoChronology;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
 import java.util.*;
 
 public class KustoResultTable implements ResultSet {
@@ -167,6 +164,7 @@ public class KustoResultTable implements ResultSet {
         return (int) get(i);
     }
 
+    // TODO: can we avoid this ?
     @Override
     public long getLong(int i)  {
         return ((Integer) get(i)).longValue();
@@ -197,15 +195,22 @@ public class KustoResultTable implements ResultSet {
     }
 
     @Override
-    public Time getTime(int i)  {
-       //TODO
-        return (Time) get(i);
+    public Time getTime(int i) throws SQLException {
+        return new Time(getDate(i).getTime());
     }
 
     @Override
-    public Timestamp getTimestamp(int i)  {
-       //TODO
-        return (Timestamp) get(i);
+    public Timestamp getTimestamp(int i) throws SQLException {
+        switch (columnsAsArray[i].getColumnType()) {
+            case "string":
+            case "datetime":
+                return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T"," "));
+            case "long":
+            case "int":
+                return new Timestamp(getLong(i));
+
+        }
+        throw new SQLException("Error parsing timestamp - expected string or long columns.");
     }
 
     @Override
@@ -283,13 +288,13 @@ public class KustoResultTable implements ResultSet {
     }
 
     @Override
-    public Time getTime(String columnName) {
-        return (Time) get(columnName);
+    public Time getTime(String columnName) throws SQLException {
+        return getTime(findColumn(columnName));
     }
 
     @Override
-    public Timestamp getTimestamp(String columnName) {
-        return (Timestamp) get(columnName);
+    public Timestamp getTimestamp(String columnName) throws SQLException {
+        return getTimestamp(findColumn(columnName));
     }
 
     @Override
@@ -362,14 +367,12 @@ public class KustoResultTable implements ResultSet {
 
     @Override
     public BigDecimal getBigDecimal(int i) {
-       // TODO
-        return (BigDecimal) get(i);
+        return new BigDecimal(getString(i));
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnName) {
-       //TODO
-        return (BigDecimal) get(columnName);
+        return getBigDecimal(findColumn(columnName));
     }
 
     @Override
@@ -768,13 +771,19 @@ public class KustoResultTable implements ResultSet {
     /**
      * This will return the full dateTime from Kusto as sql.Date is less precise
      */
-    public LocalDateTime getDateTime(int i) throws SQLException {
-        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
+    public LocalDateTime getKustoDateTime(int i) {
+        String dateString = getString(i);
+        DateTimeFormatter dateTimeFormatter;
+        if(dateString.length() < 21){
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")).toFormatter();
+        } else {
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
+        }
         return LocalDateTime.parse(getString(i), dateTimeFormatter);
     }
 
-    public LocalDateTime getDateTime(String columnName) throws SQLException {
-        return getDateTime(findColumn(columnName));
+    public LocalDateTime getKustoDateTime(String columnName) {
+        return getKustoDateTime(findColumn(columnName));
     }
 
     /**
@@ -802,8 +811,8 @@ public class KustoResultTable implements ResultSet {
                 catch (Exception e) {
                     throw new SQLException("Error parsing Date");
                 }
-
             case "long":
+            case "int":
                 return new Date(getLong(i));
         }
         throw new SQLException("Error parsing Date - expected string, long or datetime data type.");      }
@@ -814,37 +823,18 @@ public class KustoResultTable implements ResultSet {
     }
 
     @Override
-    public Time getTime(int i, Calendar calendar) throws SQLFeatureNotSupportedException {
-        LocalTime.parse("00:10:23.999750");
+    public Time getTime(int i, Calendar calendar) throws SQLException {
+        return new Time(getDate(i, calendar).getTime());
     }
 
     @Override
-    public Time getTime(String columnName, Calendar calendar) throws SQLFeatureNotSupportedException {
-        throw new SQLFeatureNotSupportedException("Method not supported");
+    public Time getTime(String columnName, Calendar calendar) throws SQLException {
+        return getTime(findColumn(columnName), calendar);
     }
 
     @Override
     public Timestamp getTimestamp(int i, Calendar calendar) throws SQLException {
-        if (calendar == null) {
-            return getTimestamp(i);
-        }
-
-        FastDateFormat dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", calendar.getTimeZone());
-        switch (columnsAsArray[i].getColumnType()) {
-            case "string":
-            case "datetime":
-                try {
-                    return new Timestamp(dateFormat.parse(getString(i)).getTime());
-                }
-                catch (Exception e) {
-                    throw new SQLException("Error parsing timestamp from string column");
-                }
-
-            case "long":
-                return new Timestamp(getLong(i));
-
-         }
-        throw new SQLException("Error parsing timestamp - expected srring or long columns.");
+        return getTimestamp(i);
    }
 
     @Override
