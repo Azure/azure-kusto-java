@@ -164,10 +164,13 @@ public class KustoResultTable implements ResultSet {
         return (int) get(i);
     }
 
-    // TODO: can we avoid this ?
     @Override
     public long getLong(int i)  {
-        return ((Integer) get(i)).longValue();
+       Object obj = get(i);
+       if(obj instanceof Integer){
+           return ((Integer)obj).longValue();
+       }
+        return (long) obj;
     }
 
     @Override
