@@ -1166,4 +1166,8 @@ public class KustoResultTable implements ResultSet {
     public boolean isWrapperFor(Class<?> aClass) {
         return false;
     }
+
+    public int count(){
+        return rows.size();
+    }
 }
