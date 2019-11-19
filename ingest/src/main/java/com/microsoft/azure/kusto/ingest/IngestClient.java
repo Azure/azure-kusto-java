@@ -8,7 +8,9 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
-public interface IngestClient {
+import java.io.Closeable;
+
+public interface IngestClient extends Closeable {
 
     /**
      * <p>Ingest data from a file into Kusto database.</p>
