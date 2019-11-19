@@ -238,4 +238,9 @@ class IngestClientImpl implements IngestClient {
             throw new IngestionClientException(msg, ex);
         }
     }
+
+    @Override
+    public void close() {
+        this.resourceManager.close();
+    }
 }
