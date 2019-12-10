@@ -17,7 +17,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,7 +28,7 @@ import java.util.HashMap;
 
 class Utils {
 
-    static KustoResponseResultSet post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static KustoResponseResults post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -62,7 +61,7 @@ class Utils {
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 if (statusLine.getStatusCode() == 200) {
-                    return new KustoResponseResultSet(responseContent, url.endsWith("v2/rest/query"));
+                    return new KustoResponseResults(responseContent, url.endsWith("v2/rest/query"));
                 }
                 else {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));

@@ -21,7 +21,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 
-public class KustoResultTable implements ResultSet {
+public class KustoResultSetTable implements ResultSet {
+    private static final String tableNamePropertyName = "TableName";
+    private static final String tableIdPropertyName = "TableId";
+    private static final String tableKindPropertyName = "TableKind";
+    private static final String columnsPropertyName = "Columns";
+    private static final String columnNamePropertyName = "ColumnName";
+    private static final String columnTypePropertyName = "ColumnType";
+    private static final String rowsPropertyName = "Rows";
+    private static final String exceptionsPropertyName = "Exceptions";
 
     private ArrayList<ArrayList<Object>> rows = null;
     private String tableName;
@@ -56,30 +64,30 @@ public class KustoResultTable implements ResultSet {
         return tableKind;
     }
 
-    KustoResultTable(JSONObject jsonTable) throws JSONException, KustoServiceError {
-        tableName = jsonTable.optString("TableName");
-        tableId = jsonTable.optInt("TableId");
-        String tableKindString = jsonTable.optString("TableKind");
+    KustoResultSetTable(JSONObject jsonTable) throws JSONException, KustoServiceError {
+        tableName = jsonTable.optString(tableNamePropertyName);
+        tableId = jsonTable.optInt(tableIdPropertyName);
+        String tableKindString = jsonTable.optString(tableKindPropertyName);
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
-        JSONArray columnsJson = jsonTable.optJSONArray("Columns");
+        JSONArray columnsJson = jsonTable.optJSONArray(columnsPropertyName);
         if (columnsJson != null) {
             columnsAsArray = new KustoResultColumn[columnsJson.length()];
             for (int i = 0; i < columnsJson.length(); i++) {
                 JSONObject jsonCol = columnsJson.getJSONObject(i);
-                KustoResultColumn col = new KustoResultColumn(jsonCol.getString("ColumnName"), jsonCol.getString("ColumnType"), i);
+                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(columnNamePropertyName), jsonCol.getString(columnTypePropertyName), i);
                 columnsAsArray[i] = col;
-                columns.put(jsonCol.getString("ColumnName"), col);
+                columns.put(jsonCol.getString(columnNamePropertyName), col);
             }
         }
 
         JSONArray exceptions;
-        JSONArray jsonRows = jsonTable.optJSONArray("Rows");
+        JSONArray jsonRows = jsonTable.optJSONArray(rowsPropertyName);
         if (jsonRows != null) {
             ArrayList<ArrayList<Object>> values = new ArrayList<>();
             for (int i = 0; i < jsonRows.length(); i++) {
                 Object row = jsonRows.get(i);
                 if (row instanceof JSONObject) {
-                    exceptions = ((JSONObject) row).getJSONArray("Exceptions");
+                    exceptions = ((JSONObject) row).getJSONArray(exceptionsPropertyName);
                     if (exceptions.length() == 1) {
                         String message = exceptions.getString(0);
                         throw new KustoServiceError(message);

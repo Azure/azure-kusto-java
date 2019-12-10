@@ -42,17 +42,17 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoResponseResultSet execute(String command) throws DataServiceException, DataClientException {
+    public KustoResponseResults execute(String command) throws DataServiceException, DataClientException {
         return execute(DEFAULT_DATABASE_NAME, command);
     }
 
     @Override
-    public KustoResponseResultSet execute(String database, String command) throws DataServiceException, DataClientException {
+    public KustoResponseResults execute(String database, String command) throws DataServiceException, DataClientException {
         return execute(database, command, null);
     }
 
     @Override
-    public KustoResponseResultSet execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public KustoResponseResults execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation:
         if (StringUtils.isAnyEmpty(database, command)) {
             throw new IllegalArgumentException("database or command are empty");
@@ -96,7 +96,7 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoResponseResultSet executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public KustoResponseResults executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }

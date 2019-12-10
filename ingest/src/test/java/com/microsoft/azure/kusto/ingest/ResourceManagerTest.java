@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResponseResultSet;
+import com.microsoft.azure.kusto.data.KustoResponseResults;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
@@ -108,7 +108,7 @@ class ResourceManagerTest {
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
-    private static KustoResponseResultSet generateIngestionResourcesResult() throws SQLException, JSONException, KustoServiceError, IOException {
+    private static KustoResponseResults generateIngestionResourcesResult() throws SQLException, JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
@@ -123,10 +123,10 @@ class ResourceManagerTest {
                 "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 + listAsJson + "}]}";
 
-        return new KustoResponseResultSet(response, false);
+        return new KustoResponseResults(response, false);
     }
 
-    private static KustoResponseResultSet generateIngestionAuthTokenResult() throws SQLException, JSONException, KustoServiceError, IOException {
+    private static KustoResponseResults generateIngestionAuthTokenResult() throws SQLException, JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
@@ -134,6 +134,6 @@ class ResourceManagerTest {
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
                 listAsJson + "}]}";
 
-        return new KustoResponseResultSet(response, false);
+        return new KustoResponseResults(response, false);
     }
 }

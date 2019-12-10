@@ -5,9 +5,9 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 public interface Client {
 
-    KustoResponseResultSet execute(String command) throws DataServiceException, DataClientException;
+    KustoResponseResults execute(String command) throws DataServiceException, DataClientException;
 
-    KustoResponseResultSet execute(String database, String command) throws DataServiceException, DataClientException;
+    KustoResponseResults execute(String database, String command) throws DataServiceException, DataClientException;
 
-    KustoResponseResultSet execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+    KustoResponseResults execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 }

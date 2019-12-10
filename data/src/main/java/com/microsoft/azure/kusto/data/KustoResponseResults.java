@@ -5,20 +5,25 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.sql.SQLException;
 import java.util.*;
 
-public class KustoResponseResultSet implements Iterator<KustoResultTable> {
+public class KustoResponseResults implements Iterator<KustoResultSetTable> {
     private final static Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>(){{
         put("QueryResult",WellKnownDataSet.PrimaryResult);
         put("QueryProperties",WellKnownDataSet.QueryProperties);
         put("QueryStatus",WellKnownDataSet.QueryCompletionInformation);
     }};
+    private static final String tableNamePropertyName = "Name";
+    private static final String tableIdPropertyName = "Id";
+    private static final String tableKindPropertyName = "Kind";
+    private static final String tablesListPropertyName = "Tables";
+    private static final String dataTableFrameTypePropertyName = "DataTable";
+    private static final String frameTypePropertyName = "FrameType";
 
-    private ArrayList<KustoResultTable> resultTables = new ArrayList<>();
-    private final Iterator<KustoResultTable> it;
+    private ArrayList<KustoResultSetTable> resultTables = new ArrayList<>();
+    private final Iterator<KustoResultSetTable> it;
 
-    public KustoResponseResultSet(String response, boolean isV2) throws JSONException, KustoServiceError, SQLException {
+    public KustoResponseResults(String response, boolean isV2) throws JSONException, KustoServiceError {
         if (isV2){
             createFromV2Response(response);
         } else {
@@ -27,7 +32,7 @@ public class KustoResponseResultSet implements Iterator<KustoResultTable> {
         it = resultTables.iterator();
     }
 
-    public ArrayList<KustoResultTable> getResultTables() {
+    public ArrayList<KustoResultSetTable> getResultTables() {
         return resultTables;
     }
 
@@ -37,24 +42,24 @@ public class KustoResponseResultSet implements Iterator<KustoResultTable> {
     }
 
     @Override
-    public KustoResultTable next() {
+    public KustoResultSetTable next() {
         return it.next();
     }
 
-    public KustoResultTable getPrimaryResults(){
+    public KustoResultSetTable getPrimaryResults(){
         if (resultTables.size() == 1) {
             return resultTables.get(0);
         }
 
-        return resultTables.stream().filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult)).findFirst().get();
+        return resultTables.stream().filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult)).findFirst().orElse(null);
     }
 
-    private void createFromV1Response(String response) throws JSONException, KustoServiceError, SQLException {
+    private void createFromV1Response(String response) throws JSONException, KustoServiceError {
         JSONObject jsonObject = new JSONObject(response);
-        JSONArray jsonArray = jsonObject.getJSONArray("Tables");
+        JSONArray jsonArray = jsonObject.getJSONArray(tablesListPropertyName);
         for (int i = 0; i < jsonArray.length(); i++){
             JSONObject table = jsonArray.getJSONObject(i);
-            resultTables.add(new KustoResultTable(table));
+            resultTables.add(new KustoResultSetTable(table));
         }
 
         if(resultTables.size() <= 2){
@@ -66,14 +71,14 @@ public class KustoResponseResultSet implements Iterator<KustoResultTable> {
                 resultTables.get(1).setTableId(1);
             }
         } else {
-            KustoResultTable toc = resultTables.get(resultTables.size() - 1);
+            KustoResultSetTable toc = resultTables.get(resultTables.size() - 1);
             toc.setTableKind(WellKnownDataSet.TableOfContents);
             toc.setTableId(resultTables.size() - 1);
             for (int i = 0; i < resultTables.size() - 1; i++) {
                 JSONObject object = (JSONObject) toc.getObject(i);
-                resultTables.get(i).setTableName(object.getString("Name"));
-                resultTables.get(i).setTableId(toc.getInt("Id"));
-                resultTables.get(i).setTableKind(tablesKindsMap.get(toc.getString("Kind")));
+                resultTables.get(i).setTableName(object.getString(tableNamePropertyName));
+                resultTables.get(i).setTableId(toc.getInt(tableIdPropertyName));
+                resultTables.get(i).setTableKind(tablesKindsMap.get(toc.getString(tableKindPropertyName)));
             }
         }
     }
@@ -82,8 +87,8 @@ public class KustoResponseResultSet implements Iterator<KustoResultTable> {
         JSONArray jsonArray = new JSONArray(response);
         for (int i = 0; i < jsonArray.length(); i++){
             JSONObject table = jsonArray.getJSONObject(i);
-            if (table.optString("FrameType").equals("DataTable")){
-                resultTables.add(new KustoResultTable(table));
+            if (table.optString(frameTypePropertyName).equals(dataTableFrameTypePropertyName)){
+                resultTables.add(new KustoResultSetTable(table));
             }
         }
     }

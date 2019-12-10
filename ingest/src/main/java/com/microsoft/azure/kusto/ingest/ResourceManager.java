@@ -1,20 +1,16 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResponseResultSet;
-import com.microsoft.azure.kusto.data.KustoResultTable;
-import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.KustoResponseResults;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -145,10 +141,10 @@ class ResourceManager {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoResponseResultSet  ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                KustoResponseResults ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
-                    KustoResultTable table = ingestionResourcesResults.next();
+                    KustoResultSetTable table = ingestionResourcesResults.next();
 
                     // Add the received values to a new IngestionResources map:
                     while(table.next()){
@@ -188,11 +184,11 @@ class ResourceManager {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                KustoResponseResultSet identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
+                KustoResponseResults identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
                         && identityTokenResult.getResultTables().size() > 0) {
-                    KustoResultTable resultTable = identityTokenResult.next();
+                    KustoResultSetTable resultTable = identityTokenResult.next();
                     resultTable.next();
 
                     identityToken = resultTable.getString(0);
