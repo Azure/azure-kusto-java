@@ -232,7 +232,7 @@ public class IngestionProperties {
         Ensure.argIsNotNull(reportMethod, "reportMethod");
     }
 
-    public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, parquet}
+    public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, parquet, orc}
 
     public enum IngestionReportLevel {
         FailuresOnly,

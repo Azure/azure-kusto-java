@@ -14,7 +14,7 @@ public class IngestionServiceException extends Exception {
     }
 
     public IngestionServiceException(String ingestionSource, String message, Exception exception) {
-        super(message, exception);
+        this(message, exception);
         this.ingestionSource = ingestionSource;
     }
 }
