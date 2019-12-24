@@ -144,7 +144,7 @@ class ResourceManager implements Closeable {
 
     private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-        // TODO we might want to force refresh if coming from ingestion flow
+        // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
