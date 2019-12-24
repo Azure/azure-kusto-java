@@ -30,7 +30,7 @@
     </developers>
 
     <properties>
-        <revision>1.3.0</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>1.4.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
