@@ -59,7 +59,7 @@ class IngestClientImplTest {
 
         when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
 
-        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
+        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
         doNothing().when(azureStorageClientMock)

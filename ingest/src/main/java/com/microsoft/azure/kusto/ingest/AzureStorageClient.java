@@ -53,10 +53,12 @@ class AzureStorageClient {
         table.execute(insert);
     }
 
-    CloudBlockBlob  uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DATA_FORMAT data_format)
+    CloudBlockBlob  uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DATA_FORMAT dataFormat)
             throws URISyntaxException, StorageException, IOException {
+        Ensure.fileExists(filePath);
+
         CompressionType sourceCompressionType = getCompression(filePath);
-        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, data_format.name()));
+        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat.name()));
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, Boolean shouldCompress)
