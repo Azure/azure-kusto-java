@@ -53,7 +53,13 @@ class AzureStorageClient {
         table.execute(insert);
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri)
+    CloudBlockBlob  uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DATA_FORMAT data_format)
+            throws URISyntaxException, StorageException, IOException {
+        CompressionType sourceCompressionType = getCompression(filePath);
+        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, data_format.name()));
+    }
+
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, Boolean shouldCompress)
             throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
@@ -62,13 +68,10 @@ class AzureStorageClient {
         Ensure.stringIsNotBlank(blobName, "blobName");
         Ensure.stringIsNotBlank(storageUri, "storageUri");
 
-        // Check if the file is already compressed:
-        CompressionType compressionType = getCompression(filePath);
-
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
-        if (compressionType == null) {
+        if (shouldCompress) {
             compressAndUploadFileToBlob(filePath, blob);
         } else {
             File file = new File(filePath);
@@ -101,7 +104,7 @@ class AzureStorageClient {
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
 
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean compress)
+    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
             throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
@@ -113,7 +116,7 @@ class AzureStorageClient {
         CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
-        if (compress) {
+        if (shouldCompress) {
             compressAndUploadStream(inputStream, blob);
         } else {
             uploadStream(inputStream, blob);
@@ -175,5 +178,12 @@ class AzureStorageClient {
         }
 
         return null;
+    }
+
+    // We don't support compression of Parquet and Orc files
+    boolean shouldCompress(CompressionType sourceCompressionType, String data_format){
+        return sourceCompressionType == null
+            && !data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
+            && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name());
     }
 }

@@ -132,6 +132,8 @@ class IngestClientImpl implements IngestClient {
         try {
             String filePath = fileSourceInfo.getFilePath();
             Ensure.fileExists(filePath);
+            CompressionType sourceCompressionType = azureStorageClient.getCompression(filePath);
+            boolean shouldCompress = azureStorageClient.shouldCompress(sourceCompressionType, ingestionProperties.getDataFormat());
 
             File file = new File(filePath);
             String blobName = genBlobName(
@@ -139,10 +141,10 @@ class IngestClientImpl implements IngestClient {
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     ingestionProperties.getDataFormat(),
-                    CompressionType.gz);
+                    shouldCompress ? CompressionType.gz : null);
 
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE));
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath);
@@ -173,12 +175,13 @@ class IngestClientImpl implements IngestClient {
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
                 throw new IngestionClientException("Stream");
             }
+
             String blobName = genBlobName(
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     ingestionProperties.getDataFormat(),
-                    CompressionType.gz);
+                    streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
@@ -206,13 +209,12 @@ class IngestClientImpl implements IngestClient {
     private long estimateFileRawSize(String filePath) {
         File file = new File(filePath);
         long fileSize = file.length();
-
-        return azureStorageClient.getCompression(filePath) == null ?
+        return azureStorageClient.getCompression(filePath) != null ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
     private String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
-        return String.format("%s__%s__%s__%s.%s.%s", databaseName, tableName, UUID.randomUUID().toString(), fileName, dataFormat, compressionType);
+        return String.format("%s__%s__%s__%s.%s%s", databaseName, tableName, UUID.randomUUID().toString(), fileName, dataFormat, compressionType == null ? "" : "." + compressionType);
     }
 
     @Override
