@@ -183,11 +183,16 @@ class IngestClientImpl implements IngestClient {
                     ingestionProperties.getDataFormat(),
                     streamSourceInfo.getCompressionType() != null ? streamSourceInfo.getCompressionType() : CompressionType.gz);
 
+            boolean shouldCompress =
+                    streamSourceInfo.getCompressionType() == null
+                    && !ingestionProperties.getDataFormat().equals(IngestionProperties.DATA_FORMAT.parquet.name())
+                    && !ingestionProperties.getDataFormat().equals(IngestionProperties.DATA_FORMAT.orc.name());
+
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
-                    true
+                    shouldCompress
             );
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
