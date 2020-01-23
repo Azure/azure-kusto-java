@@ -185,7 +185,8 @@ class AzureStorageClient {
     // We don't support compression of Parquet and Orc files
     static boolean shouldCompress(CompressionType sourceCompressionType, String data_format){
         return sourceCompressionType == null
-            && !data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
-            && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name());
+            && (data_format == null ||
+                (!data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
+                && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name())));
     }
 }
