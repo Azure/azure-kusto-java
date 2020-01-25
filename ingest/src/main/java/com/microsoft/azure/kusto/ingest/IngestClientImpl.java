@@ -132,8 +132,8 @@ class IngestClientImpl implements IngestClient {
         try {
             String filePath = fileSourceInfo.getFilePath();
             Ensure.fileExists(filePath);
-            CompressionType sourceCompressionType = azureStorageClient.getCompression(filePath);
-            boolean shouldCompress = azureStorageClient.shouldCompress(sourceCompressionType, ingestionProperties.getDataFormat());
+            CompressionType sourceCompressionType = AzureStorageClient.getCompression(filePath);
+            boolean shouldCompress = AzureStorageClient.shouldCompress(sourceCompressionType, ingestionProperties.getDataFormat());
 
             File file = new File(filePath);
             String blobName = genBlobName(
@@ -141,13 +141,13 @@ class IngestClientImpl implements IngestClient {
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     ingestionProperties.getDataFormat(),
-                    shouldCompress ? CompressionType.gz : null);
+                    shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(filePath);
+                    estimateFileRawSize(filePath, IngestionProperties.DATA_FORMAT.valueOf(ingestionProperties.getDataFormat()));
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
@@ -175,23 +175,24 @@ class IngestClientImpl implements IngestClient {
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
                 throw new IngestionClientException("Stream");
             }
+            boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), ingestionProperties.getDataFormat());
 
             String blobName = genBlobName(
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     ingestionProperties.getDataFormat(),
-                    streamSourceInfo.getCompressionType());
+                    shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
-                    true
+                    shouldCompress
             );
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                    blobPath, 0); // TODO: check if we can get the rawDataSize locally
+                    blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -206,14 +207,16 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private long estimateFileRawSize(String filePath) {
+    private long estimateFileRawSize(String filePath, IngestionProperties.DATA_FORMAT format) {
         File file = new File(filePath);
         long fileSize = file.length();
-        return azureStorageClient.getCompression(filePath) != null ?
-                fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
+        return (AzureStorageClient.getCompression(filePath) != null
+                || format == IngestionProperties.DATA_FORMAT.parquet
+                || format == IngestionProperties.DATA_FORMAT.orc) ?
+                    fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
-    private String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
+    String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
         return String.format("%s__%s__%s__%s.%s%s", databaseName, tableName, UUID.randomUUID().toString(), fileName, dataFormat, compressionType == null ? "" : "." + compressionType);
     }
 

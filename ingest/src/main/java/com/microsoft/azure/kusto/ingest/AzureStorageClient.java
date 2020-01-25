@@ -171,7 +171,7 @@ class AzureStorageClient {
         return blockBlob.getProperties().getLength();
     }
 
-    CompressionType getCompression(String fileName) {
+    static CompressionType getCompression(String fileName) {
         if (fileName.endsWith(".gz")) {
             return CompressionType.gz;
         }
@@ -183,9 +183,10 @@ class AzureStorageClient {
     }
 
     // We don't support compression of Parquet and Orc files
-    boolean shouldCompress(CompressionType sourceCompressionType, String data_format){
+    static boolean shouldCompress(CompressionType sourceCompressionType, String data_format){
         return sourceCompressionType == null
-            && !data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
-            && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name());
+            && (data_format == null ||
+                (!data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
+                && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name())));
     }
 }
