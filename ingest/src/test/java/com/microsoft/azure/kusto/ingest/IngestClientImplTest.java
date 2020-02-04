@@ -4,10 +4,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,7 +16,9 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.function.BiFunction;
 
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -59,7 +58,7 @@ class IngestClientImplTest {
 
         when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
 
-        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString()))
+        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
 
         doNothing().when(azureStorageClientMock)
@@ -254,6 +253,46 @@ class IngestClientImplTest {
         ingestFromStreamReceivedStream.read(streamContent, 0, len);
         String stringContent = new String(streamContent);
         assertEquals(stringContent, getSampleResultSetDump());
+    }
+    @Test
+
+    void generateName() {
+        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        class Holder {
+            private String name;
+        }
+        final Holder holder = new Holder();
+        holder.name = "fileName";
+        BiFunction<IngestionProperties.DATA_FORMAT, CompressionType, String> genName =
+            (IngestionProperties.DATA_FORMAT format, CompressionType compression) -> {
+            boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format.name());
+            return ingestClient.genBlobName(
+                    holder.name,
+                    "db1",
+                    "t1",
+                    format.name(),
+                    shouldCompress ? CompressionType.gz : compression);
+        };
+        String csvNoCompression = genName.apply(DATA_FORMAT.csv, null);
+        assert(csvNoCompression.endsWith("fileName.csv.gz"));
+
+        String csvCompression = genName.apply(DATA_FORMAT.csv, CompressionType.zip);
+        assert(csvCompression.endsWith("fileName.csv.zip"));
+
+        String parquet = genName.apply(DATA_FORMAT.parquet, null);
+        assert(parquet.endsWith("fileName.parquet"));
+
+        String avroLocalFileName = "avi.avro";
+        String avroLocalCompressFileName = "avi.avro.gz";
+        CompressionType compressionTypeRes = AzureStorageClient.getCompression(avroLocalFileName);
+        CompressionType compressionTypeRes2 = AzureStorageClient.getCompression(avroLocalCompressFileName);
+        holder.name = avroLocalFileName;
+        String avroName = genName.apply(DATA_FORMAT.avro, compressionTypeRes);
+        assert(avroName.endsWith("avi.avro.avro.gz"));
+
+        holder.name = avroLocalCompressFileName;
+        String avroNameCompression = genName.apply(DATA_FORMAT.avro, compressionTypeRes2);
+        assert(avroNameCompression.endsWith("avi.avro.gz.avro.gz"));
     }
 
     private ResultSet getSampleResultSet() throws SQLException {

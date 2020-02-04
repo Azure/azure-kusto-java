@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Properties;
 
 class Utils {
 
@@ -74,6 +75,13 @@ class Utils {
     }
 
     static String GetPackageVersion() {
-        return Utils.class.getPackage().getImplementationVersion();
+        try {
+            Properties props = new Properties();
+            try (InputStream versionFileStream = Utils.class.getResourceAsStream("/app.properties")) {
+                props.load(versionFileStream);
+                return props.getProperty("version").trim();
+            }
+        } catch (Exception ignored) {}
+        return "";
     }
 }

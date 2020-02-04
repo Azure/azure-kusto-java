@@ -217,4 +217,9 @@ public class StreamingIngestClient implements IngestClient {
         streamSourceInfo.setCompressionType(this.azureStorageClient.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
+
+    @Override
+    public void close() {
+
+    }
 }

@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-class ResourceManager {
+class ResourceManager implements Closeable {
 
     public enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
@@ -56,13 +57,20 @@ class ResourceManager {
 
     private Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
+    private final Timer timer;
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
 
     ResourceManager(Client client) {
         this.client = client;
+        timer = new Timer(true);
         init();
+    }
+
+    @Override
+    public void close() {
+        timer.cancel();
+        timer.purge();
     }
 
     private void init() {
@@ -89,7 +97,6 @@ class ResourceManager {
             }
         };
 
-        Timer timer = new Timer(true);
         long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
         timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
         timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
@@ -138,6 +145,7 @@ class ResourceManager {
 
     private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
+        // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");

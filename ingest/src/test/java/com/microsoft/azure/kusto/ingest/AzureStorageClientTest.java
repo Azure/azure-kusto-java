@@ -74,7 +74,7 @@ class AzureStorageClientTest {
             throws IOException, StorageException, URISyntaxException {
         doNothing().when(azureStorageClientSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
 
-        azureStorageClientSpy.uploadLocalFileToBlob(testFilePath, "blobName", "https://ms.com/blob");
+        azureStorageClientSpy.uploadLocalFileToBlob(testFilePath, "blobName", "https://ms.com/blob", IngestionProperties.DATA_FORMAT.csv);
         verify(azureStorageClientSpy).compressAndUploadFileToBlob(anyString(), any(CloudBlockBlob.class));
     }
 
@@ -83,7 +83,7 @@ class AzureStorageClientTest {
             throws IOException, StorageException, URISyntaxException {
         doNothing().when(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
 
-        azureStorageClientSpy.uploadLocalFileToBlob(testFilePathCompressed, "blobName", "https://ms.com/blob");
+        azureStorageClientSpy.uploadLocalFileToBlob(testFilePathCompressed, "blobName", "https://ms.com/blob", IngestionProperties.DATA_FORMAT.csv);
         verify(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(CloudBlockBlob.class));
     }
 
@@ -91,21 +91,21 @@ class AzureStorageClientTest {
     void UploadLocalFileToBlob_NullFilePath_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(null, "blobName", "storageUri"));
+                () -> azureStorageClient.uploadLocalFileToBlob(null, "blobName", "storageUri", IngestionProperties.DATA_FORMAT.csv));
     }
 
     @Test
     void UploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, null, "storageUri"));
+                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, null, "storageUri", IngestionProperties.DATA_FORMAT.csv));
     }
 
     @Test
     void UploadLocalFileToBlob_NullStorageUri_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, "blobName", null));
+                () -> azureStorageClient.uploadLocalFileToBlob(testFilePath, "blobName", null, IngestionProperties.DATA_FORMAT.csv));
     }
 
     @Test
@@ -113,7 +113,7 @@ class AzureStorageClientTest {
         String notExistingFilePath = "not.existing.file.path";
         assertThrows(
                 IOException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(notExistingFilePath, "blobName", "storageUri"));
+                () -> azureStorageClient.uploadLocalFileToBlob(notExistingFilePath, "blobName", "storageUri", IngestionProperties.DATA_FORMAT.csv));
     }
 
     @Test
