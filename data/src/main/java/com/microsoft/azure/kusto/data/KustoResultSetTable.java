@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 
+// This class does not keep an open connection with the cluster - the results are evaluated once and can be get by getData()
 public class KustoResultSetTable implements ResultSet {
     private static final String tableNamePropertyName = "TableName";
     private static final String tableIdPropertyName = "TableId";
@@ -40,7 +41,7 @@ public class KustoResultSetTable implements ResultSet {
     private Iterator<ArrayList<Object>> iterator = Collections.emptyIterator();
     private ArrayList<Object> current = null;
   
-   public String getTableName() {
+    public String getTableName() {
         return tableName;
     }
 
@@ -109,11 +110,11 @@ public class KustoResultSetTable implements ResultSet {
             }
 
             rows = values;
+        } else {
+            rows = new ArrayList<>();
         }
 
-        if (rows != null) {
-            iterator = rows.iterator();
-        }
+        iterator = rows.iterator();
     }
 
     public ArrayList<Object> getCurrentRow(){
@@ -127,6 +128,10 @@ public class KustoResultSetTable implements ResultSet {
             current = iterator.next();
         }
         return hasNext;
+    }
+
+    public ArrayList<ArrayList<Object>> getData(){
+        return rows;
     }
 
     @Override

@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -68,7 +67,7 @@ class Utils {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
             }
-        } catch (JSONException | IOException | URISyntaxException | KustoServiceError | SQLException e) {
+        } catch (JSONException | IOException | URISyntaxException | KustoServiceError e) {
             throw new DataClientException(url, "Error in post request", e);
         }
         return null;

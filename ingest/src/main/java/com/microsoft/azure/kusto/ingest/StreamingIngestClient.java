@@ -23,20 +23,17 @@ import java.util.zip.GZIPOutputStream;
 public class StreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private AzureStorageClient azureStorageClient;
     private StreamingClient streamingClient;
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = ClientFactory.createStreamingClient(csb);
-        this.azureStorageClient = new AzureStorageClient();
     }
 
     StreamingIngestClient(StreamingClient streamingClient) {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = streamingClient;
-        this.azureStorageClient = new AzureStorageClient();
     }
 
     @Override
@@ -57,7 +54,7 @@ public class StreamingIngestClient implements IngestClient {
             }
             InputStream stream = new FileInputStream(filePath);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-            streamSourceInfo.setCompressionType(this.azureStorageClient.getCompression(filePath));
+            streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -214,7 +211,7 @@ public class StreamingIngestClient implements IngestClient {
         }
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(this.azureStorageClient.getCompression(blobPath));
+        streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 
