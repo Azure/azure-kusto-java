@@ -1,6 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
 import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jackson.annotate.JsonAutoDetect;
+import org.codehaus.jackson.annotate.JsonMethod;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -173,8 +175,15 @@ public class IngestionProperties {
         fullAdditionalProperties.putAll(additionalProperties);
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
-        if(StringUtils.isNotBlank(mappingReference)) {
+        if (StringUtils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
+            fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
+        } else if (ingestionMapping.getIngestionMapping() != null) {
+            ObjectMapper objectMapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);
+            ;
+            String mapping = objectMapper.writeValueAsString(ingestionMapping.getIngestionMapping());
+            fullAdditionalProperties.put("ingestionMapping", mapping);
+            fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
         }
 
         return fullAdditionalProperties;
@@ -208,8 +217,20 @@ public class IngestionProperties {
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
-        this.ingestionMapping.setIngestionMapping(mappingReference, ingestionMappingKind);
+        this.ingestionMapping.setIngestionMappingReference(mappingReference, ingestionMappingKind);
     }
+
+    /**
+     * Please use a mappingReference for production as passing the mapping every time is wasteful
+     * Creates an ingestion mapping using the described column mappings:
+     *
+     * @param columnMappings The columnMapping used for this ingestion     .
+     * @param ingestionMappingKind The data format of the object to map.
+     */
+    public void setIngestionMapping(ColumnMapping[] columnMappings,IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+        this.ingestionMapping.setIngestionMapping(columnMappings, ingestionMappingKind);
+    }
+
 
     public void setIngestionMapping(IngestionMapping ingestionMapping) {
         this.ingestionMapping = ingestionMapping;
@@ -230,6 +251,8 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
+        Ensure.argIsNotNull(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference())
+                && ingestionMapping.getIngestionMapping() != null, "ingestionMapping");
     }
 
     public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, parquet, orc}

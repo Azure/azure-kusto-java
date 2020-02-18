@@ -66,7 +66,7 @@ public class StreamingIngest {
 
         // Open JSON File Stream and Ingest
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -87,7 +87,7 @@ public class StreamingIngest {
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
-        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.json);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
     }

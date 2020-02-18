@@ -71,7 +71,7 @@ class IngestClientImplTest {
     @BeforeEach
     void setUpEach() {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.json);
+        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
     }
 
     @Test
@@ -274,10 +274,10 @@ class IngestClientImplTest {
                     shouldCompress ? CompressionType.gz : compression);
         };
         String csvNoCompression = genName.apply(DATA_FORMAT.csv, null);
-        assert(csvNoCompression.endsWith("fileName.csv.gz"));
+        assert(csvNoCompression.endsWith("fileName.Csv.gz"));
 
         String csvCompression = genName.apply(DATA_FORMAT.csv, CompressionType.zip);
-        assert(csvCompression.endsWith("fileName.csv.zip"));
+        assert(csvCompression.endsWith("fileName.Csv.zip"));
 
         String parquet = genName.apply(DATA_FORMAT.parquet, null);
         assert(parquet.endsWith("fileName.parquet"));

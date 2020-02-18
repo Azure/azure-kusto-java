@@ -27,7 +27,7 @@ public enum IngestionErrorCode {
     Stream_NoDataToIngest,
     
     /// <summary>
-    /// Invalid csv format - closing quote missing.
+    /// Invalid Csv format - closing quote missing.
     /// </summary>
     Stream_ClosingQuoteMissing,
     
@@ -62,7 +62,7 @@ public enum IngestionErrorCode {
     Download_NotTransient,
     
     /// <summary>
-    /// Failed to download source from Azure storage - unknown error
+    /// Failed to download source from Azure storage - Unknown error
     /// </summary>
     Download_UnknownError,
     
@@ -112,7 +112,7 @@ public enum IngestionErrorCode {
     BadRequest_InvalidKustoIdentityToken,
     
     /// <summary>
-    /// Blob path without SAS from unknown blob storage
+    /// Blob path without SAS from Unknown blob storage
     /// </summary>
     BadRequest_UriMissingSas,
     
@@ -157,7 +157,7 @@ public enum IngestionErrorCode {
     UpdatePolicy_Transactional_Not_Allowed_In_Streaming_Ingestion,
     
     /// <summary>
-    /// Failed to parse csv mapping.
+    /// Failed to parse Csv mapping.
     /// </summary>
     BadRequest_InvalidCsvMapping,
     
@@ -172,7 +172,7 @@ public enum IngestionErrorCode {
     BadRequest_MappingReferenceWasNotFound,
     
     /// <summary>
-    /// Failed to parse json mapping.
+    /// Failed to parse Json mapping.
     /// </summary>
     BadRequest_InvalidJsonMapping,
     
