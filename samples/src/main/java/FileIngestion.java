@@ -2,7 +2,10 @@ import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.*;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 
 public class FileIngestion {
@@ -23,6 +26,10 @@ public class FileIngestion {
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
             IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
+            ByteArrayOutputStream st = new ByteArrayOutputStream();
+            st.write("asd,2".getBytes());
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(st.toByteArray());
+            StreamSourceInfo info = new StreamSourceInfo(byteArrayInputStream);
 
             // Ingest with inline ingestion mapping - less recommended
             IngestionProperties ingestionProperties2 = new IngestionProperties(System.getProperty("dbName"),
@@ -35,7 +42,7 @@ public class FileIngestion {
             }});
             ingestionProperties2.setDataFormat("Csv");
             ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.Csv);
-            ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties2);
+            IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);
 
         } catch (Exception e) {
             e.printStackTrace();

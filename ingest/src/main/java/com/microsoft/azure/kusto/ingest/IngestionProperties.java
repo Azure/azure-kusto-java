@@ -179,8 +179,8 @@ public class IngestionProperties {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
         } else if (ingestionMapping.getIngestionMapping() != null) {
-            ObjectMapper objectMapper = new ObjectMapper().setVisibility(JsonMethod.FIELD, JsonAutoDetect.Visibility.ANY);
-            ;
+            ObjectMapper objectMapper = new ObjectMapper();
+
             String mapping = objectMapper.writeValueAsString(ingestionMapping.getIngestionMapping());
             fullAdditionalProperties.put("ingestionMapping", mapping);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
