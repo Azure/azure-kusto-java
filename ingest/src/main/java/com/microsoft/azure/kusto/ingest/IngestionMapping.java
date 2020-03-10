@@ -10,16 +10,16 @@ import java.util.List;
 // This class describes a pre-define ingestion mapping by its name- mapping reference and its kind.
 /// </summary>
 public class IngestionMapping {
-    private ColumnMapping[] ingestionMapping;
+    private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
     private String ingestionMappingReference;
-    public final static List<String> mappingRequiredFormats = Arrays.asList("Json", "singlejson", "avro", "parquet", "orc");
+    public final static List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "parquet", "orc");
 
     /**
      * Creates a default ingestion mapping with kind Unknown and empty mapping reference.
      */
     public IngestionMapping() {
-        this.ingestionMappingKind = IngestionMappingKind.Unknown;
+        this.ingestionMappingKind = IngestionMappingKind.unknown;
     }
 
     /**
@@ -35,11 +35,11 @@ public class IngestionMapping {
 
     /**
      * Please use setIngestionMappingReference for production as passing the mapping every time is wasteful
-     * @param ingestionMapping          Array of columnMappings of the same kind.
+     * @param columnMappings          Array of columnMappings of the same kind.
      * @param ingestionMappingKind      IngestionMappingKind: the format of the source data to map from.
      */
-    public IngestionMapping(ColumnMapping[] ingestionMapping, IngestionMappingKind ingestionMappingKind) {
-        this.ingestionMapping = ingestionMapping;
+    public IngestionMapping(ColumnMapping[] columnMappings, IngestionMappingKind ingestionMappingKind) {
+        this.columnMappings = columnMappings;
         this.ingestionMappingKind = ingestionMappingKind;
     }
 
@@ -58,11 +58,11 @@ public class IngestionMapping {
      * Please use setIngestionMappingReference for production as passing the mapping every time is wasteful
      * Sets the ingestion mapping parameters
      *
-     * @param ingestionMapping          Array of columnMappings of the same kind.
+     * @param columnMappings          Array of columnMappings of the same kind.
      * @param ingestionMappingKind      IngestionMappingKind: the format of the source data to map from.
      */
-    public void setIngestionMapping(ColumnMapping[] ingestionMapping, IngestionMappingKind ingestionMappingKind) {
-        this.ingestionMapping = ingestionMapping;
+    public void setIngestionMapping(ColumnMapping[] columnMappings, IngestionMappingKind ingestionMappingKind) {
+        this.columnMappings = columnMappings;
         this.ingestionMappingKind = ingestionMappingKind;
     }
 
@@ -74,12 +74,12 @@ public class IngestionMapping {
         return ingestionMappingReference;
     }
 
-    public ColumnMapping[] getIngestionMapping() {
-        return ingestionMapping;
+    public ColumnMapping[] getColumnMappings() {
+        return columnMappings;
     }
 
     /// Represents an ingestion mapping kind - the format of the source data to map from.
     public enum IngestionMappingKind {
-        Unknown, Csv, Json, parquet, avro, orc
+        unknown, csv, json, parquet, avro, orc
     }
 }

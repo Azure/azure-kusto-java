@@ -154,7 +154,7 @@ public class StreamingIngestClient implements IngestClient {
     private String getFormat(IngestionProperties ingestionProperties) {
         String format = ingestionProperties.getDataFormat();
         if (format == null) {
-            return "Csv";
+            return "csv";
         }
         return format;
     }

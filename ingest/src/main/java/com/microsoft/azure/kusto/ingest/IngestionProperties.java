@@ -1,8 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.annotate.JsonAutoDetect;
-import org.codehaus.jackson.annotate.JsonMethod;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
@@ -178,10 +176,10 @@ public class IngestionProperties {
         if (StringUtils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
-        } else if (ingestionMapping.getIngestionMapping() != null) {
+        } else if (ingestionMapping.getColumnMappings() != null) {
             ObjectMapper objectMapper = new ObjectMapper();
 
-            String mapping = objectMapper.writeValueAsString(ingestionMapping.getIngestionMapping());
+            String mapping = objectMapper.writeValueAsString(ingestionMapping.getColumnMappings());
             fullAdditionalProperties.put("ingestionMapping", mapping);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
         }
@@ -252,7 +250,7 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
         Ensure.argIsNotNull(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference())
-                && ingestionMapping.getIngestionMapping() != null, "ingestionMapping");
+                && ingestionMapping.getColumnMappings() != null, "ingestionMapping");
     }
 
     public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, parquet, orc}
