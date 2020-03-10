@@ -28,7 +28,7 @@ import java.util.Properties;
 
 class Utils {
 
-    static KustoResponseResults post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static KustoOperationResult post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -61,7 +61,7 @@ class Utils {
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 if (statusLine.getStatusCode() == 200) {
-                    return new KustoResponseResults(responseContent, url.endsWith("v2/rest/query"));
+                    return new KustoOperationResult(responseContent, url.endsWith("v2/rest/query"));
                 }
                 else {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));

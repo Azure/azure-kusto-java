@@ -810,18 +810,18 @@ public class KustoResultSetTable implements ResultSet {
         if (calendar == null) {
             return getDate(i);
         }
-        String dateString = getString(i);
-        FastDateFormat dateFormat;
-        if(dateString.length() < 21){
-            dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
-        } else {
-            dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
-        }
 
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
             case "datetime":
                 try {
+                    String dateString = getString(i);
+                    FastDateFormat dateFormat;
+                    if(dateString.length() < 21){
+                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
+                    } else {
+                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
+                    }
                     return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
                 }
                 catch (Exception e) {

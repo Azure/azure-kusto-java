@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResponseResults;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -149,7 +149,7 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoResponseResults ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                KustoOperationResult ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     KustoResultSetTable table = ingestionResourcesResults.next();
@@ -192,7 +192,7 @@ class ResourceManager implements Closeable {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                KustoResponseResults identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
+                KustoOperationResult identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
                         && identityTokenResult.getResultTables().size() > 0) {

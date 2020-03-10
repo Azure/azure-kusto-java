@@ -14,8 +14,8 @@ public class Query {
                     System.getProperty("appTenant"));
             ClientImpl client = new ClientImpl(csb);
 
-            KustoResponseResultSet results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
-            KustoResultTable mainTableResult = results.getPrimaryResults();
+            KustoOperationResult results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
+            KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.println(String.format("Kusto sent back %s rows.", mainTableResult.count()));
 
             // in case we want to pass client request properties

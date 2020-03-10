@@ -7,7 +7,7 @@ import org.json.JSONObject;
 
 import java.util.*;
 
-public class KustoResponseResults implements Iterator<KustoResultSetTable> {
+public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final static Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>(){{
         put("QueryResult",WellKnownDataSet.PrimaryResult);
         put("QueryProperties",WellKnownDataSet.QueryProperties);
@@ -23,8 +23,8 @@ public class KustoResponseResults implements Iterator<KustoResultSetTable> {
     private ArrayList<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
-    public KustoResponseResults(String response, boolean isV2) throws JSONException, KustoServiceError {
-        if (isV2){
+    public KustoOperationResult(String response, boolean isV2) throws JSONException, KustoServiceError {
+        if (isV2) {
             createFromV2Response(response);
         } else {
             createFromV1Response(response);

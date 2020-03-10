@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoResponseResults;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,7 +34,7 @@ class ResourceManagerTest {
     private static final String SUCCESS_QUEUE = "successQueue";
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException, SQLException, JSONException, KustoServiceError, IOException {
+    static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceError, IOException {
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenReturn(generateIngestionResourcesResult());
 
@@ -108,7 +107,7 @@ class ResourceManagerTest {
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
-    private static KustoResponseResults generateIngestionResourcesResult() throws SQLException, JSONException, KustoServiceError, IOException {
+    private static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
@@ -123,10 +122,10 @@ class ResourceManagerTest {
                 "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 + listAsJson + "}]}";
 
-        return new KustoResponseResults(response, false);
+        return new KustoOperationResult(response, false);
     }
 
-    private static KustoResponseResults generateIngestionAuthTokenResult() throws SQLException, JSONException, KustoServiceError, IOException {
+    private static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
@@ -134,6 +133,6 @@ class ResourceManagerTest {
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
                 listAsJson + "}]}";
 
-        return new KustoResponseResults(response, false);
+        return new KustoOperationResult(response, false);
     }
 }
