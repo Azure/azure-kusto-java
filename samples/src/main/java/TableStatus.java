@@ -28,7 +28,7 @@ public class TableStatus {
 
             IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                     System.getProperty("tableName"));
-            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.json);
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
             ingestionProperties.setReportMethod(QueueAndTable);
             ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);

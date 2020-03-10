@@ -87,7 +87,7 @@ public enum IngestionErrorCode {
     UpdatePolicy_UnknownError,
     
     /// <summary>
-    /// json pattern was not ingested with jsonMapping parameter
+    /// Json pattern was not ingested with jsonMapping parameter
     /// </summary>
     BadRequest_MissingJsonMappingtFailure,
     
@@ -172,7 +172,7 @@ public enum IngestionErrorCode {
     BadRequest_MappingReferenceWasNotFound,
     
     /// <summary>
-    /// Failed to parse json mapping.
+    /// Failed to parse Json mapping.
     /// </summary>
     BadRequest_InvalidJsonMapping,
     

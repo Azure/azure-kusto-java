@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 public enum MappingConst {
-    // json Mapping consts
+    // Json Mapping consts
     PATH("Path"),
     TRANSFORMATION_METHOD("Transform"),
     // csv Mapping consts

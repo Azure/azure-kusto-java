@@ -71,7 +71,7 @@ class IngestClientImplTest {
     @BeforeEach
     void setUpEach() {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.json);
+        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
     }
 
     @Test

@@ -25,7 +25,7 @@ public class FileIngestion {
             IngestionProperties ingestionProperties = new IngestionProperties("ohtst","ddd");
 
 
-            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.json);
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\Desktop\\csv.csv", 8);
             IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -44,7 +44,7 @@ public class FileIngestion {
                 put(MappingConst.ORDINAL.name(), "1");
             }});
             ingestionProperties2.setDataFormat("csv");
-            ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.csv);
+            ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.Csv);
             IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);
 
         } catch (Exception e) {
