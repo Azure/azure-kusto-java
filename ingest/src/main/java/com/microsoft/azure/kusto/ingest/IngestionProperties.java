@@ -215,7 +215,7 @@ public class IngestionProperties {
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
-        this.ingestionMapping.setIngestionMappingReference(mappingReference, ingestionMappingKind);
+        this.ingestionMapping = new IngestionMapping(mappingReference, ingestionMappingKind);
     }
 
     /**
@@ -226,7 +226,7 @@ public class IngestionProperties {
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(ColumnMapping[] columnMappings,IngestionMapping.IngestionMappingKind ingestionMappingKind) {
-        this.ingestionMapping.setIngestionMapping(columnMappings, ingestionMappingKind);
+        this.ingestionMapping = new IngestionMapping(columnMappings, ingestionMappingKind);
     }
 
 
@@ -243,14 +243,20 @@ public class IngestionProperties {
     }
 
     /**
-     * Validate the minimum non-empty values needed for data ingestion.
+     * Validate the minimum non-empty values needed for data ingestion and mappings.
      */
     void validate() {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
-        Ensure.argIsNotNull(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference())
-                && ingestionMapping.getColumnMappings() != null, "ingestionMapping");
+
+        if (ingestionMapping.getColumnMappings()  != null) {
+            Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
+            IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
+            for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
+                Ensure.isTrue(column.isValid(ingestionMappingKind), String.format("Column mapping '%s' is invalid", column.columnName));
+            }
+        }
     }
 
     public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, parquet, orc}

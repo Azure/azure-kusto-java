@@ -3,12 +3,12 @@ package com.microsoft.azure.kusto.ingest;
 import java.util.Arrays;
 import java.util.List;
 
-/// <summary>
-// This class describes the ingestion mapping to use for an ingestion request.
-// When a CSV data source schema and the target schema doesn't match or when using JSON, AVRO, PARQUET or ORC formats,
-// there is a need to define an ingestion mapping to map the source schema to the table schema.
-// This class describes a pre-define ingestion mapping by its name- mapping reference and its kind.
-/// </summary>
+/**
+ * This class describes the ingestion mapping to use for an ingestion request.
+ * When a CSV data source schema and the target schema doesn't match or when using JSON, AVRO, PARQUET or ORC formats,
+ * there is a need to define an ingestion mapping to map the source schema to the table schema.
+ * This class describes a pre-define ingestion mapping by its name- mapping reference and its kind.
+ */
 public class IngestionMapping {
     private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
@@ -78,7 +78,9 @@ public class IngestionMapping {
         return columnMappings;
     }
 
-    /// Represents an ingestion mapping kind - the format of the source data to map from.
+    /*
+     Represents an ingestion mapping kind - the format of the source data to map from.
+    */
     public enum IngestionMappingKind {
         unknown, Csv, Json, Parquet, Avro, Orc
     }

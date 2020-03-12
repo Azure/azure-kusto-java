@@ -39,4 +39,10 @@ public class Ensure {
             throw new IllegalArgumentException("Condition evaluated to false: " + message);
         }
     }
+
+    public static void isFalse(boolean condition, String message){
+        if (condition){
+            throw new IllegalArgumentException("Condition evaluated to True: " + message);
+        }
+    }
 }

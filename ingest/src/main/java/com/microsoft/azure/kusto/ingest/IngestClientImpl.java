@@ -217,7 +217,13 @@ class IngestClientImpl implements IngestClient {
     }
 
     String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
-        return String.format("%s__%s__%s__%s.%s%s", databaseName, tableName, UUID.randomUUID().toString(), fileName, dataFormat, compressionType == null ? "" : "." + compressionType);
+        return String.format("%s__%s__%s__%s%s%s",
+                databaseName,
+                tableName,
+                UUID.randomUUID().toString(),
+                fileName,
+                dataFormat == null ? "" : "." + dataFormat,
+                compressionType == null ? "" : "." + compressionType);
     }
 
     @Override
