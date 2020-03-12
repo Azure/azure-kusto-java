@@ -165,7 +165,7 @@ public class StreamingIngestClient implements IngestClient {
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
         if (IngestionMapping.mappingRequiredFormats.contains(format)) {
             String message = null;
-            if (!format.equals(ingestionMappingKind.name())) {
+            if (!format.equalsIgnoreCase(ingestionMappingKind.name())) {
                 message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", format, ingestionMappingKind.name());
             }
             if (StringUtils.isBlank(mappingReference)) {

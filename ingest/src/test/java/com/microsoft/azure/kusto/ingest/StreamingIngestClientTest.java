@@ -207,7 +207,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for Json format."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
     }
 
     @Test
@@ -220,7 +220,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format Json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
     }
 
     @Test
@@ -405,7 +405,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for Json format."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
     }
 
     @Test
@@ -418,7 +418,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format Json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
     }
 
     @Test
