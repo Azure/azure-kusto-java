@@ -196,6 +196,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
+    @Deprecated
     public BigDecimal getBigDecimal(int i, int i1)  {
         return (BigDecimal) get(i);
     }
@@ -235,6 +236,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
+    @Deprecated
     public InputStream getUnicodeStream(int i) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
@@ -289,6 +291,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
+    @Deprecated
     public BigDecimal getBigDecimal(String columnName, int i) {
         return (BigDecimal) get(columnName);
     }
@@ -319,6 +322,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
+    @Deprecated
     public InputStream getUnicodeStream(String columnName) {
         return (InputStream) get(columnName);
     }

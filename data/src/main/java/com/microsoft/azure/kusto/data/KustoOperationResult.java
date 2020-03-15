@@ -23,8 +23,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private ArrayList<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
-    public KustoOperationResult(String response, boolean isV2) throws JSONException, KustoServiceError {
-        if (isV2) {
+    public KustoOperationResult(String response, String version) throws JSONException, KustoServiceError {
+        if (version.contains("v2")) {
             createFromV2Response(response);
         } else {
             createFromV1Response(response);

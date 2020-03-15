@@ -61,7 +61,7 @@ class Utils {
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 if (statusLine.getStatusCode() == 200) {
-                    return new KustoOperationResult(responseContent, url.endsWith("v2/rest/query"));
+                    return new KustoOperationResult(responseContent, url.endsWith("v2/rest/query") ? "v2" : "v1");
                 }
                 else {
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));

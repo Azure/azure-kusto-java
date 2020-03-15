@@ -7,7 +7,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -122,7 +122,7 @@ class ResourceManagerTest {
                 "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 + listAsJson + "}]}";
 
-        return new KustoOperationResult(response, false);
+        return new KustoOperationResult(response, "v1");
     }
 
     private static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceError, IOException {
@@ -133,6 +133,6 @@ class ResourceManagerTest {
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
                 listAsJson + "}]}";
 
-        return new KustoOperationResult(response, false);
+        return new KustoOperationResult(response, "v1");
     }
 }

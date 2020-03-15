@@ -17,6 +17,7 @@ public class ClientImpl implements Client, StreamingClient {
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String MGMT_ENDPOINT_VERSION = "v1";
     private static final String QUERY_ENDPOINT_VERSION = "v2";
+    private static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
@@ -109,7 +110,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (StringUtils.isBlank(streamFormat)) {
             throw new IllegalArgumentException("Parameter streamFormat is empty.");
         }
-        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, QUERY_ENDPOINT_VERSION, database, table, streamFormat);
+        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, STREAMING_VERSION, database, table, streamFormat);
 
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
