@@ -15,7 +15,9 @@ import java.util.concurrent.TimeUnit;
 public class ClientImpl implements Client, StreamingClient {
 
     private static final String ADMIN_COMMANDS_PREFIX = ".";
-    private static final String API_VERSION = "v1";
+    private static final String MGMT_ENDPOINT_VERSION = "v1";
+    private static final String QUERY_ENDPOINT_VERSION = "v2";
+    private static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
@@ -41,17 +43,17 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public Results execute(String command) throws DataServiceException, DataClientException {
+    public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
         return execute(DEFAULT_DATABASE_NAME, command);
     }
 
     @Override
-    public Results execute(String database, String command) throws DataServiceException, DataClientException {
+    public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
         return execute(database, command, null);
     }
 
     @Override
-    public Results execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation:
         if (StringUtils.isAnyEmpty(database, command)) {
             throw new IllegalArgumentException("database or command are empty");
@@ -60,12 +62,12 @@ public class ClientImpl implements Client, StreamingClient {
 
         String clusterEndpoint;
         if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, API_VERSION);
+            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
             if (timeoutMs == null) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
             }
         } else {
-            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, API_VERSION);
+            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
             if (timeoutMs == null) {
                 timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
             }
@@ -95,7 +97,7 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public Results executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -108,7 +110,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (StringUtils.isBlank(streamFormat)) {
             throw new IllegalArgumentException("Parameter streamFormat is empty.");
         }
-        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, API_VERSION, database, table, streamFormat);
+        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, STREAMING_VERSION, database, table, streamFormat);
 
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
