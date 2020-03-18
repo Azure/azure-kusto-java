@@ -1,7 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -148,16 +149,19 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                Results ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
-                if (ingestionResourcesResults != null && ingestionResourcesResults.getValues() != null) {
+                KustoOperationResult ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
+                    KustoResultSetTable table = ingestionResourcesResults.next();
+
                     // Add the received values to a new IngestionResources map:
-                    ingestionResourcesResults.getValues().forEach(pairValues -> {
-                        String key = pairValues.get(0);
-                        String value = pairValues.get(1);
+                    while(table.next()){
+                        String key = table.getString(0);
+                        String value = table.getString(1);
                         addIngestionResource(newIngestionResources, key, value);
-                    });
+                    }
                     // Replace the values in the ingestionResources map with the values in the new map:
+
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             } catch (DataServiceException e) {
@@ -188,11 +192,14 @@ class ResourceManager implements Closeable {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                Results identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
+                KustoOperationResult identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
-                        && identityTokenResult.getValues() != null
-                        && identityTokenResult.getValues().size() > 0) {
-                    identityToken = identityTokenResult.getValues().get(0).get(identityTokenResult.getIndexByColumnName("AuthorizationContext"));
+                        && identityTokenResult.hasNext()
+                        && identityTokenResult.getResultTables().size() > 0) {
+                    KustoResultSetTable resultTable = identityTokenResult.next();
+                    resultTable.next();
+
+                    identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);

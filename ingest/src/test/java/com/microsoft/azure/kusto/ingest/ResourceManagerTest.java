@@ -1,14 +1,18 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.Results;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,7 +34,7 @@ class ResourceManagerTest {
     private static final String SUCCESS_QUEUE = "successQueue";
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException {
+    static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceError, IOException {
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenReturn(generateIngestionResourcesResult());
 
@@ -103,17 +107,8 @@ class ResourceManagerTest {
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
-    private static Results generateIngestionResourcesResult() {
-        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
-        HashMap<String, String> colNameToTypeMap = new HashMap<>();
+    private static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
-
-        colNameToIndexMap.put("colNameToIndexMap", 0);
-        colNameToIndexMap.put("StorageRoot", 1);
-
-        colNameToTypeMap.put("colNameToIndexMap", "String");
-        colNameToTypeMap.put("StorageRoot", "String");
-
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE))));
@@ -121,19 +116,23 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
+        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
+        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
+                "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
+                "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
+                + listAsJson + "}]}";
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+        return new KustoOperationResult(response, "v1");
     }
 
-    private static Results generateIngestionAuthTokenResult() {
-        HashMap<String, Integer> colNameToIndexMap = new HashMap<>();
-        HashMap<String, String> colNameToTypeMap = new HashMap<>();
+    private static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceError, IOException {
         ArrayList<ArrayList<String>> valuesList = new ArrayList<>();
-
-        colNameToIndexMap.put("AuthorizationContext", 0);
-        colNameToTypeMap.put("AuthorizationContext", "String");
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
+        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
 
-        return new Results(colNameToIndexMap, colNameToTypeMap, valuesList, "");
+        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
+                listAsJson + "}]}";
+
+        return new KustoOperationResult(response, "v1");
     }
 }
