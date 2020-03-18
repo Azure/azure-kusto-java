@@ -62,7 +62,7 @@ public enum IngestionErrorCode {
     Download_NotTransient,
     
     /// <summary>
-    /// Failed to download source from Azure storage - unknown error
+    /// Failed to download source from Azure storage - Unknown error
     /// </summary>
     Download_UnknownError,
     
@@ -112,7 +112,7 @@ public enum IngestionErrorCode {
     BadRequest_InvalidKustoIdentityToken,
     
     /// <summary>
-    /// Blob path without SAS from unknown blob storage
+    /// Blob path without SAS from Unknown blob storage
     /// </summary>
     BadRequest_UriMissingSas,
     
@@ -172,7 +172,7 @@ public enum IngestionErrorCode {
     BadRequest_MappingReferenceWasNotFound,
     
     /// <summary>
-    /// Failed to parse json mapping.
+    /// Failed to parse Json mapping.
     /// </summary>
     BadRequest_InvalidJsonMapping,
     

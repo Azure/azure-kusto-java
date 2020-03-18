@@ -32,7 +32,7 @@ public class FileIngestionCompletableFuture {
             IngestionProperties ingestionProperties = new IngestionProperties(
                     System.getProperty("dbName"),
                     System.getProperty("tableName"));
-            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.json);
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
 
             FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 
