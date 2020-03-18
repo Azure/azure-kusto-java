@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.source.TransformationMethod;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
@@ -25,62 +24,62 @@ public class ColumnMapping implements Serializable {
         this.properties = properties;
     }
 
-    public void setJsonPath(String path) {
-        properties.put(MappingConst.PATH.getName(), path);
+    public void setPath(String path) {
+        properties.put(MappingConsts.PATH.getName(), path);
     }
 
-    public String getJsonPath() {
-        return properties.get(MappingConst.PATH.getName());
+    public String getPath() {
+        return properties.get(MappingConsts.PATH.getName());
     }
 
-    public void setJsonTransform(TransformationMethod transform) {
-        properties.put(MappingConst.TRANSFORMATION_METHOD.getName(), transform.name());
+    public void setTransform(TransformationMethod transform) {
+        properties.put(MappingConsts.TRANSFORMATION_METHOD.getName(), transform.name());
     }
 
-    public TransformationMethod getJsonTransform() {
-        String transform = properties.get(MappingConst.TRANSFORMATION_METHOD.getName());
+    public TransformationMethod getTransform() {
+        String transform = properties.get(MappingConsts.TRANSFORMATION_METHOD.getName());
         return StringUtils.isEmpty(transform) ? null : TransformationMethod.valueOf(transform);
     }
 
-    public void setCsvOrdinal(Integer ordinal) {
-        properties.put(MappingConst.ORDINAL.getName(), String.valueOf(ordinal));
+    public void setOrdinal(Integer ordinal) {
+        properties.put(MappingConsts.ORDINAL.getName(), String.valueOf(ordinal));
     }
 
-    Integer getCsvOrdinal() {
-        String ordinal = properties.get(MappingConst.ORDINAL.getName());
+    Integer getOrdinal() {
+        String ordinal = properties.get(MappingConsts.ORDINAL.getName());
         return StringUtils.isEmpty(ordinal) ? null : Integer.valueOf(ordinal);
     }
 
-    public void setCsvConstantValue(String constValue) {
-        properties.put(MappingConst.CONST_VALUE.getName(), constValue);
+    public void setConstantValue(String constValue) {
+        properties.put(MappingConsts.CONST_VALUE.getName(), constValue);
     }
 
-    public String getCsvConstantValue() {
-        return properties.get(MappingConst.CONST_VALUE.getName());
+    public String getConstantValue() {
+        return properties.get(MappingConsts.CONST_VALUE.getName());
     }
 
-    public void setAvroField(String field) {
-        properties.put(MappingConst.FIELD_NAME.getName(), field);
+    public void setField(String field) {
+        properties.put(MappingConsts.FIELD_NAME.getName(), field);
     }
 
-    String setAvroField() {
-        return properties.get(MappingConst.FIELD_NAME.getName());
+    String setField() {
+        return properties.get(MappingConsts.FIELD_NAME.getName());
     }
 
-    public void setAvroColumns(String columns) {
-        properties.put(MappingConst.COLUMNS.getName(), columns);
+    public void setColumns(String columns) {
+        properties.put(MappingConsts.COLUMNS.getName(), columns);
     }
 
-    public String getAvroColumns() {
-        return properties.get(MappingConst.COLUMNS.getName());
+    public String getColumns() {
+        return properties.get(MappingConsts.COLUMNS.getName());
     }
 
     public void setStorageDataType(String dataType) {
-        properties.put(MappingConst.STORAGE_DATA_TYPE.getName(), dataType);
+        properties.put(MappingConsts.STORAGE_DATA_TYPE.getName(), dataType);
     }
 
     public String getStorageDataType() {
-        return properties.get(MappingConst.STORAGE_DATA_TYPE.getName());
+        return properties.get(MappingConsts.STORAGE_DATA_TYPE.getName());
     }
 
     public boolean isValid(IngestionMapping.IngestionMappingKind mappingKind)
@@ -92,13 +91,13 @@ public class ColumnMapping implements Serializable {
             case Json:
             case Parquet:
             case Orc:
-                TransformationMethod transformationMethod = getJsonTransform();
-                return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getJsonPath())
+                TransformationMethod transformationMethod = getTransform();
+                return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
                         || transformationMethod == TransformationMethod.SourceLineNumber
                         || transformationMethod == TransformationMethod.SourceLocation);
             case Avro:
                 return !StringUtils.isEmpty(this.columnName) &&
-                        !StringUtils.isEmpty(getAvroColumns());
+                        !StringUtils.isEmpty(getColumns());
             default:
                 return false;
         }

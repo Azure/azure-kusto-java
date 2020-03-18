@@ -81,7 +81,7 @@ IngestClient client = IngestClientFactory.createClient(csb);
 
 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                     System.getProperty("tableName"));
-ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
+ingestionProperties.getIngestionMapping().setIngestionMappingReference(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Csv);
 ```
 3. Load file and ingest it into table
 
@@ -232,7 +232,7 @@ IngestClient client = IngestClientFactory.createClient(csb);
 
 IngestionProperties ingestionProperties = new IngestionProperties( System.getProperty("dbName"),
                     System.getProperty("tableName"));
-            ingestionProperties.setJsonMappingName(System.getProperty("dataMappingName"));
+            ingestionProperties.getIngestionMapping().setIngestionMappingReference(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Csv);
             ingestionProperties.setReportMethod(QueueAndTable);
             ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
 ```

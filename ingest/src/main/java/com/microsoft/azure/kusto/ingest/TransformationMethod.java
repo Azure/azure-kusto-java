@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest.source;
+package com.microsoft.azure.kusto.ingest;
 
 /**
  * Transformation method can be used over all formats configured with Json mapping type (Json, Orc and Parquet)

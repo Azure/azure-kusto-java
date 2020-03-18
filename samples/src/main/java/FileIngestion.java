@@ -35,11 +35,12 @@ public class FileIngestion {
             IngestionProperties ingestionProperties2 = new IngestionProperties(System.getProperty("dbName"),
                     System.getProperty("tableName"));
             ColumnMapping csvColumnMapping = new ColumnMapping("ColA", "string");
-            csvColumnMapping.setCsvOrdinal(0);
+            csvColumnMapping.setOrdinal(0);
             ColumnMapping csvColumnMapping2 = new ColumnMapping("ColB", "int");
-            csvColumnMapping2.setCsvOrdinal(1);
+            csvColumnMapping2.setOrdinal(1);
             ingestionProperties2.setDataFormat("Csv");
             ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.Csv);
+
             IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);
 
         } catch (Exception e) {

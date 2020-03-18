@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
-public enum MappingConst {
+public enum MappingConsts {
     // Json Mapping consts
     PATH("Path"),
     TRANSFORMATION_METHOD("Transform"),
@@ -10,11 +10,12 @@ public enum MappingConst {
     // Avro Mapping consts
     FIELD_NAME("Field"),
     COLUMNS("Columns"),
+    // General Mapping consts
     STORAGE_DATA_TYPE("StorageDataType");
 
     private String name;
 
-    MappingConst(String name) {
+    MappingConsts(String name) {
         this.name = name;
     }
 
