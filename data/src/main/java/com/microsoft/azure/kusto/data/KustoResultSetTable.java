@@ -29,7 +29,7 @@ public class KustoResultSetTable implements ResultSet {
     private static final String columnsPropertyName = "Columns";
     private static final String columnNamePropertyName = "ColumnName";
     private static final String columnTypePropertyName = "ColumnType";
-    private static final String columnTypeSecondPropertyName = "ColumnType";
+    private static final String columnTypeSecondPropertyName = "DataType";
     private static final String rowsPropertyName = "Rows";
     private static final String exceptionsPropertyName = "Exceptions";
 
