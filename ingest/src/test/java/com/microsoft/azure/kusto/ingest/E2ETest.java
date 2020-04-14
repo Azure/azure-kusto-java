@@ -7,7 +7,6 @@ import com.microsoft.azure.kusto.ingest.source.*;
 
 import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static java.nio.file.Files.readAllBytes;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -68,7 +67,7 @@ public class E2ETest {
 
         resourcesPath = System.getProperty("user.dir") + "\\src\\test\\resources\\";
         try {
-            String mappingAsString = new String(readAllBytes(Path.of(resourcesPath, "dataset_mapping.json")));
+            String mappingAsString = new String(Files.readAllBytes(Path.of(resourcesPath, "dataset_mapping.json")));
             queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
