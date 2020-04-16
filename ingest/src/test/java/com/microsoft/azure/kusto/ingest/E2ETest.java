@@ -49,7 +49,7 @@ public class E2ETest {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
         } catch (URISyntaxException ex) {
-            Assertions.fail("Failed to create query and streamin client", ex);
+            Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
         CreateTableAndMapping();
@@ -65,9 +65,9 @@ public class E2ETest {
             Assertions.fail("Failed to drop and create new table", ex);
         }
 
-        resourcesPath = System.getProperty("user.dir") + "\\src\\test\\resources\\";
+        resourcesPath = Paths.get(System.getProperty("user.dir"), "src","test", "resources").toString();
         try {
-            String mappingAsString = new String(Files.readAllBytes(Path.of(resourcesPath, "dataset_mapping.json")));
+            String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
@@ -96,38 +96,38 @@ public class E2ETest {
 
         dataForTests = Arrays.asList(new TestData() {
             {
-                path = resourcesPath + "dataset.csv";
+                file = new File(resourcesPath, "dataset.csv");
                 rows = 10;
                 ingestionProperties = ingestionPropertiesWithoutMapping;
             }
         }, new TestData() {
             {
-                path = resourcesPath + "dataset.csv.gz";
+                file = new File(resourcesPath, "dataset.csv.gz");
                 rows = 10;
                 ingestionProperties = ingestionPropertiesWithoutMapping;
             }
         }, new TestData() {
             {
-                path = resourcesPath + "dataset.json";
+                file = new File(resourcesPath, "dataset.json");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithMappingReference;
             }
         }, new TestData() {
             {
-                path = resourcesPath + "dataset.json.gz";
+                file = new File(resourcesPath, "dataset.json.gz");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithMappingReference;
             }
         }, new TestData() {
             {
-                path = resourcesPath + "dataset.json";
+                file = new File(resourcesPath, "dataset.json");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithColumnMapping;
                 testOnstreamingIngestion = false; // streaming ingestion doesn't support inline mapping
             }
         }, new TestData() {
             {
-                path = resourcesPath + "dataset.json.gz";
+                file = new File(resourcesPath, "dataset.json.gz");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithColumnMapping;
                 testOnstreamingIngestion = false; // streaming ingestion doesn't support inline mapping
@@ -180,7 +180,7 @@ public class E2ETest {
     @Test
     void testIngestFromFile() {
         for (TestData data : dataForTests) {
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(data.path, new File(data.path).length());
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(data.file.getPath(),data.file.length());
             try {
                 ingestClient.ingestFromFile(fileSourceInfo, data.ingestionProperties);
             } catch (Exception ex) {
@@ -193,10 +193,9 @@ public class E2ETest {
     @Test
     void testIngestFromStream() throws FileNotFoundException {
         for (TestData data : dataForTests) {
-            File file = new File(data.path);
-            InputStream stream = new FileInputStream(file);
+            InputStream stream = new FileInputStream(data.file);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-            if (data.path.endsWith(".gz")) {
+            if (data.file.getPath().endsWith(".gz")) {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
@@ -212,7 +211,7 @@ public class E2ETest {
     void testStramingIngestFromFile() {
         for (TestData data : dataForTests) {
             if (data.testOnstreamingIngestion) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(data.path, new File(data.path).length());
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(data.file.getPath(),data.file.length());
                 try {
                     streamingIngestClient.ingestFromFile(fileSourceInfo, data.ingestionProperties);
                 } catch (Exception ex) {
@@ -227,10 +226,9 @@ public class E2ETest {
     void testStramingIngestFromStream() throws FileNotFoundException {
         for (TestData data : dataForTests) {
             if (data.testOnstreamingIngestion) {
-                File file = new File(data.path);
-                InputStream stream = new FileInputStream(file);
+                InputStream stream = new FileInputStream(data.file);
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-                if (data.path.endsWith(".gz")) {
+                if (data.file.getPath().endsWith(".gz")) {
                     streamSourceInfo.setCompressionType(CompressionType.gz);
                 }
                 try {
@@ -245,7 +243,7 @@ public class E2ETest {
 }
 
 class TestData {
-    public String path;
+    public File file;
     public IngestionProperties ingestionProperties;
     public int rows;
     public boolean testOnstreamingIngestion = true;
