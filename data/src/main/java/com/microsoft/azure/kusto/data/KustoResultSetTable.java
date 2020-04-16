@@ -29,6 +29,7 @@ public class KustoResultSetTable implements ResultSet {
     private static final String columnsPropertyName = "Columns";
     private static final String columnNamePropertyName = "ColumnName";
     private static final String columnTypePropertyName = "ColumnType";
+    private static final String columnTypeSecondPropertyName = "DataType";
     private static final String rowsPropertyName = "Rows";
     private static final String exceptionsPropertyName = "Exceptions";
 
@@ -75,7 +76,11 @@ public class KustoResultSetTable implements ResultSet {
             columnsAsArray = new KustoResultColumn[columnsJson.length()];
             for (int i = 0; i < columnsJson.length(); i++) {
                 JSONObject jsonCol = columnsJson.getJSONObject(i);
-                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(columnNamePropertyName), jsonCol.getString(columnTypePropertyName), i);
+                String columnType = jsonCol.optString(columnTypePropertyName);
+                if (columnType.equals("")){
+                    columnType = jsonCol.optString(columnTypeSecondPropertyName);
+                }
+                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(columnNamePropertyName), columnType, i);
                 columnsAsArray[i] = col;
                 columns.put(jsonCol.getString(columnNamePropertyName), col);
             }
