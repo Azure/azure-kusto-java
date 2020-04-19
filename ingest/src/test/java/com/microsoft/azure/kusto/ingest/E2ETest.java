@@ -21,7 +21,7 @@ public class E2ETest {
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
-    private static List<TestData> dataForTests;
+    private static List<TestDataItem> dataForTests;
     private static final String tableName = "JavaTest";
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
@@ -94,38 +94,38 @@ public class E2ETest {
         ColumnMapping[] columnMapping = new ColumnMapping[] { first, second };
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.Json);
 
-        dataForTests = Arrays.asList(new TestData() {
+        dataForTests = Arrays.asList(new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.csv");
                 rows = 10;
                 ingestionProperties = ingestionPropertiesWithoutMapping;
             }
-        }, new TestData() {
+        }, new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.csv.gz");
                 rows = 10;
                 ingestionProperties = ingestionPropertiesWithoutMapping;
             }
-        }, new TestData() {
+        }, new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.json");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithMappingReference;
             }
-        }, new TestData() {
+        }, new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.json.gz");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithMappingReference;
             }
-        }, new TestData() {
+        }, new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.json");
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithColumnMapping;
                 testOnstreamingIngestion = false; // streaming ingestion doesn't support inline mapping
             }
-        }, new TestData() {
+        }, new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.json.gz");
                 rows = 2;
@@ -137,25 +137,27 @@ public class E2ETest {
 
     private void assertRowCount(int expectedRowsCount) {
         KustoOperationResult result = null;
-        int timeoutInsec = 100;
-        int actualRowscount = 0;
+        int timeoutInSec = 100;
+        int actualRowsCount = 0;
 
-        while (timeoutInsec > 0) {
+        while (timeoutInSec > 0) {
             try {
                 Thread.sleep(5000);
-                timeoutInsec -= 5;
+                timeoutInSec -= 5;
 
                 result = queryClient.execute(databaseName, String.format("%s | count", tableName));
             } catch (Exception ex) {
                 continue;
             }
-            actualRowscount = (int) result.getPrimaryResults().getData().get(0).get(0) - currentCount;
-            if (actualRowscount >= expectedRowsCount) {
+            KustoResultSetTable mainTableResult = result.getPrimaryResults();
+            mainTableResult.next();
+            actualRowsCount = mainTableResult.getInt(0) - currentCount;
+            if (actualRowsCount >= expectedRowsCount) {
                 break;
             }
         }
-        currentCount += actualRowscount;
-        assertEquals(expectedRowsCount, actualRowscount);
+        currentCount += actualRowsCount;
+        assertEquals(expectedRowsCount, actualRowsCount);
     }
 
     @Test
@@ -167,9 +169,9 @@ public class E2ETest {
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principal command", ex);
         }
-
-        for (ArrayList<Object> row : result.getPrimaryResults().getData()) {
-            if (row.get(4).equals(principalFqn)) {
+        KustoResultSetTable mainTableResultSet= result.getPrimaryResults();
+        while (mainTableResultSet.next()){
+            if (mainTableResultSet.getString("PrincipalFQN").equals(principalFqn)) {
                 found = true;
             }
         }
@@ -179,72 +181,65 @@ public class E2ETest {
 
     @Test
     void testIngestFromFile() {
-        for (TestData data : dataForTests) {
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(data.file.getPath(),data.file.length());
+        for (TestDataItem item : dataForTests) {
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(),item.file.length());
             try {
-                ingestClient.ingestFromFile(fileSourceInfo, data.ingestionProperties);
+                ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(data.rows);
+            assertRowCount(item.rows);
         }
     }
 
     @Test
     void testIngestFromStream() throws FileNotFoundException {
-        for (TestData data : dataForTests) {
-            InputStream stream = new FileInputStream(data.file);
+        for (TestDataItem item : dataForTests) {
+            InputStream stream = new FileInputStream(item.file);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-            if (data.file.getPath().endsWith(".gz")) {
+            if (item.file.getPath().endsWith(".gz")) {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
-                ingestClient.ingestFromStream(streamSourceInfo, data.ingestionProperties);
+                ingestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(data.rows);
+            assertRowCount(item.rows);
         }
     }
 
     @Test
     void testStramingIngestFromFile() {
-        for (TestData data : dataForTests) {
-            if (data.testOnstreamingIngestion) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(data.file.getPath(),data.file.length());
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(),item.file.length());
                 try {
-                    streamingIngestClient.ingestFromFile(fileSourceInfo, data.ingestionProperties);
+                    streamingIngestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(data.rows);
+                assertRowCount(item.rows);
             }
         }
     }
 
     @Test
     void testStramingIngestFromStream() throws FileNotFoundException {
-        for (TestData data : dataForTests) {
-            if (data.testOnstreamingIngestion) {
-                InputStream stream = new FileInputStream(data.file);
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                InputStream stream = new FileInputStream(item.file);
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-                if (data.file.getPath().endsWith(".gz")) {
+                if (item.file.getPath().endsWith(".gz")) {
                     streamSourceInfo.setCompressionType(CompressionType.gz);
                 }
                 try {
-                    streamingIngestClient.ingestFromStream(streamSourceInfo, data.ingestionProperties);
+                    streamingIngestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(data.rows);
+                assertRowCount(item.rows);
             }
         }
     }
-}
-
-class TestData {
-    public File file;
-    public IngestionProperties ingestionProperties;
-    public int rows;
-    public boolean testOnstreamingIngestion = true;
 }
