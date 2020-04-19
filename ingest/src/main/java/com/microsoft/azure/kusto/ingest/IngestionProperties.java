@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
@@ -178,6 +180,8 @@ public class IngestionProperties {
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().toString());
         } else if (ingestionMapping.getColumnMappings() != null) {
             ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
+            objectMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
 
             String mapping = objectMapper.writeValueAsString(ingestionMapping.getColumnMappings());
             fullAdditionalProperties.put("ingestionMapping", mapping);
