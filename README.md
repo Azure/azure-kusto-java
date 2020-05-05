@@ -22,7 +22,7 @@ This method is the easiest to follow, just add the following dependency to your 
 <dependency>
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-ingest</artifactId>
-    <version>1.4.2</version>
+    <version>2.0.2</version>
 </dependency>
 ```
 
