@@ -54,6 +54,9 @@ public class KustoResultSetTable implements ResultSet {
         return tableId;
     }
 
+    public KustoResultColumn[] getColumns(){
+        return columnsAsArray;
+    }
     void setTableId(int tableId) {
         this.tableId = tableId;
     }
