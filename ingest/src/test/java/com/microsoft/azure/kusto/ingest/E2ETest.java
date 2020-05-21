@@ -34,8 +34,19 @@ public class E2ETest {
         String tenantId = System.getenv("TENANT_ID");
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
+        // test ----- delete
+        System.out.println(appId);
+        System.out.println(tenantId);
+        System.out.println(databaseName);
+        System.out.println(System.getenv("ENGINE_CONNECTION_STRING"));
+        System.out.println(System.getenv("DM_CONNECTION_STRING"));
+        System.out.println(appKey != null);
+        System.out.println(appKey.length());
+        System.out.flush();
+        // delete
+
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+                .createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
         } catch (URISyntaxException ex) {
@@ -43,7 +54,7 @@ public class E2ETest {
         }
 
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONECTION_STRING"), appId, appKey, tenantId);
+                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
