@@ -32,20 +32,10 @@ public class E2ETest {
         String appId = System.getenv("APP_ID");
         String appKey = System.getenv("APP_KEY");
         String tenantId = System.getenv("TENANT_ID");
-
-        // test - delete!!!
-        System.out.println("db");
-        System.out.println(databaseName);
-        System.out.flush();
-        System.out.println("cs");
-        System.out.println(System.getenv("ENGINE_CONECTION_STRING"));
-        System.out.flush();
-        /// end
-
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONECTION_STRING"), appId, appKey, tenantId);
+                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
         } catch (URISyntaxException ex) {
