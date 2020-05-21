@@ -33,6 +33,15 @@ public class E2ETest {
         String appKey = System.getenv("APP_KEY");
         String tenantId = System.getenv("TENANT_ID");
 
+        // test - delete!!!
+        System.out.println("db");
+        System.out.println(databaseName);
+        System.out.flush();
+        System.out.println("cs");
+        System.out.println(System.getenv("ENGINE_CONECTION_STRING"));
+        System.out.flush();
+        /// end
+
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder
