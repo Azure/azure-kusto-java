@@ -22,12 +22,12 @@ public class E2ETest {
     private static String resourcesPath;
     private static int currentCount = 0;
     private static List<TestDataItem> dataForTests;
-    private static final String tableName = "JavaTest";
+    private static final String tableName = "JavaTest" + System.currentTimeMillis() / 1000L;;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
     @BeforeAll
-    public static void setUp() {
+    public static void setup() {
         databaseName = System.getenv("TEST_DATABASE");
         String appId = System.getenv("APP_ID");
         String appKey = System.getenv("APP_KEY");
@@ -52,17 +52,15 @@ public class E2ETest {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
-        CreateTableAndMapping();
+        createTableAndMapping();
         createTestData();
     }
 
-    private static void CreateTableAndMapping() {
+    private static void createTableAndMapping() {
         try {
-            queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
-            Thread.sleep(1000);
             queryClient.execute(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
-            Assertions.fail("Failed to drop and create new table", ex);
+            Assertions.fail("Failed to create new table", ex);
         }
 
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src","test", "resources").toString();
@@ -240,6 +238,15 @@ public class E2ETest {
                 }
                 assertRowCount(item.rows);
             }
+        }
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        try {
+            queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+        } catch (Exception ex) {
+            Assertions.fail("Failed to drop table", ex);
         }
     }
 }
