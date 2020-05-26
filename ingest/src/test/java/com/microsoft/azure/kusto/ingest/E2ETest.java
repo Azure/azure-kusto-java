@@ -31,7 +31,7 @@ public class E2ETest {
         databaseName = System.getenv("TEST_DATABASE");
         String appId = System.getenv("APP_ID");
         String tenantId = System.getenv("TENANT_ID");
-        String appKey = System.getenv("appKey");
+        String appKey = System.getenv("$(appKey)");
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         // test ----- delete
