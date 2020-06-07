@@ -23,7 +23,11 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <systemPropertyVariables>
+                        <appKey>${appKey}</appKey>
+                    </systemPropertyVariables>
                 </configuration>
+                
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
