@@ -96,6 +96,7 @@ public class ColumnMapping implements Serializable {
                         || transformationMethod == TransformationMethod.SourceLineNumber
                         || transformationMethod == TransformationMethod.SourceLocation);
             case Avro:
+            case ApacheAvro:
                 return !StringUtils.isEmpty(this.columnName) &&
                         !StringUtils.isEmpty(getColumns());
             default:
