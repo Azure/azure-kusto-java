@@ -96,12 +96,14 @@ public class KustoResultSetTable implements ResultSet {
             for (int i = 0; i < jsonRows.length(); i++) {
                 Object row = jsonRows.get(i);
                 if (row instanceof JSONObject) {
-                    exceptions = ((JSONObject) row).getJSONArray(exceptionsPropertyName);
-                    if (exceptions.length() == 1) {
-                        String message = exceptions.getString(0);
-                        throw new KustoServiceError(message);
-                    } else {
-                        throw new KustoServiceError(exceptions);
+                    exceptions = ((JSONObject) row).optJSONArray(exceptionsPropertyName);
+                    if (exceptions != null) {
+                        if (exceptions.length() == 1) {
+                            String message = exceptions.getString(0);
+                            throw new KustoServiceError(message);
+                        } else {
+                            throw new KustoServiceError(exceptions);
+                        }
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
