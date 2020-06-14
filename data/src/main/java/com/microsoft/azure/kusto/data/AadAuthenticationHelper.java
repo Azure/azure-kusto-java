@@ -181,7 +181,7 @@ class AadAuthenticationHelper {
 
     private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
             throws InterruptedException {
-        int timeout = 15 * 1000;
+        int timeout = 20 * 1000;
         AuthenticationResult result = null;
         while (timeout > 0) {
             try {
