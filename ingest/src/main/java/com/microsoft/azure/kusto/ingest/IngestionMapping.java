@@ -13,7 +13,7 @@ public class IngestionMapping {
     private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
     private String ingestionMappingReference;
-    public final static List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "parquet", "orc");
+    public final static List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "apacheavro", "parquet", "orc");
 
     /**
      * Creates a default ingestion mapping with kind Unknown and empty mapping reference.
@@ -82,6 +82,6 @@ public class IngestionMapping {
      Represents an ingestion mapping kind - the format of the source data to map from.
     */
     public enum IngestionMappingKind {
-        unknown, Csv, Json, Parquet, Avro, Orc
+        unknown, Csv, Json, Parquet, Avro, ApacheAvro, Orc
     }
 }
