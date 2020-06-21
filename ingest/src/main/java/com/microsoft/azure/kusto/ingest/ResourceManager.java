@@ -60,6 +60,8 @@ class ResourceManager implements Closeable {
     private final Timer timer;
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
+    private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
+    private static final long REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 15; // 15 hour
 
     ResourceManager(Client client) {
         this.client = client;
@@ -75,31 +77,34 @@ class ResourceManager implements Closeable {
 
     private void init() {
         ingestionResources = new ConcurrentHashMap<>();
-        TimerTask refreshIngestionResourceValuesTask = new TimerTask() {
+        class RefreshIngestionResourcesTask extends TimerTask {
             @Override
             public void run() {
                 try {
                     refreshIngestionResources();
+                    timer.schedule(new RefreshIngestionResourcesTask(), REFRESH_INGESTION_RESOURCES_PERIOD);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources.", e);
+                    timer.schedule(new RefreshIngestionResourcesTask(), REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD);
                 }
             }
-        };
+        }
 
-        TimerTask refreshIngestionAuthTokenTask = new TimerTask() {
+        class RefreshIngestionAuthTokenTask extends TimerTask {
             @Override
             public void run() {
                 try {
                     refreshIngestionAuthToken();
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), REFRESH_INGESTION_RESOURCES_PERIOD);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken.", e);
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD);
                 }
             }
-        };
+        }
 
-        long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
-        timer.schedule(refreshIngestionAuthTokenTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
-        timer.schedule(refreshIngestionResourceValuesTask, 0, REFRESH_INGESTION_RESOURCES_PERIOD);
+        timer.schedule(new RefreshIngestionAuthTokenTask(), 0);
+        timer.schedule(new RefreshIngestionResourcesTask(), 0);
     }
 
     String getIngestionResource(ResourceType resourceType) throws IngestionServiceException, IngestionClientException {
