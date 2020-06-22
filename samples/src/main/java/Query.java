@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import com.microsoft.azure.kusto.data.*;
 
 import java.util.concurrent.TimeUnit;

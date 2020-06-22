@@ -1,4 +1,8 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data;
+
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
