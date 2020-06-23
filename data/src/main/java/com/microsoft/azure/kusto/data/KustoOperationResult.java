@@ -67,20 +67,20 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
 
         if(resultTables.size() <= 2){
             resultTables.get(0).setTableKind(WellKnownDataSet.PrimaryResult);
-            resultTables.get(0).setTableId(0);
+            resultTables.get(0).setTableId(Integer.toString(0));
 
             if (resultTables.size() == 2){
                 resultTables.get(1).setTableKind(WellKnownDataSet.QueryProperties);
-                resultTables.get(1).setTableId(1);
+                resultTables.get(1).setTableId(Integer.toString(1));
             }
         } else {
             KustoResultSetTable toc = resultTables.get(resultTables.size() - 1);
             toc.setTableKind(WellKnownDataSet.TableOfContents);
-            toc.setTableId(resultTables.size() - 1);
+            toc.setTableId(Integer.toString(resultTables.size() - 1));
             for (int i = 0; i < resultTables.size() - 1; i++) {
-                JSONObject object = (JSONObject) toc.getObject(i);
-                resultTables.get(i).setTableName(object.getString(tableNamePropertyName));
-                resultTables.get(i).setTableId(toc.getInt(tableIdPropertyName));
+                toc.next();
+                resultTables.get(i).setTableName(toc.getString(tableNamePropertyName));
+                resultTables.get(i).setTableId(toc.getString(tableIdPropertyName));
                 resultTables.get(i).setTableKind(tablesKindsMap.get(toc.getString(tableKindPropertyName)));
             }
         }

@@ -38,13 +38,13 @@ public class KustoResultSetTable implements ResultSet {
 
     private ArrayList<ArrayList<Object>> rows = null;
     private String tableName;
-    private int tableId;
+    private String tableId;
     private WellKnownDataSet tableKind;
     private Map<String, KustoResultColumn> columns = new HashMap<>();
     private KustoResultColumn[] columnsAsArray = null;
     private Iterator<ArrayList<Object>> iterator = Collections.emptyIterator();
     private ArrayList<Object> current = null;
-  
+
     public String getTableName() {
         return tableName;
     }
@@ -53,14 +53,14 @@ public class KustoResultSetTable implements ResultSet {
         this.tableName = tableName;
     }
 
-    public int getTableId() {
+    public String getTableId() {
         return tableId;
     }
 
     public KustoResultColumn[] getColumns(){
         return columnsAsArray;
     }
-    void setTableId(int tableId) {
+    void setTableId(String tableId) {
         this.tableId = tableId;
     }
 
@@ -74,7 +74,7 @@ public class KustoResultSetTable implements ResultSet {
 
     KustoResultSetTable(JSONObject jsonTable) throws JSONException, KustoServiceError {
         tableName = jsonTable.optString(tableNamePropertyName);
-        tableId = jsonTable.optInt(tableIdPropertyName);
+        tableId = jsonTable.optString(tableIdPropertyName);
         String tableKindString = jsonTable.optString(tableKindPropertyName);
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
         JSONArray columnsJson = jsonTable.optJSONArray(columnsPropertyName);
@@ -131,7 +131,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     public ArrayList<Object> getCurrentRow(){
-       return current;
+        return current;
     }
 
     @Override
@@ -192,10 +192,10 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public long getLong(int i)  {
-       Object obj = get(i);
-       if(obj instanceof Integer){
-           return ((Integer)obj).longValue();
-       }
+        Object obj = get(i);
+        if(obj instanceof Integer){
+            return ((Integer)obj).longValue();
+        }
         return (long) obj;
     }
 
@@ -342,7 +342,7 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public InputStream getBinaryStream(String columnName) throws SQLFeatureNotSupportedException {
-       return getBinaryStream(findColumn(columnName));
+        return getBinaryStream(findColumn(columnName));
     }
 
     @Override
@@ -416,7 +416,7 @@ public class KustoResultSetTable implements ResultSet {
     @Override
     public boolean isAfterLast() {
         return current == null && !iterator.hasNext();
-   }
+    }
 
     @Override
     public boolean isFirst() throws SQLException {
@@ -431,7 +431,7 @@ public class KustoResultSetTable implements ResultSet {
     @Override
     public void beforeFirst() {
         iterator = rows.iterator();
-   }
+    }
 
     @Override
     public void afterLast() {
@@ -764,7 +764,7 @@ public class KustoResultSetTable implements ResultSet {
     @Override
     public Blob getBlob(int i) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
-   }
+    }
 
     @Override
     public Clob getClob(int i) throws SQLFeatureNotSupportedException {
@@ -852,7 +852,7 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public Date getDate(String columnName, Calendar calendar) throws SQLException {
-         return getDate(findColumn(columnName));
+        return getDate(findColumn(columnName));
     }
 
     @Override
@@ -868,7 +868,7 @@ public class KustoResultSetTable implements ResultSet {
     @Override
     public Timestamp getTimestamp(int i, Calendar calendar) throws SQLException {
         return getTimestamp(i);
-   }
+    }
 
     @Override
     public Timestamp getTimestamp(String columnName, Calendar calendar) throws SQLException {
@@ -882,7 +882,7 @@ public class KustoResultSetTable implements ResultSet {
         } catch (MalformedURLException e) {
             throw new SQLException(e);
         }
-   }
+    }
 
     @Override
     public URL getURL(String columnName) throws SQLException {
@@ -963,7 +963,7 @@ public class KustoResultSetTable implements ResultSet {
     @Override
     public int getHoldability() throws SQLException {
         throw new SQLFeatureNotSupportedException("Method not supported");
-   }
+    }
 
     @Override
     public boolean isClosed() {
