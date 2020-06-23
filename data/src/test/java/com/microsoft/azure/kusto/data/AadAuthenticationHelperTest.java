@@ -1,5 +1,7 @@
-package com.microsoft.azure.kusto.data;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+package com.microsoft.azure.kusto.data;
 
 import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.aad.adal4j.UserInfo;
