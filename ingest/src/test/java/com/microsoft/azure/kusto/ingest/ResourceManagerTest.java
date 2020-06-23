@@ -11,13 +11,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class ResourceManagerTest {
 
@@ -41,7 +41,7 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
 
-        resourceManager = new ResourceManager(clientMock);
+        resourceManager = null;
     }
 
     @Test
@@ -105,6 +105,31 @@ class ResourceManagerTest {
         assertEquals(
                 SUCCESS_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
+    }
+
+    @Test
+    void TimerTest() throws DataClientException, DataServiceException, InterruptedException, KustoServiceError, IOException {
+        Client clientMock = mock(Client.class);
+        final ArrayList<Date> refreshTimestamps = new ArrayList<>();
+        when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
+                .thenReturn(generateIngestionAuthTokenResult());
+        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
+            refreshTimestamps.add((new Date()));
+            if(refreshTimestamps.size() != 1){
+                throw new Exception();
+            }
+
+            return generateIngestionResourcesResult();
+        });
+
+        ResourceManager resourceManager = new ResourceManager(clientMock, 1000L,500L);
+        Thread.sleep(10);
+        assertEquals(refreshTimestamps.size() , 1);
+        Thread.sleep(1000);
+        assertEquals(refreshTimestamps.size() , 2);
+        Thread.sleep(500);
+        assertEquals(refreshTimestamps.size() , 3);
+        resourceManager.close();
     }
 
     private static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceError, IOException {

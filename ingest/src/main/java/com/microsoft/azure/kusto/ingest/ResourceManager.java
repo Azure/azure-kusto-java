@@ -61,12 +61,20 @@ class ResourceManager implements Closeable {
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 60; // 1 hour
-    private static final long REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD = 1000 * 60 * 15; // 15 hour
+    private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000 * 60 * 15; // 15 minutes
+    private Long defaultRefreshTime;
+    private Long refreshTimeOnFailure;
 
-    ResourceManager(Client client) {
+    ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
+        this.defaultRefreshTime = defaultRefreshTime;
+        this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
         init();
+    }
+
+    ResourceManager(Client client) {
+        this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE);
     }
 
     @Override
@@ -82,10 +90,10 @@ class ResourceManager implements Closeable {
             public void run() {
                 try {
                     refreshIngestionResources();
-                    timer.schedule(new RefreshIngestionResourcesTask(), REFRESH_INGESTION_RESOURCES_PERIOD);
+                    timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources.", e);
-                    timer.schedule(new RefreshIngestionResourcesTask(), REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD);
+                    timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                 }
             }
         }
@@ -95,10 +103,10 @@ class ResourceManager implements Closeable {
             public void run() {
                 try {
                     refreshIngestionAuthToken();
-                    timer.schedule(new RefreshIngestionAuthTokenTask(), REFRESH_INGESTION_RESOURCES_PERIOD);
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken.", e);
-                    timer.schedule(new RefreshIngestionAuthTokenTask(), REDUCED_REFRESH_INGESTION_RESOURCES_PERIOD);
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                 }
             }
         }
