@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;

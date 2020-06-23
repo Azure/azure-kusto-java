@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.ingest.Ensure;
