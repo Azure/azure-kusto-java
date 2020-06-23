@@ -41,7 +41,7 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
 
-        resourceManager = null;
+        resourceManager = new ResourceManager(clientMock);
     }
 
     @Test
@@ -125,9 +125,9 @@ class ResourceManagerTest {
         ResourceManager resourceManager = new ResourceManager(clientMock, 1000L,500L);
         Thread.sleep(10);
         assertEquals(1, refreshTimestamps.size());
-        Thread.sleep(1000);
+        Thread.sleep(1010);
         assertEquals(2, refreshTimestamps.size());
-        Thread.sleep(500);
+        Thread.sleep(510);
         assertEquals(3, refreshTimestamps.size());
         resourceManager.close();
     }
