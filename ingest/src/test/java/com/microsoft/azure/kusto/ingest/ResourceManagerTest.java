@@ -124,11 +124,11 @@ class ResourceManagerTest {
 
         ResourceManager resourceManager = new ResourceManager(clientMock, 1000L,500L);
         Thread.sleep(10);
-        assertEquals(refreshTimestamps.size() , 1);
+        assertEquals(1, refreshTimestamps.size());
         Thread.sleep(1000);
-        assertEquals(refreshTimestamps.size() , 2);
+        assertEquals(2, refreshTimestamps.size());
         Thread.sleep(500);
-        assertEquals(refreshTimestamps.size() , 3);
+        assertEquals(3, refreshTimestamps.size());
         resourceManager.close();
     }
 
