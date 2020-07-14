@@ -88,7 +88,7 @@ public class ClientImpl implements Client, StreamingClient {
 
             jsonString = json.toString();
         } catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error setting up payload for command '%s' in database '%s'", command, database), e);
+            throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
         }
 
         HashMap<String, String> headers = initHeaders();

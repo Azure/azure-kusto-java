@@ -233,11 +233,11 @@ class ResourceManager implements Closeable {
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
             }
         } catch (DataServiceException e) {
-            throw new IngestionServiceException(e.getIngestionSource(), "Error getting version", e);
+            throw new IngestionServiceException(e.getIngestionSource(), "Couldn't get ServiceType because of a service exception executing '.show version'", e);
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionSource(), "Error getting version", e);
+            throw new IngestionClientException(e.getIngestionSource(), "Couldn't get ServiceType because of a client exception executing '.show version'", e);
         }
-        throw new IngestionServiceException("Show version command didn't return any records");
+        throw new IngestionServiceException("Couldn't get ServiceType because '.show version' didn't return any records");
     }
 
     private class IngestionResource {
