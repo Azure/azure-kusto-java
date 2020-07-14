@@ -274,7 +274,8 @@ class IngestClientImplTest {
 
         ingestClientImpl.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", DATA_MANAGEMENT_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE, "https://ingest-testendpoint.dev.kusto.windows.net"); // You are using 'DataManagement' client type, but the provided endpoint is of ServiceType 'Engine'. Initialize the client with the appropriate endpoint URI: 'https://ingest-testendpoint.dev.kusto.windows.net'
+        String expectedMessage =
+                String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", DATA_MANAGEMENT_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE, "https://ingest-testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
     }
