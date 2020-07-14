@@ -13,11 +13,16 @@ import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.univocity.parsers.csv.CsvRoutines;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.univocity.parsers.csv.CsvRoutines;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.sql.Date;
@@ -29,16 +34,23 @@ import java.util.UUID;
 class IngestClientImpl implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private AzureStorageClient azureStorageClient;
+    private String connectionDataSource;
+    private String endpointServiceType;
+    private String suggestedEndpointUri;
+    private static final String INGEST_PREFIX = "ingest-";
+    protected static final String WRONG_ENDPOINT_MESSAGE =
+            "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
+    public static final String DATA_MANAGEMENT_SERVICE_TYPE = "DataManagement";
 
     IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);
         this.azureStorageClient = new AzureStorageClient();
+        this.connectionDataSource = csb.getClusterUrl();
     }
 
     IngestClientImpl(ResourceManager resourceManager) {
@@ -56,7 +68,6 @@ class IngestClientImpl implements IngestClient {
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
-
         // Argument validation:
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -114,11 +125,13 @@ class IngestClientImpl implements IngestClient {
                             .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
             return new TableReportIngestionResult(tableStatuses);
-
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
+        } catch (IngestionServiceException e) {
+            validateEndpointServiceType();
+            throw e;
         }
     }
 
@@ -155,11 +168,13 @@ class IngestClientImpl implements IngestClient {
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
             return ingestFromBlob(blobSourceInfo, ingestionProperties);
-
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from file", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
+        } catch (IngestionServiceException e) {
+            validateEndpointServiceType();
+            throw e;
         }
     }
 
@@ -202,11 +217,13 @@ class IngestClientImpl implements IngestClient {
                 streamSourceInfo.getStream().close();
             }
             return ingestionResult;
-
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
+        } catch (IngestionServiceException e) {
+            validateEndpointServiceType();
+            throw e;
         }
     }
 
@@ -216,7 +233,7 @@ class IngestClientImpl implements IngestClient {
         return (AzureStorageClient.getCompression(filePath) != null
                 || format == IngestionProperties.DATA_FORMAT.parquet
                 || format == IngestionProperties.DATA_FORMAT.orc) ?
-                    fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
+                fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
     String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
@@ -251,6 +268,44 @@ class IngestClientImpl implements IngestClient {
             log.error(msg, ex);
             throw new IngestionClientException(msg, ex);
         }
+    }
+
+    protected void validateEndpointServiceType() throws IngestionServiceException, IngestionClientException {
+        if (StringUtils.isBlank(endpointServiceType) && resourceManager != null) {
+            endpointServiceType = resourceManager.getServiceType();
+        }
+        if (!DATA_MANAGEMENT_SERVICE_TYPE.equals(endpointServiceType)) {
+            String message = String.format(WRONG_ENDPOINT_MESSAGE, DATA_MANAGEMENT_SERVICE_TYPE, endpointServiceType);
+            if (StringUtils.isNotBlank(generateEndpointSuggestion())) {
+                message = String.format(message + ": '%s'", suggestedEndpointUri);
+            } else {
+                message += ".";
+            }
+            throw new IngestionClientException(message);
+        }
+    }
+
+    private String generateEndpointSuggestion() {
+        if (suggestedEndpointUri != null) {
+            return suggestedEndpointUri;
+        }
+        // The default is not passing a suggestion to the exception
+        suggestedEndpointUri = "";
+        if (StringUtils.isNotBlank(connectionDataSource)) {
+            URIBuilder engineUri;
+            try {
+                engineUri = new URIBuilder(connectionDataSource);
+                engineUri.setHost(INGEST_PREFIX + engineUri.getHost());
+                suggestedEndpointUri = engineUri.toString();
+            } catch (URISyntaxException e) {
+                log.error("Couldn't parse connectionDataSource '{}', so no suggestion can be made.", connectionDataSource, e);
+            }
+        }
+        return suggestedEndpointUri;
+    }
+
+    protected void setConnectionDataSource(String connectionDataSource) {
+        this.connectionDataSource = connectionDataSource;
     }
 
     @Override

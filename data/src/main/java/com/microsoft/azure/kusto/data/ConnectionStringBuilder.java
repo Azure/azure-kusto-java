@@ -22,58 +22,6 @@ public class ConnectionStringBuilder {
     private String applicationNameForTracing;
     private String accessToken;
 
-    String getClusterUrl() {
-        return clusterUri;
-    }
-
-    String getUserUsername() {
-        return username;
-    }
-
-    String getUserPassword() {
-        return password;
-    }
-
-    String getApplicationClientId() {
-        return applicationClientId;
-    }
-
-    String getApplicationKey() {
-        return applicationKey;
-    }
-
-    String getAuthorityId() {
-        return aadAuthorityId;
-    }
-
-    String getApplicationNameForTracing() {
-        return applicationNameForTracing;
-    }
-
-    public void setApplicationNameForTracing(String applicationNameForTracing) {
-        this.applicationNameForTracing = applicationNameForTracing;
-    }
-
-    String getClientVersionForTracing() {
-        return clientVersionForTracing;
-    }
-
-    public void setClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = clientVersionForTracing;
-    }
-
-    X509Certificate getX509Certificate() {
-        return x509Certificate;
-    }
-
-    PrivateKey getPrivateKey() {
-        return privateKey;
-    }
-
-    String getAccessToken() {
-        return accessToken;
-    }
-
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
         username = null;
@@ -182,5 +130,57 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.accessToken = token;
         return csb;
+    }
+
+    public String getClusterUrl() {
+        return clusterUri;
+    }
+
+    String getUserUsername() {
+        return username;
+    }
+
+    String getUserPassword() {
+        return password;
+    }
+
+    String getApplicationClientId() {
+        return applicationClientId;
+    }
+
+    String getApplicationKey() {
+        return applicationKey;
+    }
+
+    String getAuthorityId() {
+        return aadAuthorityId;
+    }
+
+    String getApplicationNameForTracing() {
+        return applicationNameForTracing;
+    }
+
+    public void setApplicationNameForTracing(String applicationNameForTracing) {
+        this.applicationNameForTracing = applicationNameForTracing;
+    }
+
+    String getClientVersionForTracing() {
+        return clientVersionForTracing;
+    }
+
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
+    }
+
+    X509Certificate getX509Certificate() {
+        return x509Certificate;
+    }
+
+    PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    String getAccessToken() {
+        return accessToken;
     }
 }
