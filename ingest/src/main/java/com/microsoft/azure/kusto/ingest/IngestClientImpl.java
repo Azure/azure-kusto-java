@@ -176,7 +176,7 @@ class IngestClientImpl implements IngestClient {
         try {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null || streamSourceInfo.getStream().available() <= 0) {
-                throw new IngestionClientException("Stream");
+                throw new IngestionClientException("Stream is null or empty");
             }
             boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), ingestionProperties.getDataFormat());
 
