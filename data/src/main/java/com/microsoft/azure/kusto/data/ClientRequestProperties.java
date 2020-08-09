@@ -81,13 +81,31 @@ public class ClientRequestProperties {
 
     JSONObject toJson() {
         try {
+            JSONObject optionsAsJSON = new JSONObject(this.options);
+            Long timeoutInMilliSec = getTimeoutInMilliSec();
+            if(timeoutInMilliSec != null) {
+                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, msToTimespan(timeoutInMilliSec));
+            }
             JSONObject json = new JSONObject();
-            json.put(OPTIONS_KEY, new JSONObject(this.options));
+            json.put(OPTIONS_KEY, optionsAsJSON);
             json.put(PARAMETERS_KEY, new JSONObject(this.parameters));
             return json;
         } catch (JSONException e) {
             return null;
         }
+    }
+
+    private static String msToTimespan(Long duration) {
+        long milliseconds = duration % 1000;
+        long seconds = (duration / 1000) % 60;
+        long minutes = (duration / (1000 * 60)) % 60;
+        long hours = (duration / (1000 * 60 * 60)) % 24;
+
+        String hoursString = (hours < 10) ? "0" + hours : String.valueOf(hours);
+        String minutesString = (minutes < 10) ? "0" + minutes : String.valueOf(minutes);
+        String secondsString = (seconds < 10) ? "0" + seconds : String.valueOf(seconds);
+
+        return hoursString + ":" + minutesString + ":" + secondsString + "." + String.valueOf(milliseconds);
     }
 
     public String toString() {

@@ -38,9 +38,10 @@ public class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test ClientRequestProperties fromString")
     void stringToProperties() throws JSONException {
-        String properties = "{\"Options\":{\"servertimeout\":100000, \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
+        String properties = "{\"Options\":{\"servertimeout\":5111111, \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
-
+        assert crp != null;
+        assert crp.toJson().getJSONObject("Options").get("servertimeout").equals("01:25:11.111");
         assert crp.getTimeoutInMilliSec() != null;
         assert crp.getOption("Content-Encoding").equals("gzip");
         assert crp.getParameter("birthday").equals("datetime(1970-05-11)");
