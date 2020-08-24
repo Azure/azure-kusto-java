@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -67,6 +68,9 @@ class Utils {
                     return new KustoOperationResult(responseContent, url.endsWith("v2/rest/query") ? "v2" : "v1");
                 }
                 else {
+                    if(StringUtils.isBlank(responseContent)){
+                        responseContent = response.getStatusLine().toString();
+                    }
                     throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
                 }
             }

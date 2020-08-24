@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -21,6 +22,7 @@ public class ClientRequestProperties {
     private static final String OPTIONS_KEY = "Options";
     private static final String PARAMETERS_KEY = "Parameters";
     private static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+    private static final long NANOS_TO_MILLIS = 1000000L;
     private HashMap<String, Object> parameters;
     private HashMap<String, Object> options;
 
@@ -66,12 +68,12 @@ public class ClientRequestProperties {
         Long timeout = null;
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
-        }
-        if (timeoutObj instanceof String) {
-            timeout = Long.valueOf((String) timeoutObj);
+        } else if (timeoutObj instanceof String) {
+            timeout = LocalTime.parse((String) timeoutObj).toNanoOfDay() / NANOS_TO_MILLIS;
         } else if (timeoutObj instanceof Integer) {
             timeout = Long.valueOf((Integer) timeoutObj);
         }
+
         return timeout;
     }
 
@@ -81,8 +83,14 @@ public class ClientRequestProperties {
 
     JSONObject toJson() {
         try {
+            JSONObject optionsAsJSON = new JSONObject(this.options);
+            Long timeoutInMilliSec = getTimeoutInMilliSec();
+            if (timeoutInMilliSec != null) {
+                LocalTime localTime = LocalTime.ofNanoOfDay(timeoutInMilliSec * NANOS_TO_MILLIS);
+                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, localTime.toString());
+            }
             JSONObject json = new JSONObject();
-            json.put(OPTIONS_KEY, new JSONObject(this.options));
+            json.put(OPTIONS_KEY, optionsAsJSON);
             json.put(PARAMETERS_KEY, new JSONObject(this.parameters));
             return json;
         } catch (JSONException e) {

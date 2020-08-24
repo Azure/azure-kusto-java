@@ -30,7 +30,7 @@
     </developers>
 
     <properties>
-        <revision>2.1.1</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>2.1.2</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
@@ -40,7 +40,7 @@
         <!-- Compile dependencies -->
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <commons-lang3.version>3.9</commons-lang3.version>
-        <adal4j.version>1.6.4</adal4j.version>
+        <adal4j.version>1.6.5</adal4j.version>
         <httpclient.version>4.5.8</httpclient.version>
         <httpcore.version>4.4.11</httpcore.version>
         <json.version>20190722</json.version>
