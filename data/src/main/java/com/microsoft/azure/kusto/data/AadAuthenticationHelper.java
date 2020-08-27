@@ -39,13 +39,15 @@ class AadAuthenticationHelper {
     private AuthenticationResult lastAuthenticationResult;
     private Lock lastAuthenticationResultLock = new ReentrantLock();
     private String applicationClientId;
+    private Callable<String> tokenProvider;
 
     private enum AuthenticationType {
         AAD_USERNAME_PASSWORD,
         AAD_APPLICATION_KEY,
         AAD_DEVICE_LOGIN,
         AAD_APPLICATION_CERTIFICATE,
-        AAD_ACCESS_TOKEN
+        AAD_ACCESS_TOKEN,
+        CALLABLE;
     }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
@@ -67,6 +69,9 @@ class AadAuthenticationHelper {
         } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
             authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
             accessToken = csb.getAccessToken();
+        } else if(csb.getTokenProvider() != null){
+            authenticationType = AuthenticationType.CALLABLE;
+            tokenProvider = csb.getTokenProvider();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
         }
@@ -81,9 +86,17 @@ class AadAuthenticationHelper {
         }
     }
 
-    String acquireAccessToken() throws DataServiceException {
+    String acquireAccessToken() throws DataServiceException, DataClientException {
         if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN) {
             return accessToken;
+        }
+
+        if (authenticationType == AuthenticationType.CALLABLE) {
+            try {
+                return tokenProvider.call();
+            } catch (Exception e) {
+                throw new DataClientException(clusterUrl, e.getMessage(), e);
+            }
         }
 
         if (lastAuthenticationResult == null) {
