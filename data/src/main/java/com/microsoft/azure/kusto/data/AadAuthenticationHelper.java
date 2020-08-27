@@ -47,7 +47,7 @@ class AadAuthenticationHelper {
         AAD_DEVICE_LOGIN,
         AAD_APPLICATION_CERTIFICATE,
         AAD_ACCESS_TOKEN,
-        CALLABLE;
+        AAD_ACCESS_TOKEN_PROVIDER;
     }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
@@ -70,7 +70,7 @@ class AadAuthenticationHelper {
             authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
             accessToken = csb.getAccessToken();
         } else if(csb.getTokenProvider() != null){
-            authenticationType = AuthenticationType.CALLABLE;
+            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
             tokenProvider = csb.getTokenProvider();
         } else {
             authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
@@ -91,7 +91,7 @@ class AadAuthenticationHelper {
             return accessToken;
         }
 
-        if (authenticationType == AuthenticationType.CALLABLE) {
+        if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER) {
             try {
                 return tokenProvider.call();
             } catch (Exception e) {
