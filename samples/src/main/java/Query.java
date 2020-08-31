@@ -10,20 +10,22 @@ public class Query {
     public static void main(String[] args) {
 
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
-            ClientImpl client = new ClientImpl(csb);
+            String ClientID ="d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66";
+            String pass = "Unh581Hzn50LRWPW5XTMV-3_j5.DdisG3.";
+            String auth = "microsoft.com";
+//            IngestClient  client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithDeviceCodeCredentials("https://ingest-ohbitton.kusto.windows.net"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials("https://ohbitton.dev.kusto.windows.net/", ClientID, pass, auth);
 
-            KustoOperationResult results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
+            ClientImpl client = new ClientImpl(csb);
+            ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+            clientRequestProperties.setOption("ClientRequestId", "ohadId");
+            clientRequestProperties.setTimeoutInMilliSec(999999L);
+            KustoOperationResult results = client.execute( "ohtst", "ddd | take 1",clientRequestProperties);
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.println(String.format("Kusto sent back %s rows.", mainTableResult.count()));
 
             // in case we want to pass client request properties
-            ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-            clientRequestProperties.setTimeoutInMilliSec(TimeUnit.MINUTES.toMillis(1));
+
 
             results = client.execute( System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
         } catch (Exception e) {

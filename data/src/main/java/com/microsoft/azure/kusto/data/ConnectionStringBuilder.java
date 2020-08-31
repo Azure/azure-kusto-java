@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
 
@@ -21,6 +22,7 @@ public class ConnectionStringBuilder {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private String accessToken;
+    private Callable<String> tokenProvider;
 
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
@@ -32,6 +34,63 @@ public class ConnectionStringBuilder {
         x509Certificate = null;
         privateKey = null;
         accessToken = null;
+        tokenProvider = null;
+    }
+
+    public String getClusterUrl() {
+        return clusterUri;
+    }
+
+    String getUserUsername() {
+        return username;
+    }
+
+    String getUserPassword() {
+        return password;
+    }
+
+    String getApplicationClientId() {
+        return applicationClientId;
+    }
+
+    String getApplicationKey() {
+        return applicationKey;
+    }
+
+    String getAuthorityId() {
+        return aadAuthorityId;
+    }
+
+    String getApplicationNameForTracing() {
+        return applicationNameForTracing;
+    }
+
+    public void setApplicationNameForTracing(String applicationNameForTracing) {
+        this.applicationNameForTracing = applicationNameForTracing;
+    }
+
+    String getClientVersionForTracing() {
+        return clientVersionForTracing;
+    }
+
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
+    }
+
+    X509Certificate getX509Certificate() {
+        return x509Certificate;
+    }
+
+    PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    String getAccessToken() {
+        return accessToken;
+    }
+
+    public Callable<String> getTokenProvider() {
+        return tokenProvider;
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -132,55 +191,17 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public String getClusterUrl() {
-        return clusterUri;
-    }
+    public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String resourceUri, Callable<String> tokenProviderCallable) {
+        if (StringUtils.isEmpty(resourceUri)) {
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
 
-    String getUserUsername() {
-        return username;
-    }
+        if (tokenProviderCallable == null) {
+            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
+        }
 
-    String getUserPassword() {
-        return password;
-    }
-
-    String getApplicationClientId() {
-        return applicationClientId;
-    }
-
-    String getApplicationKey() {
-        return applicationKey;
-    }
-
-    String getAuthorityId() {
-        return aadAuthorityId;
-    }
-
-    String getApplicationNameForTracing() {
-        return applicationNameForTracing;
-    }
-
-    public void setApplicationNameForTracing(String applicationNameForTracing) {
-        this.applicationNameForTracing = applicationNameForTracing;
-    }
-
-    String getClientVersionForTracing() {
-        return clientVersionForTracing;
-    }
-
-    public void setClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = clientVersionForTracing;
-    }
-
-    X509Certificate getX509Certificate() {
-        return x509Certificate;
-    }
-
-    PrivateKey getPrivateKey() {
-        return privateKey;
-    }
-
-    String getAccessToken() {
-        return accessToken;
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.tokenProvider = tokenProviderCallable;
+        return csb;
     }
 }

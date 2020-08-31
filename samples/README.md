@@ -41,6 +41,7 @@ Results results = client.execute( System.getProperty("dbName"), System.getProper
 ### How to run this sample
 
 ```sh
+cd samples
 mvn clean compile exec:java -Dexec.mainClass="Query" \
                             -DclusterPath="cluster/path" \
                             -DappId="app-id" \
@@ -93,6 +94,7 @@ IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestio
 ### How to run this sample
 
 ```sh
+cd samples
 mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
                               -Dexec.mainClass="FileIngestion" \
                               -DclusterPath="cluster/path" \
@@ -176,6 +178,7 @@ OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, in
 ### How to run this sample
 
 ```sh
+cd samples
 mvn clean compile exec:java -Dexec.cleanupDaemonThreads=false \
                               -Dexec.mainClass="StreamingIngest" \
                               -DclusterPath="cluster/path" \
@@ -260,6 +263,7 @@ while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
 
 To run this sample:
 ```sh
+cd samples
 mvn clean compile exec:java -Dexec.mainClass="TableStatus" \
                             -DclusterPath="cluster/path" \
                             -DappId="app-id" \
