@@ -67,6 +67,7 @@ class ResourceManager implements Closeable {
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000 * 60 * 15; // 15 minutes
     private Long defaultRefreshTime;
     private Long refreshTimeOnFailure;
+    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
         this.defaultRefreshTime = defaultRefreshTime;
