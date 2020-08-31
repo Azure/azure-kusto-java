@@ -139,7 +139,7 @@ public class ClientImpl implements Client, StreamingClient {
         return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue()  + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
     }
 
-    private HashMap<String, String> initHeaders() throws DataServiceException {
+    private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {
         HashMap<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
