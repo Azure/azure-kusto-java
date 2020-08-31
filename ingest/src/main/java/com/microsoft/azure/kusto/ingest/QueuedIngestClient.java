@@ -31,7 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-class IngestClientImpl implements IngestClient {
+public class QueuedIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
@@ -40,12 +40,12 @@ class IngestClientImpl implements IngestClient {
     private String connectionDataSource;
     private String endpointServiceType;
     private String suggestedEndpointUri;
-    private static final String INGEST_PREFIX = "ingest-";
+    public static final String INGEST_PREFIX = "ingest-";
     protected static final String WRONG_ENDPOINT_MESSAGE =
             "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
-    public static final String DATA_MANAGEMENT_SERVICE_TYPE = "DataManagement";
+    public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
-    IngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+    QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);
@@ -53,13 +53,13 @@ class IngestClientImpl implements IngestClient {
         this.connectionDataSource = csb.getClusterUrl();
     }
 
-    IngestClientImpl(ResourceManager resourceManager) {
+    QueuedIngestClient(ResourceManager resourceManager) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
         azureStorageClient = new AzureStorageClient();
     }
 
-    IngestClientImpl(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
+    QueuedIngestClient(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
         this.azureStorageClient = azureStorageClient;
@@ -271,13 +271,14 @@ class IngestClientImpl implements IngestClient {
     }
 
     protected void validateEndpointServiceType() throws IngestionServiceException, IngestionClientException {
-        if (StringUtils.isBlank(endpointServiceType) && resourceManager != null) {
-            endpointServiceType = resourceManager.getServiceType();
+        if (StringUtils.isBlank(endpointServiceType)) {
+            endpointServiceType = retrieveServiceType();
         }
-        if (!DATA_MANAGEMENT_SERVICE_TYPE.equals(endpointServiceType)) {
-            String message = String.format(WRONG_ENDPOINT_MESSAGE, DATA_MANAGEMENT_SERVICE_TYPE, endpointServiceType);
-            if (StringUtils.isNotBlank(generateEndpointSuggestion())) {
-                message = String.format(message + ": '%s'", suggestedEndpointUri);
+        if (!EXPECTED_SERVICE_TYPE.equals(endpointServiceType)) {
+            String message = String.format(WRONG_ENDPOINT_MESSAGE, EXPECTED_SERVICE_TYPE, endpointServiceType);
+            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, connectionDataSource);
+            if (StringUtils.isNotBlank(suggestedEndpointUri)) {
+                message = String.format("%s: '%s'", message, suggestedEndpointUri);
             } else {
                 message += ".";
             }
@@ -285,23 +286,30 @@ class IngestClientImpl implements IngestClient {
         }
     }
 
-    private String generateEndpointSuggestion() {
-        if (suggestedEndpointUri != null) {
-            return suggestedEndpointUri;
+    protected static String generateEndpointSuggestion(String existingSuggestedEndpointUri, String dataSource) {
+        if (existingSuggestedEndpointUri != null) {
+            return existingSuggestedEndpointUri;
         }
         // The default is not passing a suggestion to the exception
-        suggestedEndpointUri = "";
-        if (StringUtils.isNotBlank(connectionDataSource)) {
-            URIBuilder engineUri;
+        String endpointUriToSuggestStr = "";
+        if (StringUtils.isNotBlank(dataSource)) {
+            URIBuilder endpointUriToSuggest;
             try {
-                engineUri = new URIBuilder(connectionDataSource);
-                engineUri.setHost(INGEST_PREFIX + engineUri.getHost());
-                suggestedEndpointUri = engineUri.toString();
+                endpointUriToSuggest = new URIBuilder(dataSource);
+                endpointUriToSuggest.setHost(INGEST_PREFIX + endpointUriToSuggest.getHost());
+                endpointUriToSuggestStr = endpointUriToSuggest.toString();
             } catch (URISyntaxException e) {
-                log.error("Couldn't parse connectionDataSource '{}', so no suggestion can be made.", connectionDataSource, e);
+                log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
             }
         }
-        return suggestedEndpointUri;
+        return endpointUriToSuggestStr;
+    }
+
+    private String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+        if (resourceManager != null) {
+            return resourceManager.retrieveServiceType();
+        }
+        return null;
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {
