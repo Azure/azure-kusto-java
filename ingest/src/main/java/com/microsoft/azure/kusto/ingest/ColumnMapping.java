@@ -27,6 +27,12 @@ public class ColumnMapping implements Serializable {
         this.properties = properties;
     }
 
+    public ColumnMapping(ColumnMapping other) {
+        columnName = other.columnName;
+        columnType = other.columnType;
+        properties = new HashMap<>(other.properties);
+    }
+
     public void setPath(String path) {
         properties.put(MappingConsts.PATH.getName(), path);
     }

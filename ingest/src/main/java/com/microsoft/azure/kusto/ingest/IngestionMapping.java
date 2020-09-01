@@ -38,12 +38,24 @@ public class IngestionMapping {
 
     /**
      * Please use setIngestionMappingReference for production as passing the mapping every time is wasteful
-     * @param columnMappings          Array of columnMappings of the same kind.
-     * @param ingestionMappingKind      IngestionMappingKind: the format of the source data to map from.
+     *
+     * @param columnMappings       Array of columnMappings of the same kind.
+     * @param ingestionMappingKind IngestionMappingKind: the format of the source data to map from.
      */
     public IngestionMapping(ColumnMapping[] columnMappings, IngestionMappingKind ingestionMappingKind) {
         this.columnMappings = columnMappings;
         this.ingestionMappingKind = ingestionMappingKind;
+    }
+
+    /**
+     * Copy constructor for IngestionMapping.
+     *
+     * @param other the instance to copy from
+     */
+    public IngestionMapping(IngestionMapping other) {
+        this.ingestionMappingKind = other.ingestionMappingKind;
+        this.ingestionMappingReference = other.ingestionMappingReference;
+        this.columnMappings = Arrays.stream(other.columnMappings).map(ColumnMapping::new).toArray(ColumnMapping[]::new);
     }
 
     /**
@@ -61,8 +73,8 @@ public class IngestionMapping {
      * Please use setIngestionMappingReference for production as passing the mapping every time is wasteful
      * Sets the ingestion mapping parameters
      *
-     * @param columnMappings          Array of columnMappings of the same kind.
-     * @param ingestionMappingKind      IngestionMappingKind: the format of the source data to map from.
+     * @param columnMappings       Array of columnMappings of the same kind.
+     * @param ingestionMappingKind IngestionMappingKind: the format of the source data to map from.
      */
     public void setIngestionMapping(ColumnMapping[] columnMappings, IngestionMappingKind ingestionMappingKind) {
         this.columnMappings = columnMappings;

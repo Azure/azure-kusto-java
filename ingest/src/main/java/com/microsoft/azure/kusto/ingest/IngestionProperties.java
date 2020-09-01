@@ -53,6 +53,24 @@ public class IngestionProperties {
         this.ingestionMapping = new IngestionMapping();
     }
 
+    /**
+     * Copy constructor for {@code IngestionProperties}.
+     * @param other the instance to copy from.
+     */
+    public IngestionProperties(IngestionProperties other) {
+        this.databaseName = other.databaseName;
+        this.tableName = other.tableName;
+        this.reportLevel = other.reportLevel;
+        this.reportMethod = other.reportMethod;
+        this.flushImmediately = other.flushImmediately;
+        this.additionalProperties = new HashMap<>(other.additionalProperties);
+        this.dropByTags = new ArrayList<>(other.dropByTags);
+        this.ingestByTags = new ArrayList<>(other.ingestByTags);
+        this.ingestIfNotExists = new ArrayList<>(other.ingestIfNotExists);
+        this.additionalTags = new ArrayList<>(other.additionalTags);
+        this.ingestionMapping = new IngestionMapping(other.ingestionMapping);
+    }
+
     public String getDatabaseName() {
         return databaseName;
     }

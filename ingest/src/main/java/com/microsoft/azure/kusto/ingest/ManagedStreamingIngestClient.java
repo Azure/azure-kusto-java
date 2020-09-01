@@ -73,6 +73,13 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
         streamSourceInfo.validate();
         ingestionProperties.validate();
+
+        if (streamSourceInfo.isLeaveOpen())
+        {
+            throw new UnsupportedOperationException("Stream can't be Leave Open in ManagedStreamingIngestClient");
+        }
+
+        //todo impl
     }
 
     @Override
