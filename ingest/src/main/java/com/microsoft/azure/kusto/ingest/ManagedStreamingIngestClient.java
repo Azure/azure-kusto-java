@@ -9,13 +9,18 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.concurrent.Semaphore;
 
 //TODO: comment
 public class ManagedStreamingIngestClient implements IngestClient {
 
+    private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int MAX_CONCURRENT_CALLS = 10;
     private final Semaphore concurrentStreamingIngestJobsSemaphore;
     private final IngestClientImpl queuedIngestClient;
@@ -29,7 +34,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder,
                                         int maxConcurrentCalls) throws URISyntaxException {
-        concurrentStreamingIngestJobsSemaphore = new Semaphore(MAX_CONCURRENT_CALLS);
+        log.info("Creating a new ManagedStreamingIngestClient");
+        concurrentStreamingIngestJobsSemaphore = new Semaphore(maxConcurrentCalls);
         queuedIngestClient = new IngestClientImpl(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
     }
@@ -37,26 +43,41 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        return null;
-    }
+        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        fileSourceInfo.validate();
+        ingestionProperties.validate();    }
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        return null;
-    }
+        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        blobSourceInfo.validate();
+        ingestionProperties.validate();    }
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        return null;
+        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        resultSetSourceInfo.validate();
+        ingestionProperties.validate();
     }
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
-        return null;
+        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        streamSourceInfo.validate();
+        ingestionProperties.validate();
     }
 
     @Override
     public void close() throws IOException {
-
+        queuedIngestClient.close();
+        streamingIngestClient.close();
     }
 }
