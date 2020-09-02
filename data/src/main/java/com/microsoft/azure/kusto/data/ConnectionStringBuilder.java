@@ -24,7 +24,20 @@ public class ConnectionStringBuilder {
     private String accessToken;
     private Callable<String> tokenProvider;
 
-    String getClusterUrl() {
+    private ConnectionStringBuilder(String resourceUri) {
+        clusterUri = resourceUri;
+        username = null;
+        password = null;
+        applicationClientId = null;
+        applicationKey = null;
+        aadAuthorityId = null;
+        x509Certificate = null;
+        privateKey = null;
+        accessToken = null;
+        tokenProvider = null;
+    }
+
+    public String getClusterUrl() {
         return clusterUri;
     }
 
@@ -78,19 +91,6 @@ public class ConnectionStringBuilder {
 
     public Callable<String> getTokenProvider() {
         return tokenProvider;
-    }
-
-    private ConnectionStringBuilder(String resourceUri) {
-        clusterUri = resourceUri;
-        username = null;
-        password = null;
-        applicationClientId = null;
-        applicationKey = null;
-        aadAuthorityId = null;
-        x509Certificate = null;
-        privateKey = null;
-        accessToken = null;
-        tokenProvider = null;
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -204,5 +204,4 @@ public class ConnectionStringBuilder {
         csb.tokenProvider = tokenProviderCallable;
         return csb;
     }
-
 }

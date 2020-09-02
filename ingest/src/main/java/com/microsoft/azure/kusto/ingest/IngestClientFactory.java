@@ -10,7 +10,7 @@ import java.net.URISyntaxException;
 public class IngestClientFactory {
 
     public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        return new IngestClientImpl(csb);
+        return new QueuedIngestClient(csb);
     }
 
     public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
