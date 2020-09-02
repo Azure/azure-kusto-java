@@ -229,13 +229,13 @@ public class StreamingIngestClient implements IngestClient {
     }
 
     /* TODO yischoen 2020-08-31: This and the following methods as well a supporting class properties, are almost
-	 *	identical to QueuedIngestClient.validateEndpointServiceType(). This is because there’s no common Impl parent
-	 *	shared by QueuedIngestClient and StreamingIngestClient. Likewise, the ClientImpl implements both the Client
-	 *	and StreamingClient Interfaces, but there’s not shared parent Impl. Also, the QueuedIngestClient executes
-	 *	commands using the ResourceManager, and the StreamingIngestClient executes commands directly using the client.
-	 *	To dedupe, we should add a common IngestClientImpl that both inherit from. We are not merging this PR until we
-	 *	decide if such a re-arch is appropriate given how often this feature would be helpful.
-	*/
+     *	identical to QueuedIngestClient.validateEndpointServiceType(). This is because there's no common Impl parent
+     *	shared by QueuedIngestClient and StreamingIngestClient. Likewise, the ClientImpl implements both the Client
+     *	and StreamingClient Interfaces, but there's not shared parent Impl. Also, the QueuedIngestClient executes
+     *	commands using the ResourceManager, and the StreamingIngestClient executes commands directly using the client.
+     *	To dedupe, we should add a common IngestClientImpl that both inherit from. We are not merging this PR until we
+     *	decide if such a re-arch is appropriate given how often this feature would be helpful.
+     */
     protected void validateEndpointServiceType() throws IngestionServiceException, IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
