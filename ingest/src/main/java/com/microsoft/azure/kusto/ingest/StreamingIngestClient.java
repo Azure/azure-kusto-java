@@ -12,7 +12,7 @@ import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.univocity.parsers.csv.CsvRoutines;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,16 +48,7 @@ public class StreamingIngestClient implements IngestClient {
         ingestionProperties.validate();
 
         try {
-            String filePath = fileSourceInfo.getFilePath();
-            File file = new File(filePath);
-            if (file.length() == 0) {
-                String message = "Empty file.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-            InputStream stream = new FileInputStream(filePath);
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-            streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -97,16 +88,7 @@ public class StreamingIngestClient implements IngestClient {
         resultSetSourceInfo.validate();
         ingestionProperties.validate();
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
-            byteArrayOutputStream.flush();
-            if (byteArrayOutputStream.size() <= 0) {
-                String message = "Empty ResultSet.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";

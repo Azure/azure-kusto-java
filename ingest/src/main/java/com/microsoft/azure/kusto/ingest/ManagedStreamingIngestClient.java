@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
@@ -47,7 +48,16 @@ public class ManagedStreamingIngestClient implements IngestClient {
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         fileSourceInfo.validate();
-        ingestionProperties.validate();    }
+        ingestionProperties.validate();
+        try {
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo);
+            return ingestFromStream(streamSourceInfo, ingestionProperties);
+        } catch (FileNotFoundException e) {
+            log.error("File not found when ingesting a file.", e);
+            throw new IngestionClientException("IO exception - check file path.", e);
+        }
+
+    }
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
@@ -55,7 +65,11 @@ public class ManagedStreamingIngestClient implements IngestClient {
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         blobSourceInfo.validate();
-        ingestionProperties.validate();    }
+        ingestionProperties.validate();
+
+        //if it's a blob we ingest using the queued client
+        return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+    }
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
@@ -64,6 +78,14 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
         resultSetSourceInfo.validate();
         ingestionProperties.validate();
+        try {
+            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
+            return ingestFromStream(streamSourceInfo, ingestionProperties);
+        } catch (IOException ex) {
+            String msg = "Failed to read from ResultSet.";
+            log.error(msg, ex);
+            throw new IngestionClientException(msg, ex);
+        }
     }
 
     @Override
@@ -74,10 +96,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
-        if (streamSourceInfo.isLeaveOpen())
-        {
+        if (streamSourceInfo.isLeaveOpen()) {
             throw new UnsupportedOperationException("Stream can't be Leave Open in ManagedStreamingIngestClient");
         }
+
+        IngestionProperties ingestionPropertiesClone = new IngestionProperties(ingestionProperties);
+
 
         //todo impl
     }
