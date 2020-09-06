@@ -104,6 +104,11 @@
                         <goals>
                             <goal>analyze-only</goal>
                         </goals>
+                        <configuration>
+                            <ignoredDependencies>
+                                <ignoredDependency>com.nimbusds:nimbus-jose-jwt:jar</ignoredDependency>
+                            </ignoredDependencies>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -117,7 +122,7 @@
     </build>
 
     <dependencies>
-        <!-- Added as version 9.0.0 breaks adal - remove after moving to msal -->
+        <!-- Added as version 9.0.0 breaks adal - remove after moving to msalde -->
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
