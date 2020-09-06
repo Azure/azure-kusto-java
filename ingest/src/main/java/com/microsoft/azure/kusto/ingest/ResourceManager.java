@@ -23,6 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+//import com.microsoft.azure.kusto.data.ClientImpl.DEFAULT_DATABASE_NAME;
+//import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_CLIENT_REQUEST_ID;
+
 class ResourceManager implements Closeable {
 
     public enum ResourceType {
