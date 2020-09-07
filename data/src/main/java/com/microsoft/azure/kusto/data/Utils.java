@@ -53,6 +53,7 @@ class Utils {
             HttpPost httpPost = new HttpPost(uri);
             httpPost.setEntity(requestEntity);
             httpPost.addHeader("Accept-Encoding", "gzip,deflate");
+            httpPost.addHeader("Accept", "application/json");
             for (HashMap.Entry<String, String> entry : headers.entrySet()) {
                 httpPost.addHeader(entry.getKey(), entry.getValue());
             }

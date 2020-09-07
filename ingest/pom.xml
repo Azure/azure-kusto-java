@@ -53,15 +53,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <excludes>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>${maven-source-plugin.version}</version>
                 <executions>
@@ -98,6 +89,7 @@
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                         <dependency>org.slf4j:slf4j-simple</dependency>
                         <dependency>org.junit.jupiter:junit-jupiter-engine</dependency>
+                        <dependency>com.fasterxml.jackson.core:jackson-core</dependency>
                     </ignoredUnusedDeclaredDependencies>
                 </configuration>
                 <executions>
@@ -147,6 +139,11 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
             <version>${fasterxml.jackson.core.version}</version>
         </dependency>
         <dependency>

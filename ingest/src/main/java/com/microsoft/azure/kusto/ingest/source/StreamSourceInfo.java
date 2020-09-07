@@ -31,6 +31,7 @@ public class StreamSourceInfo extends AbstractSourceInfo {
      * Weather or not the stream will close after reading from it.
      * NOTE!!! In the streamingIngestClient - the Http client closes the stream anyway, therefore it the stream was set
      * as not compressed the stream will close regardless of the leaveOpen argument.
+     * @param leaveOpen leave the stream open after processing
      */
     public void setLeaveOpen(boolean leaveOpen) {
         this.leaveOpen = leaveOpen;
