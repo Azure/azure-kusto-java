@@ -77,6 +77,7 @@ public class ClientImpl implements Client, StreamingClient {
             }
         }
 
+        String clientRequestId = null;
         String jsonString;
         try {
             JSONObject json = new JSONObject()
@@ -85,6 +86,7 @@ public class ClientImpl implements Client, StreamingClient {
 
             if (properties != null) {
                 json.put("properties", properties.toString());
+                clientRequestId = properties.getClientRequestId();
             }
 
             jsonString = json.toString();
@@ -94,7 +96,7 @@ public class ClientImpl implements Client, StreamingClient {
 
         HashMap<String, String> headers = initHeaders();
         headers.put("Content-Type", "application/json");
-        headers.put("x-ms-client-request-id", String.format("KJC.execute;%s", java.util.UUID.randomUUID()));
+        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.execute;%s", java.util.UUID.randomUUID()) : clientRequestId);
         headers.put("Fed", "True");
 
         return Utils.post(clusterEndpoint, jsonString, null, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
@@ -120,18 +122,21 @@ public class ClientImpl implements Client, StreamingClient {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
         HashMap<String, String> headers = initHeaders();
-        headers.put("x-ms-client-request-id", String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()));
-        headers.put("Content-Encoding", "gzip");
+        String clientRequestId = null;
 
         Long timeoutMs = null;
         if (properties != null) {
             timeoutMs = properties.getTimeoutInMilliSec();
+            clientRequestId = properties.getClientRequestId();
             Iterator<HashMap.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
                 HashMap.Entry<String, Object> pair = iterator.next();
                 headers.put(pair.getKey(), pair.getValue().toString());
             }
         }
+
+        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()) : clientRequestId);
+        headers.put("Cotent-Encoding", "gzip");
 
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
