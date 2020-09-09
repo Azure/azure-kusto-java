@@ -801,7 +801,7 @@ public class KustoResultSetTable implements ResultSet {
         return getArray(findColumn(columnName));
     }
 
-    /**
+    /*
      * This will return the full dateTime from Kusto as sql.Date is less precise
      */
     public LocalDateTime getKustoDateTime(int i) {
