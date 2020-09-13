@@ -207,7 +207,7 @@ class ResourceManager implements Closeable {
                 KustoOperationResult identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
-                        && identityTokenResult.getResultTables().size() > 0) {
+                        && !identityTokenResult.getResultTables().isEmpty()) {
                     KustoResultSetTable resultTable = identityTokenResult.next();
                     resultTable.next();
 
@@ -227,7 +227,7 @@ class ResourceManager implements Closeable {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
             KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
-            if (versionResult != null && versionResult.hasNext() && versionResult.getResultTables().size() > 0) {
+            if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
                 KustoResultSetTable resultTable = versionResult.next();
                 resultTable.next();
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);

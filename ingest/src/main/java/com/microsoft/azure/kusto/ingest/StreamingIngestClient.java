@@ -9,8 +9,14 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.result.*;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusResult;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.univocity.parsers.csv.CsvRoutines;
@@ -25,15 +31,12 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
 
-public class StreamingIngestClient implements IngestClient {
+public class StreamingIngestClient extends AbstractIngestClient implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private StreamingClient streamingClient;
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     public static final String EXPECTED_SERVICE_TYPE = "Engine";
-    private String endpointServiceType;
-    private String suggestedEndpointUri;
-    private String connectionDataSource;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
@@ -149,7 +152,7 @@ public class StreamingIngestClient implements IngestClient {
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
             if (e.getCause() instanceof DataWebException && "Error in post request".equals(e.getMessage())) {
-                validateEndpointServiceType();
+                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             }
             throw new IngestionServiceException(e.getMessage(), e);
         }
@@ -228,52 +231,17 @@ public class StreamingIngestClient implements IngestClient {
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 
-    /* TODO yischoen 2020-08-31: This and the following methods as well a supporting class properties, are almost
-     *	identical to QueuedIngestClient.validateEndpointServiceType(). This is because there's no common Impl parent
-     *	shared by QueuedIngestClient and StreamingIngestClient. Likewise, the ClientImpl implements both the Client
-     *	and StreamingClient Interfaces, but there's not shared parent Impl. Also, the QueuedIngestClient executes
-     *	commands using the ResourceManager, and the StreamingIngestClient executes commands directly using the client.
-     *	To dedupe, we should add a common IngestClientImpl that both inherit from. We are not merging this PR until we
-     *	decide if such a re-arch is appropriate given how often this feature would be helpful.
-     */
-    protected void validateEndpointServiceType() throws IngestionServiceException, IngestionClientException {
-        if (StringUtils.isBlank(endpointServiceType)) {
-            endpointServiceType = retrieveServiceType();
+    @Override
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().startsWith(AbstractIngestClient.INGEST_PREFIX)) {
+            existingEndpoint.setHost(existingEndpoint.getHost().substring(AbstractIngestClient.INGEST_PREFIX.length()));
+            return existingEndpoint.toString();
         }
-        if (!EXPECTED_SERVICE_TYPE.equals(endpointServiceType)) {
-            String message = String.format(QueuedIngestClient.WRONG_ENDPOINT_MESSAGE, EXPECTED_SERVICE_TYPE, endpointServiceType);
-            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, connectionDataSource);
-            if (StringUtils.isNotBlank(suggestedEndpointUri)) {
-                message = String.format("%s: '%s'", message, suggestedEndpointUri);
-            } else {
-                message += ".";
-            }
-            throw new IngestionClientException(message);
-        }
+        return "";
     }
 
-    protected static String generateEndpointSuggestion(String existingSuggestedEndpointUri, String dataSource) {
-        if (existingSuggestedEndpointUri != null) {
-            return existingSuggestedEndpointUri;
-        }
-        // The default is not passing a suggestion to the exception
-        String endpointUriToSuggestStr = "";
-        if (StringUtils.isNotBlank(dataSource)) {
-            URIBuilder endpointUriToSuggest;
-            try {
-                endpointUriToSuggest = new URIBuilder(dataSource);
-                if (endpointUriToSuggest.getHost().startsWith(QueuedIngestClient.INGEST_PREFIX)) {
-                    endpointUriToSuggest.setHost(endpointUriToSuggest.getHost().substring(QueuedIngestClient.INGEST_PREFIX.length()));
-                }
-                endpointUriToSuggestStr = endpointUriToSuggest.toString();
-            } catch (URISyntaxException e) {
-                log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
-            }
-        }
-        return endpointUriToSuggestStr;
-    }
-
-    private String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    @Override
+    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
         if (streamingClient != null) {
             log.info("Getting version to determine endpoint's ServiceType");
             try {
