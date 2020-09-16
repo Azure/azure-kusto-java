@@ -24,7 +24,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int MAX_RETRY_CALLS = 10;
     private final Semaphore concurrentStreamingIngestJobsSemaphore;
-    private final IngestClientImpl queuedIngestClient;
+    private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
@@ -38,7 +38,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         //todo throw on leaveopen
         log.info("Creating a new ManagedStreamingIngestClient");
         concurrentStreamingIngestJobsSemaphore = new Semaphore(maxConcurrentCalls);
-        queuedIngestClient = new IngestClientImpl(dmConnectionStringBuilder);
+        queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
     }
 
