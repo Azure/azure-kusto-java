@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
 
@@ -21,8 +22,22 @@ public class ConnectionStringBuilder {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private String accessToken;
+    private Callable<String> tokenProvider;
 
-    String getClusterUrl() {
+    private ConnectionStringBuilder(String resourceUri) {
+        clusterUri = resourceUri;
+        username = null;
+        password = null;
+        applicationClientId = null;
+        applicationKey = null;
+        aadAuthorityId = null;
+        x509Certificate = null;
+        privateKey = null;
+        accessToken = null;
+        tokenProvider = null;
+    }
+
+    public String getClusterUrl() {
         return clusterUri;
     }
 
@@ -74,16 +89,8 @@ public class ConnectionStringBuilder {
         return accessToken;
     }
 
-    private ConnectionStringBuilder(String resourceUri) {
-        clusterUri = resourceUri;
-        username = null;
-        password = null;
-        applicationClientId = null;
-        applicationKey = null;
-        aadAuthorityId = null;
-        x509Certificate = null;
-        privateKey = null;
-        accessToken = null;
+    public Callable<String> getTokenProvider() {
+        return tokenProvider;
     }
 
     public static ConnectionStringBuilder createWithAadUserCredentials(String resourceUri,
@@ -181,6 +188,20 @@ public class ConnectionStringBuilder {
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.accessToken = token;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String resourceUri, Callable<String> tokenProviderCallable) {
+        if (StringUtils.isEmpty(resourceUri)) {
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
+
+        if (tokenProviderCallable == null) {
+            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.tokenProvider = tokenProviderCallable;
         return csb;
     }
 }

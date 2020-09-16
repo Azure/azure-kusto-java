@@ -52,12 +52,8 @@ class ResourceManager implements Closeable {
         return null;
     }
 
-    //Ingestion Resources
     private ConcurrentHashMap<ResourceType, IngestionResource> ingestionResources;
-
-    //Identity Token
     private String identityToken;
-
     private Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final Timer timer;
@@ -67,6 +63,7 @@ class ResourceManager implements Closeable {
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000 * 60 * 15; // 15 minutes
     private Long defaultRefreshTime;
     private Long refreshTimeOnFailure;
+    private static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
         this.defaultRefreshTime = defaultRefreshTime;
@@ -165,25 +162,24 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoOperationResult ingestionResourcesResults  = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     KustoResultSetTable table = ingestionResourcesResults.next();
 
                     // Add the received values to a new IngestionResources map:
-                    while(table.next()){
+                    while (table.next()) {
                         String key = table.getString(0);
                         String value = table.getString(1);
                         addIngestionResource(newIngestionResources, key, value);
                     }
                     // Replace the values in the ingestionResources map with the values in the new map:
-
                     putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionResources", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -218,13 +214,30 @@ class ResourceManager implements Closeable {
                     identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error in refreshing IngestionAuthToken", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }
         }
+    }
+
+    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+        log.info("Getting version to determine endpoint's ServiceType");
+        try {
+            KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
+            if (versionResult != null && versionResult.hasNext() && versionResult.getResultTables().size() > 0) {
+                KustoResultSetTable resultTable = versionResult.next();
+                resultTable.next();
+                return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
+            }
+        } catch (DataServiceException e) {
+            throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+        } catch (DataClientException e) {
+            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+        }
+        throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
     }
 
     private class IngestionResource {
@@ -246,5 +259,4 @@ class ResourceManager implements Closeable {
             return valuesList.get(roundRubinIdx);
         }
     }
-
 }

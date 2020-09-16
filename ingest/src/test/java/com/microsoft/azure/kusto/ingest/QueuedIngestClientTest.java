@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -15,64 +16,62 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.function.BiFunction;
 
-import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
+import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.EXPECTED_SERVICE_TYPE;
+import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-class IngestClientImplTest {
+class QueuedIngestClientTest {
 
     private static ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
-    private static IngestClientImpl ingestClientImpl;
+    private static QueuedIngestClient queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
+    private static final String STORAGE_URI = "https://ms.com/storageUri";
+    private static final String ENDPOINT_SERVICE_TYPE_ENGINE = "Engine";
 
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
-        ingestClientImpl = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
 
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                 .thenReturn("queue1")
                 .thenReturn("queue2");
 
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE))
-                .thenReturn("storage1")
-                .thenReturn("storage2");
-
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
                 .thenReturn("http://statusTable.com");
 
-        when(resourceManagerMock.getIdentityToken())
-                .thenReturn("identityToken");
+        when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URI)));
 
-        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class)))
-                .thenReturn("https://ms.com/storageUri");
+        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class))).thenReturn(STORAGE_URI);
 
         when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
 
         when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI("https://ms.com/storageUri")));
+                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URI)));
 
-        doNothing().when(azureStorageClientMock)
-                .azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
+        doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageClientMock)
-                .postMessageToQueue(anyString(), anyString());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString());
     }
 
     @BeforeEach
-    void setUpEach() {
+    void setUpEach() throws IngestionServiceException, IngestionClientException {
+        doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+
+        queuedIngestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
     }
@@ -80,7 +79,7 @@ class IngestClientImplTest {
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
-        IngestionResult result = ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assert result.getIngestionStatusesLength() == 0;
     }
 
@@ -89,7 +88,7 @@ class IngestClientImplTest {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
-        IngestionResult result = ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assert result.getIngestionStatusesLength() != 0;
     }
 
@@ -98,14 +97,14 @@ class IngestClientImplTest {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromBlob(blobSourceInfo, null));
+                () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, null));
     }
 
     @Test
     void IngestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromBlob(null, ingestionProperties));
+                () -> queuedIngestClient.ingestFromBlob(null, ingestionProperties));
     }
 
     @Test
@@ -114,7 +113,7 @@ class IngestClientImplTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
         ArgumentCaptor<TableServiceEntity> captur = ArgumentCaptor.forClass(TableServiceEntity.class);
 
-        ingestClientImpl.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
         assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
@@ -123,7 +122,7 @@ class IngestClientImplTest {
     @Test
     void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties);
+        queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
@@ -132,14 +131,14 @@ class IngestClientImplTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromFile(fileSourceInfo, null));
+                () -> queuedIngestClient.ingestFromFile(fileSourceInfo, null));
     }
 
     @Test
     void IngestFromFile_NullFileSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromFile(null, ingestionProperties));
+                () -> queuedIngestClient.ingestFromFile(null, ingestionProperties));
     }
 
     @Test
@@ -147,14 +146,14 @@ class IngestClientImplTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IngestionClientException.class,
-                () -> ingestClientImpl.ingestFromFile(fileSourceInfo, ingestionProperties));
+                () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
     }
 
     @Test
     void IngestFromStream_GetBlobPathWithSasIsCalled() throws Exception {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
+        queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
     }
 
@@ -162,7 +161,7 @@ class IngestClientImplTest {
     void IngestFromStream_UploadStreamToBlobIsCalled() throws Exception {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        ingestClientImpl.ingestFromStream(streamSourceInfo, ingestionProperties);
+        queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeastOnce())
                 .uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean());
     }
@@ -172,14 +171,14 @@ class IngestClientImplTest {
         StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromStream(streamSourceInfo, null));
+                () -> queuedIngestClient.ingestFromStream(streamSourceInfo, null));
     }
 
     @Test
     void IngestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromStream(null, ingestionProperties));
+                () -> queuedIngestClient.ingestFromStream(null, ingestionProperties));
     }
 
     @Test
@@ -187,19 +186,19 @@ class IngestClientImplTest {
         ResultSetSourceInfo resultSetSourceInfo = mock(ResultSetSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromResultSet(resultSetSourceInfo, null));
+                () -> queuedIngestClient.ingestFromResultSet(resultSetSourceInfo, null));
     }
 
     @Test
     void IngestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> ingestClientImpl.ingestFromResultSet(null, ingestionProperties));
+                () -> queuedIngestClient.ingestFromResultSet(null, ingestionProperties));
     }
 
     @Test
     void IngestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
-        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -217,7 +216,7 @@ class IngestClientImplTest {
 
     @Test
     void IngestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
-        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -235,7 +234,7 @@ class IngestClientImplTest {
 
     @Test
     void IngestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
-        IngestClient ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -257,25 +256,48 @@ class IngestClientImplTest {
         String stringContent = new String(streamContent);
         assertEquals(stringContent, getSampleResultSetDump());
     }
-    @Test
 
+    @Test
+    void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionServiceException() throws Exception {
+        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        when(resourceManagerMock.retrieveServiceType()).thenReturn(EXPECTED_SERVICE_TYPE);
+
+        queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
+        assertThrows(IngestionServiceException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
+    }
+
+    @Test
+    void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionClientException() throws Exception {
+        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        when(resourceManagerMock.retrieveServiceType()).thenReturn(ENDPOINT_SERVICE_TYPE_ENGINE);
+
+        queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
+        String expectedMessage =
+                String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE, "https://ingest-testendpoint.dev.kusto.windows.net");
+        Exception exception = assertThrows(IngestionClientException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
+        assertEquals(expectedMessage, exception.getMessage());
+    }
+
+    @Test
     void generateName() {
-        IngestClientImpl ingestClient = new IngestClientImpl(resourceManagerMock, azureStorageClientMock);
+        QueuedIngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         class Holder {
             private String name;
         }
         final Holder holder = new Holder();
         holder.name = "fileName";
         BiFunction<IngestionProperties.DATA_FORMAT, CompressionType, String> genName =
-            (IngestionProperties.DATA_FORMAT format, CompressionType compression) -> {
-            boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format.name());
-            return ingestClient.genBlobName(
-                    holder.name,
-                    "db1",
-                    "t1",
-                    format.name(),
-                    shouldCompress ? CompressionType.gz : compression);
-        };
+                (IngestionProperties.DATA_FORMAT format, CompressionType compression) -> {
+                    boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format.name());
+                    return ingestClient.genBlobName(
+                            holder.name,
+                            "db1",
+                            "t1",
+                            format.name(),
+                            shouldCompress ? CompressionType.gz : compression);
+                };
         String csvNoCompression = genName.apply(DATA_FORMAT.csv, null);
         assert(csvNoCompression.endsWith("fileName.csv.gz"));
 
@@ -318,6 +340,4 @@ class IngestClientImplTest {
                 "1,leo\n2,yui\n" :
                 "1,leo\r\n2,yui\r\n";
     }
-
-
 }

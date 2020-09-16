@@ -138,7 +138,7 @@ public class IngestionProperties {
     /**
      * Customized tags
      *
-     * @param additionalTags
+     * @param additionalTags list of custom user tags
      */
     public void setAdditionalTags(ArrayList<String> additionalTags) {
         this.additionalTags = additionalTags;
@@ -159,7 +159,7 @@ public class IngestionProperties {
      * Will trigger a check if there's already an extent with this specific "ingest-by" tag prefix
      * See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/extents-overview#ingest-by-extent-tags">kusto docs</a>
      *
-     * @param ingestIfNotExists
+     * @param ingestIfNotExists list of ingestIfNotExists tags
      */
     public void setIngestIfNotExists(ArrayList<String> ingestIfNotExists) {
         this.ingestIfNotExists = ingestIfNotExists;

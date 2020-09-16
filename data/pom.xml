@@ -104,6 +104,11 @@
                         <goals>
                             <goal>analyze-only</goal>
                         </goals>
+                        <configuration>
+                            <ignoredDependencies>
+                                <ignoredDependency>com.nimbusds:nimbus-jose-jwt:jar</ignoredDependency>
+                            </ignoredDependencies>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -117,7 +122,12 @@
     </build>
 
     <dependencies>
-
+        <!-- Added as version 9.0.0 breaks adal - remove after moving to msal -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>[6.0.1,9.0.0)</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/adal4j -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
