@@ -22,19 +22,20 @@ import java.util.concurrent.Semaphore;
 public class ManagedStreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    public static final int MAX_CONCURRENT_CALLS = 10;
+    public static final int MAX_RETRY_CALLS = 10;
     private final Semaphore concurrentStreamingIngestJobsSemaphore;
     private final IngestClientImpl queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
-        this(dmConnectionStringBuilder, engineConnectionStringBuilder, MAX_CONCURRENT_CALLS);
+        this(dmConnectionStringBuilder, engineConnectionStringBuilder, MAX_RETRY_CALLS);
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder,
                                         int maxConcurrentCalls) throws URISyntaxException {
+        //todo throw on leaveopen
         log.info("Creating a new ManagedStreamingIngestClient");
         concurrentStreamingIngestJobsSemaphore = new Semaphore(maxConcurrentCalls);
         queuedIngestClient = new IngestClientImpl(dmConnectionStringBuilder);
@@ -100,11 +101,17 @@ public class ManagedStreamingIngestClient implements IngestClient {
             throw new UnsupportedOperationException("Stream can't be Leave Open in ManagedStreamingIngestClient");
         }
 
-        IngestionProperties ingestionPropertiesClone = new IngestionProperties(ingestionProperties);
+        for (int i = 0; i < MAX_RETRY_CALLS; i++) {
+            try {
+                return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+            } catch (IngestionServiceException e) {
+                log.info("Streaming ingestion failed, trying again");
+            }
+        }
 
-
-        //todo impl
+        return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
     }
+
 
     @Override
     public void close() throws IOException {
