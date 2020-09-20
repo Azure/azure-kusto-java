@@ -16,32 +16,29 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.util.concurrent.Semaphore;
 
-//TODO: comment
+/**
+ * <p>ManagedStreamingIngestClient</p>
+ *
+ * This class combines a managed streaming client with a queued streaming client, to create an optimized experience.
+ * Since the streaming client is communicating directly with the engine, it's more prone to failure, so this class
+ * holds both a streaming client and a queued client.
+ * At first it tries using the streaming client, and if it fails retries it {@value MAX_RETRY_CALLS} times, and if that
+ * still fails it then uses the queued streaming client.
+ */
 public class ManagedStreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int MAX_RETRY_CALLS = 10;
-    private final Semaphore concurrentStreamingIngestJobsSemaphore;
     private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
-        this(dmConnectionStringBuilder, engineConnectionStringBuilder, MAX_RETRY_CALLS);
-    }
-
-    public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                        ConnectionStringBuilder engineConnectionStringBuilder,
-                                        int maxConcurrentCalls) throws URISyntaxException {
-        //todo throw on leaveopen
         log.info("Creating a new ManagedStreamingIngestClient");
-        concurrentStreamingIngestJobsSemaphore = new Semaphore(maxConcurrentCalls);
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
     }
-
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
