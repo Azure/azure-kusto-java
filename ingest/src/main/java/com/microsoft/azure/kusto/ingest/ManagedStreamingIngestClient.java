@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -19,7 +20,7 @@ import java.net.URISyntaxException;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
- *
+ * <p>
  * This class combines a managed streaming client with a queued streaming client, to create an optimized experience.
  * Since the streaming client is communicating directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
@@ -35,9 +36,17 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
-        log.info("Creating a new ManagedStreamingIngestClient");
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
+    }
+
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient) {
+        log.info("Creating a new ManagedStreamingIngestClient from raw parts");
+        queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
+        streamingIngestClient = new StreamingIngestClient(streamingClient);
     }
 
     @Override
@@ -101,8 +110,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
         for (int i = 0; i < MAX_RETRY_CALLS; i++) {
             try {
                 return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-            } catch (IngestionServiceException e) {
-                log.info("Streaming ingestion failed, trying again");
+            } catch (Exception e) {
+                log.info("Streaming ingestion failed, trying again", e);
             }
         }
 
