@@ -112,6 +112,11 @@ public class ManagedStreamingIngestClient implements IngestClient {
                 return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
             } catch (Exception e) {
                 log.info("Streaming ingestion failed, trying again", e);
+                try {
+                    streamSourceInfo.getStream().reset();
+                } catch (IOException ioException) {
+                    throw new IngestionClientException("Stream isn't resettable");
+                }
             }
         }
 
