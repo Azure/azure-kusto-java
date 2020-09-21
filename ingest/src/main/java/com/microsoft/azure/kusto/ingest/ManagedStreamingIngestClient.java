@@ -25,6 +25,9 @@ import java.net.URISyntaxException;
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
  * It tries {@value MAX_RETRY_CALLS} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
+ * <p>
+ * Note that {@code ingestFromBlob} acts differently from the other functions - since if you already got a blob it's faster to
+ * queue it rather to download it and stream it, ManagedStreamingIngestClient sends it directly to the queued client.
  */
 public class ManagedStreamingIngestClient implements IngestClient {
 
@@ -73,7 +76,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         blobSourceInfo.validate();
         ingestionProperties.validate();
 
-        //if it's a blob we ingest using the queued client
+        // If it's a blob we ingest using the queued client
         return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
     }
 
@@ -103,7 +106,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         ingestionProperties.validate();
 
         if (streamSourceInfo.isLeaveOpen()) {
-            throw new UnsupportedOperationException("Stream can't be Leave Open in ManagedStreamingIngestClient");
+            throw new UnsupportedOperationException("LeaveOpen can't be true in ManagedStreamingIngestClient");
         }
 
         for (int i = 0; i < MAX_RETRY_CALLS; i++) {
