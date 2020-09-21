@@ -29,7 +29,7 @@ import java.net.URISyntaxException;
 public class ManagedStreamingIngestClient implements IngestClient {
 
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    public static final int MAX_RETRY_CALLS = 10;
+    public static final int MAX_RETRY_CALLS = 3;
     private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
 

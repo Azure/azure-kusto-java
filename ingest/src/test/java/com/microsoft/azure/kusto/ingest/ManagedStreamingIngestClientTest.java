@@ -312,7 +312,7 @@ class ManagedStreamingIngestClientTest {
 
     @Test
     void IngestFromStream_FailFewTimes() throws Exception {
-        int failCount = 3;
+        int failCount = 2;
         final int[] times = {0}; //it's an array so we can safely modify it in the lambda
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
@@ -320,9 +320,6 @@ class ManagedStreamingIngestClientTest {
         when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                 .thenAnswer((a) -> {
-            times[0]++;
-            throw new DataServiceException("Test fail");
-        }).thenAnswer((a) -> {
             times[0]++;
             throw new DataServiceException("Test fail");
         }).thenAnswer((a) -> {
