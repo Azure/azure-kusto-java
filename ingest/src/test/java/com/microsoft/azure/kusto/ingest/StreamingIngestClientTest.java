@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
@@ -302,25 +305,34 @@ class StreamingIngestClientTest {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
     }
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        String path = resourcesDirectory + "testdata.json";
+        String path = resourcesDirectory + "testdata.json.gz";
+        String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String uncompressedContents = new String(Files.readAllBytes(Paths.get(uncompressedPath)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
     }
 
     @Test
@@ -670,7 +682,7 @@ class StreamingIngestClientTest {
     public static void verifyCompressedStreamContent(InputStream compressedStream, String data) throws Exception {
         GZIPInputStream gzipInputStream = new GZIPInputStream(compressedStream);
         byte[] buffer = new byte[1];
-        byte[] bytes = new byte[100];
+        byte[] bytes = new byte[4096];
         int index = 0;
         while ((gzipInputStream.read(buffer, 0, 1)) != -1) {
             bytes[index++] = buffer[0];

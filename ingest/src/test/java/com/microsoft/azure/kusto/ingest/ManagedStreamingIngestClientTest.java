@@ -26,6 +26,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 
@@ -243,25 +245,34 @@ class ManagedStreamingIngestClientTest {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
     }
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        String path = resourcesDirectory + "testdata.json";
+        String path = resourcesDirectory + "testdata.json.gz";
+        String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String uncompressedContents = new String(Files.readAllBytes(Paths.get(uncompressedPath)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
     }
 
     @Test
