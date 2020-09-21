@@ -24,8 +24,7 @@ import java.net.URISyntaxException;
  * This class combines a managed streaming client with a queued streaming client, to create an optimized experience.
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
- * At first it tries using the streaming client, and if it fails retries it {@value MAX_RETRY_CALLS} times, and if that
- * still fails it then uses the queued streaming client.
+ * It tries {@value MAX_RETRY_CALLS} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
  */
 public class ManagedStreamingIngestClient implements IngestClient {
 
