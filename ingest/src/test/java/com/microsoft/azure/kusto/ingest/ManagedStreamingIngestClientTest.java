@@ -63,9 +63,6 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        //todo: this code is just copy pasted from the other two test classes, maybe there's a better way to reuse,
-        //      or maybe this is fine because we want test code to stand on its own
-
         when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
                 .thenReturn("queue1")
                 .thenReturn("queue2");
@@ -103,8 +100,6 @@ class ManagedStreamingIngestClientTest {
     }
 
 
-    //todo: since the blob method just forwards to the queued client I copy-pasted the methods from there, again we can
-    //      share this code, but do we want to?
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
@@ -148,7 +143,6 @@ class ManagedStreamingIngestClientTest {
         assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
-    //todo: all of these null/empty argument checks are also repetitive, but maybe that's just java
     @Test
     void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
