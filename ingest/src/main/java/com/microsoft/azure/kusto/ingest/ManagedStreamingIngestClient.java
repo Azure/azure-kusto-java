@@ -26,8 +26,7 @@ import java.net.URISyntaxException;
  * holds both a streaming client and a queued client.
  * It tries {@value MAX_RETRY_CALLS} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
  * <p>
- * Note that {@code ingestFromBlob} acts differently from the other functions - since if you already got a blob it's faster to
- * queue it rather to download it and stream it, ManagedStreamingIngestClient sends it directly to the queued client.
+ * Note that {@code ingestFromBlob} behaves differently from the other methods - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.
  */
 public class ManagedStreamingIngestClient implements IngestClient {
 
