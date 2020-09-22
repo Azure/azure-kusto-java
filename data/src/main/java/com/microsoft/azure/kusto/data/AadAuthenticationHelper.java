@@ -53,7 +53,11 @@ class AadAuthenticationHelper {
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
 
         URI clusterUri = new URI(csb.getClusterUrl());
-        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
+        String host = clusterUri.getHost();
+        if (host == null && clusterUri.getAuthority().endsWith(";fed=true")) {
+           host = clusterUri.getAuthority().substring(0, clusterUri.getAuthority().indexOf(";fed=true"));
+        }
+        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), host);
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
             clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
             authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
