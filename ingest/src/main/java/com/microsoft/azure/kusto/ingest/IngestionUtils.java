@@ -48,6 +48,6 @@ public class IngestionUtils {
             throw new IngestionClientException(message);
         }
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        return new StreamSourceInfo(byteArrayInputStream);
+        return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
     }
 }

@@ -36,7 +36,7 @@ public class QueuedIngestClient implements IngestClient {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
-    private AzureStorageClient azureStorageClient;
+    private final AzureStorageClient azureStorageClient;
     private String connectionDataSource;
     private String endpointServiceType;
     private String suggestedEndpointUri;
@@ -263,7 +263,7 @@ public class QueuedIngestClient implements IngestClient {
             byteArrayOutputStream.flush();
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
 
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";
