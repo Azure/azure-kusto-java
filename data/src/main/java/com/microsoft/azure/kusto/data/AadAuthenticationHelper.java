@@ -54,8 +54,9 @@ class AadAuthenticationHelper {
 
         URI clusterUri = new URI(csb.getClusterUrl());
         String host = clusterUri.getHost();
-        if (host == null && clusterUri.getAuthority().endsWith(";fed=true")) {
-           host = clusterUri.getAuthority().substring(0, clusterUri.getAuthority().indexOf(";fed=true"));
+        String auth = clusterUri.getAuthority().toLowerCase();
+        if (host == null && auth.endsWith(";fed=true")) {
+           host = auth.substring(0, clusterUri.getAuthority().indexOf(";fed=true"));
         }
         clusterUrl = String.format("%s://%s", clusterUri.getScheme(), host);
         if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
