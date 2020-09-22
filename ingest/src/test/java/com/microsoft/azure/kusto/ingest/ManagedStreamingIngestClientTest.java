@@ -290,7 +290,8 @@ class ManagedStreamingIngestClientTest {
     @Test
     void IngestFromStream_FailStreaming() throws Exception {
         try {
-            final int[] times = {0}; //it's an array so we can safely modify it in the lambda
+            // It's an array so we can safely modify it in the lambda
+            final int[] times = {0};
             String data = "Name, Age, Weight, Height";
             InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -318,7 +319,8 @@ class ManagedStreamingIngestClientTest {
     @Test
     void IngestFromStream_FailFewTimes() throws Exception {
         int failCount = 2;
-        final int[] times = {0}; //it's an array so we can safely modify it in the lambda
+        // It's an array so we can safely modify it in the lambda
+        final int[] times = {0};
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
 
