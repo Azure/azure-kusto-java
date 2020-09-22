@@ -166,6 +166,6 @@ public class ConnectionStringBuilderTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCredentials("https://service.uri;fed=true", "id", "appKey");
         ClientImpl client = new ClientImpl(csb);
-        Assertions.assertEquals("https://service.uri/", csb.getClusterUrl());
+        Assertions.assertEquals("https://service.uri", csb.getClusterUrl());
     }
 }
