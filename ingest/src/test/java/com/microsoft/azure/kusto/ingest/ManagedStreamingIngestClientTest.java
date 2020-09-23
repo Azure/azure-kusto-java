@@ -305,14 +305,12 @@ class ManagedStreamingIngestClientTest {
                         throw new DataServiceException("Test fail");
                     });
 
-            //should fail 10 times and then succeed with the queued client
+            // Should fail 3 times and then succeed with the queued client
             managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
             assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
         } finally {
-            //reset the mock
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
-                    .thenReturn(null);
+            // Reset the mock
+            streamingClientMock = mock(StreamingClient.class);
         }
     }
 
@@ -333,16 +331,14 @@ class ManagedStreamingIngestClientTest {
                         throw new DataServiceException("Test fail");
                     });
 
-            //should fail 10 times and then succeed with the queued client
+            // Should fail 3 times and then succeed with the queued client
             managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
             assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
 
 
         } finally {
-            //reset the mock
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
-                    .thenReturn(null);
+            // Reset the mock
+            streamingClientMock = mock(StreamingClient.class);
         }
     }
 
