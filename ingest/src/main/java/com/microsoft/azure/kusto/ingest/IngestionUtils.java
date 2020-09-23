@@ -23,7 +23,7 @@ public class IngestionUtils {
     private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @NotNull
-    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo) throws IngestionClientException, FileNotFoundException {
+    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable) throws IngestionClientException, FileNotFoundException {
         String filePath = fileSourceInfo.getFilePath();
         File file = new File(filePath);
         if (file.length() == 0) {
@@ -32,6 +32,10 @@ public class IngestionUtils {
             throw new IngestionClientException(message);
         }
         InputStream stream = new FileInputStream(filePath);
+        if (resettable) {
+            stream = new ResettableFileInputStream((FileInputStream) stream);
+        }
+
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
         streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
         return streamSourceInfo;

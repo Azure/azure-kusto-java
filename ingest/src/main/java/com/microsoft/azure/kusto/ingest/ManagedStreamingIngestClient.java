@@ -58,7 +58,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         fileSourceInfo.validate();
         ingestionProperties.validate();
         try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo);
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -121,7 +121,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                 try {
                     streamSourceInfo.getStream().reset();
                 } catch (IOException ioException) {
-                    throw new IngestionClientException("Stream isn't resettable");
+                    throw new IngestionClientException("Stream isn't resettable", ioException);
                 }
             }
         }

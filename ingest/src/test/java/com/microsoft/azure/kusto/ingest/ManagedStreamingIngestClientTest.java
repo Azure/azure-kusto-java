@@ -288,6 +288,36 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
+    void IngestFromFile_Fail() throws Exception {
+        try {
+            // It's an array so we can safely modify it in the lambda
+            final int[] times = {0};
+            String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+            String path = resourcesDirectory + "testdata.json.gz";
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+            ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+            ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("JsonMapping"), any(boolean.class)))
+                    .thenAnswer((a) -> {
+                        times[0]++;
+                        throw new DataServiceException("Test fail");
+                    });
+
+            //should fail 10 times and then succeed with the queued client
+            managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+            assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
+        } finally {
+            //reset the mock
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
+                    .thenReturn(null);
+        }
+    }
+
+
+    @Test
     void IngestFromStream_FailStreaming() throws Exception {
         try {
             // It's an array so we can safely modify it in the lambda
