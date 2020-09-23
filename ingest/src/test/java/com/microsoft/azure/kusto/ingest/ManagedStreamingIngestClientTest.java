@@ -351,85 +351,93 @@ class ManagedStreamingIngestClientTest {
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
 
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
-                .thenAnswer((a) -> {
-                    times[0]++;
-                    throw new DataServiceException("Test fail");
-                }).thenAnswer((a) -> {
-            times[0]++;
-            throw new DataServiceException("Test fail");
-        }).thenReturn(null);
+        try {
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
+                    .thenAnswer((a) -> {
+                        times[0]++;
+                        throw new DataServiceException("Test fail");
+                    }).thenAnswer((a) -> {
+                times[0]++;
+                throw new DataServiceException("Test fail");
+            }).thenReturn(null);
 
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
-        assertEquals(failCount, times[0]);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+            OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+            assertEquals(status, OperationStatus.Succeeded);
+            assertEquals(failCount, times[0]);
 
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), eq("mappingName"), any(boolean.class));
-        InputStream stream = argumentCaptor.getValue();
-        verifyCompressedStreamContent(stream, data);
+            verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class));
+            InputStream stream = argumentCaptor.getValue();
+            verifyCompressedStreamContent(stream, data);
+        } finally {
+            streamingClientMock = mock(StreamingClient.class);
+        }
     }
 
     @Test
     void IngestFromStream_FailTransientException() throws Exception {
-        int failCount = 2;
-        // It's an array so we can safely modify it in the lambda
-        final int[] times = {0};
-        String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
-        DataWebException ex = new DataWebException("{\n" +
-                "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
-                "  \"@permanent\": false\n" +
-                "}", null);
+        try {
+            int failCount = 2;
+            // It's an array so we can safely modify it in the lambda
+            final int[] times = {0};
+            String data = "Name, Age, Weight, Height";
+            InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+            DataWebException ex = new DataWebException("{\n" +
+                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
+                    "  \"@permanent\": false\n" +
+                    "}", null);
 
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
-                .thenAnswer((a) -> {
-                    times[0]++;
-                    throw new DataServiceException("Test fail", ex);
-                }).thenAnswer((a) -> {
-                    times[0]++;
-                    throw new DataServiceException("Test fail", ex);
-                }).thenReturn(null);
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
+                    .thenAnswer((a) -> {
+                        times[0]++;
+                        throw new DataServiceException("Test fail", ex);
+                    }).thenAnswer((a) -> {
+                        times[0]++;
+                        throw new DataServiceException("Test fail", ex);
+                    }).thenReturn(null);
 
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
-        assertEquals(failCount, times[0]);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+            OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+            assertEquals(status, OperationStatus.Succeeded);
+            assertEquals(failCount, times[0]);
 
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), eq("mappingName"), any(boolean.class));
-        InputStream stream = argumentCaptor.getValue();
-        verifyCompressedStreamContent(stream, data);
+            verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class));
+            InputStream stream = argumentCaptor.getValue();
+            verifyCompressedStreamContent(stream, data);
+        } finally {
+            streamingClientMock = mock(StreamingClient.class);
+        }
     }
 
     @Test
     void IngestFromStream_FailPermanentException() throws Exception {
-        int failCount = 2;
-        // It's an array so we can safely modify it in the lambda
-        final int[] times = {0};
-        String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
-        DataWebException ex = new DataWebException("{\n" +
-                "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
-                "  \"@permanent\": true\n" +
-                "}", null);
+        try {
+            // It's an array so we can safely modify it in the lambda
+            String data = "Name, Age, Weight, Height";
+            InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+            DataWebException ex = new DataWebException("{\n" +
+                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
+                    "  \"@permanent\": true\n" +
+                    "}", null);
 
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
-                .thenAnswer((a) -> {
-                    times[0]++;
-                    throw new DataServiceException("Test fail", ex);
-                }).thenAnswer((a) -> {
-            times[0]++;
-            throw new DataServiceException("Test fail", ex);
-        }).thenReturn(null);
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        assertThrows(IngestionServiceException.class, () -> {
-            managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        });
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
+                    .thenAnswer((a) -> {
+                        throw new DataServiceException("Test fail", ex);
+                    }).thenAnswer((a) -> {
+                throw new DataServiceException("Test fail", ex);
+            }).thenReturn(null);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+            assertThrows(IngestionServiceException.class, () -> {
+                managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+            });
+        } finally {
+            streamingClientMock = mock(StreamingClient.class);
+        }
     }
 
 }
