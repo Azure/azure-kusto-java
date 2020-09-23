@@ -2,6 +2,9 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.ingest.exceptions.OneApiError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -10,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,21 +116,50 @@ public class ManagedStreamingIngestClient implements IngestClient {
         if (streamSourceInfo.isLeaveOpen()) {
             throw new UnsupportedOperationException("LeaveOpen can't be true in ManagedStreamingIngestClient");
         }
+        streamSourceInfo.setLeaveOpen(true);
 
-        for (int i = 0; i < MAX_RETRY_CALLS; i++) {
-            try {
-                return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-            } catch (Exception e) {
-                log.info("Streaming ingestion failed, trying again", e);
+        try {
+            for (int i = 0; i < MAX_RETRY_CALLS; i++) {
                 try {
-                    streamSourceInfo.getStream().reset();
-                } catch (IOException ioException) {
-                    throw new IngestionClientException("Stream isn't resettable", ioException);
+                    return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+                }
+                catch (Exception e) {
+                    if (e instanceof IngestionServiceException
+                            && e.getCause() != null
+                            && e.getCause() instanceof  DataServiceException
+                            && e.getCause().getCause() != null
+                            && e.getCause().getCause() instanceof DataWebException) {
+                        DataWebException webException = (DataWebException) e.getCause().getCause();
+                        try {
+                            OneApiError oneApiError = OneApiError.parseFromWebException(webException);
+                            if (oneApiError.isPermanent())
+                            {
+                                log.error("Error is permanent, stopping.");
+                                throw e;
+                            }
+                        } catch (JSONException je)
+                        {
+                            log.info("Failed to parse json in exception, continuing.", je);
+                        }
+                    }
+
+                    log.info("Streaming ingestion failed, trying again", e);
+                    try {
+                        streamSourceInfo.getStream().reset();
+                    } catch (IOException ioException) {
+                        throw new IngestionClientException("Stream isn't resettable", ioException);
+                    }
                 }
             }
-        }
 
-        return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+            return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        } finally {
+            try {
+                streamSourceInfo.getStream().close();
+            } catch (IOException e) {
+                log.warn("Failed to close stream", e);
+            }
+        }
     }
 
 
