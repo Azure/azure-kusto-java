@@ -14,6 +14,7 @@ import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
+import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import javax.xml.bind.DatatypeConverter;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -688,6 +691,11 @@ class StreamingIngestClientTest {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
+        System.out.println("First newline chars in output: " + output.indexOf('\r') + " , " + output.indexOf('\n'));
+        System.out.println("First newline chars in data: " + data.indexOf('\r') + " , " + data.indexOf('\n'));
+        System.out.println("Output hex: " + Hex.encodeHexString(output.getBytes()));
+        System.out.println("Output data: " + Hex.encodeHexString(data.getBytes()));
+
         assertEquals(data, output);
     }
 }
