@@ -260,7 +260,7 @@ class ManagedStreamingIngestClientTest {
         String path = resourcesDirectory + "testdata.json.gz";
         String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String uncompressedContents = new String(Files.readAllBytes(Paths.get(uncompressedPath)), StandardCharsets.UTF_8).trim();
+        String uncompressedContents = String.join("\n", Files.readAllLines(Paths.get(uncompressedPath)));
         AtomicBoolean visited = new AtomicBoolean(false);
 
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
