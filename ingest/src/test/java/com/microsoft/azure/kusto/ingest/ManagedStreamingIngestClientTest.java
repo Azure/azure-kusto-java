@@ -31,10 +31,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyCompressedStreamContent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -259,15 +261,25 @@ class ManagedStreamingIngestClientTest {
         String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         String uncompressedContents = new String(Files.readAllBytes(Paths.get(uncompressedPath)), StandardCharsets.UTF_8).trim();
+        AtomicBoolean visited = new AtomicBoolean(false);
 
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
-        OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                isNull(), any(String.class), any(String.class), any(boolean.class));
+        OperationStatus status;
+        try {
+            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                    isNull(), any(String.class), any(String.class), any(boolean.class))).then(a -> {
+                verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
+                visited.set(true);
+                return null;
+            });
 
-        verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
+            status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        } finally {
+            streamingClientMock = mock(StreamingClient.class);
+        }
+        assertEquals(OperationStatus.Succeeded, status);
+        assertTrue(visited.get());
     }
 
     @Test
