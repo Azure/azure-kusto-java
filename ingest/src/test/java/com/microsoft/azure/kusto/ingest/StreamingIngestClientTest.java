@@ -326,8 +326,7 @@ class StreamingIngestClientTest {
         String path = resourcesDirectory + "testdata.json.gz";
         String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String uncompressedContents = new String(Files.readAllBytes(Paths.get(uncompressedPath)), StandardCharsets.UTF_8).trim();
-
+        String uncompressedContents = String.join("\n", Files.readAllLines(Paths.get(uncompressedPath)));
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -691,10 +690,6 @@ class StreamingIngestClientTest {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
-        System.out.println("First newline chars in output: " + output.indexOf('\r') + " , " + output.indexOf('\n'));
-        System.out.println("First newline chars in data: " + data.indexOf('\r') + " , " + data.indexOf('\n'));
-        System.out.println("Output hex: " + Hex.encodeHexString(output.getBytes()));
-        System.out.println("Output data: " + Hex.encodeHexString(data.getBytes()));
 
         assertEquals(data, output);
     }
