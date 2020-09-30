@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
 
+    private final static String DEFAULT_DEVICE_AUTH_TENANT = "common";
     private String clusterUri;
     private String username;
     private String password;
@@ -158,7 +159,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri) {
-        return createWithDeviceCodeCredentials(resourceUri, null);
+        return createWithDeviceCodeCredentials(resourceUri, DEFAULT_DEVICE_AUTH_TENANT);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String resourceUri,
