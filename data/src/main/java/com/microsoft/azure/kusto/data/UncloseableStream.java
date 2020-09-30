@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.data;
 
 import org.jetbrains.annotations.NotNull;
 
