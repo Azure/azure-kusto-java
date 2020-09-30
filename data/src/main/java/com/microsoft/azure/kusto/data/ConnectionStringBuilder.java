@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
 
+    private final static String DEFAULT_DEVICE_AUTH_TENANT = "common";
     private String clusterUri;
     private String username;
     private String password;
@@ -147,17 +148,31 @@ public class ConnectionStringBuilder {
         return createWithAadApplicationCredentials(resourceUri, applicationClientId, applicationKey, null);
     }
 
-    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri) {
+    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri, String authorityId) {
         if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
-        return new ConnectionStringBuilder(resourceUri);
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.aadAuthorityId = authorityId;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithDeviceCodeCredentials(String resourceUri) {
+        return createWithDeviceCodeCredentials(resourceUri, DEFAULT_DEVICE_AUTH_TENANT);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String resourceUri,
                                                                               String applicationClientId,
                                                                               X509Certificate x509Certificate,
                                                                               PrivateKey privateKey) {
+        return createWithAadApplicationCertificate(resourceUri, applicationClientId, x509Certificate, privateKey, null);
+    }
+    public static ConnectionStringBuilder createWithAadApplicationCertificate(String resourceUri,
+                                                                              String applicationClientId,
+                                                                              X509Certificate x509Certificate,
+                                                                              PrivateKey privateKey,
+                                                                              String authorityId) {
         if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
@@ -175,6 +190,7 @@ public class ConnectionStringBuilder {
         csb.applicationClientId = applicationClientId;
         csb.x509Certificate = x509Certificate;
         csb.privateKey = privateKey;
+        csb.aadAuthorityId = authorityId;
         return csb;
     }
 
