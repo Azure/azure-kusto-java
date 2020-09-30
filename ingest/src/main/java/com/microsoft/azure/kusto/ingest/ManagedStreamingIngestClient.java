@@ -147,7 +147,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                     try {
                         streamSourceInfo.getStream().reset();
                     } catch (IOException ioException) {
-                        throw new IngestionClientException("Stream isn't resettable", ioException);
+                        throw new IngestionClientException("Ingestion failed transiently but the stream isn't resettable therefore ingestion wasn't retried", ioException);
                     }
                 }
             }
