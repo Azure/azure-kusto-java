@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyCompressedStreamContent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -258,9 +259,7 @@ class ManagedStreamingIngestClientTest {
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json.gz";
-        String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String uncompressedContents = String.join("\n", Files.readAllLines(Paths.get(uncompressedPath)));
         AtomicBoolean visited = new AtomicBoolean(false);
 
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
@@ -269,7 +268,7 @@ class ManagedStreamingIngestClientTest {
         try {
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), any(String.class), any(boolean.class))).then(a -> {
-                verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
+                verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
                 visited.set(true);
                 return null;
             });

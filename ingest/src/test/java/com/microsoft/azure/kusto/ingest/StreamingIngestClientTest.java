@@ -324,9 +324,7 @@ class StreamingIngestClientTest {
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json.gz";
-        String uncompressedPath = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String uncompressedContents = String.join("\n", Files.readAllLines(Paths.get(uncompressedPath)));
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -334,7 +332,7 @@ class StreamingIngestClientTest {
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
-        verifyCompressedStreamContent(argumentCaptor.getValue(), uncompressedContents);
+        verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
     }
 
     @Test
@@ -693,4 +691,40 @@ class StreamingIngestClientTest {
 
         assertEquals(data, output);
     }
+
+    public static String jsonDataUncompressed = "{\"Name\":\"demo1\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"091236\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"091237\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"091238\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"091239\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"091230\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912311\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912322\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912344\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912355\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912366\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912377\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912388\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912300\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912113\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912223\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912443\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912553\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912663\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912773\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912883\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912003\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}";
 }
