@@ -48,6 +48,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -275,7 +276,7 @@ class ManagedStreamingIngestClientTest {
 
             status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         } finally {
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
         assertEquals(OperationStatus.Succeeded, status);
         assertTrue(visited.get());
@@ -321,8 +322,7 @@ class ManagedStreamingIngestClientTest {
             managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
             assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
         } finally {
-            // Reset the mock
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
     }
 
@@ -349,8 +349,7 @@ class ManagedStreamingIngestClientTest {
 
 
         } finally {
-            // Reset the mock
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
     }
 
@@ -383,7 +382,7 @@ class ManagedStreamingIngestClientTest {
             InputStream stream = argumentCaptor.getValue();
             verifyCompressedStreamContent(stream, data);
         } finally {
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
     }
 
@@ -420,7 +419,7 @@ class ManagedStreamingIngestClientTest {
             InputStream stream = argumentCaptor.getValue();
             verifyCompressedStreamContent(stream, data);
         } finally {
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
     }
 
@@ -447,7 +446,7 @@ class ManagedStreamingIngestClientTest {
                 managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
             });
         } finally {
-            streamingClientMock = mock(StreamingClient.class);
+            reset(streamingClientMock);
         }
     }
 
