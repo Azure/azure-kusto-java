@@ -10,6 +10,10 @@ import java.io.InputStream;
  * It takes a stream, and simply forwards to all of its methods, except for the {@code close()} method - which does nothing.
  */
 public class UncloseableStream extends InputStream {
+    public InputStream getInnerStream() {
+        return innerStream;
+    }
+
     private final InputStream innerStream;
 
     public UncloseableStream(InputStream innerStream) {
@@ -20,7 +24,7 @@ public class UncloseableStream extends InputStream {
      * Explicitly does nothing, does preserving the inner stream as open
      */
     @Override
-    public void close(){
+    public void close() {
         // Explicitly do nothing
     }
 
