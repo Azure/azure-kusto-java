@@ -394,10 +394,10 @@ class ManagedStreamingIngestClientTest {
             final int[] times = {0};
             String data = "Name, Age, Weight, Height";
             InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
-            DataWebException ex = new DataWebException("{\n" +
-                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
+            DataWebException ex = new DataWebException("{\"error\" : {\n" +
+                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": {}, \n" +
                     "  \"@permanent\": false\n" +
-                    "}", null);
+                    "} }", null);
 
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
@@ -429,10 +429,10 @@ class ManagedStreamingIngestClientTest {
             // It's an array so we can safely modify it in the lambda
             String data = "Name, Age, Weight, Height";
             InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
-            DataWebException ex = new DataWebException("{\n" +
-                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": \"E\", \n" +
+            DataWebException ex = new DataWebException("{\"error\" : {\n" +
+                    "  \"code\": \"A\", \"message\": \"B\", \"@message\": \"C\", \"@type\": \"D\", \"@context\": {}, \n" +
                     "  \"@permanent\": true\n" +
-                    "}", null);
+                    "} }", null);
 
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))

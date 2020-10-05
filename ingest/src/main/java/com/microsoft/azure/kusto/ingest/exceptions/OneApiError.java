@@ -9,7 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class OneApiError {
-    public OneApiError(String code, String message, String description, String type, String context, boolean permanent) {
+    public OneApiError(String code, String message, String description, String type, JSONObject context, boolean permanent) {
         this.code = code;
         this.message = message;
         this.description = description;
@@ -19,13 +19,13 @@ public class OneApiError {
     }
 
     public static OneApiError parseFromWebException(DataWebException ex) throws JSONException {
-        JSONObject jsonObject = new JSONObject(ex.getMessage());
+        JSONObject jsonObject = new JSONObject(ex.getMessage()).getJSONObject("error");
         return new OneApiError(
                 jsonObject.getString("code"),
                 jsonObject.getString("message"),
                 jsonObject.getString("@message"),
                 jsonObject.getString("@type"),
-                jsonObject.getString("@context"),
+                jsonObject.getJSONObject("@context"),
                 jsonObject.getBoolean("@permanent")
         );
     }
@@ -34,7 +34,7 @@ public class OneApiError {
     private final String message;
     private final String description;
     private final String type;
-    private final String context;
+    private final JSONObject context;
     private final boolean permanent;
 
     public String getCode() {
@@ -53,7 +53,7 @@ public class OneApiError {
         return type;
     }
 
-    public String getContext() {
+    public JSONObject getContext() {
         return context;
     }
 
