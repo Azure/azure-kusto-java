@@ -31,7 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
 
-public class StreamingIngestClient extends AbstractIngestClient implements IngestClient {
+public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final StreamingClient streamingClient;
@@ -215,8 +215,8 @@ public class StreamingIngestClient extends AbstractIngestClient implements Inges
 
     @Override
     protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().startsWith(AbstractIngestClient.INGEST_PREFIX)) {
-            existingEndpoint.setHost(existingEndpoint.getHost().substring(AbstractIngestClient.INGEST_PREFIX.length()));
+        if (existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
+            existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
             return existingEndpoint.toString();
         }
         return "";

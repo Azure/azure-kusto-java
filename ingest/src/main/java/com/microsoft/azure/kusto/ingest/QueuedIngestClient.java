@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class QueuedIngestClient extends AbstractIngestClient implements IngestClient {
+public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;

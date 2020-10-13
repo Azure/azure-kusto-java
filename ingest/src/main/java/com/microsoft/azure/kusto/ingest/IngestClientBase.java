@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 
-public abstract class AbstractIngestClient {
+public abstract class IngestClientBase {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     protected String connectionDataSource;
     private String endpointServiceType;
