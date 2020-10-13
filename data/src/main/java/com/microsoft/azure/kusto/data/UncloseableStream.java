@@ -7,7 +7,7 @@ import java.io.InputStream;
 
 /**
  * This class exists to handle outside dependencies which close a stream when we don't want to.
- * It takes a stream, and simply forwards to all of its methods, except for the {@code close()} method - which does nothing.
+ * It takes a stream, and simply forwards the call to all of its methods, except for the {@code close()} method - which does nothing.
  */
 public class UncloseableStream extends InputStream {
     public InputStream getInnerStream() {
