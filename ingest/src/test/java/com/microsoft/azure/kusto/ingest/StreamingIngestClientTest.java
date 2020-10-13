@@ -15,6 +15,8 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
+import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,13 +30,17 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.xml.bind.DatatypeConverter;
 
 import static com.microsoft.azure.kusto.ingest.AbstractIngestClient.WRONG_ENDPOINT_MESSAGE;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClient.EXPECTED_SERVICE_TYPE;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -325,25 +331,31 @@ class StreamingIngestClientTest {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
     }
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        String path = resourcesDirectory + "testdata.json";
+        String path = resourcesDirectory + "testdata.json.gz";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
     }
 
     @Test
@@ -690,15 +702,52 @@ class StreamingIngestClientTest {
     }
 
     // Verifies the given stream is compressed correctly and matches the anticipated data content
-    private void verifyCompressedStreamContent(InputStream compressedStream, String data) throws Exception {
+    public static void verifyCompressedStreamContent(InputStream compressedStream, String data) throws Exception {
         GZIPInputStream gzipInputStream = new GZIPInputStream(compressedStream);
         byte[] buffer = new byte[1];
-        byte[] bytes = new byte[100];
+        byte[] bytes = new byte[4096];
         int index = 0;
         while ((gzipInputStream.read(buffer, 0, 1)) != -1) {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
+
         assertEquals(data, output);
     }
+
+    public static String jsonDataUncompressed = "{\"Name\":\"demo1\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"091236\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"091237\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"091238\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"091239\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"091230\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912311\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912322\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912344\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912355\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912366\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912377\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912388\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912300\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912113\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912223\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912443\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912553\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912663\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912773\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912883\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912003\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}";
 }

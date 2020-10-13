@@ -19,7 +19,7 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.univocity.parsers.csv.CsvRoutines;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -34,7 +34,7 @@ import java.util.zip.GZIPOutputStream;
 public class StreamingIngestClient extends AbstractIngestClient implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private StreamingClient streamingClient;
+    private final StreamingClient streamingClient;
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     public static final String EXPECTED_SERVICE_TYPE = "Engine";
 
@@ -58,16 +58,7 @@ public class StreamingIngestClient extends AbstractIngestClient implements Inges
         ingestionProperties.validate();
 
         try {
-            String filePath = fileSourceInfo.getFilePath();
-            File file = new File(filePath);
-            if (file.length() == 0) {
-                String message = "Empty file.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-            InputStream stream = new FileInputStream(filePath);
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-            streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, false);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -107,16 +98,7 @@ public class StreamingIngestClient extends AbstractIngestClient implements Inges
         resultSetSourceInfo.validate();
         ingestionProperties.validate();
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
-            byteArrayOutputStream.flush();
-            if (byteArrayOutputStream.size() <= 0) {
-                String message = "Empty ResultSet.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";

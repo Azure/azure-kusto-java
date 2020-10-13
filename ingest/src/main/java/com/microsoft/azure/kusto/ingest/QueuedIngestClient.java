@@ -35,7 +35,7 @@ public class QueuedIngestClient extends AbstractIngestClient implements IngestCl
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
-    private AzureStorageClient azureStorageClient;
+    private final AzureStorageClient azureStorageClient;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
     QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
@@ -256,7 +256,7 @@ public class QueuedIngestClient extends AbstractIngestClient implements IngestCl
             byteArrayOutputStream.flush();
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
 
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";

@@ -41,14 +41,13 @@ class Utils {
             httpClient = HttpClients.createSystem();
         }
 
-        // TODO: maybe remove this as the stream closes by the httpClient anyway
-        try (InputStream streamToClose = (stream != null && !leaveOpen) ? stream : null) {
+        try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             URL cleanUrl = new URL(url);
             URI uri = new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
 
-            // Request parameters and other properties.
+            // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
             HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                    : new InputStreamEntity(stream);
+                    : new InputStreamEntity(new UncloseableStream(stream));
 
             HttpPost httpPost = new HttpPost(uri);
             httpPost.setEntity(requestEntity);
