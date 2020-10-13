@@ -3,9 +3,11 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
@@ -14,7 +16,6 @@ import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
-import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -35,7 +35,8 @@ import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import javax.xml.bind.DatatypeConverter;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.WRONG_ENDPOINT_MESSAGE;
+import static com.microsoft.azure.kusto.ingest.StreamingIngestClient.EXPECTED_SERVICE_TYPE;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -50,6 +51,9 @@ class StreamingIngestClientTest {
 
     @Captor
     private static ArgumentCaptor<InputStream> argumentCaptor;
+
+    private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
+
 
     @BeforeAll
     static void setUp() {
@@ -75,7 +79,7 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
@@ -101,7 +105,7 @@ class StreamingIngestClientTest {
         // When ingesting compressed data, we should set this property true to avoid double compression.
         streamSourceInfo.setCompressionType(CompressionType.gz);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
@@ -117,7 +121,7 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
@@ -139,7 +143,7 @@ class StreamingIngestClientTest {
         streamSourceInfo.setCompressionType(CompressionType.gz);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
@@ -298,9 +302,25 @@ class StreamingIngestClientTest {
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class));
+    }
+
+    @Test
+    void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
+        DataServiceException dataServiceException = new DataServiceException("Error in post request", new DataWebException("Error in post request", null));
+        doThrow(dataServiceException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()), eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
+        when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult("{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}", "v1"));
+
+        streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+        String path = resourcesDirectory + "testdata.csv";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String expectedMessage =
+                String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM, "https://testendpoint.dev.kusto.windows.net");
+        Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
+        assertEquals(expectedMessage, exception.getMessage());
     }
 
     @Test
@@ -313,7 +333,7 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
@@ -328,7 +348,7 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
@@ -465,7 +485,7 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
         OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class));
     }
@@ -599,7 +619,7 @@ class StreamingIngestClientTest {
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        assertEquals(status, OperationStatus.Succeeded);
+        assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 

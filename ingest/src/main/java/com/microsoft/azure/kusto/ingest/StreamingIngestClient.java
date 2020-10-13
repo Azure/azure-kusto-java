@@ -6,14 +6,22 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.result.*;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusResult;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,15 +31,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
 
-public class StreamingIngestClient implements IngestClient {
+public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
-    private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final StreamingClient streamingClient;
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
+    public static final String EXPECTED_SERVICE_TYPE = "Engine";
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = ClientFactory.createStreamingClient(csb);
+        this.connectionDataSource = csb.getClusterUrl();
     }
 
     StreamingIngestClient(StreamingClient streamingClient) {
@@ -123,6 +133,9 @@ public class StreamingIngestClient implements IngestClient {
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
+            if (e.getCause() instanceof DataWebException && "Error in post request".equals(e.getMessage())) {
+                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
+            }
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
@@ -201,7 +214,40 @@ public class StreamingIngestClient implements IngestClient {
     }
 
     @Override
-    public void close() {
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
+            existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
+            return existingEndpoint.toString();
+        }
+        return "";
+    }
 
+    @Override
+    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+        if (streamingClient != null) {
+            log.info("Getting version to determine endpoint's ServiceType");
+            try {
+                KustoOperationResult versionResult = streamingClient.execute(Commands.VERSION_SHOW_COMMAND);
+                if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
+                    KustoResultSetTable resultTable = versionResult.next();
+                    resultTable.next();
+                    return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
+                }
+            } catch (DataServiceException e) {
+                throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+            } catch (DataClientException e) {
+                throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+            }
+            throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        }
+        return null;
+    }
+
+    protected void setConnectionDataSource(String connectionDataSource) {
+        this.connectionDataSource = connectionDataSource;
+    }
+
+    @Override
+    public void close() {
     }
 }
