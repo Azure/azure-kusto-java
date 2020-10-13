@@ -13,6 +13,8 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
+import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,10 +27,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import javax.xml.bind.DatatypeConverter;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -65,7 +72,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_CsvStream() throws Exception {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
@@ -85,7 +92,7 @@ class StreamingIngestClientTest {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
         String data = "Name, Age, Weight, Height";
-        byte[] inputArray = Charset.forName("UTF-8").encode(data).array();
+        byte[] inputArray = StandardCharsets.UTF_8.encode(data).array();
         gzipOutputStream.write(inputArray, 0, inputArray.length);
         gzipOutputStream.flush();
         gzipOutputStream.close();
@@ -105,7 +112,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_JsonStream() throws Exception {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
@@ -123,7 +130,7 @@ class StreamingIngestClientTest {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
-        byte[] inputArray = Charset.forName("UTF-8").encode(data).array();
+        byte[] inputArray = StandardCharsets.UTF_8.encode(data).array();
         gzipOutputStream.write(inputArray, 0, inputArray.length);
         gzipOutputStream.flush();
         gzipOutputStream.close();
@@ -150,7 +157,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_NullIngestionProperties_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, null),
@@ -160,7 +167,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties(null, "table");
         assertThrows(IllegalArgumentException.class,
@@ -171,7 +178,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_IngestionPropertiesWithEmptyDatabase_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("", "table");
         assertThrows(IllegalArgumentException.class,
@@ -182,7 +189,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_IngestionPropertiesWithNullTable_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("database", null);
         assertThrows(IllegalArgumentException.class,
@@ -193,7 +200,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_IngestionPropertiesWithEmptyTable_IllegalArgumentException() {
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties = new IngestionProperties("database", "");
         assertThrows(IllegalArgumentException.class,
@@ -204,7 +211,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionClientException() {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
@@ -216,7 +223,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromStream_JsonWrongMappingKind_IngestionClientException() {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.Csv);
@@ -265,7 +272,7 @@ class StreamingIngestClientTest {
                 isNull(), any(String.class), isNull(), any(boolean.class))).thenThrow(DataClientException.class);
 
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
@@ -278,7 +285,7 @@ class StreamingIngestClientTest {
                 isNull(), any(String.class), isNull(), any(boolean.class))).thenThrow(DataServiceException.class);
 
         String data = "Name, Age, Weight, Height";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         assertThrows(IngestionServiceException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
@@ -301,25 +308,31 @@ class StreamingIngestClientTest {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
+
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
     }
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
-        String path = resourcesDirectory + "testdata.json";
+        String path = resourcesDirectory + "testdata.json.gz";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(status, OperationStatus.Succeeded);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
+
+        verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
     }
 
     @Test
@@ -666,15 +679,52 @@ class StreamingIngestClientTest {
     }
 
     // Verifies the given stream is compressed correctly and matches the anticipated data content
-    private void verifyCompressedStreamContent(InputStream compressedStream, String data) throws Exception {
+    public static void verifyCompressedStreamContent(InputStream compressedStream, String data) throws Exception {
         GZIPInputStream gzipInputStream = new GZIPInputStream(compressedStream);
         byte[] buffer = new byte[1];
-        byte[] bytes = new byte[100];
+        byte[] bytes = new byte[4096];
         int index = 0;
         while ((gzipInputStream.read(buffer, 0, 1)) != -1) {
             bytes[index++] = buffer[0];
         }
         String output = new String(bytes).trim();
+
         assertEquals(data, output);
     }
+
+    public static String jsonDataUncompressed = "{\"Name\":\"demo1\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"091236\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"091237\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"091238\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"091239\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"091230\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912311\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912322\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912344\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912355\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912366\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912377\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912388\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912300\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"0912113\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"0912223\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"0912333\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"0912443\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"0912553\"}\n" +
+            "{\"Name\":\"demo15\",\"Code\":\"0912663\"}\n" +
+            "{\"Name\":\"demo16\",\"Code\":\"0912773\"}\n" +
+            "{\"Name\":\"demo17\",\"Code\":\"0912883\"}\n" +
+            "{\"Name\":\"demo18\",\"Code\":\"0912399\"}\n" +
+            "{\"Name\":\"demo19\",\"Code\":\"0912003\"}\n" +
+            "{\"Name\":\"demo10\",\"Code\":\"091231\"}\n" +
+            "{\"Name\":\"demo11\",\"Code\":\"091232\"}\n" +
+            "{\"Name\":\"demo12\",\"Code\":\"091233\"}\n" +
+            "{\"Name\":\"demo13\",\"Code\":\"091234\"}\n" +
+            "{\"Name\":\"demo14\",\"Code\":\"091235\"}";
 }
