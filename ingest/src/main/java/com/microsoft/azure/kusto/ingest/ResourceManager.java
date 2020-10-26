@@ -63,7 +63,7 @@ class ResourceManager implements Closeable {
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000 * 60 * 15; // 15 minutes
     private Long defaultRefreshTime;
     private Long refreshTimeOnFailure;
-    private static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
+    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
         this.defaultRefreshTime = defaultRefreshTime;
@@ -207,7 +207,7 @@ class ResourceManager implements Closeable {
                 KustoOperationResult identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
-                        && identityTokenResult.getResultTables().size() > 0) {
+                        && !identityTokenResult.getResultTables().isEmpty()) {
                     KustoResultSetTable resultTable = identityTokenResult.next();
                     resultTable.next();
 
@@ -227,7 +227,7 @@ class ResourceManager implements Closeable {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
             KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
-            if (versionResult != null && versionResult.hasNext() && versionResult.getResultTables().size() > 0) {
+            if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
                 KustoResultSetTable resultTable = versionResult.next();
                 resultTable.next();
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
