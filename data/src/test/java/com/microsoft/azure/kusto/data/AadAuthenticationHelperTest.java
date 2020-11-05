@@ -3,8 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.aad.adal4j.UserInfo;
+import com.microsoft.aad.msal4j.IAccount;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.ITenantProfile;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
@@ -31,23 +32,22 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
-import javax.naming.ServiceUnavailableException;
+import java.util.concurrent.TimeoutException;
 
 import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS;
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
-
-
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, URISyntaxException {
-
+            PKCSException, IOException, DataClientException, URISyntaxException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -59,8 +59,8 @@ public class AadAuthenticationHelperTest {
 
         AadAuthenticationHelper aadAuthenticationHelper = new AadAuthenticationHelper(csb);
 
-        Assertions.assertThrows(ExecutionException.class,
-                () -> aadAuthenticationHelper.acquireWithClientCertificate());
+        Assertions.assertThrows(DataServiceException.class,
+                () -> aadAuthenticationHelper.acquireWithAadApplicationClientCertificate());
     }
 
     static KeyCert readPem(String path, String password)
@@ -98,7 +98,8 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
-    void useCachedTokenAndRefreshWhenNeeded() throws InterruptedException, ExecutionException, ServiceUnavailableException, IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
+    void useCachedTokenAndRefreshWhenNeeded() throws InterruptedException, ExecutionException, IOException,
+            DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException, TimeoutException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -110,12 +111,12 @@ public class AadAuthenticationHelperTest {
 
         AadAuthenticationHelper aadAuthenticationHelperSpy = spy(new AadAuthenticationHelper(csb));
 
-        AuthenticationResult authenticationResult = new AuthenticationResult("testType", "firstToken", "refreshToken", 0, "id", mock(UserInfo.class), false);
-        AuthenticationResult authenticationResultFromRefresh = new AuthenticationResult("testType", "fromRefresh", null, 90, "id", mock(UserInfo.class), false);
-        AuthenticationResult authenticationResultNullRefreshTokenResult = new AuthenticationResult("testType", "nullRefreshResult", null, 0, "id", mock(UserInfo.class), false);
+        IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
+        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
+        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenByRefreshToken();
-        doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
+        doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
 
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
 
@@ -126,9 +127,91 @@ public class AadAuthenticationHelperTest {
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
         doReturn(new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS * 2)).when(aadAuthenticationHelperSpy).dateInAMinute();
-        doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithClientCertificate();
+        doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
 
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
-        assertEquals("nullRefreshResult", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+    }
+
+    class MockAccount implements IAccount {
+        private final String homeAccountId;
+        private final String environment;
+        private final String username;
+        private final Map<String, ITenantProfile> getTenantProfiles;
+
+        public MockAccount(String homeAccountId, String environment, String username, Map<String, ITenantProfile> getTenantProfiles) {
+            this.homeAccountId = homeAccountId;
+            this.environment = environment;
+            this.username = username;
+            this.getTenantProfiles = getTenantProfiles;
+        }
+
+        @Override
+        public String homeAccountId() {
+            return homeAccountId;
+        }
+
+        @Override
+        public String environment() {
+            return environment;
+        }
+
+        @Override
+        public String username() {
+            return username;
+        }
+
+        @Override
+        public Map<String, ITenantProfile> getTenantProfiles() {
+            return getTenantProfiles;
+        }
+    }
+
+    class MockAuthenticationResult implements IAuthenticationResult {
+        private final String accessToken;
+        private final String idToken;
+        private final MockAccount account;
+        private final String environment;
+        private final String scopes;
+        private final Date expiresOnDate;
+
+        public MockAuthenticationResult(String accessToken, String idToken, MockAccount account, String environment, String scopes, Date expiresOnDate) {
+            this.accessToken = accessToken;
+            this.idToken = idToken;
+            this.account = account;
+            this.environment = environment;
+            this.scopes = scopes;
+            this.expiresOnDate = expiresOnDate;
+        }
+
+        @Override
+        public String accessToken() {
+            return accessToken;
+        }
+
+        @Override
+        public String idToken() {
+            return idToken;
+        }
+
+        @Override
+        public IAccount account() {
+            return account;
+        }
+
+        @Override
+        public String environment() {
+            return environment;
+        }
+
+        @Override
+        public String scopes() {
+            return scopes;
+        }
+
+        @Override
+        public Date expiresOnDate() {
+            return expiresOnDate;
+        }
     }
 }

@@ -3,87 +3,116 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.aad.adal4j.*;
+import com.microsoft.aad.msal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.naming.ServiceUnavailableException;
-import java.awt.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class AadAuthenticationHelper {
-
-    private final static String DEFAULT_AAD_TENANT = "microsoft.com";
-    private final static String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    final static long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
-
-    private ClientCredential clientCredential;
-    private String userUsername;
-    private String userPassword;
-    private String clusterUrl;
-    private String aadAuthorityUri;
-    private X509Certificate x509Certificate;
-    private PrivateKey privateKey;
-    private AuthenticationType authenticationType;
-    private String accessToken;
-    private AuthenticationResult lastAuthenticationResult;
-    private Lock lastAuthenticationResultLock = new ReentrantLock();
+    protected static final String DEFAULT_AAD_TENANT = "microsoft.com";
+    protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    protected static final long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
+    protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
+    protected static final String ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN = "Error acquiring ApplicationAccessToken";
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final ExecutorService executor = Executors.newCachedThreadPool();
+    private static final int TIMEOUT_MS = 60 * 1000;
+    private final Set<String> scopes;
+    private final String scope;
+    private final AuthenticationType authenticationType;
+    private final String aadAuthorityUrl;
+    private String clientId;
+    private IClientSecret clientSecret;
+    private IClientCertificate clientCertificate;
     private String applicationClientId;
+    private String userUsername;
+    private URI redirectUri;
+    private String accessToken;
     private Callable<String> tokenProvider;
+    private final Lock lastClientApplicationLock = new ReentrantLock();
+    private IAuthenticationResult lastAuthenticationResult;
+    private IPublicClientApplication lastPublicClientApplication;
+    private IConfidentialClientApplication lastConfidentialClientApplication;
 
     private enum AuthenticationType {
-        AAD_USERNAME_PASSWORD,
-        AAD_APPLICATION_KEY,
-        AAD_DEVICE_LOGIN,
-        AAD_APPLICATION_CERTIFICATE,
-        AAD_ACCESS_TOKEN,
-        AAD_ACCESS_TOKEN_PROVIDER;
+        AAD_USER_PROMPT(ClientApplicationType.PUBLIC),
+        AAD_APPLICATION_KEY(ClientApplicationType.CONFIDENTIAL),
+        AAD_APPLICATION_CERTIFICATE(ClientApplicationType.CONFIDENTIAL),
+        AAD_ACCESS_TOKEN(ClientApplicationType.NOT_APPLICABLE),
+        AAD_ACCESS_TOKEN_PROVIDER(ClientApplicationType.NOT_APPLICABLE);
+        // TODO: Confirming that we don't need to support AAD Application Certificate Thumbprint nor AAD Application Certificate Subject And Issuer
+
+        private final ClientApplicationType clientApplicationType;
+
+        AuthenticationType(ClientApplicationType clientApplicationType) {
+            this.clientApplicationType = clientApplicationType;
+        }
+
+        public ClientApplicationType getClientApplicationType() {
+            return this.clientApplicationType;
+        }
     }
 
-    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
+    private enum ClientApplicationType {
+        PUBLIC,
+        CONFIDENTIAL,
+        NOT_APPLICABLE
+    }
 
-        URI clusterUri = new URI(csb.getClusterUrl());
-        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
-        if (StringUtils.isNotEmpty(csb.getApplicationClientId()) && StringUtils.isNotEmpty(csb.getApplicationKey())) {
-            clientCredential = new ClientCredential(csb.getApplicationClientId(), csb.getApplicationKey());
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException, DataClientException {
+        URI clusterUrl = new URI(csb.getClusterUrl());
+        scope = String.format("%s://%s/%s", clusterUrl.getScheme(), clusterUrl.getHost(), ".default");
+        scopes = new HashSet<>();
+        scopes.add(scope);
+
+        if (StringUtils.isNotBlank(csb.getApplicationClientId()) && StringUtils.isNotBlank(csb.getApplicationKey())) {
+            clientId = csb.getApplicationClientId();
+            clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
             authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
-        } else if (StringUtils.isNotEmpty(csb.getUserUsername()) && StringUtils.isNotEmpty(csb.getUserPassword())) {
-            userUsername = csb.getUserUsername();
-            userPassword = csb.getUserPassword();
-            authenticationType = AuthenticationType.AAD_USERNAME_PASSWORD;
-        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
-            x509Certificate = csb.getX509Certificate();
-            privateKey = csb.getPrivateKey();
+        } else if (StringUtils.isNotBlank(csb.getUserUsername())) {
+            userUsername = csb.getUserUsername(); // TODO: Should this be required? It's only used for a hint, so perhaps it should be optional, in which case AAD_USER_PROMPT is the else in this flow.
+            redirectUri = new URI("http://localhost"); // TODO: Right?
+            authenticationType = AuthenticationType.AAD_USER_PROMPT;
+        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null && StringUtils.isNotBlank(csb.getApplicationClientId())) {
+            clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
             applicationClientId = csb.getApplicationClientId();
             authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
         } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
-            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
             accessToken = csb.getAccessToken();
-        } else if(csb.getTokenProvider() != null){
-            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
+            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
+        } else if (csb.getTokenProvider() != null) {
             tokenProvider = csb.getTokenProvider();
+            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
         } else {
-            authenticationType = AuthenticationType.AAD_DEVICE_LOGIN;
+            throw new DataClientException("No valid authentication type relevant to provided ConnectionStringBuilder parameters");
         }
 
-        // Set the AAD Authority URI
-        String aadAuthorityId = (csb.getAuthorityId() == null ? DEFAULT_AAD_TENANT : csb.getAuthorityId());
+        aadAuthorityUrl = determineAadAuthorityUrl(csb.getAuthorityId());
+    }
+
+    private String determineAadAuthorityUrl(String aadAuthorityUrl) {
+        String aadAuthorityId = (aadAuthorityUrl == null ? DEFAULT_AAD_TENANT : aadAuthorityUrl);
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        if (aadAuthorityFromEnv == null){
-            aadAuthorityUri = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+        // TODO: Also support organization flow? (https://login.microsoftonline.com/organizations/)
+        if (aadAuthorityFromEnv == null) {
+            aadAuthorityUrl = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
         } else {
-            aadAuthorityUri = String.format("%s%s%s", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
+            aadAuthorityUrl = String.format("%s%s%s", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
         }
+        return aadAuthorityUrl;
     }
 
     String acquireAccessToken() throws DataServiceException, DataClientException {
@@ -93,207 +122,173 @@ class AadAuthenticationHelper {
 
         if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER) {
             try {
-                return tokenProvider.call();
+                // TODO: Don't hold onto the lastAuthenticationResult as other methods do (have to make a new call every time), right?
+                Future<String> future = executor.submit(tokenProvider);
+                return getAsyncResultNonblocking(future);
             } catch (Exception e) {
-                throw new DataClientException(clusterUrl, e.getMessage(), e);
+                throw new DataClientException(scope, e.getMessage(), e);
             }
         }
 
-        if (lastAuthenticationResult == null) {
-            acquireToken();
-        } else if (IsInvalidToken()) {
-            if (lastAuthenticationResult.getRefreshToken() == null) {
-                acquireToken();
-            } else {
-                lastAuthenticationResultLock.lock();
+        try {
+            lastClientApplicationLock.lock();
+            if (lastAuthenticationResult == null) {
+                lastAuthenticationResult = acquireNewAccessToken();
+            } else if (isInvalidToken()) {
+                // TODO: I prefer to reset it than hold an invalid token. However, this prevents us from accessing the account/environment, which are likely still valid.
+                lastAuthenticationResult = null;
                 try {
-                    if (IsInvalidToken()) {
-                        lastAuthenticationResult = acquireAccessTokenByRefreshToken();
-                    }
-                } finally {
-                    lastAuthenticationResultLock.unlock();
+                    lastAuthenticationResult = acquireAccessTokenByRefreshToken();
+                } catch (Exception ex) {
+                    // TODO: Catch so we can next acquire a new access token, right?
+                    logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
+                }
+
+                if (lastAuthenticationResult == null) {
+                    lastAuthenticationResult = acquireNewAccessToken();
                 }
             }
-        }
-
-        return lastAuthenticationResult.getAccessToken();
-    }
-
-    private AuthenticationResult acquireAadUserAccessToken() throws DataServiceException, DataClientException {
-        AuthenticationContext context;
-        AuthenticationResult result;
-        ExecutorService service = null;
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-
-            Future<AuthenticationResult> future = context.acquireToken(
-                    clusterUrl, CLIENT_ID, userUsername, userPassword,
-                    null);
-            result = future.get();
-        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
-            throw new DataClientException(clusterUrl, "Error in acquiring UserAccessToken", e);
+            if (lastAuthenticationResult == null) {
+                throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN);
+            }
+            return lastAuthenticationResult.accessToken();
         } finally {
-            if (service != null) {
-                service.shutdown();
-            }
+            lastClientApplicationLock.unlock();
         }
-
-        if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireAadUserAccessToken got 'null' authentication result");
-        }
-        return result;
     }
 
-    private AuthenticationResult acquireAadApplicationAccessToken() throws DataServiceException, DataClientException {
-        AuthenticationContext context;
-        AuthenticationResult result;
-        ExecutorService service = null;
+    private IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
+        switch (authenticationType) {
+            case AAD_APPLICATION_KEY:
+                return acquireWithAadApplicationKey();
+            case AAD_APPLICATION_CERTIFICATE:
+                return acquireWithAadApplicationClientCertificate();
+            case AAD_USER_PROMPT:
+                return acquireWithUserPrompt();
+            default:
+                throw new DataClientException("Authentication type '" + authenticationType.name() + "' is invalid");
+        }
+    }
+
+    private boolean isInvalidToken() {
+        return lastAuthenticationResult == null || lastAuthenticationResult.expiresOnDate().before(dateInAMinute());
+    }
+
+    private IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException, DataClientException {
+        IAuthenticationResult result;
         try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-            Future<AuthenticationResult> future = context.acquireToken(clusterUrl, clientCredential, null);
-            result = future.get();
-        } catch (InterruptedException | ExecutionException | MalformedURLException e) {
-            throw new DataClientException(clusterUrl, "Error in acquiring ApplicationAccessToken", e);
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
-        }
-
-        if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireAadApplicationAccessToken got 'null' authentication result");
-        }
-        return result;
-    }
-
-    private AuthenticationResult acquireAccessTokenUsingDeviceCodeFlow() throws Exception {
-        AuthenticationContext context = null;
-        AuthenticationResult result = null;
-        ExecutorService service = null;
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, true, service);
-            Future<DeviceCode> future = context.acquireDeviceCode(CLIENT_ID, clusterUrl, null);
-            DeviceCode deviceCode = future.get();
-            System.out.println(deviceCode.getMessage());
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(new URI(deviceCode.getVerificationUrl()));
-            }
-            result = waitAndAcquireTokenByDeviceCode(deviceCode, context);
-
-
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
-        }
-        if (result == null) {
-            throw new ServiceUnavailableException("authentication result was null");
-        }
-        return result;
-    }
-
-    private AuthenticationResult waitAndAcquireTokenByDeviceCode(DeviceCode deviceCode, AuthenticationContext context)
-            throws InterruptedException {
-        int timeout = 60 * 1000;
-        AuthenticationResult result = null;
-        while (timeout > 0) {
-            try {
-                Future<AuthenticationResult> futureResult = context.acquireTokenByDeviceCode(deviceCode, null);
-                return futureResult.get();
-            } catch (ExecutionException e) {
-                Thread.sleep(1000);
-                timeout -= 1000;
-            }
-        }
-        return result;
-    }
-
-    AuthenticationResult acquireWithClientCertificate()
-            throws InterruptedException, ExecutionException, ServiceUnavailableException {
-
-        AuthenticationContext context;
-        AuthenticationResult result = null;
-        ExecutorService service = null;
-
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, false, service);
-            AsymmetricKeyCredential asymmetricKeyCredential = AsymmetricKeyCredential.create(applicationClientId,
-                    privateKey, x509Certificate);
-            // pass null value for optional callback function and acquire access token
-            result = context.acquireToken(clusterUrl, asymmetricKeyCredential, null).get();
+            lastConfidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
+            CompletableFuture<IAuthenticationResult> future = lastConfidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
+            /*
+             * TODO: These get() calls are blocking. I would prefer to change the entire API and return the CompletableFuture so that this will be an async method,
+             *  though I doubt others would find it worthwhile. Else, I can unblock the thread with sleep(exponentialBackoff) as with AAD_ACCESS_TOKEN_PROVIDER,
+             *  but I doubt others would find that worthwhile either.
+             */
+            result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
+            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         }
+
         if (result == null) {
-            throw new ServiceUnavailableException("authentication result was null");
+            throw new DataServiceException(scope, "acquireWithAadApplicationKey got 'null' authentication result");
         }
         return result;
     }
 
-    private void acquireToken() throws DataServiceException {
-        lastAuthenticationResultLock.lock();
+    IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException, DataClientException {
+        IAuthenticationResult result;
         try {
-            if (IsInvalidToken()) {
-                switch (authenticationType) {
-                    case AAD_APPLICATION_KEY:
-                        lastAuthenticationResult = acquireAadApplicationAccessToken();
-                        break;
-                    case AAD_USERNAME_PASSWORD:
-                        lastAuthenticationResult = acquireAadUserAccessToken();
-                        break;
-                    case AAD_DEVICE_LOGIN:
-                        lastAuthenticationResult = acquireAccessTokenUsingDeviceCodeFlow();
-                        break;
-                    case AAD_APPLICATION_CERTIFICATE:
-                        lastAuthenticationResult = acquireWithClientCertificate();
-                        break;
-                    default:
-                        throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
-                }
-            }
-        } catch (Exception e) {
-            throw new DataServiceException(e.getMessage(), e);
-        } finally {
-            lastAuthenticationResultLock.unlock();
+            lastConfidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
+            CompletableFuture<IAuthenticationResult> future = lastConfidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
+            result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (MalformedURLException e) {
+            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        }
+
+        if (result == null) {
+            throw new DataServiceException(scope, "acquireWithAadApplicationClientCertificate got 'null' authentication result");
+        }
+        return result;
+    }
+
+    private IAuthenticationResult acquireWithUserPrompt() throws DataServiceException, DataClientException {
+        IAuthenticationResult result;
+        try {
+            /*
+             *  TODO: lastPublicClientApplication is always null here.
+             *      But we can change that logic if we want the Authority hostname from last time (lastAuthenticationResult.environment()), which can be used for .domainHint()
+             *      We also might want the username (lastAuthenticationResult.account()) from the last connection, because it's only a hint. So if they changed it, we don't want to keep suggesting the original.
+             */
+            lastPublicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
+            CompletableFuture<IAuthenticationResult> future = lastPublicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
+            result = future.get(120, TimeUnit.SECONDS);
+        } catch (MalformedURLException e) {
+            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+        } catch (TimeoutException | ExecutionException e) {
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        }
+        if (result == null) {
+            throw new DataServiceException(scope, "acquireWithUserPrompt got 'null' authentication result");
+        }
+        return result;
+    }
+
+    IAuthenticationResult acquireAccessTokenByRefreshToken() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
+        CompletableFuture<Set<IAccount>> accounts;
+        switch (authenticationType.getClientApplicationType()) {
+            case CONFIDENTIAL:
+                accounts = lastConfidentialClientApplication.getAccounts();
+                return lastConfidentialClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            case PUBLIC:
+                accounts = lastPublicClientApplication.getAccounts();
+                return lastPublicClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            case NOT_APPLICABLE:
+                throw new DataClientException("Cannot obtain a refresh token for Authentication type '" + authenticationType.name());
+            default:
+                throw new DataClientException("Authentication type '" + authenticationType.name() + "' is invalid");
         }
     }
 
-    private boolean IsInvalidToken() {
-        return lastAuthenticationResult == null || lastAuthenticationResult.getExpiresOnDate().before(dateInAMinute());
+    private SilentParameters getSilentParameters(CompletableFuture<Set<IAccount>> accounts) {
+        IAccount account;
+        if (StringUtils.isNotBlank(userUsername)) {
+            account = accounts.join().stream().filter(u -> userUsername.equalsIgnoreCase(u.username())).findAny().orElse(null);
+        } else {
+            // Normally we would filter accounts by the user authenticating, but there's only 1 per AadAuthenticationHelper instance
+            account = accounts.join().iterator().next();
+        }
+
+        // TODO: Is this useful?
+        if (account == null) {
+            account = lastAuthenticationResult.account();
+        }
+
+        return SilentParameters.builder(scopes).account(account).authorityUrl(aadAuthorityUrl).build();
     }
 
-    AuthenticationResult acquireAccessTokenByRefreshToken() throws DataServiceException {
-        AuthenticationContext context;
-        ExecutorService service = null;
-
-        try {
-            service = Executors.newSingleThreadExecutor();
-            context = new AuthenticationContext(aadAuthorityUri, false, service);
-            switch (authenticationType) {
-                case AAD_APPLICATION_KEY:
-                case AAD_APPLICATION_CERTIFICATE:
-                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), clientCredential, null).get();
-                case AAD_USERNAME_PASSWORD:
-                case AAD_DEVICE_LOGIN:
-                    return context.acquireTokenByRefreshToken(lastAuthenticationResult.getRefreshToken(), CLIENT_ID, clusterUrl, null).get();
-                default:
-                    throw new DataServiceException("Authentication type: " + authenticationType.name() + " is invalid");
-            }
-        } catch (Exception e) {
-            throw new DataServiceException(e.getMessage(), e);
-        } finally {
-            if (service != null) {
-                service.shutdown();
-            }
+    // TODO: I see a valuable performance improvement by freeing this thread from blocking to do other things (perhaps the user is concurrently ingesting?). I suspect others will consider this overkill.
+    private <T> T getAsyncResultNonblocking(Future<T> future) throws InterruptedException, ExecutionException, TimeoutException {
+        int localTimeoutMs = TIMEOUT_MS;
+        int waitPeriodMs = 50;
+        while (!future.isDone() && localTimeoutMs > 0) {
+            Thread.sleep(waitPeriodMs);
+            localTimeoutMs -= waitPeriodMs;
+            waitPeriodMs *= 2; // Exponential backoff
         }
+        return future.get(1, TimeUnit.MICROSECONDS); // Timeout by this point
     }
 
     Date dateInAMinute() {

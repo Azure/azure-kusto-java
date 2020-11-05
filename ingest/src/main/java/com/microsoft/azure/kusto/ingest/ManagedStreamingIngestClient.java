@@ -2,17 +2,17 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.ingest.exceptions.OneApiError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.exceptions.OneApiError;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,13 +34,13 @@ import java.net.URISyntaxException;
  */
 public class ManagedStreamingIngestClient implements IngestClient {
 
-    private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int MAX_RETRY_CALLS = 3;
     private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                        ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
+                                        ConnectionStringBuilder engineConnectionStringBuilder) throws DataClientException, URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
@@ -68,7 +68,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
             log.error("File not found when ingesting a file.", e);
             throw new IngestionClientException("IO exception - check file path.", e);
         }
-
     }
 
     /**
@@ -122,23 +121,20 @@ public class ManagedStreamingIngestClient implements IngestClient {
             for (int i = 0; i < MAX_RETRY_CALLS; i++) {
                 try {
                     return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     if (e instanceof IngestionServiceException
                             && e.getCause() != null
-                            && e.getCause() instanceof  DataServiceException
+                            && e.getCause() instanceof DataServiceException
                             && e.getCause().getCause() != null
                             && e.getCause().getCause() instanceof DataWebException) {
                         DataWebException webException = (DataWebException) e.getCause().getCause();
                         try {
                             OneApiError oneApiError = OneApiError.parseFromWebException(webException);
-                            if (oneApiError.isPermanent())
-                            {
+                            if (oneApiError.isPermanent()) {
                                 log.error("Error is permanent, stopping.");
                                 throw e;
                             }
-                        } catch (JSONException je)
-                        {
+                        } catch (JSONException je) {
                             log.info("Failed to parse json in exception, continuing.", je);
                         }
                     }
@@ -164,7 +160,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         queuedIngestClient.close();
         streamingIngestClient.close();
     }

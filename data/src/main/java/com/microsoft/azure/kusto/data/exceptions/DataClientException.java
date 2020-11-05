@@ -4,9 +4,11 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
 public class DataClientException extends Exception {
-    private String ingestionSource;
+    private String ingestionScope;
 
-    public String getIngestionSource() { return ingestionSource; }
+    public String getIngestionScope() {
+        return ingestionScope;
+    }
 
     public DataClientException(String message) {
         super(message);
@@ -16,8 +18,8 @@ public class DataClientException extends Exception {
         super(message, exception);
     }
 
-    public DataClientException(String ingestionSource, String message, Exception exception) {
+    public DataClientException(String ingestionScope, String message, Exception exception) {
         super(message, exception);
-        this.ingestionSource = ingestionSource;
+        this.ingestionScope = ingestionScope;
     }
 }

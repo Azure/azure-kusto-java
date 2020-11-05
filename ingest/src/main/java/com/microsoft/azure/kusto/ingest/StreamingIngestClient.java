@@ -19,7 +19,6 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -38,7 +37,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     public static final String EXPECTED_SERVICE_TYPE = "Engine";
 
-    StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = ClientFactory.createStreamingClient(csb);
         this.connectionDataSource = csb.getClusterUrl();
@@ -236,7 +235,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                throw new IngestionClientException(e.getIngestionScope(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
             }
             throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
         }

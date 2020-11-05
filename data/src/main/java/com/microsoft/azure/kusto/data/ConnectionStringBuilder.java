@@ -11,10 +11,9 @@ import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
 
-    private final static String DEFAULT_DEVICE_AUTH_TENANT = "common";
-    private String clusterUri;
+    private static final String DEFAULT_DEVICE_AUTH_TENANT = "common";
+    private final String clusterUri;
     private String username;
-    private String password;
     private String applicationClientId;
     private String applicationKey;
     private X509Certificate x509Certificate;
@@ -28,7 +27,6 @@ public class ConnectionStringBuilder {
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
         username = null;
-        password = null;
         applicationClientId = null;
         applicationKey = null;
         aadAuthorityId = null;
@@ -44,10 +42,6 @@ public class ConnectionStringBuilder {
 
     String getUserUsername() {
         return username;
-    }
-
-    String getUserPassword() {
-        return password;
     }
 
     String getApplicationClientId() {
@@ -109,7 +103,6 @@ public class ConnectionStringBuilder {
         }
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.username = username;
-        csb.password = password;
         csb.aadAuthorityId = authorityId;
         return csb;
     }

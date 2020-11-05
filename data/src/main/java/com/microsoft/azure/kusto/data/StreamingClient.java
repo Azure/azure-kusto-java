@@ -32,7 +32,8 @@ public interface StreamingClient {
     /**
      * <p>Execute the provided command against the default database.</p>
      *
-     * @param command      The command to execute
+     * @param command The command to execute
+     * @return {@link KustoOperationResult} object including the ingestion result
      * @throws DataClientException  An exception originating from a client activity
      * @throws DataServiceException An exception returned from the service
      */

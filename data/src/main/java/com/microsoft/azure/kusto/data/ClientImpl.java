@@ -32,7 +32,7 @@ public class ClientImpl implements Client, StreamingClient {
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
 
-    public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+    public ClientImpl(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
         clientVersionForTracing = "Kusto.Java.Client";
@@ -141,7 +141,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue()  + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
     }
 
     private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {
