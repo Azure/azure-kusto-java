@@ -37,7 +37,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     public static final String EXPECTED_SERVICE_TYPE = "Engine";
 
-    StreamingIngestClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = ClientFactory.createStreamingClient(csb);
         this.connectionDataSource = csb.getClusterUrl();

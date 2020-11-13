@@ -13,16 +13,16 @@ public class IngestClientFactory {
         // Hide the default constructor, as this is a factory with static methods
     }
 
-    public static IngestClient createClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new QueuedIngestClient(csb);
     }
 
-    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new StreamingIngestClient(csb);
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder engineConnectionStringBuilder) throws DataClientException, URISyntaxException {
+                                                                                  ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
         return new ManagedStreamingIngestClient(dmConnectionStringBuilder, engineConnectionStringBuilder);
     }
 }

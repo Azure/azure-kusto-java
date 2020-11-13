@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.StreamingClient;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -40,7 +39,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final StreamingIngestClient streamingIngestClient;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                        ConnectionStringBuilder engineConnectionStringBuilder) throws DataClientException, URISyntaxException {
+                                        ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);

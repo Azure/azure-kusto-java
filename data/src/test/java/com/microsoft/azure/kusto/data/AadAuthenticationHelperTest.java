@@ -47,7 +47,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, DataClientException, URISyntaxException {
+            PKCSException, IOException, URISyntaxException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 

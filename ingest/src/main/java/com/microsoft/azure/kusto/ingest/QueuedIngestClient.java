@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
@@ -39,7 +38,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     private final AzureStorageClient azureStorageClient;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
-    QueuedIngestClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);

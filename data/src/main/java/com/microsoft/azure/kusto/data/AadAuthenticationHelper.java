@@ -22,7 +22,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class AadAuthenticationHelper {
-    protected static final String DEFAULT_AAD_TENANT = "microsoft.com";
+    // TODO: Ran suggested using "organizations" instead of "microsoft.com" (as the DEFAULT_AAD_TENANT), but then acquireWithAadApplicationClientCertificate didn't work
+    protected static final String ORGANIZATION_URI_SUFFIX = "microsoft.com";
     protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     protected static final long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
@@ -53,7 +54,6 @@ class AadAuthenticationHelper {
         AAD_APPLICATION_CERTIFICATE(ClientApplicationType.CONFIDENTIAL),
         AAD_ACCESS_TOKEN(ClientApplicationType.NOT_APPLICABLE),
         AAD_ACCESS_TOKEN_PROVIDER(ClientApplicationType.NOT_APPLICABLE);
-        // TODO: Confirming that we don't need to support AAD Application Certificate Thumbprint nor AAD Application Certificate Subject And Issuer
 
         private final ClientApplicationType clientApplicationType;
 
@@ -72,7 +72,7 @@ class AadAuthenticationHelper {
         NOT_APPLICABLE
     }
 
-    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException, DataClientException {
+    AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
         URI clusterUrl = new URI(csb.getClusterUrl());
         scope = String.format("%s://%s/%s", clusterUrl.getScheme(), clusterUrl.getHost(), ".default");
         scopes = new HashSet<>();
@@ -82,10 +82,6 @@ class AadAuthenticationHelper {
             clientId = csb.getApplicationClientId();
             clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
             authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
-        } else if (StringUtils.isNotBlank(csb.getUserUsername())) {
-            userUsername = csb.getUserUsername(); // TODO: Should this be required? It's only used for a hint, so perhaps it should be optional, in which case AAD_USER_PROMPT is the else in this flow.
-            redirectUri = new URI("http://localhost"); // TODO: Right?
-            authenticationType = AuthenticationType.AAD_USER_PROMPT;
         } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null && StringUtils.isNotBlank(csb.getApplicationClientId())) {
             clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
             applicationClientId = csb.getApplicationClientId();
@@ -97,16 +93,19 @@ class AadAuthenticationHelper {
             tokenProvider = csb.getTokenProvider();
             authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
         } else {
-            throw new DataClientException("No valid authentication type relevant to provided ConnectionStringBuilder parameters");
+            if (StringUtils.isNotBlank(csb.getUserUsername())) {
+                userUsername = csb.getUserUsername();
+            }
+            redirectUri = new URI("http://localhost");
+            authenticationType = AuthenticationType.AAD_USER_PROMPT;
         }
 
         aadAuthorityUrl = determineAadAuthorityUrl(csb.getAuthorityId());
     }
 
     private String determineAadAuthorityUrl(String aadAuthorityUrl) {
-        String aadAuthorityId = (aadAuthorityUrl == null ? DEFAULT_AAD_TENANT : aadAuthorityUrl);
+        String aadAuthorityId = (aadAuthorityUrl == null ? ORGANIZATION_URI_SUFFIX : aadAuthorityUrl);
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        // TODO: Also support organization flow? (https://login.microsoftonline.com/organizations/)
         if (aadAuthorityFromEnv == null) {
             aadAuthorityUrl = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
         } else {
@@ -115,14 +114,13 @@ class AadAuthenticationHelper {
         return aadAuthorityUrl;
     }
 
-    String acquireAccessToken() throws DataServiceException, DataClientException {
+    protected String acquireAccessToken() throws DataServiceException, DataClientException {
         if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN) {
             return accessToken;
         }
 
         if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER) {
             try {
-                // TODO: Don't hold onto the lastAuthenticationResult as other methods do (have to make a new call every time), right?
                 Future<String> future = executor.submit(tokenProvider);
                 return getAsyncResultNonblocking(future);
             } catch (Exception e) {
@@ -135,12 +133,10 @@ class AadAuthenticationHelper {
             if (lastAuthenticationResult == null) {
                 lastAuthenticationResult = acquireNewAccessToken();
             } else if (isInvalidToken()) {
-                // TODO: I prefer to reset it than hold an invalid token. However, this prevents us from accessing the account/environment, which are likely still valid.
                 lastAuthenticationResult = null;
                 try {
                     lastAuthenticationResult = acquireAccessTokenByRefreshToken();
                 } catch (Exception ex) {
-                    // TODO: Catch so we can next acquire a new access token, right?
                     logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
                 }
 
@@ -157,7 +153,7 @@ class AadAuthenticationHelper {
         }
     }
 
-    private IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
         switch (authenticationType) {
             case AAD_APPLICATION_KEY:
                 return acquireWithAadApplicationKey();
@@ -174,15 +170,16 @@ class AadAuthenticationHelper {
         return lastAuthenticationResult == null || lastAuthenticationResult.expiresOnDate().before(dateInAMinute());
     }
 
-    private IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
             lastConfidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = lastConfidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             /*
-             * TODO: These get() calls are blocking. I would prefer to change the entire API and return the CompletableFuture so that this will be an async method,
-             *  though I doubt others would find it worthwhile. Else, I can unblock the thread with sleep(exponentialBackoff) as with AAD_ACCESS_TOKEN_PROVIDER,
-             *  but I doubt others would find that worthwhile either.
+             * TODO: These 5 CompletableFuture.get() calls are blocking. Ideally, I think this API should return the
+             *  CompletableFuture so that this will be an async method and let the SDK user wait for the value per their
+             *  needs, though I doubt others would find it worthwhile. Else, I can unblock the thread with sleep(exponentialBackoff)
+             *  as I proposed with AAD_ACCESS_TOKEN_PROVIDER, but I doubt others would find that worthwhile either.
              */
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
@@ -200,7 +197,7 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
             lastConfidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
@@ -221,14 +218,9 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    private IAuthenticationResult acquireWithUserPrompt() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireWithUserPrompt() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
-            /*
-             *  TODO: lastPublicClientApplication is always null here.
-             *      But we can change that logic if we want the Authority hostname from last time (lastAuthenticationResult.environment()), which can be used for .domainHint()
-             *      We also might want the username (lastAuthenticationResult.account()) from the last connection, because it's only a hint. So if they changed it, we don't want to keep suggesting the original.
-             */
             lastPublicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = lastPublicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
             result = future.get(120, TimeUnit.SECONDS);
@@ -246,7 +238,7 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    IAuthenticationResult acquireAccessTokenByRefreshToken() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
+    protected IAuthenticationResult acquireAccessTokenByRefreshToken() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
         CompletableFuture<Set<IAccount>> accounts;
         switch (authenticationType.getClientApplicationType()) {
             case CONFIDENTIAL:
@@ -269,11 +261,6 @@ class AadAuthenticationHelper {
         } else {
             // Normally we would filter accounts by the user authenticating, but there's only 1 per AadAuthenticationHelper instance
             account = accounts.join().iterator().next();
-        }
-
-        // TODO: Is this useful?
-        if (account == null) {
-            account = lastAuthenticationResult.account();
         }
 
         return SilentParameters.builder(scopes).account(account).authorityUrl(aadAuthorityUrl).build();

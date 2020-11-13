@@ -3,8 +3,6 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-
 import java.net.URISyntaxException;
 
 public class ClientFactory {
@@ -12,11 +10,11 @@ public class ClientFactory {
         // Disallow instantiating class
     }
 
-    public static Client createClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    public static Client createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new ClientImpl(csb);
     }
 
-    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws DataClientException, URISyntaxException {
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new ClientImpl(csb);
     }
 }
