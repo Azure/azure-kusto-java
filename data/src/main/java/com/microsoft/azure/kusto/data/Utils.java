@@ -75,7 +75,7 @@ class Utils {
                 }
             }
         } catch (JSONException | IOException | URISyntaxException | KustoServiceError e) {
-            throw new DataClientException(url, "Error in post request", e);
+            throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
         }
         return null;
     }
