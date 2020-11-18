@@ -4,11 +4,13 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
 import org.apache.http.HttpResponse;
+import org.json.JSONObject;
 
 public class DataWebException extends Exception{
 
     private String message;
     private HttpResponse httpResponse;
+    private OneApiError apiError;
 
     public String getMessage() { return message; }
 
@@ -17,5 +19,22 @@ public class DataWebException extends Exception{
     public DataWebException(String message, HttpResponse httpResponse) {
         this.message = message;
         this.httpResponse = httpResponse;
+        this.apiError = null;
+    }
+
+    public OneApiError getApiError() {
+        if (apiError == null) {
+            JSONObject jsonObject = new JSONObject(getMessage()).getJSONObject("error");
+            apiError = new OneApiError(
+                    jsonObject.getString("code"),
+                    jsonObject.getString("message"),
+                    jsonObject.getString("@message"),
+                    jsonObject.getString("@type"),
+                    jsonObject.getJSONObject("@context"),
+                    jsonObject.getBoolean("@permanent")
+            );
+        }
+
+        return apiError;
     }
 }

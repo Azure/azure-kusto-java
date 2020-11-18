@@ -1,11 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.ingest.exceptions;
+package com.microsoft.azure.kusto.data.exceptions;
 
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-
-import org.json.JSONException;
 import org.json.JSONObject;
 
 public class OneApiError {
@@ -16,18 +13,6 @@ public class OneApiError {
         this.type = type;
         this.context = context;
         this.permanent = permanent;
-    }
-
-    public static OneApiError parseFromWebException(DataWebException ex) throws JSONException {
-        JSONObject jsonObject = new JSONObject(ex.getMessage()).getJSONObject("error");
-        return new OneApiError(
-                jsonObject.getString("code"),
-                jsonObject.getString("message"),
-                jsonObject.getString("@message"),
-                jsonObject.getString("@type"),
-                jsonObject.getJSONObject("@context"),
-                jsonObject.getBoolean("@permanent")
-        );
     }
 
     private final String code;
