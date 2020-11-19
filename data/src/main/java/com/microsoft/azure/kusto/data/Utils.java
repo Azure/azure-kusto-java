@@ -74,7 +74,7 @@ class Utils {
                     try {
                         message = ex.getApiError().getDescription();
                     } catch (Exception ignored1) { }
-                    throw new DataServiceException(url, "Error in post request: " + message, ex);
+                    throw new DataServiceException(url, message, ex);
                 }
             }
         } catch (JSONException | IOException | URISyntaxException | KustoServiceError e) {
