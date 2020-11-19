@@ -3,10 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -21,6 +18,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -71,7 +69,12 @@ class Utils {
                     if(StringUtils.isBlank(responseContent)){
                         responseContent = response.getStatusLine().toString();
                     }
-                    throw new DataServiceException(url, "Error in post request", new DataWebException(responseContent, response));
+                    String message = "";
+                    DataWebException ex = new DataWebException(responseContent, response);
+                    try {
+                        message = ex.getApiError().getDescription();
+                    } catch (Exception ignored1) { }
+                    throw new DataServiceException(url, message, ex);
                 }
             }
         } catch (JSONException | IOException | URISyntaxException | KustoServiceError e) {
