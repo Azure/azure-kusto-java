@@ -4,6 +4,7 @@ import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.OneApiError;
@@ -128,7 +129,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                             && e.getCause().getCause() instanceof DataWebException) {
                         DataWebException webException = (DataWebException) e.getCause().getCause();
                         try {
-                            OneApiError oneApiError = OneApiError.parseFromWebException(webException);
+                            OneApiError oneApiError = webException.getApiError();
                             if (oneApiError.isPermanent()) {
                                 log.error("Error is permanent, stopping.");
                                 throw e;
@@ -156,7 +157,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
             }
         }
     }
-
 
     @Override
     public void close() {
