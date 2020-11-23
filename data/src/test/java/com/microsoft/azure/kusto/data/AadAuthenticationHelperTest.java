@@ -115,7 +115,7 @@ public class AadAuthenticationHelperTest {
         IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
         IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
 
-        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenByRefreshToken();
+        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
 
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());

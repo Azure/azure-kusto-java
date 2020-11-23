@@ -24,13 +24,15 @@ import java.util.concurrent.locks.ReentrantLock;
 class AadAuthenticationHelper {
     // TODO: Ran suggested using "organizations" instead of "microsoft.com" (as the DEFAULT_AAD_TENANT), but then acquireWithAadApplicationClientCertificate didn't work
     protected static final String ORGANIZATION_URI_SUFFIX = "microsoft.com";
+    // TODO: Get ClientId from CM endpoint
     protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    protected static final long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60000;
+    protected static final long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60 * 1000;
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
     protected static final String ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN = "Error acquiring ApplicationAccessToken";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private static final ExecutorService executor = Executors.newCachedThreadPool();
-    private static final int TIMEOUT_MS = 60 * 1000;
+    private static final int TIMEOUT_MS = 20 * 1000;
+    private static final int USER_PROMPT_TIMEOUT_MS = 120 * 1000;
     private final Set<String> scopes;
     private final String scope;
     private final AuthenticationType authenticationType;
@@ -73,8 +75,8 @@ class AadAuthenticationHelper {
     }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
-        URI clusterUrl = new URI(csb.getClusterUrl());
-        scope = String.format("%s://%s/%s", clusterUrl.getScheme(), clusterUrl.getHost(), ".default");
+        URI clusterUri = new URI(csb.getClusterUrl());
+        scope = String.format("%s://%s/%s", clusterUri.getScheme(), clusterUri.getHost(), ".default");
         scopes = new HashSet<>();
         scopes.add(scope);
 
@@ -135,7 +137,7 @@ class AadAuthenticationHelper {
             } else if (isInvalidToken()) {
                 lastAuthenticationResult = null;
                 try {
-                    lastAuthenticationResult = acquireAccessTokenByRefreshToken();
+                    lastAuthenticationResult = acquireAccessTokenSilently();
                 } catch (Exception ex) {
                     logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
                 }
@@ -223,7 +225,7 @@ class AadAuthenticationHelper {
         try {
             lastPublicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = lastPublicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
-            result = future.get(120, TimeUnit.SECONDS);
+            result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
             throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (TimeoutException | ExecutionException e) {
@@ -238,7 +240,7 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    protected IAuthenticationResult acquireAccessTokenByRefreshToken() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
+    protected IAuthenticationResult acquireAccessTokenSilently() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
         CompletableFuture<Set<IAccount>> accounts;
         switch (authenticationType.getClientApplicationType()) {
             case CONFIDENTIAL:
