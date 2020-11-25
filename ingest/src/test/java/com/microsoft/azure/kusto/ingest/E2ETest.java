@@ -7,20 +7,18 @@ import com.microsoft.azure.kusto.data.ClientImpl;
 import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.commons.codec.binary.Base64;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -55,7 +53,7 @@ public class E2ETest {
                 .createWithAadApplicationCredentials(System.getenv("ENGINE_CONECTION_STRING"), appId, appKey, tenantId);
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
-        } catch (DataClientException | URISyntaxException ex) {
+        } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
@@ -64,7 +62,7 @@ public class E2ETest {
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
-        } catch (DataClientException | URISyntaxException ex) {
+        } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
@@ -81,7 +79,7 @@ public class E2ETest {
             Assertions.fail("Failed to drop and create new table", ex);
         }
 
-        resourcesPath = Paths.get(System.getProperty("user.dir"), "src","test", "resources").toString();
+        resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",

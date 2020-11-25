@@ -18,8 +18,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 class AadAuthenticationHelper {
     // TODO: Ran suggested using "organizations" instead of "microsoft.com" (as the DEFAULT_AAD_TENANT), but then acquireWithAadApplicationClientCertificate didn't work
@@ -33,6 +31,7 @@ class AadAuthenticationHelper {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
     private static final int TIMEOUT_MS = 20 * 1000;
     private static final int USER_PROMPT_TIMEOUT_MS = 120 * 1000;
+    private final String clusterUrl;
     private final Set<String> scopes;
     private final String scope;
     private final AuthenticationType authenticationType;
@@ -45,10 +44,9 @@ class AadAuthenticationHelper {
     private URI redirectUri;
     private String accessToken;
     private Callable<String> tokenProvider;
-    private final Lock lastClientApplicationLock = new ReentrantLock();
     private IAuthenticationResult lastAuthenticationResult;
-    private IPublicClientApplication lastPublicClientApplication;
-    private IConfidentialClientApplication lastConfidentialClientApplication;
+    private IPublicClientApplication publicClientApplication;
+    private IConfidentialClientApplication confidentialClientApplication;
 
     private enum AuthenticationType {
         AAD_USER_PROMPT(ClientApplicationType.PUBLIC),
@@ -76,7 +74,8 @@ class AadAuthenticationHelper {
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
         URI clusterUri = new URI(csb.getClusterUrl());
-        scope = String.format("%s://%s/%s", clusterUri.getScheme(), clusterUri.getHost(), ".default");
+        clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
+        scope = String.format("%s/%s", clusterUrl, ".default");
         scopes = new HashSet<>();
         scopes.add(scope);
 
@@ -126,33 +125,18 @@ class AadAuthenticationHelper {
                 Future<String> future = executor.submit(tokenProvider);
                 return getAsyncResultNonblocking(future);
             } catch (Exception e) {
-                throw new DataClientException(scope, e.getMessage(), e);
+                throw new DataClientException(clusterUrl, e.getMessage(), e);
             }
         }
 
-        try {
-            lastClientApplicationLock.lock();
-            if (lastAuthenticationResult == null) {
-                lastAuthenticationResult = acquireNewAccessToken();
-            } else if (isInvalidToken()) {
-                lastAuthenticationResult = null;
-                try {
-                    lastAuthenticationResult = acquireAccessTokenSilently();
-                } catch (Exception ex) {
-                    logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
-                }
-
-                if (lastAuthenticationResult == null) {
-                    lastAuthenticationResult = acquireNewAccessToken();
-                }
-            }
-            if (lastAuthenticationResult == null) {
-                throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN);
-            }
-            return lastAuthenticationResult.accessToken();
-        } finally {
-            lastClientApplicationLock.unlock();
+		// There's a potential race condition here, but it's rare and it was decided that it'd be worse to add a lock
+        if (lastAuthenticationResult == null) {
+            lastAuthenticationResult = acquireNewAccessToken();
+        } else {
+            lastAuthenticationResult = acquireAccessTokenSilently();
         }
+
+        return lastAuthenticationResult.accessToken();
     }
 
     protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
@@ -164,19 +148,15 @@ class AadAuthenticationHelper {
             case AAD_USER_PROMPT:
                 return acquireWithUserPrompt();
             default:
-                throw new DataClientException("Authentication type '" + authenticationType.name() + "' is invalid");
+                throw new DataClientException(String.format("Authentication type '%s' is invalid (cluster URL '%s')", authenticationType.name(), clusterUrl));
         }
-    }
-
-    private boolean isInvalidToken() {
-        return lastAuthenticationResult == null || lastAuthenticationResult.expiresOnDate().before(dateInAMinute());
     }
 
     protected IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
-            lastConfidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
-            CompletableFuture<IAuthenticationResult> future = lastConfidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
+            confidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
+            CompletableFuture<IAuthenticationResult> future = confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             /*
              * TODO: These 5 CompletableFuture.get() calls are blocking. Ideally, I think this API should return the
              *  CompletableFuture so that this will be an async method and let the SDK user wait for the value per their
@@ -185,16 +165,16 @@ class AadAuthenticationHelper {
              */
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
-            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (ExecutionException | TimeoutException e) {
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         }
 
         if (result == null) {
-            throw new DataServiceException(scope, "acquireWithAadApplicationKey got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireWithAadApplicationKey got 'null' authentication result");
         }
         return result;
     }
@@ -202,20 +182,20 @@ class AadAuthenticationHelper {
     protected IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
-            lastConfidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
-            CompletableFuture<IAuthenticationResult> future = lastConfidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
+            confidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
+            CompletableFuture<IAuthenticationResult> future = confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
-            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (ExecutionException | TimeoutException e) {
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         }
 
         if (result == null) {
-            throw new DataServiceException(scope, "acquireWithAadApplicationClientCertificate got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireWithAadApplicationClientCertificate got 'null' authentication result");
         }
         return result;
     }
@@ -223,36 +203,45 @@ class AadAuthenticationHelper {
     protected IAuthenticationResult acquireWithUserPrompt() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
-            lastPublicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
-            CompletableFuture<IAuthenticationResult> future = lastPublicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
+            publicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
+            CompletableFuture<IAuthenticationResult> future = publicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
             result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
-            throw new DataClientException(scope, ERROR_INVALID_AUTHORITY_URL, e);
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (TimeoutException | ExecutionException e) {
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         }
         if (result == null) {
-            throw new DataServiceException(scope, "acquireWithUserPrompt got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result");
         }
         return result;
     }
 
-    protected IAuthenticationResult acquireAccessTokenSilently() throws MalformedURLException, ExecutionException, InterruptedException, TimeoutException, DataClientException {
+    protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {
         CompletableFuture<Set<IAccount>> accounts;
-        switch (authenticationType.getClientApplicationType()) {
-            case CONFIDENTIAL:
-                accounts = lastConfidentialClientApplication.getAccounts();
-                return lastConfidentialClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            case PUBLIC:
-                accounts = lastPublicClientApplication.getAccounts();
-                return lastPublicClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            case NOT_APPLICABLE:
-                throw new DataClientException("Cannot obtain a refresh token for Authentication type '" + authenticationType.name());
-            default:
-                throw new DataClientException("Authentication type '" + authenticationType.name() + "' is invalid");
+        try {
+            switch (authenticationType.getClientApplicationType()) {
+                case CONFIDENTIAL:
+                    accounts = confidentialClientApplication.getAccounts();
+                    return confidentialClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                case PUBLIC:
+                    accounts = publicClientApplication.getAccounts();
+                    return publicClientApplication.acquireTokenSilently(getSilentParameters(accounts)).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                case NOT_APPLICABLE:
+                    throw new DataClientException("Cannot obtain a refresh token for Authentication type '" + authenticationType.name());
+                default:
+                    throw new DataClientException("Authentication type '" + authenticationType.name() + "' is invalid");
+            }
+        } catch (MalformedURLException e) {
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
+        } catch (TimeoutException | ExecutionException e) {
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         }
     }
 

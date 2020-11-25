@@ -145,7 +145,7 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
-    private void addIngestionResource(Map<ResourceType, IngestionResource> ingestionResources, String key, String value) {
+    private void addIngestionResource(HashMap<ResourceType, IngestionResource> ingestionResources, String key, String value) {
         ResourceType resourceType = getResourceTypeByName(key);
         if (!ingestionResources.containsKey(resourceType)) {
             ingestionResources.put(resourceType, new IngestionResource(resourceType));
@@ -161,7 +161,7 @@ class ResourceManager implements Closeable {
                 log.info("Refreshing Ingestion Resources");
                 KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
-                    Map<ResourceType, IngestionResource> newIngestionResources = new EnumMap<>(ResourceType.class);
+                    HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     KustoResultSetTable table = ingestionResourcesResults.next();
 
                     // Add the received values to a new IngestionResources map:
@@ -176,7 +176,7 @@ class ResourceManager implements Closeable {
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionScope(), "Error refreshing IngestionResources", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -213,7 +213,7 @@ class ResourceManager implements Closeable {
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionScope(), "Error refreshing IngestionAuthToken", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }
@@ -232,7 +232,7 @@ class ResourceManager implements Closeable {
         } catch (DataServiceException e) {
             throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionScope(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
         }
         throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
     }

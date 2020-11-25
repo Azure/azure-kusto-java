@@ -7,7 +7,7 @@ import java.net.URISyntaxException;
 
 public class ClientFactory {
     private ClientFactory() {
-        // Disallow instantiating class
+        // Hide the default constructor, as this is a factory with static methods
     }
 
     public static Client createClient(ConnectionStringBuilder csb) throws URISyntaxException {

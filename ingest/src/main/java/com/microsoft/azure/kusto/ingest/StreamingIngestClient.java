@@ -235,7 +235,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionScope(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
             }
             throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
         }
