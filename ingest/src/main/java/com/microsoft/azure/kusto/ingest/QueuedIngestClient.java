@@ -14,7 +14,6 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,24 +24,18 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.sql.Date;
 import java.time.Instant;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class QueuedIngestClient implements IngestClient {
+public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 
-    private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
-    private AzureStorageClient azureStorageClient;
-    private String connectionDataSource;
-    private String endpointServiceType;
-    private String suggestedEndpointUri;
-    public static final String INGEST_PREFIX = "ingest-";
-    protected static final String WRONG_ENDPOINT_MESSAGE =
-            "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
+    private final AzureStorageClient azureStorageClient;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
     QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
@@ -130,7 +123,7 @@ public class QueuedIngestClient implements IngestClient {
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         } catch (IngestionServiceException e) {
-            validateEndpointServiceType();
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -173,7 +166,7 @@ public class QueuedIngestClient implements IngestClient {
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         } catch (IngestionServiceException e) {
-            validateEndpointServiceType();
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -192,7 +185,7 @@ public class QueuedIngestClient implements IngestClient {
             IngestionResult ingestionResult;
             if (streamSourceInfo.getStream() == null) {
                 throw new IngestionClientException("The provided stream is null.");
-            } else if(streamSourceInfo.getStream().available() <= 0) {
+            } else if (streamSourceInfo.getStream().available() <= 0) {
                 throw new IngestionClientException("The provided stream is empty.");
             }
             boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), ingestionProperties.getDataFormat());
@@ -224,7 +217,7 @@ public class QueuedIngestClient implements IngestClient {
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IngestionServiceException e) {
-            validateEndpointServiceType();
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -263,7 +256,7 @@ public class QueuedIngestClient implements IngestClient {
             byteArrayOutputStream.flush();
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
 
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";
@@ -272,42 +265,14 @@ public class QueuedIngestClient implements IngestClient {
         }
     }
 
-    protected void validateEndpointServiceType() throws IngestionServiceException, IngestionClientException {
-        if (StringUtils.isBlank(endpointServiceType)) {
-            endpointServiceType = retrieveServiceType();
-        }
-        if (!EXPECTED_SERVICE_TYPE.equals(endpointServiceType)) {
-            String message = String.format(WRONG_ENDPOINT_MESSAGE, EXPECTED_SERVICE_TYPE, endpointServiceType);
-            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, connectionDataSource);
-            if (StringUtils.isNotBlank(suggestedEndpointUri)) {
-                message = String.format("%s: '%s'", message, suggestedEndpointUri);
-            } else {
-                message += ".";
-            }
-            throw new IngestionClientException(message);
-        }
+    @Override
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
+        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
+        return existingEndpoint.toString();
     }
 
-    protected static String generateEndpointSuggestion(String existingSuggestedEndpointUri, String dataSource) {
-        if (existingSuggestedEndpointUri != null) {
-            return existingSuggestedEndpointUri;
-        }
-        // The default is not passing a suggestion to the exception
-        String endpointUriToSuggestStr = "";
-        if (StringUtils.isNotBlank(dataSource)) {
-            URIBuilder endpointUriToSuggest;
-            try {
-                endpointUriToSuggest = new URIBuilder(dataSource);
-                endpointUriToSuggest.setHost(INGEST_PREFIX + endpointUriToSuggest.getHost());
-                endpointUriToSuggestStr = endpointUriToSuggest.toString();
-            } catch (URISyntaxException e) {
-                log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
-            }
-        }
-        return endpointUriToSuggestStr;
-    }
-
-    private String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    @Override
+    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
         if (resourceManager != null) {
             return resourceManager.retrieveServiceType();
         }

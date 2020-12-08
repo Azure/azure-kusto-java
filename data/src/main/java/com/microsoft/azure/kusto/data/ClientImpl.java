@@ -29,10 +29,10 @@ public class ClientImpl implements Client, StreamingClient {
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
 
-    private AadAuthenticationHelper aadAuthenticationHelper;
-    private String clusterUrl;
+    private final AadAuthenticationHelper aadAuthenticationHelper;
+    private final String clusterUrl;
     private String clientVersionForTracing;
-    private String applicationNameForTracing;
+    private final String applicationNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         clusterUrl = csb.getClusterUrl();
@@ -146,7 +146,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
 
         headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()) : clientRequestId);
-        headers.put("Cotent-Encoding", "gzip");
+        headers.put("Content-Encoding", "gzip");
 
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
