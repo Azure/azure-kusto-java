@@ -35,15 +35,16 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        clusterUrl = csb.getClusterUrl();
-        URI clusterUri = new URI(clusterUrl);
+        String url = csb.getClusterUrl();
+        URI clusterUri = new URI(url);
         String host = clusterUri.getHost();
         String auth = clusterUri.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(";fed=true")) {
-            clusterUrl = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(";fed=true"))).toString();
-            csb.setClusterUrl(clusterUrl);
+            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(";fed=true"))).toString();
+            csb.setClusterUrl(url);
         }
 
+        clusterUrl = url;
         aadAuthenticationHelper = new AadAuthenticationHelper(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.GetPackageVersion();
