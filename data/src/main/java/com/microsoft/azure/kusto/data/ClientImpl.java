@@ -28,7 +28,7 @@ public class ClientImpl implements Client, StreamingClient {
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
-
+    public static final String FEDERATED_SECURITY_POSTFIX = ";fed=tru";
     private final AadAuthenticationHelper aadAuthenticationHelper;
     private final String clusterUrl;
     private String clientVersionForTracing;
@@ -39,8 +39,8 @@ public class ClientImpl implements Client, StreamingClient {
         URI clusterUri = new URI(url);
         String host = clusterUri.getHost();
         String auth = clusterUri.getAuthority().toLowerCase();
-        if (host == null && auth.endsWith(";fed=true")) {
-            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(";fed=true"))).toString();
+        if (host == null && auth.endsWith(FEDERATED_SECURITY_POSTFIX)) {
+            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_POSTFIX))).toString();
             csb.setClusterUrl(url);
         }
 

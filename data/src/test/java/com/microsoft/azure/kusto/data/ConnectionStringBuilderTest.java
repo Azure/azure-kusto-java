@@ -162,7 +162,7 @@ public class ConnectionStringBuilderTest {
 
     @Test
     @DisplayName("validate ClientImpl strips fed=true")
-    void stripFedereatedAuthFromCSB() throws URISyntaxException {
+    void stripFederatedAuthFromCSB() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCredentials("https://service.uri;fed=true", "id", "appKey");
         ClientImpl client = new ClientImpl(csb);
