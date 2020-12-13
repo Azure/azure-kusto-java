@@ -161,11 +161,16 @@ public class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate ClientImpl strips fed=true")
+    @DisplayName("validate ClientImpl strips fed=true if needed")
     void stripFederatedAuthFromCSB() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCredentials("https://service.uri;fed=true", "id", "appKey");
         ClientImpl client = new ClientImpl(csb);
         Assertions.assertEquals("https://service.uri", csb.getClusterUrl());
+
+        String clusterUrl = "https://service.uri";
+        csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, "id", "appKey");
+        client = new ClientImpl(csb);
+        Assertions.assertEquals(clusterUrl, csb.getClusterUrl());
     }
 }
