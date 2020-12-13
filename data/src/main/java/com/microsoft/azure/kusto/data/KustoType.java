@@ -10,7 +10,7 @@ import java.util.function.Function;
  * 
  * @author alex
  *
- * @see https://docs.microsoft.com/en-us/azure/data-explorer/kusto/query/scalar-data-types/
+ * @see https://docs.microsoft.com/azure/data-explorer/kusto/query/scalar-data-types/
  *
  * @param <C>
  */
