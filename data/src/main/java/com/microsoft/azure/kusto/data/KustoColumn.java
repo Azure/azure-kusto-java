@@ -35,14 +35,15 @@ public class KustoColumn<C, T extends KustoType<C>> {
 		Object o = resultSet.getObject(this.name);
 		if (o == null) {
 			if (!this.isNullable) {
-				throw new NullPointerException("Column " + this.name + " is not nullable");
+				throw new NullPointerException(String.format("Column %s is not nullable", this.name));
 			}
 			return null;
 		}
 		try {
 			return this.type.type(o);
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Column " + this.name + " is of type " + o.getClass() + " but I expected type " + this.type.clazz, e);
+			throw new IllegalArgumentException(
+					String.format("Column %s is of type %s but expected type is %s ", this.name, o.getClass().toString(), this.type.clazz.toString()), e);
 		}
 	}
 }
