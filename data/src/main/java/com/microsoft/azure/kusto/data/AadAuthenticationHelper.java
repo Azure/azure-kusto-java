@@ -47,7 +47,7 @@ class AadAuthenticationHelper {
         AAD_DEVICE_LOGIN,
         AAD_APPLICATION_CERTIFICATE,
         AAD_ACCESS_TOKEN,
-        AAD_ACCESS_TOKEN_PROVIDER;
+        AAD_ACCESS_TOKEN_PROVIDER
     }
 
     AadAuthenticationHelper(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {

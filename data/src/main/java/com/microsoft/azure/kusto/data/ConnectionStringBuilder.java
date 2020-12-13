@@ -42,6 +42,10 @@ public class ConnectionStringBuilder {
         return clusterUri;
     }
 
+    void setClusterUrl(String clusterUri) {
+        this.clusterUri = clusterUri;
+    }
+
     String getUserUsername() {
         return username;
     }
