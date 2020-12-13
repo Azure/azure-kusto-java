@@ -24,7 +24,7 @@ class AadAuthenticationHelper {
     protected static final String ORGANIZATION_URI_SUFFIX = "microsoft.com";
     // TODO: Get ClientId from CM endpoint
     protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    protected static final long MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60 * 1000;
+    protected static final int MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60 * 1000;
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
     protected static final String ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN = "Error acquiring ApplicationAccessToken";
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -108,9 +108,9 @@ class AadAuthenticationHelper {
         String aadAuthorityId = (aadAuthorityUrl == null ? ORGANIZATION_URI_SUFFIX : aadAuthorityUrl);
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
         if (aadAuthorityFromEnv == null) {
-            aadAuthorityUrl = String.format("https://login.microsoftonline.com/%s", aadAuthorityId);
+            aadAuthorityUrl = String.format("https://login.microsoftonline.com/%s/", aadAuthorityId);
         } else {
-            aadAuthorityUrl = String.format("%s%s%s", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
+            aadAuthorityUrl = String.format("%s%s%s/", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
         }
         return aadAuthorityUrl;
     }
@@ -123,7 +123,7 @@ class AadAuthenticationHelper {
         if (authenticationType == AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER) {
             try {
                 Future<String> future = executor.submit(tokenProvider);
-                return getAsyncResultNonblocking(future);
+                return future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
                 throw new DataClientException(clusterUrl, e.getMessage(), e);
             }
@@ -133,9 +133,17 @@ class AadAuthenticationHelper {
         if (lastAuthenticationResult == null) {
             lastAuthenticationResult = acquireNewAccessToken();
         } else {
-            lastAuthenticationResult = acquireAccessTokenSilently();
+            try {
+                lastAuthenticationResult = acquireAccessTokenSilently();
+            } catch (Exception ex) {
+                logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
+                lastAuthenticationResult = acquireNewAccessToken();
+            }
         }
 
+        if (lastAuthenticationResult == null) {
+            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN);
+        }
         return lastAuthenticationResult.accessToken();
     }
 
@@ -157,12 +165,6 @@ class AadAuthenticationHelper {
         try {
             confidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
-            /*
-             * TODO: These 5 CompletableFuture.get() calls are blocking. Ideally, I think this API should return the
-             *  CompletableFuture so that this will be an async method and let the SDK user wait for the value per their
-             *  needs, though I doubt others would find it worthwhile. Else, I can unblock the thread with sleep(exponentialBackoff)
-             *  as I proposed with AAD_ACCESS_TOKEN_PROVIDER, but I doubt others would find that worthwhile either.
-             */
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
@@ -247,29 +249,20 @@ class AadAuthenticationHelper {
 
     private SilentParameters getSilentParameters(CompletableFuture<Set<IAccount>> accounts) {
         IAccount account;
+        Set<IAccount> accountSet = accounts.join();
         if (StringUtils.isNotBlank(userUsername)) {
-            account = accounts.join().stream().filter(u -> userUsername.equalsIgnoreCase(u.username())).findAny().orElse(null);
+            account = accountSet.stream().filter(u -> userUsername.equalsIgnoreCase(u.username())).findAny().orElse(null);
         } else {
-            // Normally we would filter accounts by the user authenticating, but there's only 1 per AadAuthenticationHelper instance
-            account = accounts.join().iterator().next();
+            if (accountSet.isEmpty()) {
+                account = null;
+            } else {
+                // Normally we would filter accounts by the user authenticating, but there's only 1 per AadAuthenticationHelper instance
+                account = accountSet.iterator().next();
+            }
         }
-
+        if (account == null) {
+            return SilentParameters.builder(scopes).authorityUrl(aadAuthorityUrl).build();
+		}
         return SilentParameters.builder(scopes).account(account).authorityUrl(aadAuthorityUrl).build();
-    }
-
-    // TODO: I see a valuable performance improvement by freeing this thread from blocking to do other things (perhaps the user is concurrently ingesting?). I suspect others will consider this overkill.
-    private <T> T getAsyncResultNonblocking(Future<T> future) throws InterruptedException, ExecutionException, TimeoutException {
-        int localTimeoutMs = TIMEOUT_MS;
-        int waitPeriodMs = 50;
-        while (!future.isDone() && localTimeoutMs > 0) {
-            Thread.sleep(waitPeriodMs);
-            localTimeoutMs -= waitPeriodMs;
-            waitPeriodMs *= 2; // Exponential backoff
-        }
-        return future.get(1, TimeUnit.MICROSECONDS); // Timeout by this point
-    }
-
-    Date dateInAMinute() {
-        return new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS);
     }
 }

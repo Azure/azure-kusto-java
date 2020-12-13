@@ -126,7 +126,6 @@ public class AadAuthenticationHelperTest {
         // Token is still valid - expected to return the same
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
-        doReturn(new Date(System.currentTimeMillis() + MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS * 2)).when(aadAuthenticationHelperSpy).dateInAMinute();
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
 
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
