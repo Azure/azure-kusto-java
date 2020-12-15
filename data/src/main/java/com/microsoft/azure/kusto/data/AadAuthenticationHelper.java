@@ -14,14 +14,12 @@ import org.slf4j.LoggerFactory;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.*;
 
 class AadAuthenticationHelper {
-    // TODO: Ran suggested using "organizations" instead of "microsoft.com" (as the DEFAULT_AAD_TENANT), but then acquireWithAadApplicationClientCertificate didn't work
-    protected static final String ORGANIZATION_URI_SUFFIX = "microsoft.com";
+    protected static final String ORGANIZATION_URI_SUFFIX = "organizations";
     // TODO: Get ClientId from CM endpoint
     protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     protected static final int MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS = 60 * 1000;
@@ -44,7 +42,6 @@ class AadAuthenticationHelper {
     private URI redirectUri;
     private String accessToken;
     private Callable<String> tokenProvider;
-    private IAuthenticationResult lastAuthenticationResult;
     private IPublicClientApplication publicClientApplication;
     private IConfidentialClientApplication confidentialClientApplication;
 
@@ -79,29 +76,36 @@ class AadAuthenticationHelper {
         scopes = new HashSet<>();
         scopes.add(scope);
 
-        if (StringUtils.isNotBlank(csb.getApplicationClientId()) && StringUtils.isNotBlank(csb.getApplicationKey())) {
-            clientId = csb.getApplicationClientId();
-            clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
-            authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
-        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null && StringUtils.isNotBlank(csb.getApplicationClientId())) {
-            clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
-            applicationClientId = csb.getApplicationClientId();
-            authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
-        } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
-            accessToken = csb.getAccessToken();
-            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
-        } else if (csb.getTokenProvider() != null) {
-            tokenProvider = csb.getTokenProvider();
-            authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
-        } else {
-            if (StringUtils.isNotBlank(csb.getUserUsername())) {
-                userUsername = csb.getUserUsername();
-            }
-            redirectUri = new URI("http://localhost");
-            authenticationType = AuthenticationType.AAD_USER_PROMPT;
-        }
-
         aadAuthorityUrl = determineAadAuthorityUrl(csb.getAuthorityId());
+
+        try {
+            if (StringUtils.isNotBlank(csb.getApplicationClientId()) && StringUtils.isNotBlank(csb.getApplicationKey())) {
+                clientId = csb.getApplicationClientId();
+                clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
+                confidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
+                authenticationType = AuthenticationType.AAD_APPLICATION_KEY;
+            } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null && StringUtils.isNotBlank(csb.getApplicationClientId())) {
+                clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
+                applicationClientId = csb.getApplicationClientId();
+                confidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
+                authenticationType = AuthenticationType.AAD_APPLICATION_CERTIFICATE;
+            } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
+                accessToken = csb.getAccessToken();
+                authenticationType = AuthenticationType.AAD_ACCESS_TOKEN;
+            } else if (csb.getTokenProvider() != null) {
+                tokenProvider = csb.getTokenProvider();
+                authenticationType = AuthenticationType.AAD_ACCESS_TOKEN_PROVIDER;
+            } else {
+                if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
+                    userUsername = csb.getUserUsernameHint();
+                }
+                redirectUri = new URI("http://localhost");
+                publicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
+                authenticationType = AuthenticationType.AAD_USER_PROMPT;
+            }
+        } catch (MalformedURLException e) {
+            throw new URISyntaxException(aadAuthorityUrl, ERROR_INVALID_AUTHORITY_URL);
+        }
     }
 
     private String determineAadAuthorityUrl(String aadAuthorityUrl) {
@@ -129,22 +133,12 @@ class AadAuthenticationHelper {
             }
         }
 
-		// There's a potential race condition here, but it's rare and it was decided that it'd be worse to add a lock
-        if (lastAuthenticationResult == null) {
-            lastAuthenticationResult = acquireNewAccessToken();
-        } else {
-            try {
-                lastAuthenticationResult = acquireAccessTokenSilently();
-            } catch (Exception ex) {
-                logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
-                lastAuthenticationResult = acquireNewAccessToken();
-            }
+        try {
+            return acquireAccessTokenSilently().accessToken();
+        } catch (DataServiceException ex) {
+            logger.error("Failed to acquire access token silently (via cache or refresh token). Attempting to get new access token.", ex);
+            return acquireNewAccessToken().accessToken();
         }
-
-        if (lastAuthenticationResult == null) {
-            throw new DataServiceException(scope, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN);
-        }
-        return lastAuthenticationResult.accessToken();
     }
 
     protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
@@ -160,14 +154,11 @@ class AadAuthenticationHelper {
         }
     }
 
-    protected IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireWithAadApplicationKey() throws DataServiceException {
         IAuthenticationResult result;
         try {
-            confidentialClientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (MalformedURLException e) {
-            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (ExecutionException | TimeoutException e) {
             throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         } catch (InterruptedException e) {
@@ -181,14 +172,11 @@ class AadAuthenticationHelper {
         return result;
     }
 
-    protected IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireWithAadApplicationClientCertificate() throws DataServiceException {
         IAuthenticationResult result;
         try {
-            confidentialClientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
             CompletableFuture<IAuthenticationResult> future = confidentialClientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (MalformedURLException e) {
-            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (ExecutionException | TimeoutException e) {
             throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
         } catch (InterruptedException e) {
@@ -205,6 +193,7 @@ class AadAuthenticationHelper {
     protected IAuthenticationResult acquireWithUserPrompt() throws DataServiceException, DataClientException {
         IAuthenticationResult result;
         try {
+            // This is the only auth method that allows the same application to be used for multiple distinct accounts, so reset account cache between sign-ins
             publicClientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
             CompletableFuture<IAuthenticationResult> future = publicClientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(userUsername).build());
             result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -262,7 +251,7 @@ class AadAuthenticationHelper {
         }
         if (account == null) {
             return SilentParameters.builder(scopes).authorityUrl(aadAuthorityUrl).build();
-		}
+        }
         return SilentParameters.builder(scopes).account(account).authorityUrl(aadAuthorityUrl).build();
     }
 }

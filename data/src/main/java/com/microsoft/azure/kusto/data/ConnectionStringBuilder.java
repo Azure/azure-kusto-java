@@ -13,7 +13,7 @@ public class ConnectionStringBuilder {
 
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "common";
     private final String clusterUri;
-    private String username;
+    private String usernameHint;
     private String applicationClientId;
     private String applicationKey;
     private X509Certificate x509Certificate;
@@ -26,7 +26,7 @@ public class ConnectionStringBuilder {
 
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
-        username = null;
+        usernameHint = null;
         applicationClientId = null;
         applicationKey = null;
         aadAuthorityId = null;
@@ -40,8 +40,8 @@ public class ConnectionStringBuilder {
         return clusterUri;
     }
 
-    String getUserUsername() {
-        return username;
+    String getUserUsernameHint() {
+        return usernameHint;
     }
 
     String getApplicationClientId() {
@@ -119,18 +119,18 @@ public class ConnectionStringBuilder {
         return createWithUserPrompt(resourceUri, DEFAULT_DEVICE_AUTH_TENANT, null);
     }
 
-    public static ConnectionStringBuilder createWithUserPrompt(String resourceUri, String userName) {
-        return createWithUserPrompt(resourceUri, DEFAULT_DEVICE_AUTH_TENANT, userName);
+    public static ConnectionStringBuilder createWithUserPrompt(String resourceUri, String usernameHint) {
+        return createWithUserPrompt(resourceUri, DEFAULT_DEVICE_AUTH_TENANT, usernameHint);
     }
 
-    public static ConnectionStringBuilder createWithUserPrompt(String resourceUri, String authorityId, String userName) {
+    public static ConnectionStringBuilder createWithUserPrompt(String resourceUri, String authorityId, String usernameHint) {
         if (StringUtils.isEmpty(resourceUri)) {
             throw new IllegalArgumentException("resourceUri cannot be null or empty");
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.aadAuthorityId = authorityId;
-        csb.username = userName;
+        csb.usernameHint = usernameHint;
         return csb;
     }
 
