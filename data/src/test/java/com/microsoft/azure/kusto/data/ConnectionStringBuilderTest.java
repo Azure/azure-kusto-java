@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
@@ -128,5 +129,19 @@ public class ConnectionStringBuilderTest {
                         .createWithAadTokenProviderAuthentication("resource.uri", null));
         Assertions.assertDoesNotThrow(() -> ConnectionStringBuilder
                 .createWithAadTokenProviderAuthentication("resource.uri", () -> "token"));
+    }
+
+    @Test
+    @DisplayName("validate ClientImpl strips fed=true if needed")
+    void stripFederatedAuthFromCSB() throws URISyntaxException {
+        ConnectionStringBuilder csb = ConnectionStringBuilder
+                .createWithAadApplicationCredentials("https://service.uri;fed=true", "id", "appKey");
+        ClientImpl client = new ClientImpl(csb);
+        Assertions.assertEquals("https://service.uri", csb.getClusterUrl());
+
+        String clusterUrl = "https://service.uri";
+        csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, "id", "appKey");
+        client = new ClientImpl(csb);
+        Assertions.assertEquals(clusterUrl, csb.getClusterUrl());
     }
 }
