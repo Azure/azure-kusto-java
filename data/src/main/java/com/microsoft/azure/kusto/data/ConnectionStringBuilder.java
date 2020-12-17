@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 public class ConnectionStringBuilder {
 
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "common";
-    private final String clusterUri;
+    private String clusterUri;
     private String usernameHint;
     private String applicationClientId;
     private String applicationKey;
