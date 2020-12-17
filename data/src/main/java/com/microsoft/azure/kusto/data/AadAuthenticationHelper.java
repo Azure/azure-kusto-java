@@ -108,15 +108,19 @@ class AadAuthenticationHelper {
         }
     }
 
-    private String determineAadAuthorityUrl(String aadAuthorityUrl) {
-        String aadAuthorityId = (aadAuthorityUrl == null ? ORGANIZATION_URI_SUFFIX : aadAuthorityUrl);
+    private String determineAadAuthorityUrl(String authorityId) {
+        if (authorityId == null) {
+            authorityId = ORGANIZATION_URI_SUFFIX;
+        }
+		
+        String authorityUrl;
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
         if (aadAuthorityFromEnv == null) {
-            aadAuthorityUrl = String.format("https://login.microsoftonline.com/%s/", aadAuthorityId);
+            authorityUrl = String.format("https://login.microsoftonline.com/%s/", authorityId);
         } else {
-            aadAuthorityUrl = String.format("%s%s%s/", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", aadAuthorityId);
+            authorityUrl = String.format("%s%s%s/", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", authorityId);
         }
-        return aadAuthorityUrl;
+        return authorityUrl;
     }
 
     protected String acquireAccessToken() throws DataServiceException, DataClientException {
