@@ -40,8 +40,7 @@ import java.util.concurrent.TimeoutException;
 
 import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.*;
 
 public class AadAuthenticationHelperTest {
     @Test
@@ -67,7 +66,7 @@ public class AadAuthenticationHelperTest {
             throws IOException, CertificateException, OperatorCreationException, PKCSException {
 
         Security.addProvider(new BouncyCastleProvider());
-        PEMParser pemParser = new PEMParser(new FileReader(new File(path)));
+        PEMParser pemParser = new PEMParser(new FileReader(path));
         PrivateKey privateKey = null;
         X509Certificate cert = null;
         Object object = pemParser.readObject();
@@ -98,8 +97,7 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
-    void useCachedTokenAndRefreshWhenNeeded() throws InterruptedException, ExecutionException, IOException,
-            DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException, TimeoutException {
+    void useCachedTokenAndRefreshWhenNeeded() throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -115,11 +113,12 @@ public class AadAuthenticationHelperTest {
         IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
         IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
 
-        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
+        doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
 
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
 
+        doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
