@@ -3,18 +3,29 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.*;
-import com.microsoft.azure.kusto.ingest.IngestionMapping.*;
+import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
-import com.microsoft.azure.kusto.ingest.source.*;
-
-import org.junit.jupiter.api.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.commons.codec.binary.Base64;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.net.URISyntaxException;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class E2ETest {
     private static IngestClient ingestClient;
@@ -68,7 +79,7 @@ public class E2ETest {
             Assertions.fail("Failed to drop and create new table", ex);
         }
 
-        resourcesPath = Paths.get(System.getProperty("user.dir"), "src","test", "resources").toString();
+        resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
@@ -94,7 +105,7 @@ public class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[] { first, second };
+        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.Json);
 
         dataForTests = Arrays.asList(new TestDataItem() {
@@ -139,7 +150,7 @@ public class E2ETest {
     }
 
     private void assertRowCount(int expectedRowsCount) {
-        KustoOperationResult result = null;
+        KustoOperationResult result;
         int timeoutInSec = 100;
         int actualRowsCount = 0;
 
@@ -172,20 +183,20 @@ public class E2ETest {
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principal command", ex);
         }
-        KustoResultSetTable mainTableResultSet= result.getPrimaryResults();
-        while (mainTableResultSet.next()){
+        KustoResultSetTable mainTableResultSet = result.getPrimaryResults();
+        while (mainTableResultSet.next()) {
             if (mainTableResultSet.getString("PrincipalFQN").equals(principalFqn)) {
                 found = true;
             }
         }
 
-        Assertions.assertTrue(found, "Faile to find authorized AppId in the database principals");
+        Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
     @Test
     void testIngestFromFile() {
         for (TestDataItem item : dataForTests) {
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(),item.file.length());
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
             try {
                 ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
@@ -213,10 +224,10 @@ public class E2ETest {
     }
 
     @Test
-    void testStramingIngestFromFile() {
+    void testStreamingIngestFromFile() {
         for (TestDataItem item : dataForTests) {
             if (item.testOnstreamingIngestion) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(),item.file.length());
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
                 try {
                     streamingIngestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
@@ -228,7 +239,7 @@ public class E2ETest {
     }
 
     @Test
-    void testStramingIngestFromStream() throws FileNotFoundException {
+    void testStreamingIngestFromStream() throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
             if (item.testOnstreamingIngestion) {
                 InputStream stream = new FileInputStream(item.file);

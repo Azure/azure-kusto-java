@@ -6,6 +6,9 @@ package com.microsoft.azure.kusto.data;
 import java.net.URISyntaxException;
 
 public class ClientFactory {
+    private ClientFactory() {
+        // Hide the default constructor, as this is a factory with static methods
+    }
 
     public static Client createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new ClientImpl(csb);

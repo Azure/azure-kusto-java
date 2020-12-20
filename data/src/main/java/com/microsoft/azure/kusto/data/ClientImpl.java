@@ -24,8 +24,8 @@ public class ClientImpl implements Client, StreamingClient {
     private static final String QUERY_ENDPOINT_VERSION = "v2";
     private static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
-    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
-    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
+    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
+    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
     public static final String FEDERATED_SECURITY_POSTFIX = ";fed=true";
@@ -152,7 +152,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue()  + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
     }
 
     private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {

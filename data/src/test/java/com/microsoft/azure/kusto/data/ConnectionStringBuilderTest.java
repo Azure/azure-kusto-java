@@ -19,37 +19,9 @@ import java.security.cert.X509Certificate;
 import static com.microsoft.azure.kusto.data.AadAuthenticationHelperTest.readPem;
 
 public class ConnectionStringBuilderTest {
-
-    @Test
-    @DisplayName("validate createWithAadUserCredentials throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadUserCredentials(){
-
-        //nullOrEmpty username
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials("resource.uri", null, "password"));
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials("resource.uri", "", "password"));
-        //nullOrEmpty password
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials("resource.uri", "username", null));
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials("resource.uri", "username", ""));
-        //nullOrEmpty resourceUri
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials(null, "username", "password"));
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithAadUserCredentials("", "username", "password"));
-    }
-
     @Test
     @DisplayName("validate createWithAadApplicationCredentials throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadApplicationCredentials(){
+    void createWithAadApplicationCredentials() {
 
         //nullOrEmpty appId
         Assertions.assertThrows(IllegalArgumentException.class,
@@ -75,16 +47,15 @@ public class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithDeviceCodeCredentials throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithDeviceCodeCredentials(){
-
+    @DisplayName("validate createWithUserPrompt throws IllegalArgumentException exception when missing or invalid parameters")
+    void createWithUserPrompt() {
         //nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithDeviceCodeCredentials(null));
+                        .createWithUserPrompt(null, null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithDeviceCodeCredentials(""));
+                        .createWithUserPrompt("", ""));
     }
 
     @Test
@@ -92,8 +63,8 @@ public class ConnectionStringBuilderTest {
     void createWithAadApplicationCertificate() throws CertificateException, OperatorCreationException,
             PKCSException, IOException {
 
-        String certFilePath = Paths.get("src","test","resources", "cert.cer").toString();
-        String privateKeyPath = Paths.get("src","test","resources","key.pem").toString();
+        String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
+        String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
         X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
@@ -125,27 +96,27 @@ public class ConnectionStringBuilderTest {
 
     @Test
     @DisplayName("validate createWithAadAccessTokenAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadAccessTokenAuthentication(){
+    void createWithAadAccessTokenAuthentication() {
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadAccessTokenAuthentication(null, "token"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadAccessTokenAuthentication("","token"));
+                        .createWithAadAccessTokenAuthentication("", "token"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadAccessTokenAuthentication("resource.uri", null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithAadAccessTokenAuthentication("resource.uri",""));
-        Assertions.assertDoesNotThrow( () -> ConnectionStringBuilder
-                .createWithAadAccessTokenAuthentication("resource.uri","token"));
+                        .createWithAadAccessTokenAuthentication("resource.uri", ""));
+        Assertions.assertDoesNotThrow(() -> ConnectionStringBuilder
+                .createWithAadAccessTokenAuthentication("resource.uri", "token"));
     }
 
     @Test
     @DisplayName("validate createWithAadTokenProviderAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadTokenProviderAuthentication(){
+    void createWithAadTokenProviderAuthentication() {
 
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
@@ -156,7 +127,7 @@ public class ConnectionStringBuilderTest {
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadTokenProviderAuthentication("resource.uri", null));
-        Assertions.assertDoesNotThrow( () -> ConnectionStringBuilder
+        Assertions.assertDoesNotThrow(() -> ConnectionStringBuilder
                 .createWithAadTokenProviderAuthentication("resource.uri", () -> "token"));
     }
 
