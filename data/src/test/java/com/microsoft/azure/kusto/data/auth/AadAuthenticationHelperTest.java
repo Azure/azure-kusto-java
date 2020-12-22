@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -35,12 +34,10 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
-import static com.microsoft.azure.kusto.data.AadAuthenticationHelper.MIN_ACCESS_TOKEN_VALIDITY_IN_MILLISECS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
     @Test
@@ -56,13 +53,13 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
-        AadAuthenticationHelper aadAuthenticationHelper = new AadAuthenticationHelper(csb);
+        TokenProviderBase aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
 
         Assertions.assertThrows(DataServiceException.class,
-                () -> aadAuthenticationHelper.acquireWithAadApplicationClientCertificate());
+                () -> aadAuthenticationHelper.acquireNewAccessToken());
     }
 
-    static KeyCert readPem(String path, String password)
+    public static KeyCert readPem(String path, String password)
             throws IOException, CertificateException, OperatorCreationException, PKCSException {
 
         Security.addProvider(new BouncyCastleProvider());
@@ -107,31 +104,29 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
-        AadAuthenticationHelper aadAuthenticationHelperSpy = spy(new AadAuthenticationHelper(csb));
+        TokenProviderBase aadAuthenticationHelperSpy = spy(TokenProviderFactory.createTokenProvider(csb));
 
         IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
         IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
         IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
 
-        doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
-        doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
-
+        //doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
+        doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
+        doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
-
         // Token is still valid - expected to return the same
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
-        doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireWithAadApplicationClientCertificate();
-
+        doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
     }
 
-    class MockAccount implements IAccount {
+    static class MockAccount implements IAccount {
         private final String homeAccountId;
         private final String environment;
         private final String username;
@@ -165,7 +160,7 @@ public class AadAuthenticationHelperTest {
         }
     }
 
-    class MockAuthenticationResult implements IAuthenticationResult {
+    static class MockAuthenticationResult implements IAuthenticationResult {
         private final String accessToken;
         private final String idToken;
         private final MockAccount account;

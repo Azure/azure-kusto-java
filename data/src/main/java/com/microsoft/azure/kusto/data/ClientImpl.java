@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
+import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
@@ -15,10 +18,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client, StreamingClient {
-
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String MGMT_ENDPOINT_VERSION = "v1";
     private static final String QUERY_ENDPOINT_VERSION = "v2";
@@ -29,7 +32,7 @@ public class ClientImpl implements Client, StreamingClient {
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
     public static final String FEDERATED_SECURITY_POSTFIX = ";fed=true";
-    private final AadAuthenticationHelper aadAuthenticationHelper;
+    private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
@@ -45,7 +48,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
 
         clusterUrl = url;
-        aadAuthenticationHelper = new AadAuthenticationHelper(csb);
+        aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.GetPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -139,9 +142,9 @@ public class ClientImpl implements Client, StreamingClient {
         if (properties != null) {
             timeoutMs = properties.getTimeoutInMilliSec();
             clientRequestId = properties.getClientRequestId();
-            Iterator<HashMap.Entry<String, Object>> iterator = properties.getOptions();
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
-                HashMap.Entry<String, Object> pair = iterator.next();
+                Map.Entry<String, Object> pair = iterator.next();
                 headers.put(pair.getKey(), pair.getValue().toString());
             }
         }

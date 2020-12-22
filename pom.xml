@@ -34,8 +34,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
-        <!-- Versions below are  for several dependencies we're using in the data & ingest modules
-         -->
+        <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
 
         <!-- Compile dependencies -->
         <slf4j.version>1.8.0-beta4</slf4j.version>

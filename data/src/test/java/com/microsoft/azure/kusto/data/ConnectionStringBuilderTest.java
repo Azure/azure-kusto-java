@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
@@ -16,9 +17,9 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-import static com.microsoft.azure.kusto.data.AadAuthenticationHelperTest.readPem;
+import static com.microsoft.azure.kusto.data.auth.AadAuthenticationHelperTest.readPem;
 
-public class ConnectionStringBuilderTest {
+class ConnectionStringBuilderTest {
     @Test
     @DisplayName("validate createWithAadApplicationCredentials throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadApplicationCredentials() {

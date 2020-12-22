@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -19,7 +19,6 @@ import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionRepo
 public class TableStatus {
     public static void main(String[] args) {
         try {
-
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
             ConnectionStringBuilder csb =
@@ -27,15 +26,16 @@ public class TableStatus {
                             System.getProperty("appId"),
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
-            IngestClient client = IngestClientFactory.createClient(csb);
-
-            IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
-                    System.getProperty("tableName"));
-            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
-            ingestionProperties.setReportMethod(QueueAndTable);
-            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
-            IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
+            IngestionResult ingestionResult;
+            try (IngestClient client = IngestClientFactory.createClient(csb)) {
+                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
+                        System.getProperty("tableName"));
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+                ingestionProperties.setReportMethod(QueueAndTable);
+                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+                ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
+            }
             List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();
 
             // step 3: poll on the result.

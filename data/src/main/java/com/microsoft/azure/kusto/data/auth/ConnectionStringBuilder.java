@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.auth;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,7 +40,7 @@ public class ConnectionStringBuilder {
         return clusterUri;
     }
 
-    void setClusterUrl(String clusterUri) {
+    public void setClusterUrl(String clusterUri) {
         this.clusterUri = clusterUri;
     }
 
@@ -60,7 +60,7 @@ public class ConnectionStringBuilder {
         return aadAuthorityId;
     }
 
-    String getApplicationNameForTracing() {
+    public String getApplicationNameForTracing() {
         return applicationNameForTracing;
     }
 
@@ -68,7 +68,7 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
-    String getClientVersionForTracing() {
+    public String getClientVersionForTracing() {
         return clientVersionForTracing;
     }
 

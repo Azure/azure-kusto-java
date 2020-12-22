@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+
 import java.net.URISyntaxException;
 
 public class ClientFactory {
