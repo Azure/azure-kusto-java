@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
 import java.net.URISyntaxException;
 import java.util.concurrent.Callable;
 
-public class TokenProviderTokenProvider extends TokenProviderBase {
+public class CallbackTokenProvider extends TokenProviderBase {
     private final Callable<String> tokenProvider;
 
-    TokenProviderTokenProvider(@NotNull Callable<String> tokenProvider, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    CallbackTokenProvider(@NotNull Callable<String> tokenProvider, @NotNull String clusterUrl) throws URISyntaxException {
+        super(clusterUrl);
         this.tokenProvider = tokenProvider;
     }
 

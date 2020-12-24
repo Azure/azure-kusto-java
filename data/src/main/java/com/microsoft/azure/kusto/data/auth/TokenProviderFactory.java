@@ -30,10 +30,10 @@ public class TokenProviderFactory {
             return new ApplicationCertificateTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
         } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
             String accessToken = csb.getAccessToken();
-            return new AccessTokenTokenProvider(accessToken, clusterUrl, authorityId);
+            return new AccessTokenTokenProvider(accessToken, clusterUrl);
         } else if (csb.getTokenProvider() != null) {
             Callable<String> tokenProvider = csb.getTokenProvider();
-            return new TokenProviderTokenProvider(tokenProvider, clusterUrl, authorityId);
+            return new CallbackTokenProvider(tokenProvider, clusterUrl);
         } else {
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();

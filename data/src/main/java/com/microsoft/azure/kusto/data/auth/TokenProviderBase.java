@@ -28,16 +28,19 @@ public abstract class TokenProviderBase {
     protected static final int TIMEOUT_MS = 20 * 1000;
     protected final String clusterUrl;
     protected final Set<String> scopes;
-    protected final String aadAuthorityUrl;
+    protected String aadAuthorityUrl;
 
     TokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+        this(clusterUrl);
+        aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
+    }
+
+    TokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
         URI clusterUri = new URI(clusterUrl);
         this.clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
         String scope = String.format("%s/%s", clusterUrl, ".default");
         scopes = new HashSet<>();
         scopes.add(scope);
-
-        aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
     }
 
     private String determineAadAuthorityUrl(String authorityId) {
@@ -78,7 +81,7 @@ public abstract class TokenProviderBase {
     }
 
     protected IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException {
-        throw new DataServiceException("Cannot obtain a refresh token for Authentication type '" + this.getClass().getSimpleName() + "'");
+        throw new DataServiceException("Cannot obtain a token silently for Authentication type '" + this.getClass().getSimpleName() + "'");
     }
 
     protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {

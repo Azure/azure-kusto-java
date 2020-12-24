@@ -11,10 +11,10 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
-    ApplicationKeyTokenProvider(@NotNull String clientId, @NotNull IClientSecret clientSecret, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+    ApplicationKeyTokenProvider(@NotNull String applicationClientId, @NotNull IClientSecret clientSecret, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
         try {
-            clientApplication = ConfidentialClientApplication.builder(clientId, clientSecret).authority(aadAuthorityUrl).build();
+            clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientSecret).authority(aadAuthorityUrl).build();
         } catch (MalformedURLException e) {
             throw new URISyntaxException(aadAuthorityUrl, ERROR_INVALID_AUTHORITY_URL);
         }

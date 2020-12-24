@@ -12,8 +12,8 @@ import java.net.URISyntaxException;
 public class AccessTokenTokenProvider extends TokenProviderBase {
     private final String accessToken;
 
-    AccessTokenTokenProvider(@NotNull String accessToken, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    AccessTokenTokenProvider(@NotNull String accessToken, @NotNull String clusterUrl) throws URISyntaxException {
+        super(clusterUrl);
         this.accessToken = accessToken;
     }
 
