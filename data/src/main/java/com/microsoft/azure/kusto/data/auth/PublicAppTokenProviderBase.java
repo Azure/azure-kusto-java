@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public abstract class PublicAppTokenProviderBase extends TokenProviderBase {
+public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     // TODO: Get ClientId from CM endpoint
     static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     IPublicClientApplication clientApplication;

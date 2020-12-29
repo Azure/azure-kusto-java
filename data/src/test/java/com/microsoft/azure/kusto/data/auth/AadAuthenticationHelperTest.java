@@ -22,6 +22,7 @@ import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -53,7 +54,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
-        TokenProviderBase aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
+        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
 
         Assertions.assertThrows(DataServiceException.class,
                 () -> aadAuthenticationHelper.acquireNewAccessToken());
@@ -104,11 +105,11 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
-        TokenProviderBase aadAuthenticationHelperSpy = spy(TokenProviderFactory.createTokenProvider(csb));
+        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
 
-        IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
-        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
-        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date());
+        IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(), Mockito.mock(ITenantProfile.class));
+        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(), Mockito.mock(ITenantProfile.class));
+        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult", new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(), Mockito.mock(ITenantProfile.class));
 
         //doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
@@ -167,14 +168,16 @@ public class AadAuthenticationHelperTest {
         private final String environment;
         private final String scopes;
         private final Date expiresOnDate;
+        private final ITenantProfile tenantProfile;
 
-        public MockAuthenticationResult(String accessToken, String idToken, MockAccount account, String environment, String scopes, Date expiresOnDate) {
+        public MockAuthenticationResult(String accessToken, String idToken, MockAccount account, String environment, String scopes, Date expiresOnDate, ITenantProfile tenantProfile) {
             this.accessToken = accessToken;
             this.idToken = idToken;
             this.account = account;
             this.environment = environment;
             this.scopes = scopes;
             this.expiresOnDate = expiresOnDate;
+            this.tenantProfile = tenantProfile;
         }
 
         @Override
@@ -190,6 +193,11 @@ public class AadAuthenticationHelperTest {
         @Override
         public IAccount account() {
             return account;
+        }
+
+        @Override
+        public ITenantProfile tenantProfile() {
+            return tenantProfile;
         }
 
         @Override

@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public abstract class ConfidentialAppTokenProviderBase extends TokenProviderBase {
+public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProviderBase {
     IConfidentialClientApplication clientApplication;
 
     ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
