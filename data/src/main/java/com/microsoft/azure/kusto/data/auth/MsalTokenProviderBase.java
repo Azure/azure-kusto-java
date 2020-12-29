@@ -60,13 +60,9 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         }
     }
 
-    protected IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException {
-        throw new DataServiceException("Cannot obtain a token silently for Authentication type '" + this.getClass().getSimpleName() + "'");
-    }
+    protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
-    protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
-        throw new DataServiceException("Cannot obtain a new token for Authentication type '" + this.getClass().getSimpleName() + "'");
-    }
+    protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
 
     SilentParameters getSilentParameters(Set<IAccount> accountSet) {
         IAccount account = getAccount(accountSet);
