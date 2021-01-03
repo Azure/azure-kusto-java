@@ -13,31 +13,26 @@ import java.util.function.Supplier;
  */
 public class KustoResultMapper<R> {
 	
-	private static class QueryResultColumnInfo<R, C> {
-		final KustoColumn<C, ? extends KustoType<C>>	type;
-		final BiConsumer<R, C>						valueSetter;
-		
-		QueryResultColumnInfo(KustoColumn<C, ? extends KustoType<C>> col, BiConsumer<R, C> valueSetter) {
-			this.type = col;
-			this.valueSetter = valueSetter;
-		}
-		
-		void extractFrom(R r, KustoResultSetTable resultSet) {
-			this.valueSetter.accept(r, this.type.extractFrom(resultSet));
-		}
-	}
-	
 	public static class Builder<R> {
-		final List<QueryResultColumnInfo<R, ?>>	queryResultColumns	= new ArrayList<>();
-		final Supplier<R>						objConstructor;
+		final List<ObjectPopulator<R, ?, ?>>	queryResultColumns	= new ArrayList<>();
+		final Supplier<R>									objConstructor;
 		
 		public Builder(Supplier<R> objConstructor) {
 			this.objConstructor = objConstructor;
 		}
 		
 		<C> Builder<R> addColumn(KustoType<C> type, String name, boolean isNullable, BiConsumer<R, C> setter) {
-			KustoColumn<C, ? extends KustoType<C>> col = new KustoColumn<>(name, type, isNullable);
-			this.queryResultColumns.add(new QueryResultColumnInfo<>(col, setter));
+			this.queryResultColumns.add(ObjectPopulator.of(name, type, isNullable, setter));
+			return this;
+		}
+		
+		<C> Builder<R> addColumn(KustoType<C> type, String name, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
+			this.queryResultColumns.add(ObjectPopulator.of(name, ordinal, type, isNullable, setter));
+			return this;
+		}
+		
+		<C> Builder<R> addColumn(KustoType<C> type, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
+			this.queryResultColumns.add(ObjectPopulator.of(ordinal, type, isNullable, setter));
 			return this;
 		}
 		
@@ -45,8 +40,24 @@ public class KustoResultMapper<R> {
 			return addColumn(type, name, false, setter);
 		}
 		
+		public <C> Builder<R> addNonNullableColumn(KustoType<C> type, int ordinal, BiConsumer<R, C> setter) {
+			return addColumn(type, ordinal, false, setter);
+		}
+		
+		public <C> Builder<R> addNonNullableColumn(KustoType<C> type, String name, int ordinal, BiConsumer<R, C> setter) {
+			return addColumn(type, name, ordinal, false, setter);
+		}
+		
 		public <C> Builder<R> addNullableColumn(KustoType<C> type, String name, BiConsumer<R, C> setter) {
 			return addColumn(type, name, true, setter);
+		}
+		
+		public <C> Builder<R> addNullableColumn(KustoType<C> type, String name, int ordinal, BiConsumer<R, C> setter) {
+			return addColumn(type, name, ordinal, true, setter);
+		}
+		
+		public <C> Builder<R> addNullableColumn(KustoType<C> type, int ordinal, BiConsumer<R, C> setter) {
+			return addColumn(type, ordinal, true, setter);
 		}
 		
 		public KustoResultMapper<R> build() {
@@ -58,10 +69,10 @@ public class KustoResultMapper<R> {
 		return new Builder<>(objConstructor);
 	}
 	
-	final List<QueryResultColumnInfo<R, ?>>	columns;
-	final Supplier<R>						objConstructor;
+	final List<ObjectPopulator<R, ?, ?>>	columns;
+	final Supplier<R>									objConstructor;
 	
-	private KustoResultMapper(List<QueryResultColumnInfo<R, ?>> columns, Supplier<R> objConstructor) {
+	private KustoResultMapper(List<ObjectPopulator<R, ?, ?>> columns, Supplier<R> objConstructor) {
 		this.columns = columns;
 		this.objConstructor = objConstructor;
 	}
@@ -69,19 +80,24 @@ public class KustoResultMapper<R> {
 	public R extractSingle(KustoResultSetTable resultSet) {
 		R ret = this.objConstructor.get();
 		if (resultSet.next()) {
-			for (QueryResultColumnInfo<R, ?> col : this.columns) {
-				col.extractFrom(ret, resultSet);
+			for (ObjectPopulator<R, ?, ?> col : this.columns) {
+				col.populateFrom(ret, resultSet);
 			}
 		}
 		return ret;
 	}
 	
 	public List<R> extractList(KustoResultSetTable resultSet) {
-		List<R> ret = new ArrayList<>();
+		List<R> ret = new ArrayList<>(resultSet.count());
+		int[] columnOrdinals = new int[this.columns.size()];
+		for (int i = 0; i < this.columns.size(); i++) {
+			columnOrdinals[i] = this.columns.get(i).columnIndexInResultSet(resultSet);
+		}
 		while (resultSet.next()) {
 			R r = this.objConstructor.get();
-			for (QueryResultColumnInfo<R, ?> col : this.columns) {
-				col.extractFrom(r, resultSet);
+			for (int i = 0; i < this.columns.size(); i++) {
+				ObjectPopulator<R, ?, ?> col = this.columns.get(i);
+				col.populateFrom(r, resultSet, columnOrdinals[i]);
 			}
 			ret.add(r);
 		}
