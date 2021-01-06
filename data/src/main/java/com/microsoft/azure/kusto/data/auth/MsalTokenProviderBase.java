@@ -39,6 +39,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         return authorityUrl;
     }
 
+    @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
