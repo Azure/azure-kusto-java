@@ -1,31 +1,34 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.StreamingIngestClient;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.storage.StorageException;
 
 import java.io.*;
-import java.nio.charset.Charset;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 
 public class StreamingIngest {
 
-    static private String database;
-    static private String table;
-    static private String mapping;
-
-    private static ConnectionStringBuilder csb;
+    private static String database;
+    private static String table;
+    private static String mapping;
     private static StreamingIngestClient streamingIngestClient;
 
     public static void main(String[] args) {
         try {
-            csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+            // ingest-
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                     System.getProperty("clusterPath"), // "https://<cluster>.kusto.windows.net"
                     System.getProperty("app-id"),
                     System.getProperty("appKey"),
@@ -36,20 +39,20 @@ public class StreamingIngest {
             table = System.getProperty("tableName");
             mapping = System.getProperty("dataMappingName");
 
-            IngestFromStream();
-            IngestFromFile();
+            ingestFromStream();
+            ingestFromFile();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    static void IngestFromStream() throws Exception {
+    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException, StorageException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Create Stream from string and Ingest
         String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream inputStream = new ByteArrayInputStream(Charset.forName("UTF-8").encode(data).array());
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -76,7 +79,7 @@ public class StreamingIngest {
         System.out.println(status.toString());
     }
 
-    static void IngestFromFile() throws Exception {
+    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
         //Ingest CSV file

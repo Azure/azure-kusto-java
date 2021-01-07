@@ -4,15 +4,14 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import org.apache.commons.codec.binary.Base64;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -22,16 +21,24 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class E2ETest {
+class E2ETest {
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ClientImpl queryClient;
-    private static String databaseName;
+    private static final String databaseName = System.getenv("TEST_DATABASE");
+    private static final String appId = System.getenv("APP_ID");
+    private static final String appKey = System.getenv("APP_KEY");
+    private static final String tenantId = System.getenv("TENANT_ID");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -42,23 +49,16 @@ public class E2ETest {
 
     @BeforeAll
     public static void setUp() {
-        databaseName = System.getenv("TEST_DATABASE");
-        String appId = System.getenv("APP_ID");
-        String appKey = System.getenv("APP_KEY");
-        String tenantId = System.getenv("TENANT_ID");
-
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
@@ -70,19 +70,33 @@ public class E2ETest {
         createTestData();
     }
 
-    private static void CreateTableAndMapping() {
+    @AfterAll
+    public static void tearDown() {
         try {
             queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
-            Thread.sleep(1000);
-            queryClient.execute(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+        } catch (Exception ex) {
+            Assertions.fail("Failed to drop table", ex);
+        }
+    }
+
+    private static void CreateTableAndMapping() {
+        KustoOperationResult result;
+        try {
+            result = queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+        } catch (Exception ex) {
+        }
+        try {
+            Thread.sleep(2000);
+            result = queryClient.execute(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
 
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
+            Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
+            result = queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
@@ -176,10 +190,16 @@ public class E2ETest {
 
     @Test
     void testShowPrincipals() {
+        boolean found = showDatabasePrincipals(queryClient);
+        Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
+    }
+
+    private boolean showDatabasePrincipals(ClientImpl localQueryClient) {
         KustoOperationResult result = null;
         boolean found = false;
         try {
-            result = queryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
+            result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
+            //result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principal command", ex);
         }
@@ -189,8 +209,7 @@ public class E2ETest {
                 found = true;
             }
         }
-
-        Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
+        return found;
     }
 
     @Test
@@ -255,5 +274,65 @@ public class E2ETest {
                 assertRowCount(item.rows);
             }
         }
+    }
+
+    private boolean createClients(ConnectionStringBuilder dmCsb, ConnectionStringBuilder engineCsb) {
+        try {
+            IngestClientFactory.createClient(dmCsb);
+            ClientImpl localIngestClient = new ClientImpl(dmCsb);
+//            assertTrue(showDatabasePrincipals(localIngestClient));
+        } catch (URISyntaxException ex) {
+            Assertions.fail("Failed to create ingest client", ex);
+            return false;
+        }
+        try {
+            IngestClientFactory.createStreamingIngestClient(engineCsb);
+            ClientImpl localEngineClient = new ClientImpl(engineCsb);
+            assertTrue(showDatabasePrincipals(localEngineClient));
+            assertTrue(showDatabasePrincipals(localEngineClient)); // Hit cache
+        } catch (URISyntaxException ex) {
+            Assertions.fail("Failed to create query and streamingIngest client", ex);
+            return false;
+        }
+        return true;
+    }
+
+    @Test
+    void testCreateWithUserPrompt() {
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("DM_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
+        assertTrue(createClients(dmCsb, engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
+        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
+        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("DM_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
+        assertTrue(createClients(dmCsb, engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadApplicationCredentials() {
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        assertTrue(createClients(dmCsb, engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadAccessTokenAuthentication() {
+        String token = System.getenv("TOKEN");
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("DM_CONNECTION_STRING"), token);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
+        assertTrue(createClients(dmCsb, engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadTokenProviderAuthentication() {
+        Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("DM_CONNECTION_STRING"), tokenProviderCallable);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
+        assertTrue(createClients(dmCsb, engineCsb));
     }
 }
