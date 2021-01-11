@@ -7,7 +7,6 @@ import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
@@ -17,8 +16,8 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.*;
 import java.sql.Date;
+import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -26,24 +25,24 @@ import java.util.*;
 
 // This class does not keep an open connection with the cluster - the results are evaluated once and can be get by getData()
 public class KustoResultSetTable implements ResultSet {
-    private static final String tableNamePropertyName = "TableName";
-    private static final String tableIdPropertyName = "TableId";
-    private static final String tableKindPropertyName = "TableKind";
-    private static final String columnsPropertyName = "Columns";
-    private static final String columnNamePropertyName = "ColumnName";
-    private static final String columnTypePropertyName = "ColumnType";
-    private static final String columnTypeSecondPropertyName = "DataType";
-    private static final String rowsPropertyName = "Rows";
-    private static final String exceptionsPropertyName = "Exceptions";
+    private static final String TABLE_NAME_PROPERTY_NAME = "TableName";
+    private static final String TABLE_ID_PROPERTY_NAME = "TableId";
+    private static final String TABLE_KIND_PROPERTY_NAME = "TableKind";
+    private static final String COLUMNS_PROPERTY_NAME = "Columns";
+    private static final String COLUMN_NAME_PROPERTY_NAME = "ColumnName";
+    private static final String COLUMN_TYPE_PROPERTY_NAME = "ColumnType";
+    private static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
+    private static final String ROWS_PROPERTY_NAME = "Rows";
+    private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
 
-    private ArrayList<ArrayList<Object>> rows = null;
+    private final List<List<Object>> rows;
     private String tableName;
     private String tableId;
     private WellKnownDataSet tableKind;
-    private Map<String, KustoResultColumn> columns = new HashMap<>();
+    private final Map<String, KustoResultColumn> columns = new HashMap<>();
     private KustoResultColumn[] columnsAsArray = null;
-    private Iterator<ArrayList<Object>> iterator = Collections.emptyIterator();
-    private ArrayList<Object> current = null;
+    private Iterator<List<Object>> rowIterator;
+    private List<Object> currentRow = null;
 
     public String getTableName() {
         return tableName;
@@ -57,9 +56,10 @@ public class KustoResultSetTable implements ResultSet {
         return tableId;
     }
 
-    public KustoResultColumn[] getColumns(){
+    public KustoResultColumn[] getColumns() {
         return columnsAsArray;
     }
+
     void setTableId(String tableId) {
         this.tableId = tableId;
     }
@@ -72,34 +72,34 @@ public class KustoResultSetTable implements ResultSet {
         return tableKind;
     }
 
-    KustoResultSetTable(JSONObject jsonTable) throws JSONException, KustoServiceError {
-        tableName = jsonTable.optString(tableNamePropertyName);
-        tableId = jsonTable.optString(tableIdPropertyName);
-        String tableKindString = jsonTable.optString(tableKindPropertyName);
+    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceError {
+        tableName = jsonTable.optString(TABLE_NAME_PROPERTY_NAME);
+        tableId = jsonTable.optString(TABLE_ID_PROPERTY_NAME);
+        String tableKindString = jsonTable.optString(TABLE_KIND_PROPERTY_NAME);
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
-        JSONArray columnsJson = jsonTable.optJSONArray(columnsPropertyName);
+        JSONArray columnsJson = jsonTable.optJSONArray(COLUMNS_PROPERTY_NAME);
         if (columnsJson != null) {
             columnsAsArray = new KustoResultColumn[columnsJson.length()];
             for (int i = 0; i < columnsJson.length(); i++) {
                 JSONObject jsonCol = columnsJson.getJSONObject(i);
-                String columnType = jsonCol.optString(columnTypePropertyName);
-                if (columnType.equals("")){
-                    columnType = jsonCol.optString(columnTypeSecondPropertyName);
+                String columnType = jsonCol.optString(COLUMN_TYPE_PROPERTY_NAME);
+                if (columnType.equals("")) {
+                    columnType = jsonCol.optString(COLUMN_TYPE_SECOND_PROPERTY_NAME);
                 }
-                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(columnNamePropertyName), columnType, i);
+                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), columnType, i);
                 columnsAsArray[i] = col;
-                columns.put(jsonCol.getString(columnNamePropertyName), col);
+                columns.put(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), col);
             }
         }
 
         JSONArray exceptions;
-        JSONArray jsonRows = jsonTable.optJSONArray(rowsPropertyName);
+        JSONArray jsonRows = jsonTable.optJSONArray(ROWS_PROPERTY_NAME);
         if (jsonRows != null) {
-            ArrayList<ArrayList<Object>> values = new ArrayList<>();
+            List<List<Object>> values = new ArrayList<>();
             for (int i = 0; i < jsonRows.length(); i++) {
                 Object row = jsonRows.get(i);
                 if (row instanceof JSONObject) {
-                    exceptions = ((JSONObject) row).optJSONArray(exceptionsPropertyName);
+                    exceptions = ((JSONObject) row).optJSONArray(EXCEPTIONS_PROPERTY_NAME);
                     if (exceptions != null) {
                         if (exceptions.length() == 1) {
                             String message = exceptions.getString(0);
@@ -110,7 +110,7 @@ public class KustoResultSetTable implements ResultSet {
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
-                ArrayList<Object> rowVector = new ArrayList<>();
+                List<Object> rowVector = new ArrayList<>();
                 for (int j = 0; j < rowAsJsonArray.length(); ++j) {
                     Object obj = rowAsJsonArray.get(j);
                     if (obj == JSONObject.NULL) {
@@ -127,23 +127,23 @@ public class KustoResultSetTable implements ResultSet {
             rows = new ArrayList<>();
         }
 
-        iterator = rows.iterator();
+        rowIterator = rows.iterator();
     }
 
-    public ArrayList<Object> getCurrentRow(){
-        return current;
+    public List<Object> getCurrentRow() {
+        return currentRow;
     }
 
     @Override
     public boolean next() {
-        boolean hasNext = iterator.hasNext();
-        if(hasNext) {
-            current = iterator.next();
+        boolean hasNext = rowIterator.hasNext();
+        if (hasNext) {
+            currentRow = rowIterator.next();
         }
         return hasNext;
     }
 
-    public ArrayList<ArrayList<Object>> getData(){
+    public List<List<Object>> getData() {
         return rows;
     }
 
@@ -157,65 +157,66 @@ public class KustoResultSetTable implements ResultSet {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
-    private Object get(int i){
-        return current.get(i);
+    private Object get(int i) {
+        return currentRow.get(i);
     }
 
-    private Object get(String colName){
-        return current.get(findColumn(colName));
+    private Object get(String colName) {
+        return currentRow.get(findColumn(colName));
     }
 
     @Override
-    public String getString(int i)  {
+    public String getString(int i) {
         return get(i).toString();
     }
 
     @Override
-    public boolean getBoolean(int i)  {
+    public boolean getBoolean(int i) {
         return (boolean) get(i);
     }
 
     @Override
-    public byte getByte(int i)  {
+    public byte getByte(int i) {
         return (byte) get(i);
     }
 
     @Override
-    public short getShort(int i)  {
+    public short getShort(int i) {
         return (short) get(i);
     }
 
     @Override
-    public int getInt(int i)  {
+    public int getInt(int i) {
         return (int) get(i);
     }
 
     @Override
-    public long getLong(int i)  {
+    public long getLong(int i) {
         Object obj = get(i);
-        if(obj instanceof Integer){
-            return ((Integer)obj).longValue();
+        if (obj instanceof Integer) {
+            return ((Integer) obj).longValue();
         }
         return (long) obj;
     }
 
     @Override
-    public float getFloat(int i)  {
-        return (float) get(i); }
+    public float getFloat(int i) {
+        return (float) get(i);
+    }
 
     @Override
-    public double getDouble(int i)  {
+    public double getDouble(int i) {
         return (double) get(i);
     }
 
     @Override
     @Deprecated
-    public BigDecimal getBigDecimal(int i, int i1)  {
+    public BigDecimal getBigDecimal(int i, int i1) {
         return (BigDecimal) get(i);
     }
 
     @Override
-    public byte[] getBytes(int i)  {
+    public byte[] getBytes(int i) {
         return (byte[]) get(i);
     }
 
@@ -234,7 +235,7 @@ public class KustoResultSetTable implements ResultSet {
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
             case "datetime":
-                return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T"," "));
+                return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T", " "));
             case "long":
             case "int":
                 return new Timestamp(getLong(i));
@@ -256,7 +257,7 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public InputStream getBinaryStream(int i) throws SQLFeatureNotSupportedException {
-        if(columnsAsArray[i].getColumnType().equals("String")) {
+        if (columnsAsArray[i].getColumnType().equals("String")) {
             return new ByteArrayInputStream(getString(i).getBytes());
         }
 
@@ -264,17 +265,17 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public String getString(String columnName)  {
+    public String getString(String columnName) {
         return get(columnName).toString();
     }
 
     @Override
-    public boolean getBoolean(String columnName)  {
+    public boolean getBoolean(String columnName) {
         return (boolean) get(columnName);
     }
 
     @Override
-    public byte getByte(String columnName)  {
+    public byte getByte(String columnName) {
         return (byte) get(columnName);
     }
 
@@ -375,16 +376,16 @@ public class KustoResultSetTable implements ResultSet {
         return get(columnName);
     }
 
-    public JSONObject getJSONObject(String colName){
+    public JSONObject getJSONObject(String colName) {
         return getJSONObject(findColumn(colName));
     }
 
-    public JSONObject getJSONObject(int i){
+    public JSONObject getJSONObject(int i) {
         return (JSONObject) get(i);
     }
 
     @Override
-    public int findColumn(String columnName){
+    public int findColumn(String columnName) {
         return columns.get(columnName).getOrdinal();
     }
 
@@ -410,12 +411,12 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public boolean isBeforeFirst() {
-        return current == null;
+        return currentRow == null;
     }
 
     @Override
     public boolean isAfterLast() {
-        return current == null && !iterator.hasNext();
+        return currentRow == null && !rowIterator.hasNext();
     }
 
     @Override
@@ -425,33 +426,33 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public boolean isLast() {
-        return current !=null && !iterator.hasNext();
+        return currentRow != null && !rowIterator.hasNext();
     }
 
     @Override
     public void beforeFirst() {
-        iterator = rows.iterator();
+        rowIterator = rows.iterator();
     }
 
     @Override
     public void afterLast() {
-        while(next());
+        while (next()) ;
     }
 
     @Override
     public boolean first() {
-        if (rows.size() == 0)
+        if (rows.isEmpty())
             return false;
-        iterator = rows.iterator();
-        current = iterator.next();
+        rowIterator = rows.iterator();
+        currentRow = rowIterator.next();
         return true;
     }
 
     @Override
     public boolean last() {
-        if (rows.size() == 0)
+        if (rows.isEmpty())
             return false;
-        while(iterator.next() != null);
+        while (rowIterator.next() != null) ;
         return true;
     }
 
@@ -807,7 +808,7 @@ public class KustoResultSetTable implements ResultSet {
     public LocalDateTime getKustoDateTime(int i) {
         String dateString = getString(i);
         DateTimeFormatter dateTimeFormatter;
-        if(dateString.length() < 21){
+        if (dateString.length() < 21) {
             dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")).toFormatter();
         } else {
             dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
@@ -834,21 +835,21 @@ public class KustoResultSetTable implements ResultSet {
                 try {
                     String dateString = getString(i);
                     FastDateFormat dateFormat;
-                    if(dateString.length() < 21){
+                    if (dateString.length() < 21) {
                         dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
                     } else {
                         dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
                     }
                     return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     throw new SQLException("Error parsing Date");
                 }
             case "long":
             case "int":
                 return new Date(getLong(i));
         }
-        throw new SQLException("Error parsing Date - expected string, long or datetime data type.");      }
+        throw new SQLException("Error parsing Date - expected string, long or datetime data type.");
+    }
 
     @Override
     public Date getDate(String columnName, Calendar calendar) throws SQLException {
@@ -1200,7 +1201,7 @@ public class KustoResultSetTable implements ResultSet {
         return false;
     }
 
-    public int count(){
+    public int count() {
         return rows.size();
     }
 }

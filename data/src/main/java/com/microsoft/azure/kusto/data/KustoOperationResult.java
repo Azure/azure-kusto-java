@@ -21,7 +21,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private static final String TABLES_LIST_PROPERTY_NAME = "Tables";
     private static final String DATA_TABLE_FRAME_TYPE_PROPERTY_NAME = "DataTable";
     private static final String FRAME_TYPE_PROPERTY_NAME = "FrameType";
-    private List<KustoResultSetTable> resultTables = new ArrayList<>();
+    private final List<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
     public KustoOperationResult(String response, String version) throws KustoServiceError {
