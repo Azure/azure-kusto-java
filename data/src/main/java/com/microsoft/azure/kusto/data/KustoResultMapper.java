@@ -14,8 +14,8 @@ import java.util.function.Supplier;
 public class KustoResultMapper<R> {
 	
 	public static class Builder<R> {
-		final List<ObjectPopulator<R, ?, ?>>	queryResultColumns	= new ArrayList<>();
-		final Supplier<R>									objConstructor;
+		final List<ObjectPopulator<R, ?, ?>> queryResultColumns = new ArrayList<>();
+		final Supplier<R> objConstructor;
 		
 		public Builder(Supplier<R> objConstructor) {
 			this.objConstructor = objConstructor;
@@ -69,8 +69,8 @@ public class KustoResultMapper<R> {
 		return new Builder<>(objConstructor);
 	}
 	
-	final List<ObjectPopulator<R, ?, ?>>	columns;
-	final Supplier<R>									objConstructor;
+	final List<ObjectPopulator<R, ?, ?>> columns;
+	final Supplier<R> objConstructor;
 	
 	private KustoResultMapper(List<ObjectPopulator<R, ?, ?>> columns, Supplier<R> objConstructor) {
 		this.columns = columns;
@@ -78,8 +78,9 @@ public class KustoResultMapper<R> {
 	}
 	
 	public R extractSingle(KustoResultSetTable resultSet) {
-		R ret = this.objConstructor.get();
+		R ret = null;
 		if (resultSet.next()) {
+			ret = this.objConstructor.get();
 			for (ObjectPopulator<R, ?, ?> col : this.columns) {
 				col.populateFrom(ret, resultSet);
 			}
