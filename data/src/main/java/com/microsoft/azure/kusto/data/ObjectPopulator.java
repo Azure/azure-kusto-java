@@ -16,16 +16,15 @@ import java.util.function.BiConsumer;
  */
 class ObjectPopulator<R, C, T extends KustoType<C>> {
 	
-	final static int		UNSET_ORDINAL	= -1;
+	final static int UNSET_ORDINAL = -1;
 	
-	final BiConsumer<R, C>	valueSetter;
-	final String			name;
-	final T					type;
-	final boolean			isNullable;
-	final int				presetOrdinal;
+	final BiConsumer<R, C> valueSetter;
+	final String name;
+	final T type;
+	final boolean isNullable;
+	final int presetOrdinal;
 	
-	static <R, C, T extends KustoType<C>> ObjectPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable,
-			BiConsumer<R, C> valueSetter) {
+	static <R, C, T extends KustoType<C>> ObjectPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
 		return new ObjectPopulator<>(name, ordinal, type, isNullable, valueSetter);
 	}
 	
@@ -45,17 +44,17 @@ class ObjectPopulator<R, C, T extends KustoType<C>> {
 		this.valueSetter = valueSetter;
 	}
 	
-	void populateFrom(R r, KustoResultSetTable resultSet) {
-		populateFrom(r, resultSet, this.presetOrdinal);
+	void populateFrom(R objToPopulate, KustoResultSetTable resultSet) {
+		populateFrom(objToPopulate, resultSet, this.presetOrdinal);
 	}
 	
-	void populateFrom(R r, KustoResultSetTable resultSet, int ordinal) {
-		Object o = ordinal == UNSET_ORDINAL ? resultSet.getObject(this.name) : resultSet.getObject(ordinal);
+	void populateFrom(R objToPopulate, KustoResultSetTable resultSet, int ordinal) {
+		Object o = resultSet.getObject(columnIndexInResultSet(resultSet));
 		if (o == null) {
 			if (!this.isNullable) {
 				throw new NullPointerException(String.format("Column %s (ordinal %d) is not nullable", this.name, ordinal));
 			}
-			this.valueSetter.accept(r, null);
+			this.valueSetter.accept(objToPopulate, null);
 			return;
 		}
 		C typed;
@@ -65,7 +64,7 @@ class ObjectPopulator<R, C, T extends KustoType<C>> {
 			throw new IllegalArgumentException(String.format("Column %s (ordinal %d) is of type %s but expected type is %s", this.name, ordinal,
 					o.getClass().toString(), this.type.clazz.toString()), e);
 		}
-		this.valueSetter.accept(r, typed);
+		this.valueSetter.accept(objToPopulate, typed);
 	}
 	
 	int columnIndexInResultSet(KustoResultSetTable resultSet) {
