@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.auth;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
-class KeyCert {
-
+public class KeyCert {
     private X509Certificate certificate;
     private PrivateKey key;
 
@@ -16,7 +15,7 @@ class KeyCert {
         this.key = key;
     }
 
-    X509Certificate getCertificate() {
+    public X509Certificate getCertificate() {
         return certificate;
     }
 
@@ -24,12 +23,11 @@ class KeyCert {
         this.certificate = certificate;
     }
 
-    PrivateKey getKey() {
+    public PrivateKey getKey() {
         return key;
     }
 
     void setKey(PrivateKey key) {
         this.key = key;
     }
-
 }

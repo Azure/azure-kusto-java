@@ -128,11 +128,11 @@
             <artifactId>nimbus-jose-jwt</artifactId>
             <version>[6.0.1,9.0.0)</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.microsoft.azure/adal4j -->
+        <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
-            <artifactId>adal4j</artifactId>
-            <version>${adal4j.version}</version>
+	    <artifactId>msal4j</artifactId>
+	    <version>${msal4j.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
@@ -161,6 +161,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
         </dependency>
 
         <dependency>

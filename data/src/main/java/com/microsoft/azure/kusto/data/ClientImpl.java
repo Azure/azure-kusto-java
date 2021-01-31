@@ -3,38 +3,52 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
+import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client, StreamingClient {
-
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     private static final String MGMT_ENDPOINT_VERSION = "v1";
     private static final String QUERY_ENDPOINT_VERSION = "v2";
     private static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
-    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(30);
-    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4) + TimeUnit.SECONDS.toMillis(30);
+    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
+    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
-
-    private final AadAuthenticationHelper aadAuthenticationHelper;
+    public static final String FEDERATED_SECURITY_POSTFIX = ";fed=true";
+    private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        clusterUrl = csb.getClusterUrl();
-        aadAuthenticationHelper = new AadAuthenticationHelper(csb);
+        String url = csb.getClusterUrl();
+        URI clusterUri = new URI(url);
+        String host = clusterUri.getHost();
+        String auth = clusterUri.getAuthority().toLowerCase();
+        if (host == null && auth.endsWith(FEDERATED_SECURITY_POSTFIX)) {
+            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_POSTFIX))).toString();
+            csb.setClusterUrl(url);
+        }
+
+        clusterUrl = url;
+        aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.GetPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -128,9 +142,9 @@ public class ClientImpl implements Client, StreamingClient {
         if (properties != null) {
             timeoutMs = properties.getTimeoutInMilliSec();
             clientRequestId = properties.getClientRequestId();
-            Iterator<HashMap.Entry<String, Object>> iterator = properties.getOptions();
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
-                HashMap.Entry<String, Object> pair = iterator.next();
+                Map.Entry<String, Object> pair = iterator.next();
                 headers.put(pair.getKey(), pair.getValue().toString());
             }
         }
@@ -141,7 +155,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue()  + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
     }
 
     private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {

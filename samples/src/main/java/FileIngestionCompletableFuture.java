@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -28,19 +28,19 @@ public class FileIngestionCompletableFuture {
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
 
-            // Creating the client:
-            IngestClient client = IngestClientFactory.createClient(csb);
+            CompletableFuture<IngestionResult> cf;
+            try (IngestClient client = IngestClientFactory.createClient(csb)) {
+                // Creating the ingestion properties:
+                IngestionProperties ingestionProperties = new IngestionProperties(
+                        System.getProperty("dbName"),
+                        System.getProperty("tableName"));
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
 
-            // Creating the ingestion properties:
-            IngestionProperties ingestionProperties = new IngestionProperties(
-                    System.getProperty("dbName"),
-                    System.getProperty("tableName"));
-            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
-
-            // Ingest From File ASYNC returns a CompletableFuture:
-            CompletableFuture<IngestionResult> cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);
+                // Ingest From File ASYNC returns a CompletableFuture:
+                cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);
+            }
 
             // In case of exception during File Ingestion, a CompletionException will be thrown by the
             // CompletableFuture, that contains in its cause the original exception that occurred during the
@@ -61,7 +61,6 @@ public class FileIngestionCompletableFuture {
 
             System.out.println("(Press any key to terminate the program)");
             System.in.read();
-
         } catch (Exception e) {
             e.printStackTrace();
         }

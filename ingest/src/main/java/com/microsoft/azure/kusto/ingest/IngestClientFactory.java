@@ -3,11 +3,14 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
 import java.net.URISyntaxException;
 
 public class IngestClientFactory {
+    private IngestClientFactory() {
+        // Hide the default constructor, as this is a factory with static methods
+    }
 
     public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return new QueuedIngestClient(csb);

@@ -6,7 +6,9 @@ package com.microsoft.azure.kusto.data.exceptions;
 public class DataClientException extends Exception {
     private String ingestionSource;
 
-    public String getIngestionSource() { return ingestionSource; }
+    public String getIngestionSource() {
+        return ingestionSource;
+    }
 
     public DataClientException(String message) {
         super(message);
