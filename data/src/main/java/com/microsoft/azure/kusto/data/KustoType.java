@@ -12,7 +12,7 @@ import java.util.function.Function;
  *
  * @see https://docs.microsoft.com/azure/data-explorer/kusto/query/scalar-data-types/
  *
- * @param <C>
+ * @param <C> The column Java data type 
  */
 public class KustoType<C> {
 	
