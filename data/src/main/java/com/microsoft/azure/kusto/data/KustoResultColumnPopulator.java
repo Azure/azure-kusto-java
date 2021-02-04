@@ -46,11 +46,11 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
 	}
 	
 	void populateFrom(R objToPopulate, KustoResultSetTable resultSet) {
-		populateFrom(objToPopulate, resultSet, this.presetOrdinal);
+		populateFrom(objToPopulate, resultSet, columnIndexInResultSet(resultSet));
 	}
 	
 	void populateFrom(R objToPopulate, KustoResultSetTable resultSet, int ordinal) {
-		Object o = resultSet.getObject(columnIndexInResultSet(resultSet));
+		Object o = resultSet.getObject(ordinal);
 		if (o == null) {
 			if (!this.isNullable) {
 				throw new NullPointerException(String.format("Column %s (ordinal %d) is not nullable", this.name, ordinal));
