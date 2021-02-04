@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 public class KustoResultMapper<R> {
 	
 	public static class Builder<R> {
-		final List<ObjectPopulator<R, ?, ?>> queryResultColumns = new ArrayList<>();
+		final List<KustoResultColumnPopulator<R, ?, ?>> queryResultColumns = new ArrayList<>();
 		final Supplier<R> objConstructor;
 		
 		public Builder(Supplier<R> objConstructor) {
@@ -38,7 +38,7 @@ public class KustoResultMapper<R> {
 		 * @return
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, String name, boolean isNullable, BiConsumer<R, C> setter) {
-			this.queryResultColumns.add(ObjectPopulator.of(name, type, isNullable, setter));
+			this.queryResultColumns.add(KustoResultColumnPopulator.of(name, type, isNullable, setter));
 			return this;
 		}
 		
@@ -61,7 +61,7 @@ public class KustoResultMapper<R> {
 		 * @return
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, String name, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
-			this.queryResultColumns.add(ObjectPopulator.of(name, ordinal, type, isNullable, setter));
+			this.queryResultColumns.add(KustoResultColumnPopulator.of(name, ordinal, type, isNullable, setter));
 			return this;
 		}
 		
@@ -81,7 +81,7 @@ public class KustoResultMapper<R> {
 		 * @return
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
-			this.queryResultColumns.add(ObjectPopulator.of(ordinal, type, isNullable, setter));
+			this.queryResultColumns.add(KustoResultColumnPopulator.of(ordinal, type, isNullable, setter));
 			return this;
 		}
 		
@@ -94,10 +94,10 @@ public class KustoResultMapper<R> {
 		return new Builder<>(objConstructor);
 	}
 	
-	final List<ObjectPopulator<R, ?, ?>> columns;
+	final List<KustoResultColumnPopulator<R, ?, ?>> columns;
 	final Supplier<R> objConstructor;
 	
-	private KustoResultMapper(List<ObjectPopulator<R, ?, ?>> columns, Supplier<R> objConstructor) {
+	private KustoResultMapper(List<KustoResultColumnPopulator<R, ?, ?>> columns, Supplier<R> objConstructor) {
 		this.columns = columns;
 		this.objConstructor = objConstructor;
 	}
@@ -106,7 +106,7 @@ public class KustoResultMapper<R> {
 		R ret = null;
 		if (resultSet.next()) {
 			ret = this.objConstructor.get();
-			for (ObjectPopulator<R, ?, ?> col : this.columns) {
+			for (KustoResultColumnPopulator<R, ?, ?> col : this.columns) {
 				col.populateFrom(ret, resultSet);
 			}
 		}
@@ -122,7 +122,7 @@ public class KustoResultMapper<R> {
 		while (resultSet.next()) {
 			R r = this.objConstructor.get();
 			for (int i = 0; i < this.columns.size(); i++) {
-				ObjectPopulator<R, ?, ?> col = this.columns.get(i);
+				KustoResultColumnPopulator<R, ?, ?> col = this.columns.get(i);
 				col.populateFrom(r, resultSet, columnOrdinals[i]);
 			}
 			ret.add(r);

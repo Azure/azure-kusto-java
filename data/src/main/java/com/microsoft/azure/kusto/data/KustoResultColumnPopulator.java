@@ -14,7 +14,7 @@ import java.util.function.BiConsumer;
  * @param <T>
  *            type of ADX column
  */
-class ObjectPopulator<R, C, T extends KustoType<C>> {
+class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
 	
 	final static int UNSET_ORDINAL = -1;
 	
@@ -24,19 +24,20 @@ class ObjectPopulator<R, C, T extends KustoType<C>> {
 	final boolean isNullable;
 	final int presetOrdinal;
 	
-	static <R, C, T extends KustoType<C>> ObjectPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		return new ObjectPopulator<>(name, ordinal, type, isNullable, valueSetter);
+	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable,
+			BiConsumer<R, C> valueSetter) {
+		return new KustoResultColumnPopulator<>(name, ordinal, type, isNullable, valueSetter);
 	}
 	
-	static <R, C, T extends KustoType<C>> ObjectPopulator<R, C, T> of(String name, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		return new ObjectPopulator<>(name, UNSET_ORDINAL, type, isNullable, valueSetter);
+	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+		return new KustoResultColumnPopulator<>(name, UNSET_ORDINAL, type, isNullable, valueSetter);
 	}
 	
-	static <R, C, T extends KustoType<C>> ObjectPopulator<R, C, T> of(int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		return new ObjectPopulator<>(null, ordinal, type, isNullable, valueSetter);
+	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+		return new KustoResultColumnPopulator<>(null, ordinal, type, isNullable, valueSetter);
 	}
 	
-	ObjectPopulator(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+	KustoResultColumnPopulator(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
 		this.name = name;
 		this.presetOrdinal = ordinal;
 		this.type = type;
