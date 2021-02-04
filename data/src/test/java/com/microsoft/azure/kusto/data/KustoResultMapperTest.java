@@ -90,7 +90,7 @@ public class KustoResultMapperTest {
 		when(this.resultSet.findColumn("Instant")).thenReturn(6);
 	}
 	
-	void testNonNull(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNonNull(KustoResultMapper<TestPojo> mapper) throws Exception {
 		when(this.resultSet.getObject(1)).thenReturn(Integer.valueOf(1));
 		when(this.resultSet.getObject(2)).thenReturn("MyName");
 		when(this.resultSet.getObject(3)).thenReturn("1970-01-01T00:00:00.001Z");
@@ -109,7 +109,7 @@ public class KustoResultMapperTest {
 		assertEquals(2, pojo.instantTime.toEpochMilli());
 	}
 	
-	void testNullable(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNullable(KustoResultMapper<TestPojo> mapper) throws Exception {
 		when(this.resultSet.getObject(1)).thenReturn(Integer.valueOf(1));
 		when(this.resultSet.getObject(2)).thenReturn(null);
 		when(this.resultSet.getObject(3)).thenReturn(null);
@@ -128,7 +128,7 @@ public class KustoResultMapperTest {
 		assertNull(pojo.instantTime);
 	}
 	
-	void testNullThrowing(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNullThrowing(KustoResultMapper<TestPojo> mapper) throws Exception {
 		when(this.resultSet.getObject(1)).thenReturn(null);
 		when(this.resultSet.next()).thenReturn(true);
 		
@@ -167,7 +167,7 @@ public class KustoResultMapperTest {
 		assertEquals(4, pojo.instantTime.toEpochMilli());
 	}
 	
-	void testNoRows(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNoRows(KustoResultMapper<TestPojo> mapper) throws Exception {
 		when(this.resultSet.next()).thenReturn(false);
 		TestPojo pojo = mapper.extractSingle(this.resultSet);
 		assertNull(pojo);
@@ -175,32 +175,32 @@ public class KustoResultMapperTest {
 	
 	@Test
 	void testExtractSingleOrdinalMapperNonNullable() throws Exception {
-		testNonNull(ordinalMapper);
+		testSingleNonNull(ordinalMapper);
 	}
 	
 	@Test
 	void testExtractSingleMixedMapperNonNullable() throws Exception {
-		testNonNull(mixedMapper);
+		testSingleNonNull(mixedMapper);
 	}
 	
 	@Test
 	void testExtractSingleNamedMapperNonNullable() throws Exception {
-		testNonNull(namedMapper);
+		testSingleNonNull(namedMapper);
 	}
 	
 	@Test
 	void testExtractSingleceOrdinalNoRows() throws Exception {
-		testNoRows(ordinalMapper);
+		testSingleNoRows(ordinalMapper);
 	}
 	
 	@Test
 	void testExtractSingleMixedMapperNoRows() throws Exception {
-		testNoRows(mixedMapper);
+		testSingleNoRows(mixedMapper);
 	}
 	
 	@Test
 	void testExtractSingleNamedMapperNoRows() throws Exception {
-		testNoRows(namedMapper);
+		testSingleNoRows(namedMapper);
 	}
 	
 	@Test
@@ -220,31 +220,31 @@ public class KustoResultMapperTest {
 	
 	@Test
 	void testExtractListOrdinalMapperNullable() throws Exception {
-		testNullable(ordinalMapper);
+		testSingleNullable(ordinalMapper);
 	}
 	
 	@Test
 	void testExtractListMixedMapperNullable() throws Exception {
-		testNullable(mixedMapper);
+		testSingleNullable(mixedMapper);
 	}
 	
 	@Test
 	void testExtractListNamedMapperNullable() throws Exception {
-		testNullable(namedMapper);
+		testSingleNullable(namedMapper);
 	}
 	
 	@Test
 	void testExtractListOrdinalMapperNullThrowing() throws Exception {
-		testNullThrowing(ordinalMapper);
+		testSingleNullThrowing(ordinalMapper);
 	}
 	
 	@Test
 	void testExtractListMixedMapperNullThrowing() throws Exception {
-		testNullThrowing(mixedMapper);
+		testSingleNullThrowing(mixedMapper);
 	}
 	
 	@Test
 	void testExtractListNamedMapperNullThrowing() throws Exception {
-		testNullThrowing(namedMapper);
+		testSingleNullThrowing(namedMapper);
 	}
 }
