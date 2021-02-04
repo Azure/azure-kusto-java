@@ -50,8 +50,8 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
 	}
 	
 	void populateFrom(R objToPopulate, KustoResultSetTable resultSet, int ordinal) {
-		Object o = resultSet.getObject(ordinal);
-		if (o == null) {
+		Object resultValue = resultSet.getObject(ordinal);
+		if (resultValue == null) {
 			if (!this.isNullable) {
 				throw new NullPointerException(String.format("Column %s (ordinal %d) is not nullable", this.name, ordinal));
 			}
@@ -60,10 +60,10 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
 		}
 		C typed;
 		try {
-			typed = this.type.type(o);
+			typed = this.type.type(resultValue);
 		} catch (Exception e) {
 			throw new IllegalArgumentException(String.format("Column %s (ordinal %d) is of type %s but expected type is %s", this.name, ordinal,
-					o.getClass().toString(), this.type.clazz.toString()), e);
+					resultValue.getClass().toString(), this.type.clazz.toString()), e);
 		}
 		this.valueSetter.accept(objToPopulate, typed);
 	}
