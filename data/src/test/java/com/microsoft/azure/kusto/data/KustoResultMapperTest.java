@@ -55,24 +55,28 @@ public class KustoResultMapperTest {
 	}
 	
 	static final KustoResultMapper<TestPojo> namedMapper = KustoResultMapper.newBuilder(TestPojo::new)
-			.addNonNullableColumn(KustoType.INTEGER, "Id", TestPojo::setId).addNullableColumn(KustoType.STRING, "Name", TestPojo::setName)
-			.addNullableColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", TestPojo::setZonedTime)
-			.addNullableColumn(KustoType.GUID_UUID, "Guid", TestPojo::setUuid)
-			.addNullableColumn(KustoType.STRING, "Enum", (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-			.addNullableColumn(KustoType.DATETIME_INSTANT, "Instant", TestPojo::setInstantTime).build();
+			.addColumn(KustoType.INTEGER, "Id", false, TestPojo::setId)
+			.addColumn(KustoType.STRING, "Name", true, TestPojo::setName)
+			.addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", true, TestPojo::setZonedTime)
+			.addColumn(KustoType.GUID_UUID, "Guid", true, TestPojo::setUuid)
+			.addColumn(KustoType.STRING, "Enum", true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
+			.addColumn(KustoType.DATETIME_INSTANT, "Instant", true, TestPojo::setInstantTime).build();
 	
 	static final KustoResultMapper<TestPojo> ordinalMapper = KustoResultMapper.newBuilder(TestPojo::new)
-			.addNonNullableColumn(KustoType.INTEGER, 1, TestPojo::setId).addNullableColumn(KustoType.STRING, 2, TestPojo::setName)
-			.addNullableColumn(KustoType.DATETIME_ZONED_DATE_TIME, 3, TestPojo::setZonedTime).addNullableColumn(KustoType.GUID_UUID, 4, TestPojo::setUuid)
-			.addNullableColumn(KustoType.STRING, "Enum", (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-			.addNullableColumn(KustoType.DATETIME_INSTANT, 6, TestPojo::setInstantTime).build();
+			.addColumn(KustoType.INTEGER, 1, false, TestPojo::setId)
+			.addColumn(KustoType.STRING, 2, true, TestPojo::setName)
+			.addColumn(KustoType.DATETIME_ZONED_DATE_TIME, 3, true, TestPojo::setZonedTime)
+			.addColumn(KustoType.GUID_UUID, 4, true, TestPojo::setUuid)
+			.addColumn(KustoType.STRING, "Enum", true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
+			.addColumn(KustoType.DATETIME_INSTANT, 6, true, TestPojo::setInstantTime).build();
 	
 	static final KustoResultMapper<TestPojo> mixedMapper = KustoResultMapper.newBuilder(TestPojo::new)
-			.addNonNullableColumn(KustoType.INTEGER, "Id", 1, TestPojo::setId).addNullableColumn(KustoType.STRING, "Name", 2, TestPojo::setName)
-			.addNullableColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", 3, TestPojo::setZonedTime)
-			.addNullableColumn(KustoType.GUID_UUID, "Guid", 4, TestPojo::setUuid)
-			.addNullableColumn(KustoType.STRING, "Enum", 5, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-			.addNullableColumn(KustoType.DATETIME_INSTANT, "Instant", 6, TestPojo::setInstantTime).build();
+			.addColumn(KustoType.INTEGER, "Id", 1, false, TestPojo::setId)
+			.addColumn(KustoType.STRING, "Name", 2, true, TestPojo::setName)
+			.addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", 3, true, TestPojo::setZonedTime)
+			.addColumn(KustoType.GUID_UUID, "Guid", 4, true, TestPojo::setUuid)
+			.addColumn(KustoType.STRING, "Enum", 5, true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
+			.addColumn(KustoType.DATETIME_INSTANT, "Instant", 6, true, TestPojo::setInstantTime).build();
 	
 	KustoResultSetTable resultSet = mock(KustoResultSetTable.class);
 	

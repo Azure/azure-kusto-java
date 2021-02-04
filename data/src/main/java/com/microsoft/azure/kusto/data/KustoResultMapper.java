@@ -21,43 +21,68 @@ public class KustoResultMapper<R> {
 			this.objConstructor = objConstructor;
 		}
 		
-		<C> Builder<R> addColumn(KustoType<C> type, String name, boolean isNullable, BiConsumer<R, C> setter) {
+		/**
+		 * Add a column by name. Using this function will cause the KustoResultMapper to lookup the column by name once per column per call to
+		 * {@link KustoResultMapper##extractList(KustoResultSetTable)} or {@link KustoResultMapper##extractSingle(KustoResultSetTable)}
+		 * 
+		 * @param <C>
+		 *            Java type returned by the column (based on the KustoType parameter)
+		 * @param type
+		 *            {@link KustoType} returned by the column
+		 * @param name
+		 *            column name
+		 * @param isNullable
+		 *            whether the column may contains null values
+		 * @param setter
+		 *            function for setting a cell value into a pojo instance
+		 * @return
+		 */
+		public <C> Builder<R> addColumn(KustoType<C> type, String name, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(ObjectPopulator.of(name, type, isNullable, setter));
 			return this;
 		}
 		
-		<C> Builder<R> addColumn(KustoType<C> type, String name, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
+		/**
+		 * Add a column by name and ordinal (column index). The ordinal value will be preferred for extracting values from the
+		 * {@link KustoResultSetTable}.
+		 * 
+		 * @param <C>
+		 *            Java type returned by the column (based on the KustoType parameter)
+		 * @param type
+		 *            {@link KustoType} returned by the column
+		 * @param name
+		 *            column name
+		 * @param ordinal
+		 *            index of the column in the
+		 * @param isNullable
+		 *            whether the column may contains null values
+		 * @param setter
+		 *            function for setting a cell value into a pojo instance
+		 * @return
+		 */
+		public <C> Builder<R> addColumn(KustoType<C> type, String name, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(ObjectPopulator.of(name, ordinal, type, isNullable, setter));
 			return this;
 		}
 		
-		<C> Builder<R> addColumn(KustoType<C> type, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
+		/**
+		 * Add a column by ordinal (column index).
+		 * 
+		 * @param <C>
+		 *            Java type returned by the column (based on the KustoType parameter)
+		 * @param type
+		 *            {@link KustoType} returned by the column
+		 * @param ordinal
+		 *            index of the column in the
+		 * @param isNullable
+		 *            whether the column may contains null values
+		 * @param setter
+		 *            function for setting a cell value into a pojo instance
+		 * @return
+		 */
+		public <C> Builder<R> addColumn(KustoType<C> type, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(ObjectPopulator.of(ordinal, type, isNullable, setter));
 			return this;
-		}
-		
-		public <C> Builder<R> addNonNullableColumn(KustoType<C> type, String name, BiConsumer<R, C> setter) {
-			return addColumn(type, name, false, setter);
-		}
-		
-		public <C> Builder<R> addNonNullableColumn(KustoType<C> type, int ordinal, BiConsumer<R, C> setter) {
-			return addColumn(type, ordinal, false, setter);
-		}
-		
-		public <C> Builder<R> addNonNullableColumn(KustoType<C> type, String name, int ordinal, BiConsumer<R, C> setter) {
-			return addColumn(type, name, ordinal, false, setter);
-		}
-		
-		public <C> Builder<R> addNullableColumn(KustoType<C> type, String name, BiConsumer<R, C> setter) {
-			return addColumn(type, name, true, setter);
-		}
-		
-		public <C> Builder<R> addNullableColumn(KustoType<C> type, String name, int ordinal, BiConsumer<R, C> setter) {
-			return addColumn(type, name, ordinal, true, setter);
-		}
-		
-		public <C> Builder<R> addNullableColumn(KustoType<C> type, int ordinal, BiConsumer<R, C> setter) {
-			return addColumn(type, ordinal, true, setter);
 		}
 		
 		public KustoResultMapper<R> build() {
