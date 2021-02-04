@@ -23,7 +23,7 @@ public class KustoResultMapper<R> {
 		
 		/**
 		 * Add a column by name. Using this function will cause the KustoResultMapper to lookup the column by name once per column per call to
-		 * {@link KustoResultMapper##extractList(KustoResultSetTable)} or {@link KustoResultMapper##extractSingle(KustoResultSetTable)}
+		 * {@link KustoResultMapper#extractList(KustoResultSetTable)} or {@link KustoResultMapper#extractSingle(KustoResultSetTable)}
 		 * 
 		 * @param <C>
 		 *            Java type returned by the column (based on the KustoType parameter)

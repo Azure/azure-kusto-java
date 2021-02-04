@@ -6,11 +6,9 @@ import java.util.UUID;
 import java.util.function.Function;
 
 /**
- * Represents various ADX data types and their bindings to Java classes
+ * Represents various ADX data types and their bindings to Java classes.
  * 
- * @author alex
- *
- * @see https://docs.microsoft.com/azure/data-explorer/kusto/query/scalar-data-types/
+ * See https://docs.microsoft.com/azure/data-explorer/kusto/query/scalar-data-types/
  *
  * @param <C> The column Java data type 
  */
