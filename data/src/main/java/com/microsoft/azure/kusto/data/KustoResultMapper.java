@@ -120,12 +120,12 @@ public class KustoResultMapper<R> {
 			columnOrdinals[i] = this.columns.get(i).columnIndexInResultSet(resultSet);
 		}
 		while (resultSet.next()) {
-			R r = this.objConstructor.get();
+			R resultObject = this.objConstructor.get();
 			for (int i = 0; i < this.columns.size(); i++) {
 				KustoResultColumnPopulator<R, ?, ?> col = this.columns.get(i);
-				col.populateFrom(r, resultSet, columnOrdinals[i]);
+				col.populateFrom(resultObject, resultSet, columnOrdinals[i]);
 			}
-			ret.add(r);
+			ret.add(resultObject);
 		}
 		return ret;
 	}
