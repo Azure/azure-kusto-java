@@ -3,7 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -18,19 +20,21 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 class Utils {
+    private Utils() {
+        // Hide constructor, as this is a static utility class
+    }
 
-    static KustoOperationResult post(String url, String payload, InputStream stream, Integer timeoutMs, HashMap<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(String url, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         HttpClient httpClient;
         if (timeoutMs != null) {
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
@@ -51,7 +55,7 @@ class Utils {
             httpPost.setEntity(requestEntity);
             httpPost.addHeader("Accept-Encoding", "gzip,deflate");
             httpPost.addHeader("Accept", "application/json");
-            for (HashMap.Entry<String, String> entry : headers.entrySet()) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
                 httpPost.addHeader(entry.getKey(), entry.getValue());
             }
 
@@ -63,34 +67,35 @@ class Utils {
                 StatusLine statusLine = response.getStatusLine();
                 String responseContent = EntityUtils.toString(entity);
                 if (statusLine.getStatusCode() == 200) {
-                    return new KustoOperationResult(responseContent, url.endsWith("v2/rest/query") ? "v2" : "v1");
-                }
-                else {
-                    if(StringUtils.isBlank(responseContent)){
+                    return responseContent;
+                } else {
+                    if (StringUtils.isBlank(responseContent)) {
                         responseContent = response.getStatusLine().toString();
                     }
                     String message = "";
                     DataWebException ex = new DataWebException(responseContent, response);
                     try {
                         message = ex.getApiError().getDescription();
-                    } catch (Exception ignored1) { }
+                    } catch (Exception ignored1) {
+                    }
                     throw new DataServiceException(url, message, ex);
                 }
             }
-        } catch (JSONException | IOException | URISyntaxException | KustoServiceError e) {
+        } catch (JSONException | IOException | URISyntaxException e) {
             throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
         }
         return null;
     }
 
-    static String GetPackageVersion() {
+    static String getPackageVersion() {
         try {
             Properties props = new Properties();
             try (InputStream versionFileStream = Utils.class.getResourceAsStream("/app.properties")) {
                 props.load(versionFileStream);
                 return props.getProperty("version").trim();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return "";
     }
 }

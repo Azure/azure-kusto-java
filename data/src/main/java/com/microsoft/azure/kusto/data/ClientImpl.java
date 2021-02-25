@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
@@ -50,7 +51,7 @@ public class ClientImpl implements Client, StreamingClient {
         clusterUrl = url;
         aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
-        String version = Utils.GetPackageVersion();
+        String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
             clientVersionForTracing += ":" + version;
         }
@@ -72,21 +73,39 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+        String response = executeForJsonResult(database, command, properties);
+
+        String clusterEndpoint = determineClusterEndpoint(command);
+        try {
+            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+        } catch (KustoServiceError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String executeForJsonResult(String command) throws DataServiceException, DataClientException {
+        return executeForJsonResult(DEFAULT_DATABASE_NAME, command);
+    }
+
+    @Override
+    public String executeForJsonResult(String database, String command) throws DataServiceException, DataClientException {
+        return executeForJsonResult(database, command, null);
+    }
+
+    @Override
+    public String executeForJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation:
         if (StringUtils.isAnyEmpty(database, command)) {
-            throw new IllegalArgumentException("database or command are empty");
+            throw new IllegalArgumentException("Database and/or command is empty");
         }
         Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
 
-        String clusterEndpoint;
-        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
-            if (timeoutMs == null) {
+        String clusterEndpoint = determineClusterEndpoint(command);
+        if (timeoutMs == null) {
+            if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
-            }
-        } else {
-            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
-            if (timeoutMs == null) {
+            } else {
                 timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
             }
         }
@@ -108,7 +127,7 @@ public class ClientImpl implements Client, StreamingClient {
             throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
         }
 
-        HashMap<String, String> headers = initHeaders();
+        Map<String, String> headers = initHeaders();
         headers.put("Content-Type", "application/json");
         headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.execute;%s", java.util.UUID.randomUUID()) : clientRequestId);
         headers.put("Fed", "True");
@@ -135,7 +154,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        HashMap<String, String> headers = initHeaders();
+        Map<String, String> headers = initHeaders();
         String clientRequestId = null;
 
         Long timeoutMs = null;
@@ -155,16 +174,31 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        try {
+            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+        } catch (KustoServiceError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        }
     }
 
-    private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {
-        HashMap<String, String> headers = new HashMap<>();
+    private Map<String, String> initHeaders() throws DataServiceException, DataClientException {
+        Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);
         }
         headers.put("Authorization", String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
         return headers;
+    }
+
+    private String determineClusterEndpoint(String command) {
+        String clusterEndpoint;
+        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
+            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
+        } else {
+            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
+        }
+        return clusterEndpoint;
     }
 }
