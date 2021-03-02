@@ -36,14 +36,14 @@ public class KustoResultSetTable implements ResultSet {
     private static final String rowsPropertyName = "Rows";
     private static final String exceptionsPropertyName = "Exceptions";
 
-    private ArrayList<ArrayList<Object>> rows = null;
+    private List<List<Object>> rows = null;
     private String tableName;
     private String tableId;
     private WellKnownDataSet tableKind;
     private Map<String, KustoResultColumn> columns = new HashMap<>();
     private KustoResultColumn[] columnsAsArray = null;
-    private Iterator<ArrayList<Object>> iterator = Collections.emptyIterator();
-    private ArrayList<Object> current = null;
+    private Iterator<List<Object>> iterator = Collections.emptyIterator();
+    private List<Object> current = null;
 
     public String getTableName() {
         return tableName;
@@ -95,7 +95,7 @@ public class KustoResultSetTable implements ResultSet {
         JSONArray exceptions;
         JSONArray jsonRows = jsonTable.optJSONArray(rowsPropertyName);
         if (jsonRows != null) {
-            ArrayList<ArrayList<Object>> values = new ArrayList<>();
+            List<List<Object>> values = new ArrayList<>();
             for (int i = 0; i < jsonRows.length(); i++) {
                 Object row = jsonRows.get(i);
                 if (row instanceof JSONObject) {
@@ -110,7 +110,7 @@ public class KustoResultSetTable implements ResultSet {
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
-                ArrayList<Object> rowVector = new ArrayList<>();
+                List<Object> rowVector = new ArrayList<>();
                 for (int j = 0; j < rowAsJsonArray.length(); ++j) {
                     Object obj = rowAsJsonArray.get(j);
                     if (obj == JSONObject.NULL) {
@@ -130,7 +130,7 @@ public class KustoResultSetTable implements ResultSet {
         iterator = rows.iterator();
     }
 
-    public ArrayList<Object> getCurrentRow(){
+    public List<Object> getCurrentRow(){
         return current;
     }
 
@@ -143,7 +143,7 @@ public class KustoResultSetTable implements ResultSet {
         return hasNext;
     }
 
-    public ArrayList<ArrayList<Object>> getData(){
+    public List<List<Object>> getData(){
         return rows;
     }
 

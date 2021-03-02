@@ -90,8 +90,8 @@ public class KustoResultMapperTest {
 		when(this.resultSet.findColumn("Instant")).thenReturn(6);
 	}
 	
-	void testSingleNonNull(KustoResultMapper<TestPojo> mapper) throws Exception {
-		when(this.resultSet.getObject(1)).thenReturn(Integer.valueOf(1));
+	void testSingleNonNull(KustoResultMapper<TestPojo> mapper) {
+		when(this.resultSet.getObject(1)).thenReturn(1);
 		when(this.resultSet.getObject(2)).thenReturn("MyName");
 		when(this.resultSet.getObject(3)).thenReturn("1970-01-01T00:00:00.001Z");
 		when(this.resultSet.getObject(4)).thenReturn("e091cf92-6195-4005-bad5-82af80ff1939");
@@ -109,8 +109,8 @@ public class KustoResultMapperTest {
 		assertEquals(2, pojo.instantTime.toEpochMilli());
 	}
 	
-	void testSingleNullable(KustoResultMapper<TestPojo> mapper) throws Exception {
-		when(this.resultSet.getObject(1)).thenReturn(Integer.valueOf(1));
+	void testSingleNullable(KustoResultMapper<TestPojo> mapper) {
+		when(this.resultSet.getObject(1)).thenReturn(1);
 		when(this.resultSet.getObject(2)).thenReturn(null);
 		when(this.resultSet.getObject(3)).thenReturn(null);
 		when(this.resultSet.getObject(4)).thenReturn(null);
@@ -135,8 +135,8 @@ public class KustoResultMapperTest {
 		assertThrows(NullPointerException.class, () -> mapper.extractSingle(this.resultSet));
 	}
 	
-	void testList(KustoResultMapper<TestPojo> mapper) throws Exception {
-		when(this.resultSet.getObject(1)).thenReturn(Integer.valueOf(1)).thenReturn(Integer.valueOf(2));
+	void testList(KustoResultMapper<TestPojo> mapper) {
+		when(this.resultSet.getObject(1)).thenReturn(1).thenReturn(2);
 		when(this.resultSet.getObject(2)).thenReturn("MyName").thenReturn("OtherName");
 		when(this.resultSet.getObject(3)).thenReturn("1970-01-01T00:00:00.001Z").thenReturn("1970-01-01T00:00:00.003Z");
 		when(this.resultSet.getObject(4)).thenReturn("e091cf92-6195-4005-bad5-82af80ff1939").thenReturn("dc90cbef-0d82-4a79-bb34-7e7798bf962b");
