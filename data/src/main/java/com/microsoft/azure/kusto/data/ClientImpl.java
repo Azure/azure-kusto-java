@@ -95,10 +95,15 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public String executeForJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        // Argument validation:
-        if (StringUtils.isAnyEmpty(database, command)) {
-            throw new IllegalArgumentException("Database and/or command is empty");
+        // Argument validation
+        if (StringUtils.isEmpty(database)) {
+            throw new IllegalArgumentException("Database is empty");
         }
+        if (StringUtils.isEmpty(command)) {
+            throw new IllegalArgumentException("Command is empty");
+        }
+        command = command.trim();
+
         Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
 
         String clusterEndpoint = determineClusterEndpoint(command);
