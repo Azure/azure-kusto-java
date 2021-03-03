@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 public class KustoResultMapperTest {
 	
 	public static enum TestEnum {
-		A, B, C;
+		A, B, C
 	}
 	
 	public static class TestPojo {
@@ -128,7 +128,7 @@ public class KustoResultMapperTest {
 		assertNull(pojo.instantTime);
 	}
 	
-	void testSingleNullThrowing(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNullThrowing(KustoResultMapper<TestPojo> mapper) {
 		when(this.resultSet.getObject(1)).thenReturn(null);
 		when(this.resultSet.next()).thenReturn(true);
 		
@@ -167,84 +167,84 @@ public class KustoResultMapperTest {
 		assertEquals(4, pojo.instantTime.toEpochMilli());
 	}
 	
-	void testSingleNoRows(KustoResultMapper<TestPojo> mapper) throws Exception {
+	void testSingleNoRows(KustoResultMapper<TestPojo> mapper) {
 		when(this.resultSet.next()).thenReturn(false);
 		TestPojo pojo = mapper.extractSingle(this.resultSet);
 		assertNull(pojo);
 	}
 	
 	@Test
-	void testExtractSingleOrdinalMapperNonNullable() throws Exception {
+	void testExtractSingleOrdinalMapperNonNullable() {
 		testSingleNonNull(ordinalMapper);
 	}
 	
 	@Test
-	void testExtractSingleMixedMapperNonNullable() throws Exception {
+	void testExtractSingleMixedMapperNonNullable() {
 		testSingleNonNull(mixedMapper);
 	}
 	
 	@Test
-	void testExtractSingleNamedMapperNonNullable() throws Exception {
+	void testExtractSingleNamedMapperNonNullable() {
 		testSingleNonNull(namedMapper);
 	}
 	
 	@Test
-	void testExtractSingleceOrdinalNoRows() throws Exception {
+	void testExtractSingleceOrdinalNoRows() {
 		testSingleNoRows(ordinalMapper);
 	}
 	
 	@Test
-	void testExtractSingleMixedMapperNoRows() throws Exception {
+	void testExtractSingleMixedMapperNoRows() {
 		testSingleNoRows(mixedMapper);
 	}
 	
 	@Test
-	void testExtractSingleNamedMapperNoRows() throws Exception {
+	void testExtractSingleNamedMapperNoRows() {
 		testSingleNoRows(namedMapper);
 	}
 	
 	@Test
-	void testExtractListOrdinalMapperNonNullable() throws Exception {
+	void testExtractListOrdinalMapperNonNullable() {
 		testList(ordinalMapper);
 	}
 	
 	@Test
-	void testExtractListMixedMapperNonNullable() throws Exception {
+	void testExtractListMixedMapperNonNullable() {
 		testList(mixedMapper);
 	}
 	
 	@Test
-	void testExtractListNamedMapperNonNullable() throws Exception {
+	void testExtractListNamedMapperNonNullable() {
 		testList(namedMapper);
 	}
 	
 	@Test
-	void testExtractListOrdinalMapperNullable() throws Exception {
+	void testExtractListOrdinalMapperNullable() {
 		testSingleNullable(ordinalMapper);
 	}
 	
 	@Test
-	void testExtractListMixedMapperNullable() throws Exception {
+	void testExtractListMixedMapperNullable() {
 		testSingleNullable(mixedMapper);
 	}
 	
 	@Test
-	void testExtractListNamedMapperNullable() throws Exception {
+	void testExtractListNamedMapperNullable() {
 		testSingleNullable(namedMapper);
 	}
 	
 	@Test
-	void testExtractListOrdinalMapperNullThrowing() throws Exception {
+	void testExtractListOrdinalMapperNullThrowing() {
 		testSingleNullThrowing(ordinalMapper);
 	}
 	
 	@Test
-	void testExtractListMixedMapperNullThrowing() throws Exception {
+	void testExtractListMixedMapperNullThrowing() {
 		testSingleNullThrowing(mixedMapper);
 	}
 	
 	@Test
-	void testExtractListNamedMapperNullThrowing() throws Exception {
+	void testExtractListNamedMapperNullThrowing() {
 		testSingleNullThrowing(namedMapper);
 	}
 }
