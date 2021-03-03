@@ -129,7 +129,7 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.readLock().unlock();
             }
         }
-        return ingestionResource.nextStorageRoot();
+        return ingestionResource.nextStorageUrl();
     }
 
     String getIdentityToken() throws IngestionServiceException, IngestionClientException {
@@ -147,13 +147,13 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
-    private void addIngestionResource(String resourceTypeName, String storageRoot) {
+    private void addIngestionResource(String resourceTypeName, String storageUrl) {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         if (resourceType != null) {
             if (!ingestionResources.containsKey(resourceType)) {
                 ingestionResources.put(resourceType, new IngestionResource(resourceType));
             }
-            ingestionResources.get(resourceType).addStorageRoot(storageRoot);
+            ingestionResources.get(resourceType).addStorageUrl(storageUrl);
         }
     }
 
@@ -169,8 +169,8 @@ class ResourceManager implements Closeable {
                     // Add the received values to a new IngestionResources map
                     while (table.next()) {
                         String resourceTypeName = table.getString(0);
-                        String storageRoot = table.getString(1);
-                        addIngestionResource(resourceTypeName, storageRoot);
+                        String storageUrl = table.getString(1);
+                        addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
             } catch (DataServiceException e) {
@@ -225,20 +225,20 @@ class ResourceManager implements Closeable {
     private static class IngestionResource {
         ResourceType resourceType;
         int roundRobinIdx = 0;
-        List<String> storageRoots;
+        List<String> storageUrls;
 
         IngestionResource(ResourceType resourceType) {
             this.resourceType = resourceType;
-            storageRoots = new ArrayList<>();
+            storageUrls = new ArrayList<>();
         }
 
-        void addStorageRoot(String storageRoot) {
-            storageRoots.add(storageRoot);
+        void addStorageUrl(String storageUrl) {
+            storageUrls.add(storageUrl);
         }
 
-        String nextStorageRoot() {
-            roundRobinIdx = (roundRobinIdx + 1) % storageRoots.size();
-            return storageRoots.get(roundRobinIdx);
+        String nextStorageUrl() {
+            roundRobinIdx = (roundRobinIdx + 1) % storageUrls.size();
+            return storageUrls.get(roundRobinIdx);
         }
     }
 }
