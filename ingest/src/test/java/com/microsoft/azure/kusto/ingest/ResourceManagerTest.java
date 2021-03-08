@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -10,7 +11,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -20,13 +20,12 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ResourceManagerTest {
-
     private static ResourceManager resourceManager;
-    private static Client clientMock = mock(Client.class);
-
+    private static final Client clientMock = mock(Client.class);
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
     private static final String STORAGE_1 = "storage1";
@@ -118,14 +117,14 @@ class ResourceManagerTest {
                 .thenReturn(generateIngestionAuthTokenResult());
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
-            if(refreshTimestamps.size() != 1){
+            if (refreshTimestamps.size() != 1) {
                 throw new Exception();
             }
 
             return generateIngestionResourcesResult();
         });
 
-        ResourceManager resourceManager = new ResourceManager(clientMock, 1000L,500L);
+        ResourceManager resourceManager = new ResourceManager(clientMock, 1000L, 500L);
         Thread.sleep(100);
         assertEquals(1, refreshTimestamps.size());
         Thread.sleep(1100);

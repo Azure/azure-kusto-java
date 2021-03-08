@@ -35,32 +35,33 @@
         <java.version>1.8</java.version>
 
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
-
         <!-- Compile dependencies -->
         <slf4j.version>1.8.0-beta4</slf4j.version>
-        <commons-lang3.version>3.9</commons-lang3.version>
-        <msal4j.version>1.8.1</msal4j.version>
-        <httpclient.version>4.5.8</httpclient.version>
-        <httpcore.version>4.4.11</httpcore.version>
-        <json.version>20190722</json.version>
-        <fasterxml.jackson.core.version>[2.11.0,2.12.0)</fasterxml.jackson.core.version>
-        <azure-storage.version>8.3.0</azure-storage.version>
+        <commons-lang3.version>3.11</commons-lang3.version>
+        <msal4j.version>1.9.1</msal4j.version>
+        <httpclient.version>4.5.13</httpclient.version>
+        <httpcore.version>4.4.13</httpcore.version>
+        <json.version>20201115</json.version>
+        <fasterxml.jackson.core.version>2.12.1</fasterxml.jackson.core.version>
+        <azure-storage.version>8.6.5</azure-storage.version>
+        <univocity-parsers.version>2.9.1</univocity-parsers.version>
 
         <!-- Test dependencies -->
-        <bouncycastle.version>1.61</bouncycastle.version>
+        <bouncycastle.version>1.68</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>
-        <sqlite-jdbc.version>3.27.2.1</sqlite-jdbc.version>
-        <annotations.version>17.0.0</annotations.version>
+        <sqlite-jdbc.version>3.34.0</sqlite-jdbc.version>
+        <annotations.version>20.1.0</annotations.version>
 
         <!-- Other dependencies -->
-        <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-        <maven-assembly-plugin.version>3.1.1</maven-assembly-plugin.version>
-        <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
-        <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-        <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
-        <junit.version>5.4.2</junit.version>
-        <mockito.version>2.27.0</mockito.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
+        <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
+        <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
+        <junit.version>5.7.1</junit.version>
+        <mockito.version>3.7.7</mockito.version>
     </properties>
 
     <modules>
@@ -74,7 +75,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>${flatten-maven-plugin.version}</version>
                 <configuration>
                     <flattenMode>oss</flattenMode>
                 </configuration>

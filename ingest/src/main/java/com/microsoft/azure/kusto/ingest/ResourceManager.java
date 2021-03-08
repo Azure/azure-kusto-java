@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -29,37 +28,37 @@ class ResourceManager implements Closeable {
         TEMP_STORAGE("TempStorage"),
         INGESTIONS_STATUS_TABLE("IngestionsStatusTable");
 
-        private String name;
+        private final String resourceTypeName;
 
-        ResourceType(String name) {
-            this.name = name;
+        ResourceType(String resourceTypeName) {
+            this.resourceTypeName = resourceTypeName;
         }
 
-        String getName() {
-            return name;
+        String getResourceTypeName() {
+            return resourceTypeName;
         }
-    }
 
-    private ResourceType getResourceTypeByName(String name) {
-        for (ResourceType t : ResourceType.values()) {
-            if (t.name.equalsIgnoreCase(name)) {
-                return t;
+        public static ResourceType findByResourceTypeName(String resourceTypeName) {
+            for (ResourceType resourceType : values()) {
+                if (resourceType.resourceTypeName.equalsIgnoreCase(resourceTypeName)) {
+                    return resourceType;
+                }
             }
+            return null;
         }
-        return null;
     }
 
-    private ConcurrentHashMap<ResourceType, IngestionResource> ingestionResources;
+    private Map<ResourceType, IngestionResource> ingestionResources;
     private String identityToken;
-    private Client client;
+    private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final Timer timer;
     private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
-    private Long defaultRefreshTime;
-    private Long refreshTimeOnFailure;
+    private final Long defaultRefreshTime;
+    private final Long refreshTimeOnFailure;
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
@@ -81,7 +80,8 @@ class ResourceManager implements Closeable {
     }
 
     private void init() {
-        ingestionResources = new ConcurrentHashMap<>();
+        ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
+
         class RefreshIngestionResourcesTask extends TimerTask {
             @Override
             public void run() {
@@ -113,21 +113,23 @@ class ResourceManager implements Closeable {
     }
 
     String getIngestionResource(ResourceType resourceType) throws IngestionServiceException, IngestionClientException {
-        if (!ingestionResources.containsKey(resourceType)) {
-            // When the value is not available, we need to get the tokens from Kusto (refresh):
+        IngestionResource ingestionResource = ingestionResources.get(resourceType);
+        if (ingestionResource == null) {
+            // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
             refreshIngestionResources();
             try {
                 // If the write lock is locked, then the read will wait here.
-                // In other words if the refresh is running yet, then wait until it ends:
+                // In other words if the refresh is running yet, then wait until it ends
                 ingestionResourcesLock.readLock().lock();
-                if (!ingestionResources.containsKey(resourceType)) {
-                    throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resourceType.getName());
+                ingestionResource = ingestionResources.get(resourceType);
+                if (ingestionResource == null) {
+                    throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resourceType.getResourceTypeName());
                 }
             } finally {
                 ingestionResourcesLock.readLock().unlock();
             }
         }
-        return ingestionResources.get(resourceType).nextValue();
+        return ingestionResource.nextStorageUrl();
     }
 
     String getIdentityToken() throws IngestionServiceException, IngestionClientException {
@@ -145,33 +147,31 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
-    private void addIngestionResource(HashMap<ResourceType, IngestionResource> ingestionResources, String key, String value) {
-        ResourceType resourceType = getResourceTypeByName(key);
-        if (!ingestionResources.containsKey(resourceType)) {
-            ingestionResources.put(resourceType, new IngestionResource(resourceType));
+    private void addIngestionResource(String resourceTypeName, String storageUrl) {
+        ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
+        if (resourceType != null) {
+            if (!ingestionResources.containsKey(resourceType)) {
+                ingestionResources.put(resourceType, new IngestionResource(resourceType));
+            }
+            ingestionResources.get(resourceType).addStorageUrl(storageUrl);
         }
-        ingestionResources.get(resourceType).addValue(value);
     }
 
     private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-        // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
                 KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
-                    HashMap<ResourceType, IngestionResource> newIngestionResources = new HashMap<>();
                     KustoResultSetTable table = ingestionResourcesResults.next();
-
-                    // Add the received values to a new IngestionResources map:
+                    // Add the received values to a new IngestionResources map
                     while (table.next()) {
-                        String key = table.getString(0);
-                        String value = table.getString(1);
-                        addIngestionResource(newIngestionResources, key, value);
+                        String resourceTypeName = table.getString(0);
+                        String storageUrl = table.getString(1);
+                        addIngestionResource(resourceTypeName, storageUrl);
                     }
-                    // Replace the values in the ingestionResources map with the values in the new map:
-                    putIngestionResourceValues(ingestionResources, newIngestionResources);
                 }
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
@@ -181,20 +181,6 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
-    }
-
-    private void putIngestionResourceValues(ConcurrentHashMap<ResourceType, IngestionResource> ingestionResources, Map<ResourceType, IngestionResource> newIngestionResources) {
-        // Update the values in the original resources map:
-        newIngestionResources.keySet().forEach(
-                k -> ingestionResources.put(k, newIngestionResources.get(k))
-        );
-
-        // Remove the key-value pairs that are not existing in the new resources map:
-        ingestionResources.keySet().forEach(k -> {
-            if (!newIngestionResources.containsKey(k)) {
-                ingestionResources.remove(k);
-            }
-        });
     }
 
     private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
@@ -207,7 +193,6 @@ class ResourceManager implements Closeable {
                         && !identityTokenResult.getResultTables().isEmpty()) {
                     KustoResultSetTable resultTable = identityTokenResult.next();
                     resultTable.next();
-
                     identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
@@ -237,23 +222,23 @@ class ResourceManager implements Closeable {
         throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
     }
 
-    private class IngestionResource {
-        ResourceType type;
-        int roundRubinIdx = 0;
-        ArrayList<String> valuesList;
+    private static class IngestionResource {
+        ResourceType resourceType;
+        int roundRobinIdx = 0;
+        List<String> storageUrls;
 
         IngestionResource(ResourceType resourceType) {
-            this.type = resourceType;
-            valuesList = new ArrayList<>();
+            this.resourceType = resourceType;
+            storageUrls = new ArrayList<>();
         }
 
-        void addValue(String val) {
-            valuesList.add(val);
+        void addStorageUrl(String storageUrl) {
+            storageUrls.add(storageUrl);
         }
 
-        String nextValue() {
-            roundRubinIdx = (roundRubinIdx + 1) % valuesList.size();
-            return valuesList.get(roundRubinIdx);
+        String nextStorageUrl() {
+            roundRobinIdx = (roundRobinIdx + 1) % storageUrls.size();
+            return storageUrls.get(roundRobinIdx);
         }
     }
 }
