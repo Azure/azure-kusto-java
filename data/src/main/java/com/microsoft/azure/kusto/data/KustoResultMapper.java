@@ -35,7 +35,7 @@ public class KustoResultMapper<R> {
 		 *            whether the column may contains null values
 		 * @param setter
 		 *            function for setting a cell value into a pojo instance
-		 * @return
+		 * @return {@link Builder} of the provided type of the object being populated (determined by the object the setter belongs to)
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, String name, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(KustoResultColumnPopulator.of(name, type, isNullable, setter));
@@ -58,7 +58,7 @@ public class KustoResultMapper<R> {
 		 *            whether the column may contains null values
 		 * @param setter
 		 *            function for setting a cell value into a pojo instance
-		 * @return
+		 * @return {@link Builder} of the provided type of the object being populated (determined by the object the setter belongs to)
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, String name, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(KustoResultColumnPopulator.of(name, ordinal, type, isNullable, setter));
@@ -78,7 +78,7 @@ public class KustoResultMapper<R> {
 		 *            whether the column may contains null values
 		 * @param setter
 		 *            function for setting a cell value into a pojo instance
-		 * @return
+		 * @return {@link Builder} of the provided type of the object being populated (determined by the object the setter belongs to)
 		 */
 		public <C> Builder<R> addColumn(KustoType<C> type, int ordinal, boolean isNullable, BiConsumer<R, C> setter) {
 			this.queryResultColumns.add(KustoResultColumnPopulator.of(ordinal, type, isNullable, setter));

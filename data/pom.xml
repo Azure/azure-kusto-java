@@ -94,9 +94,6 @@
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
                     <failOnWarning>true</failOnWarning>
-                    <ignoredUnusedDeclaredDependencies>
-                        <dependency>org.junit.jupiter:junit-jupiter-engine</dependency>
-                    </ignoredUnusedDeclaredDependencies>
                 </configuration>
                 <executions>
                     <execution>
@@ -122,17 +119,17 @@
     </build>
 
     <dependencies>
-        <!-- Added as version 9.0.0 breaks adal - remove after moving to msal -->
-        <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>nimbus-jose-jwt</artifactId>
-            <version>[6.0.1,9.0.0)</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
 	    <artifactId>msal4j</artifactId>
 	    <version>${msal4j.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
@@ -140,6 +137,12 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>httpcore</artifactId>
+                    <groupId>org.apache.httpcomponents</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -187,12 +190,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
@@ -205,6 +202,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-
 </project>
