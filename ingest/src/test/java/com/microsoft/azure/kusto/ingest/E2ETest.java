@@ -12,6 +12,8 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,8 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
     private static IngestClient ingestClient;
@@ -73,21 +74,20 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
     }
 
     private static void CreateTableAndMapping() {
-        KustoOperationResult result;
         try {
-            result = queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
         }
         try {
             Thread.sleep(2000);
-            result = queryClient.execute(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -96,7 +96,7 @@ class E2ETest {
         try {
             Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            result = queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
@@ -163,8 +163,7 @@ class E2ETest {
         });
     }
 
-    private void assertRowCount(int expectedRowsCount) {
-        KustoOperationResult result;
+    private void assertRowCount(int expectedRowsCount, boolean checkViaJson) {
         int timeoutInSec = 100;
         int actualRowsCount = 0;
 
@@ -173,13 +172,28 @@ class E2ETest {
                 Thread.sleep(5000);
                 timeoutInSec -= 5;
 
-                result = queryClient.execute(databaseName, String.format("%s | count", tableName));
+                if (checkViaJson) {
+                    String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
+                    JSONArray jsonArray = new JSONArray(result);
+                    JSONObject primaryResult = null;
+                    for (Object o : jsonArray) {
+                        if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
+                            primaryResult = new JSONObject(o.toString());
+                            break;
+                        }
+                    }
+                    assertNotNull(primaryResult);
+                    actualRowsCount = (Integer) ((JSONArray) ((JSONArray) primaryResult.get("Rows")).get(0)).get(0) - currentCount;
+                } else {
+                    KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
+                    KustoResultSetTable mainTableResult = result.getPrimaryResults();
+                    mainTableResult.next();
+                    actualRowsCount = mainTableResult.getInt(0) - currentCount;
+                }
             } catch (Exception ex) {
                 continue;
             }
-            KustoResultSetTable mainTableResult = result.getPrimaryResults();
-            mainTableResult.next();
-            actualRowsCount = mainTableResult.getInt(0) - currentCount;
+
             if (actualRowsCount >= expectedRowsCount) {
                 break;
             }
@@ -221,7 +235,7 @@ class E2ETest {
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(item.rows);
+            assertRowCount(item.rows, false);
         }
     }
 
@@ -238,7 +252,7 @@ class E2ETest {
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(item.rows);
+            assertRowCount(item.rows, true);
         }
     }
 
@@ -252,7 +266,7 @@ class E2ETest {
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(item.rows);
+                assertRowCount(item.rows, false);
             }
         }
     }
@@ -271,7 +285,7 @@ class E2ETest {
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(item.rows);
+                assertRowCount(item.rows, true);
             }
         }
     }
