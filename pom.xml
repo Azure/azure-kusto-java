@@ -42,7 +42,7 @@
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
         <json.version>20201115</json.version>
-        <fasterxml.jackson.core.version>2.12.1</fasterxml.jackson.core.version>
+        <fasterxml.jackson.core.version>[2.11.0,2.12.0)</fasterxml.jackson.core.version>
         <azure-storage.version>8.6.5</azure-storage.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
 

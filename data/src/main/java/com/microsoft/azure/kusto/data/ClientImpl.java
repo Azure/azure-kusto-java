@@ -73,7 +73,7 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        String response = executeForJsonResult(database, command, properties);
+        String response = executeToJsonResult(database, command, properties);
 
         String clusterEndpoint = determineClusterEndpoint(command);
         try {
@@ -84,17 +84,17 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public String executeForJsonResult(String command) throws DataServiceException, DataClientException {
-        return executeForJsonResult(DEFAULT_DATABASE_NAME, command);
+    public String executeToJsonResult(String command) throws DataServiceException, DataClientException {
+        return executeToJsonResult(DEFAULT_DATABASE_NAME, command);
     }
 
     @Override
-    public String executeForJsonResult(String database, String command) throws DataServiceException, DataClientException {
-        return executeForJsonResult(database, command, null);
+    public String executeToJsonResult(String database, String command) throws DataServiceException, DataClientException {
+        return executeToJsonResult(database, command, null);
     }
 
     @Override
-    public String executeForJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         // Argument validation
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
