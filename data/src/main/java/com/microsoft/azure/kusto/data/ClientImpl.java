@@ -181,7 +181,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
         String response = Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
-            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+            return new KustoOperationResult(response, "v1");
         } catch (KustoServiceError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         }
