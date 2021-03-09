@@ -4,18 +4,14 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
@@ -78,7 +74,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeForJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
@@ -86,12 +82,12 @@ class E2ETest {
 
     private static void CreateTableAndMapping() {
         try {
-            queryClient.executeForJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
         }
         try {
             Thread.sleep(2000);
-            queryClient.executeForJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -100,7 +96,7 @@ class E2ETest {
         try {
             Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            queryClient.executeForJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
@@ -177,7 +173,7 @@ class E2ETest {
                 timeoutInSec -= 5;
 
                 if (checkViaJson) {
-                    String result = queryClient.executeForJsonResult(databaseName, String.format("%s | count", tableName));
+                    String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
                     JSONArray jsonArray = new JSONArray(result);
                     JSONObject primaryResult = null;
                     for (Object o : jsonArray) {
