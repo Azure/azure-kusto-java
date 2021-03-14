@@ -310,11 +310,11 @@ class E2ETest {
     }
 
 //    This is an interactive aproach
-    @Test
-    void testCreateWithDeviceAuthentication() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), null);
-        assertTrue(hasAuthentication(engineCsb));
-    }
+//    @Test
+//    void testCreateWithDeviceAuthentication() {
+//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), null);
+//        assertTrue(hasAuthentication(engineCsb));
+//    }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
