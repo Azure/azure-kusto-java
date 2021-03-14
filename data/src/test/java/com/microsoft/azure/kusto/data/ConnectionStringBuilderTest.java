@@ -142,7 +142,18 @@ class ConnectionStringBuilderTest {
 
         String clusterUrl = "https://service.uri";
         csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl, "id", "appKey");
+
+        // The constructor should strip the url from fed=true
         client = new ClientImpl(csb);
         Assertions.assertEquals(clusterUrl, csb.getClusterUrl());
+    }
+
+    @Test
+    @DisplayName("validate createWithDeviceAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    void createWithDeviceAuthentication() {
+        //nullOrEmpty resourceUri
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> ConnectionStringBuilder
+                        .createWithDeviceAuthentication(null, null));
     }
 }
