@@ -34,7 +34,7 @@ public class TokenProviderFactory {
         } else if (csb.getTokenProvider() != null) {
             Callable<String> tokenProvider = csb.getTokenProvider();
             return new CallbackTokenProvider(tokenProvider, clusterUrl);
-        } else if(csb.getUseDeviceAuth()) {
+        } else if(csb.isUseDeviceCodeAuth()) {
             return new DeviceAuthTokenProvider(clusterUrl,authorityId);
         } else {
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {

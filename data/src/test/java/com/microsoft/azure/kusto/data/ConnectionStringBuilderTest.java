@@ -154,6 +154,8 @@ class ConnectionStringBuilderTest {
         //nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
-                        .createWithDeviceAuthentication(null, null));
+                        .createWithDeviceCode(null, null));
+        Assertions.assertDoesNotThrow(() -> ConnectionStringBuilder
+                .createWithDeviceCode("resource.uri"));
     }
 }

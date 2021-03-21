@@ -14,10 +14,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -309,12 +306,12 @@ class E2ETest {
         assertTrue(hasAuthentication(engineCsb));
     }
 
-//    This is an interactive aproach
-//    @Test
-//    void testCreateWithDeviceAuthentication() {
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), null);
-//        assertTrue(hasAuthentication(engineCsb));
-//    }
+    @Test
+    @Disabled("This is an interactive approach. Remove this line to test manually.")
+    void testCreateWithDeviceAuthentication() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
+        assertTrue(hasAuthentication(engineCsb));
+    }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
