@@ -14,10 +14,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -39,7 +36,7 @@ class E2ETest {
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
-    private static final String tenantId = System.getenv("TENANT_ID");
+    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID","microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -204,11 +201,11 @@ class E2ETest {
 
     @Test
     void testShowPrincipals() {
-        boolean found = showDatabasePrincipals(queryClient);
+        boolean found = isDatabasePrincipal(queryClient);
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
-    private boolean showDatabasePrincipals(ClientImpl localQueryClient) {
+    private boolean isDatabasePrincipal(ClientImpl localQueryClient) {
         KustoOperationResult result = null;
         boolean found = false;
         try {
@@ -290,20 +287,12 @@ class E2ETest {
         }
     }
 
-    private boolean createClients(ConnectionStringBuilder dmCsb, ConnectionStringBuilder engineCsb) {
-        try {
-            IngestClientFactory.createClient(dmCsb);
-            ClientImpl localIngestClient = new ClientImpl(dmCsb);
-//            assertTrue(showDatabasePrincipals(localIngestClient));
-        } catch (URISyntaxException ex) {
-            Assertions.fail("Failed to create ingest client", ex);
-            return false;
-        }
+    private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
         try {
             IngestClientFactory.createStreamingIngestClient(engineCsb);
             ClientImpl localEngineClient = new ClientImpl(engineCsb);
-            assertTrue(showDatabasePrincipals(localEngineClient));
-            assertTrue(showDatabasePrincipals(localEngineClient)); // Hit cache
+            assertTrue(isDatabasePrincipal(localEngineClient));
+            assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
             return false;
@@ -313,40 +302,42 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("DM_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    @Disabled("This is an interactive approach. Remove this line to test manually.")
+    void testCreateWithDeviceAuthentication() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("DM_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
         String token = System.getenv("TOKEN");
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("DM_CONNECTION_STRING"), token);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("DM_CONNECTION_STRING"), tokenProviderCallable);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 }
