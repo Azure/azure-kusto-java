@@ -9,7 +9,7 @@ import java.net.URISyntaxException;
 import java.util.function.Consumer;
 
 public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
-    DeviceAuthTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+    public DeviceAuthTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
         try {
             clientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();

@@ -287,7 +287,7 @@ class E2ETest {
         }
     }
 
-    private boolean hasAuthentication(ConnectionStringBuilder engineCsb) {
+    private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
         try {
             IngestClientFactory.createStreamingIngestClient(engineCsb);
             ClientImpl localEngineClient = new ClientImpl(engineCsb);
@@ -303,14 +303,14 @@ class E2ETest {
     @Test
     void testCreateWithUserPrompt() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithDeviceAuthentication() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
@@ -318,26 +318,26 @@ class E2ETest {
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
         String token = System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
-        assertTrue(hasAuthentication(engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 }
