@@ -4,14 +4,18 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
@@ -339,5 +343,56 @@ class E2ETest {
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
+        StopWatch stopWatch = new StopWatch();
+
+        // Standard approach - API converts json to KustoOperationResult
+        stopWatch.start();
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeConvertedToJavaObj = stopWatch.getTime();
+        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(), timeConvertedToJavaObj);
+
+        // Specialized use case - API returns raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        String jsonResult = queryClient.executeToJsonResult(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeRawJson = stopWatch.getTime();
+        System.out.printf("Raw json result size='%s' returned in '%s'ms%n", jsonResult.length(), timeRawJson);
+
+        // Depends on many transient factors, but is ~15% cheaper when there are many records
+        //assertTrue(timeRawJson < timeConvertedToJavaObj);
+
+        // Specialized use case - API streams raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        // Note: The InputStream *must* be closed by the caller to prevent memory leaks
+        try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            StringBuilder streamedResult = new StringBuilder();
+            char[] buffer = new char[65536];
+            String streamedLine;
+            long prevTime = 0;
+            int count = 0;
+            while ((br.read(buffer)) > -1) {
+                count++;
+                streamedLine = String.valueOf(buffer);
+                streamedResult.append(streamedLine);
+                streamedResult.append("\n");
+                long currTime = stopWatch.getTime();
+                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", streamedLine.length(), (currTime - prevTime));
+                prevTime = currTime;
+            }
+            stopWatch.stop();
+            long timeStreaming = stopWatch.getTime();
+            System.out.printf("Streamed raw json of length '%s' in '%s'ms, using '%s' streamed segments%n", streamedResult.length(), timeStreaming, count);
+            assertTrue(count > 0);
+        }
     }
 }
