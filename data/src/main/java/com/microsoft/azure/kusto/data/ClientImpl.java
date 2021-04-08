@@ -106,13 +106,13 @@ public class ClientImpl implements Client, StreamingClient {
         command = command.trim();
 
         String clusterEndpoint = determineClusterEndpoint(command);
-        Long timeoutMs = determineTimeout(properties, command);
+        long timeoutMs = determineTimeout(properties, command);
 
         Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute");
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
     @Override
@@ -151,7 +151,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceError e) {

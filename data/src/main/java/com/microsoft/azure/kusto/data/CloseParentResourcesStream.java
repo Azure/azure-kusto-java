@@ -20,8 +20,8 @@ public class CloseParentResourcesStream extends InputStream {
     private final CloseableHttpClient httpClient;
     private final CloseableHttpResponse httpResponse;
 
-    public CloseParentResourcesStream(InputStream innerStream, CloseableHttpClient httpClient, CloseableHttpResponse httpResponse) {
-        this.innerStream = innerStream;
+    public CloseParentResourcesStream(CloseableHttpClient httpClient, CloseableHttpResponse httpResponse) throws IOException {
+        this.innerStream = httpResponse.getEntity().getContent();
         this.httpClient = httpClient;
         this.httpResponse = httpResponse;
     }

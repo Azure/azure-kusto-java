@@ -18,13 +18,15 @@ import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,21 +40,16 @@ import java.util.zip.GZIPInputStream;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private Utils() {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(String url, String payload, InputStream stream, Integer timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
 
-        HttpClient httpClient;
-        if (timeoutMs != null) {
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
-            httpClient = HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
-        } else {
-            httpClient = HttpClients.createSystem();
-        }
+        HttpClient httpClient = getHttpClient(Math.toIntExact(timeoutMs));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
@@ -92,6 +89,7 @@ class Utils {
     static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
+        boolean returnInputStream = false;
         /*
          *  The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse).
          *  We use CloseParentResourcesStream so that when the stream is closed, these resources are closed as well. We
@@ -100,27 +98,38 @@ class Utils {
          *  with the entity or the response itself." However, in my testing this wasn't reliably the case.
          *  We further use EofSensorInputStream to close the stream even if not explicitly closed, once all content is consumed.
          */
-        CloseableHttpResponse httpResponse;
-        CloseableHttpClient httpClient = getHttpClient(timeoutTimeMs - System.currentTimeMillis());
+        CloseableHttpClient httpClient = null;
+        CloseableHttpResponse httpResponse = null;
         try {
+            httpClient = getHttpClient(Math.toIntExact(timeoutTimeMs - System.currentTimeMillis()));
             httpResponse = httpClient.execute(setupHttpPostRequest(uri, payload, null, headers));
 
-            int status = httpResponse.getStatusLine().getStatusCode();
+            int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
 
-            if (status == HttpStatus.SC_OK) {
-                InputStream contentStream = new CloseParentResourcesStream(new EofSensorInputStream(httpResponse.getEntity().getContent(), null), httpClient, httpResponse);
+            if (responseStatusCode == HttpStatus.SC_OK) {
+                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpClient, httpResponse), null);
                 Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING)).findFirst();
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
-                        return new GZIPInputStream(contentStream);
+                        GZIPInputStream gzipInputStream = new GZIPInputStream(contentStream);
+                        returnInputStream = true;
+                        return gzipInputStream;
                     } else if (contentEncoding.get().getValue().contains("deflate")) {
-                        return new DeflaterInputStream(contentStream);
+                        DeflaterInputStream deflaterInputStream = new DeflaterInputStream(contentStream);
+                        returnInputStream = true;
+                        return deflaterInputStream;
                     }
                 }
                 // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which handles the above logic
+                returnInputStream = true;
                 return contentStream;
-            } else if ((status == HttpStatus.SC_MOVED_TEMPORARILY || status == HttpStatus.SC_TEMPORARY_REDIRECT)
-                    && redirectCount + 1 <= MAX_REDIRECT_COUNT) {
+            }
+
+            // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
+            httpResponse.close();
+            httpClient.close();
+
+            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
                 Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
                     return postToStreamingOutput(redirectLocation.get().getValue(), payload, timeoutMs, headers, redirectCount + 1);
@@ -129,16 +138,48 @@ class Utils {
         } catch (IOException ex) {
             throw new DataServiceException("postToStreamingOutput failed to get or decompress response stream for url=" + url, ex);
         } catch (Exception ex) {
-            throw new DataServiceException("postToStreamingOutput failed to send request to url=" + url, ex);
+            throw createExceptionFromResponse(httpResponse, ex);
+        } finally {
+            closeResourcesIfNeeded(returnInputStream, httpClient, httpResponse);
         }
 
-        /*
-         *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
-         *   content errors this API can return: (1) Inline error (engine identifies error after it starts building the json
-         *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
-         */
-        String activityId = determineActivityId(httpResponse);
-        throw new DataServiceException(String.format("Didn't receive successful response to streaming query request. Response Code = '%s', ActivityId = '%s'", httpResponse.getStatusLine().getStatusCode(), activityId));
+        throw createExceptionFromResponse(httpResponse, null);
+    }
+
+    private static DataServiceException createExceptionFromResponse(CloseableHttpResponse httpResponse, Exception ex) {
+        if (httpResponse == null) {
+            return new DataServiceException("postToStreamingOutput failed to send request", ex);
+        } else {
+            /*
+             *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
+             *   content errors this API can return: (1) Inline error (engine identifies error after it starts building the json
+             *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
+             */
+            String activityId = determineActivityId(httpResponse);
+            return new DataServiceException(String.format("postToStreamingOutput didn't receive successful response to streaming query request. Response Code = '%s', ActivityId = '%s'", httpResponse.getStatusLine().getStatusCode(), activityId), ex);
+        }
+    }
+
+    private static void closeResourcesIfNeeded(boolean returnInputStream, CloseableHttpClient httpClient, CloseableHttpResponse httpResponse) {
+        // If we close the resources after returning the InputStream to the caller, they won't be able to read from it
+        if (!returnInputStream) {
+            try {
+                if (httpResponse != null) {
+                    httpResponse.close();
+                }
+                if (httpClient != null) {
+                    httpClient.close();
+                }
+            } catch (IOException ex) {
+                // There's nothing we can do if the resources can't be closed, and we don't want to add an exception to the signature
+                LOGGER.error("Couldn't close HttpClient resources. This won't affect the POST call, but should be investigated.");
+            }
+        }
+    }
+
+    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
+        return (status == HttpStatus.SC_MOVED_TEMPORARILY || status == HttpStatus.SC_TEMPORARY_REDIRECT)
+                && redirectCount + 1 <= MAX_REDIRECT_COUNT;
     }
 
     private static String determineActivityId(HttpResponse httpResponse) {
@@ -150,13 +191,9 @@ class Utils {
         return activityId;
     }
 
-    private static CloseableHttpClient getHttpClient(Long timeoutMs) {
-        if (timeoutMs != null) {
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs.intValue()).build();
-            return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
-        } else {
-            return HttpClients.createSystem();
-        }
+    private static CloseableHttpClient getHttpClient(int timeoutMs) {
+        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
+        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
