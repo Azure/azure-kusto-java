@@ -191,6 +191,15 @@ class Utils {
         return activityId;
     }
 
+    /*
+     *  TODO: Per the Apache HttpClient docs: "Generally it is recommended to have a single instance of HttpClient per
+     *  communication component or even per application. However, if the application makes use of HttpClient only very
+     *  infrequently, and keeping an idle instance of HttpClient in memory is not warranted, it is highly recommended to
+     *  explicitly shut down the multithreaded connection manager prior to disposing the HttpClient instance. This will
+     *  ensure proper closure of all HTTP connections in the connection pool."
+     *  I'll add as an issue for a future enhancement that both POST methods should reuse the HttpClient via Factory,
+     *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
+     */
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
         RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
         return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
