@@ -64,16 +64,7 @@ class Utils {
                 if (statusLine.getStatusCode() == 200) {
                     return responseContent;
                 } else {
-                    if (StringUtils.isBlank(responseContent)) {
-                        responseContent = response.getStatusLine().toString();
-                    }
-                    String message = "";
-                    DataWebException ex = new DataWebException(responseContent, response);
-                    try {
-                        message = ex.getApiError().getDescription();
-                    } catch (Exception ignored1) {
-                    }
-                    throw new DataServiceException(url, message, ex);
+                    throw createExceptionFromResponse(url, response, null, responseContent);
                 }
             }
         } catch (JSONException | IOException e) {
@@ -90,6 +81,7 @@ class Utils {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
+        String errorFromResponse = null;
         /*
          *  The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse).
          *  We use CloseParentResourcesStream so that when the stream is closed, these resources are closed as well. We
@@ -125,6 +117,7 @@ class Utils {
                 return contentStream;
             }
 
+            errorFromResponse = EntityUtils.toString(httpResponse.getEntity());
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
             httpClient.close();
@@ -136,19 +129,19 @@ class Utils {
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException("postToStreamingOutput failed to get or decompress response stream for url=" + url, ex);
+            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream", ex);
         } catch (Exception ex) {
-            throw createExceptionFromResponse(httpResponse, ex);
+            throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
             closeResourcesIfNeeded(returnInputStream, httpClient, httpResponse);
         }
 
-        throw createExceptionFromResponse(httpResponse, null);
+        throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
     }
 
-    private static DataServiceException createExceptionFromResponse(CloseableHttpResponse httpResponse, Exception ex) {
+    private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
-            return new DataServiceException("postToStreamingOutput failed to send request", ex);
+            return new DataServiceException(url, "POST failed to send request", thrownException);
         } else {
             /*
              *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
@@ -156,7 +149,18 @@ class Utils {
              *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
              */
             String activityId = determineActivityId(httpResponse);
-            return new DataServiceException(String.format("postToStreamingOutput didn't receive successful response to streaming query request. Response Code = '%s', ActivityId = '%s'", httpResponse.getStatusLine().getStatusCode(), activityId), ex);
+            if (StringUtils.isBlank(errorFromResponse)) {
+                errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
+                return new DataServiceException(url, errorFromResponse, thrownException);
+            } else {
+                String message = "";
+                DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
+                try {
+                    message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
+                } catch (Exception ignored) {
+                }
+                return new DataServiceException(url, message, formattedException);
+            }
         }
     }
 
