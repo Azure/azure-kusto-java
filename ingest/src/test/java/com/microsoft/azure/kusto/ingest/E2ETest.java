@@ -4,18 +4,21 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.apache.commons.lang3.time.StopWatch;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -28,8 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
     private static IngestClient ingestClient;
@@ -38,7 +40,7 @@ class E2ETest {
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
-    private static final String tenantId = System.getenv("TENANT_ID");
+    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID","microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -73,21 +75,20 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
     }
 
     private static void CreateTableAndMapping() {
-        KustoOperationResult result;
         try {
-            result = queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
         }
         try {
             Thread.sleep(2000);
-            result = queryClient.execute(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -96,7 +97,7 @@ class E2ETest {
         try {
             Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            result = queryClient.execute(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
@@ -163,8 +164,7 @@ class E2ETest {
         });
     }
 
-    private void assertRowCount(int expectedRowsCount) {
-        KustoOperationResult result;
+    private void assertRowCount(int expectedRowsCount, boolean checkViaJson) {
         int timeoutInSec = 100;
         int actualRowsCount = 0;
 
@@ -173,13 +173,28 @@ class E2ETest {
                 Thread.sleep(5000);
                 timeoutInSec -= 5;
 
-                result = queryClient.execute(databaseName, String.format("%s | count", tableName));
+                if (checkViaJson) {
+                    String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
+                    JSONArray jsonArray = new JSONArray(result);
+                    JSONObject primaryResult = null;
+                    for (Object o : jsonArray) {
+                        if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
+                            primaryResult = new JSONObject(o.toString());
+                            break;
+                        }
+                    }
+                    assertNotNull(primaryResult);
+                    actualRowsCount = (Integer) ((JSONArray) ((JSONArray) primaryResult.get("Rows")).get(0)).get(0) - currentCount;
+                } else {
+                    KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
+                    KustoResultSetTable mainTableResult = result.getPrimaryResults();
+                    mainTableResult.next();
+                    actualRowsCount = mainTableResult.getInt(0) - currentCount;
+                }
             } catch (Exception ex) {
                 continue;
             }
-            KustoResultSetTable mainTableResult = result.getPrimaryResults();
-            mainTableResult.next();
-            actualRowsCount = mainTableResult.getInt(0) - currentCount;
+
             if (actualRowsCount >= expectedRowsCount) {
                 break;
             }
@@ -190,11 +205,11 @@ class E2ETest {
 
     @Test
     void testShowPrincipals() {
-        boolean found = showDatabasePrincipals(queryClient);
+        boolean found = isDatabasePrincipal(queryClient);
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
-    private boolean showDatabasePrincipals(ClientImpl localQueryClient) {
+    private boolean isDatabasePrincipal(ClientImpl localQueryClient) {
         KustoOperationResult result = null;
         boolean found = false;
         try {
@@ -221,7 +236,7 @@ class E2ETest {
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(item.rows);
+            assertRowCount(item.rows, false);
         }
     }
 
@@ -238,7 +253,7 @@ class E2ETest {
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
-            assertRowCount(item.rows);
+            assertRowCount(item.rows, true);
         }
     }
 
@@ -252,7 +267,7 @@ class E2ETest {
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(item.rows);
+                assertRowCount(item.rows, false);
             }
         }
     }
@@ -271,25 +286,17 @@ class E2ETest {
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
-                assertRowCount(item.rows);
+                assertRowCount(item.rows, true);
             }
         }
     }
 
-    private boolean createClients(ConnectionStringBuilder dmCsb, ConnectionStringBuilder engineCsb) {
-        try {
-            IngestClientFactory.createClient(dmCsb);
-            ClientImpl localIngestClient = new ClientImpl(dmCsb);
-//            assertTrue(showDatabasePrincipals(localIngestClient));
-        } catch (URISyntaxException ex) {
-            Assertions.fail("Failed to create ingest client", ex);
-            return false;
-        }
+    private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
         try {
             IngestClientFactory.createStreamingIngestClient(engineCsb);
             ClientImpl localEngineClient = new ClientImpl(engineCsb);
-            assertTrue(showDatabasePrincipals(localEngineClient));
-            assertTrue(showDatabasePrincipals(localEngineClient)); // Hit cache
+            assertTrue(isDatabasePrincipal(localEngineClient));
+            assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
             return false;
@@ -299,40 +306,93 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("DM_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    @Disabled("This is an interactive approach. Remove this line to test manually.")
+    void testCreateWithDeviceAuthentication() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("DM_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
         String token = System.getenv("TOKEN");
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("DM_CONNECTION_STRING"), token);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("DM_CONNECTION_STRING"), tokenProviderCallable);
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
-        assertTrue(createClients(dmCsb, engineCsb));
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
+        StopWatch stopWatch = new StopWatch();
+
+        // Standard approach - API converts json to KustoOperationResult
+        stopWatch.start();
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeConvertedToJavaObj = stopWatch.getTime();
+        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(), timeConvertedToJavaObj);
+
+        // Specialized use case - API returns raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        String jsonResult = queryClient.executeToJsonResult(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeRawJson = stopWatch.getTime();
+        System.out.printf("Raw json result size='%s' returned in '%s'ms%n", jsonResult.length(), timeRawJson);
+
+        // Depends on many transient factors, but is ~15% cheaper when there are many records
+        //assertTrue(timeRawJson < timeConvertedToJavaObj);
+
+        // Specialized use case - API streams raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        // Note: The InputStream *must* be closed by the caller to prevent memory leaks
+        try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            StringBuilder streamedResult = new StringBuilder();
+            char[] buffer = new char[65536];
+            String streamedLine;
+            long prevTime = 0;
+            int count = 0;
+            while ((br.read(buffer)) > -1) {
+                count++;
+                streamedLine = String.valueOf(buffer);
+                streamedResult.append(streamedLine);
+                streamedResult.append("\n");
+                long currTime = stopWatch.getTime();
+                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", streamedLine.length(), (currTime - prevTime));
+                prevTime = currTime;
+            }
+            stopWatch.stop();
+            long timeStreaming = stopWatch.getTime();
+            System.out.printf("Streamed raw json of length '%s' in '%s'ms, using '%s' streamed segments%n", streamedResult.length(), timeStreaming, count);
+            assertTrue(count > 0);
+        }
     }
 }

@@ -16,8 +16,8 @@ import java.util.concurrent.TimeoutException;
 
 public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     // TODO: Get ClientId from CM endpoint
-    static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
-    IPublicClientApplication clientApplication;
+    protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    protected IPublicClientApplication clientApplication;
 
     PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);

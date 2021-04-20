@@ -8,7 +8,9 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHeaders;
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -50,7 +52,7 @@ public class ClientImpl implements Client, StreamingClient {
         clusterUrl = url;
         aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
-        String version = Utils.GetPackageVersion();
+        String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
             clientVersionForTracing += ":" + version;
         }
@@ -72,48 +74,45 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        // Argument validation:
-        if (StringUtils.isAnyEmpty(database, command)) {
-            throw new IllegalArgumentException("database or command are empty");
-        }
-        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        String response = executeToJsonResult(database, command, properties);
 
-        String clusterEndpoint;
-        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
-            if (timeoutMs == null) {
-                timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
-            }
-        } else {
-            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
-            if (timeoutMs == null) {
-                timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
-            }
-        }
-
-        String clientRequestId = null;
-        String jsonString;
+        String clusterEndpoint = determineClusterEndpoint(command);
         try {
-            JSONObject json = new JSONObject()
-                    .put("db", database)
-                    .put("csl", command);
-
-            if (properties != null) {
-                json.put("properties", properties.toString());
-                clientRequestId = properties.getClientRequestId();
-            }
-
-            jsonString = json.toString();
-        } catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
+            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+        } catch (KustoServiceError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         }
+    }
 
-        HashMap<String, String> headers = initHeaders();
-        headers.put("Content-Type", "application/json");
-        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.execute;%s", java.util.UUID.randomUUID()) : clientRequestId);
-        headers.put("Fed", "True");
+    @Override
+    public String executeToJsonResult(String command) throws DataServiceException, DataClientException {
+        return executeToJsonResult(DEFAULT_DATABASE_NAME, command);
+    }
 
-        return Utils.post(clusterEndpoint, jsonString, null, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+    @Override
+    public String executeToJsonResult(String database, String command) throws DataServiceException, DataClientException {
+        return executeToJsonResult(database, command, null);
+    }
+
+    @Override
+    public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+        // Argument validation
+        if (StringUtils.isEmpty(database)) {
+            throw new IllegalArgumentException("Database is empty");
+        }
+        if (StringUtils.isEmpty(command)) {
+            throw new IllegalArgumentException("Command is empty");
+        }
+        command = command.trim();
+
+        String clusterEndpoint = determineClusterEndpoint(command);
+        long timeoutMs = determineTimeout(properties, command);
+
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute");
+        addCommandHeaders(headers);
+        String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
+
+        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
     @Override
@@ -135,13 +134,11 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        HashMap<String, String> headers = initHeaders();
-        String clientRequestId = null;
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest");
 
         Long timeoutMs = null;
         if (properties != null) {
             timeoutMs = properties.getTimeoutInMilliSec();
-            clientRequestId = properties.getClientRequestId();
             Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
                 Map.Entry<String, Object> pair = iterator.next();
@@ -149,22 +146,108 @@ public class ClientImpl implements Client, StreamingClient {
             }
         }
 
-        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("KJC.executeStreamingIngest;%s", java.util.UUID.randomUUID()) : clientRequestId);
-        headers.put("Content-Encoding", "gzip");
+        headers.put(HttpHeaders.CONTENT_ENCODING, "gzip");
 
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        return Utils.post(clusterEndpoint, null, stream, timeoutMs.intValue() + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        try {
+            return new KustoOperationResult(response, "v1");
+        } catch (KustoServiceError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        }
     }
 
-    private HashMap<String, String> initHeaders() throws DataServiceException, DataClientException {
-        HashMap<String, String> headers = new HashMap<>();
+    @Override
+    public InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException {
+        return executeStreamingQuery(DEFAULT_DATABASE_NAME, command);
+    }
+
+    @Override
+    public InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException {
+        return executeStreamingQuery(database, command, null);
+    }
+
+    @Override
+    public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+        if (StringUtils.isEmpty(database)) {
+            throw new IllegalArgumentException("Database is empty");
+        }
+        if (StringUtils.isEmpty(command)) {
+            throw new IllegalArgumentException("Command is empty");
+        }
+        command = command.trim();
+
+        String clusterEndpoint = determineClusterEndpoint(command);
+        long timeoutMs = determineTimeout(properties, command);
+
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming");
+        addCommandHeaders(headers);
+        String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
+
+        return Utils.postToStreamingOutput(clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+    }
+
+    private String determineClusterEndpoint(String command) {
+        String clusterEndpoint;
+        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
+            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
+        } else {
+            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
+        }
+        return clusterEndpoint;
+    }
+
+    private long determineTimeout(ClientRequestProperties properties, String command) {
+        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        if (timeoutMs == null) {
+            if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
+                timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
+            } else {
+                timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
+            }
+        }
+        return timeoutMs;
+    }
+
+    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties, String clientRequestIdPrefix) throws DataServiceException, DataClientException {
+        Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);
         }
-        headers.put("Authorization", String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+        headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+
+        String clientRequestId = null;
+        if (properties != null) {
+            clientRequestId = properties.getClientRequestId();
+        }
+        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("%s;%s", clientRequestIdPrefix, java.util.UUID.randomUUID()) : clientRequestId);
         return headers;
+    }
+
+    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint) throws DataClientException {
+        String jsonPayload;
+        try {
+            JSONObject json = new JSONObject()
+                    .put("db", database)
+                    .put("csl", command);
+
+            if (properties != null) {
+                json.put("properties", properties.toString());
+            }
+
+            jsonPayload = json.toString();
+        } catch (JSONException e) {
+            throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
+        }
+
+        return jsonPayload;
+    }
+
+    private void addCommandHeaders(Map<String, String> headers) {
+        headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
+        headers.put("Fed", "True");
     }
 }

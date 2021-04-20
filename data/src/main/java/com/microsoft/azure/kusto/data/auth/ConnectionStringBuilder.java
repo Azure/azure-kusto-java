@@ -28,6 +28,7 @@ public class ConnectionStringBuilder {
     private String applicationNameForTracing;
     private String accessToken;
     private Callable<String> tokenProvider;
+    private boolean useDeviceCodeAuth;
 
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
@@ -40,6 +41,7 @@ public class ConnectionStringBuilder {
         privateKey = null;
         accessToken = null;
         tokenProvider = null;
+        useDeviceCodeAuth = false;
     }
 
     public String getClusterUrl() {
@@ -102,6 +104,10 @@ public class ConnectionStringBuilder {
         return tokenProvider;
     }
 
+    boolean isUseDeviceCodeAuth() {
+        return useDeviceCodeAuth;
+    }
+
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String resourceUri,
                                                                               String applicationClientId,
                                                                               String applicationKey) {
@@ -145,6 +151,21 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.aadAuthorityId = authorityId;
         csb.usernameHint = usernameHint;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithDeviceCode(String resourceUri) {
+        return createWithDeviceCode(resourceUri, DEFAULT_DEVICE_AUTH_TENANT);
+    }
+
+    public static ConnectionStringBuilder createWithDeviceCode(String resourceUri, String authorityId) {
+        if (StringUtils.isEmpty(resourceUri)) {
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.aadAuthorityId = authorityId;
+        csb.useDeviceCodeAuth = true;
         return csb;
     }
 
