@@ -9,7 +9,7 @@ import org.json.JSONObject;
 public class DataWebException extends Exception{
 
     private String message;
-    private HttpResponse httpResponse;
+    private final HttpResponse httpResponse;
     private OneApiError apiError;
 
     public String getMessage() { return message; }
@@ -24,22 +24,22 @@ public class DataWebException extends Exception{
 
     public OneApiError getApiError() {
         if (apiError == null) {
-            JSONObject jsonObject = new JSONObject(getMessage());
-            apiError = createApiError(jsonObject);
+            JSONObject jsonObject = new JSONObject(getMessage()).getJSONObject("error");
+            apiError = new OneApiError(
+                    jsonObject.getString("code"),
+                    jsonObject.getString("message"),
+                    jsonObject.getString("@message"),
+                    jsonObject.getString("@type"),
+                    jsonObject.getJSONObject("@context"),
+                    jsonObject.getBoolean("@permanent")
+            );
         }
 
         return apiError;
     }
 
-    static public OneApiError createApiError(JSONObject obj){
-        JSONObject jsonObject = obj.getJSONObject("error");
-        return new OneApiError(
-                jsonObject.getString("code"),
-                jsonObject.getString("message"),
-                jsonObject.getString("@message"),
-                jsonObject.getString("@type"),
-                jsonObject.getJSONObject("@context"),
-                jsonObject.getBoolean("@permanent")
-        );
+    @Override
+    public String toString() {
+        return message;
     }
 }

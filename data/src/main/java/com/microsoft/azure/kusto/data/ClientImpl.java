@@ -80,7 +80,12 @@ public class ClientImpl implements Client, StreamingClient {
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceError e) {
-            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+            if (e.getExceptions().isEmpty()){
+                throw new DataClientException(clusterEndpoint,
+                        "Error parsing json response as KustoOperationResult:" + e.getMessage(), e);
+            } else {
+                throw new DataServiceException(e.getMessage(), e);
+            }
         }
     }
 

@@ -12,7 +12,8 @@ import java.util.List;
 public class KustoServiceError extends Exception {
     private ArrayList<Exception> exceptions = null;
 
-    public KustoServiceError(JSONArray exceptions, boolean isOneApi) throws JSONException {
+    public KustoServiceError(JSONArray exceptions, boolean isOneApi, String message) throws JSONException {
+        this(message);
         this.exceptions = new ArrayList<>();
         if (isOneApi){
             for (int j = 0; j < exceptions.length(); j++) {
@@ -31,5 +32,10 @@ public class KustoServiceError extends Exception {
 
     public List<Exception> getExceptions() {
         return exceptions;
+    }
+
+    @Override
+    public String toString() {
+        return "{\"exceptions\":" + exceptions + "}";
     }
 }

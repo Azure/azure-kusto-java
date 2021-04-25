@@ -36,6 +36,7 @@ public class KustoResultSetTable implements ResultSet {
     private static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
     private static final String ROWS_PROPERTY_NAME = "Rows";
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
+    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with inner exceptions";
 
     private final List<List<Object>> rows;
     private String tableName;
@@ -107,11 +108,11 @@ public class KustoResultSetTable implements ResultSet {
                             String message = exceptions.getString(0);
                             throw new KustoServiceError(message);
                         } else {
-                            throw new KustoServiceError(exceptions, false);
+                            throw new KustoServiceError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
                         throw new KustoServiceError(((JSONObject) row).getJSONArray(
-                                "OneApiErrors"),true);
+                                "OneApiErrors"),true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
