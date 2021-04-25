@@ -12,13 +12,19 @@ import java.util.List;
 public class KustoServiceError extends Exception {
     private ArrayList<Exception> exceptions = null;
 
-    public KustoServiceError(JSONArray exceptions) throws JSONException {
+    public KustoServiceError(JSONArray exceptions, boolean isOneApi) throws JSONException {
         this.exceptions = new ArrayList<>();
-        for (int j = 0; j < exceptions.length(); j++) {
-            this.exceptions.add(new Exception(exceptions.getString(j)));
+        if (isOneApi){
+            for (int j = 0; j < exceptions.length(); j++) {
+                this.exceptions.add(new DataWebException(exceptions.getJSONObject(j).toString(), null));
+            }
+        } else {
+            for (int j = 0; j < exceptions.length(); j++) {
+                this.exceptions.add(new Exception(exceptions.getString(j)));
+            }
         }
-
     }
+
     public KustoServiceError(String message) {
         super(message);
     }

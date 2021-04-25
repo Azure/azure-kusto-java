@@ -3,7 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -105,8 +107,11 @@ public class KustoResultSetTable implements ResultSet {
                             String message = exceptions.getString(0);
                             throw new KustoServiceError(message);
                         } else {
-                            throw new KustoServiceError(exceptions);
+                            throw new KustoServiceError(exceptions, false);
                         }
+                    } else {
+                        throw new KustoServiceError(((JSONObject) row).getJSONArray(
+                                "OneApiErrors"),true);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
