@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
+/*
+  This class represents an error that happened on the client side and is therefore considered permanent
+ */
 public class DataClientException extends Exception {
     private String ingestionSource;
 
@@ -21,5 +24,9 @@ public class DataClientException extends Exception {
     public DataClientException(String ingestionSource, String message, Exception exception) {
         super(message, exception);
         this.ingestionSource = ingestionSource;
+    }
+
+    public Boolean isPermanent(){
+        return true;
     }
 }

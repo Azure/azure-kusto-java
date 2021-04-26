@@ -9,6 +9,9 @@ import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+  This class represents an error that returned from the service
+ */
 public class KustoServiceError extends Exception {
     private ArrayList<Exception> exceptions = null;
 
@@ -37,5 +40,16 @@ public class KustoServiceError extends Exception {
     @Override
     public String toString() {
         return "{\"exceptions\":" + exceptions + "}";
+    }
+
+    /*
+      Can return null if permanency is not known
+     */
+    public Boolean isPermanent(){
+        if (exceptions != null && exceptions.size() > 0 && exceptions.get(0) instanceof DataWebException) {
+            return ((DataWebException) exceptions.get(0)).getApiError().isPermanent();
+        }
+
+        return null;
     }
 }
