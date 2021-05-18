@@ -129,7 +129,8 @@ class Utils {
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream", ex);
+            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
+                    ex, false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -141,7 +142,7 @@ class Utils {
 
     private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
-            return new DataServiceException(url, "POST failed to send request", thrownException);
+            return new DataServiceException(url, "POST failed to send request", thrownException, null);
         } else {
             /*
              *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
@@ -151,7 +152,7 @@ class Utils {
             String activityId = determineActivityId(httpResponse);
             if (StringUtils.isBlank(errorFromResponse)) {
                 errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                return new DataServiceException(url, errorFromResponse, thrownException);
+                return new DataServiceException(url, errorFromResponse, thrownException, null);
             } else {
                 String message = "";
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
@@ -159,7 +160,7 @@ class Utils {
                     message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
                 } catch (Exception ignored) {
                 }
-                return new DataServiceException(url, message, formattedException);
+                return new DataServiceException(url, message, formattedException, formattedException.getApiError().isPermanent());
             }
         }
     }

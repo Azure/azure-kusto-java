@@ -63,13 +63,13 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (TimeoutException | ExecutionException e) {
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
         if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result", null);
         }
         return result;
     }

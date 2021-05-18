@@ -403,10 +403,10 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail", ex);
+                        throw new DataServiceException("Test fail", ex, false);
                     }).thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail", ex);
+                        throw new DataServiceException("Test fail", ex, false);
                     }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -437,9 +437,9 @@ class ManagedStreamingIngestClientTest {
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
-                        throw new DataServiceException("Test fail", ex);
+                        throw new DataServiceException("Test fail", ex, true);
                     }).thenAnswer((a) -> {
-                throw new DataServiceException("Test fail", ex);
+                throw new DataServiceException("Test fail", ex, true);
             }).thenReturn(null);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             assertThrows(IngestionServiceException.class, () -> {

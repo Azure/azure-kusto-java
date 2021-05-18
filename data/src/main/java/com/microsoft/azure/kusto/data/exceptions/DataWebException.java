@@ -22,6 +22,12 @@ public class DataWebException extends Exception{
         this.apiError = null;
     }
 
+    public DataWebException(String message) {
+        this.message = message;
+        this.httpResponse = null;
+        this.apiError = null;
+    }
+
     public OneApiError getApiError() {
         if (apiError == null) {
             JSONObject jsonObject = new JSONObject(getMessage()).getJSONObject("error");

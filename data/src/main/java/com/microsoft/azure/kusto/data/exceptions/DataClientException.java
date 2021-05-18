@@ -6,7 +6,7 @@ package com.microsoft.azure.kusto.data.exceptions;
 /*
   This class represents an error that happened on the client side and is therefore considered permanent
  */
-public class DataClientException extends Exception {
+public class DataClientException extends KustoClientException {
     private String ingestionSource;
 
     public String getIngestionSource() {

@@ -3,9 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
-import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -36,7 +34,7 @@ public class KustoResultSetTable implements ResultSet {
     private static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
     private static final String ROWS_PROPERTY_NAME = "Rows";
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
-    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with inner exceptions";
+    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private final List<List<Object>> rows;
     private String tableName;
