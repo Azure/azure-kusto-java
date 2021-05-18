@@ -13,7 +13,7 @@ import java.util.List;
   This class represents an error that returned from the service
  */
 public class KustoServiceError extends Exception {
-    private ArrayList<Exception> exceptions = null;
+    private ArrayList<Exception> exceptions;
 
     public KustoServiceError(JSONArray jsonExceptions, boolean isOneApi, String message) throws JSONException {
         this(message);
@@ -43,14 +43,12 @@ public class KustoServiceError extends Exception {
         return exceptions.size() == 0 ? getMessage() : "exceptions\":" + exceptions + "}";
     }
 
-    /*
-      Can return null if permanency is not known
-     */
-    public Boolean isPermanent(){
+
+    public TriState isPermanent(){
         if (exceptions.size() > 0 && exceptions.get(0) instanceof DataWebException) {
-            return ((DataWebException) exceptions.get(0)).getApiError().isPermanent();
+            return KustoClientException.triStateFromBool(((DataWebException) exceptions.get(0)).getApiError().isPermanent());
         }
 
-        return null;
+        return TriState.DONTKNOW;
     }
 }

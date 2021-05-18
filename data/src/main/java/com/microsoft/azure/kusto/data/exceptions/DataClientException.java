@@ -26,7 +26,7 @@ public class DataClientException extends KustoClientException {
         this.ingestionSource = ingestionSource;
     }
 
-    public Boolean isPermanent(){
-        return true;
+    public TriState isPermanent(){
+        return TriState.TRUE;
     }
 }

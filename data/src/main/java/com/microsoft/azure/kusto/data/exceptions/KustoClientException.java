@@ -9,8 +9,9 @@ public abstract class KustoClientException extends Exception {
         super(message, exception);
     }
 
-    /*
-      Can return null if permanency is not known
-     */
-    public abstract Boolean isPermanent();
+    public abstract TriState isPermanent();
+
+    public static TriState triStateFromBool(boolean bool){
+        return bool ? TriState.TRUE : TriState.FALSE;
+    }
 }

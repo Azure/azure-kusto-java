@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import com.microsoft.azure.kusto.data.*;
+import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
 import java.util.List;
@@ -11,16 +14,6 @@ public class Query {
     public static void main(String[] args) {
 
         try {
-
-            ConnectionStringBuilder engineKcsb = ConnectionStringBuilder.createWithUserPrompt("https://kuskusprod" +
-                    ".kusto.windows.net");
-            Client client1 = ClientFactory.createClient(engineKcsb);
-//            client1.execute("KusKus", "KustoLogs | ");
-
-                    client1.execute("KusKus", "KustoLogs\n| where Timestamp between (datetime(2021-04-21T11:40:28)" +
-                    "..2h)\n| where Source !has \"MANAGE\" | where SourceId == \"6343AB81\" \n| extend queues = " +
-                    "todynamic(extract(\"TracePushQueueDetails:([^\\\\]]+\\\\])\", 1, EventText))");
-
             ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                     System.getProperty("clusterPath"),
                     System.getProperty("appId"),
