@@ -141,7 +141,7 @@ class Utils {
     private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
             return new DataServiceException(url, "POST failed to send request", thrownException,
-                    TriState.DONTKNOW);
+                    TriState.DONT_KNOW);
         } else {
             /*
              *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
@@ -151,7 +151,7 @@ class Utils {
             String activityId = determineActivityId(httpResponse);
             if (StringUtils.isBlank(errorFromResponse)) {
                 errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                return new DataServiceException(url, errorFromResponse, thrownException, TriState.DONTKNOW);
+                return new DataServiceException(url, errorFromResponse, thrownException, TriState.DONT_KNOW);
             } else {
                 String message = "";
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);

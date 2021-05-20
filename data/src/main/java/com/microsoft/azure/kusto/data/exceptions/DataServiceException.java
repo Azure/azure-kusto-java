@@ -9,7 +9,7 @@ public class DataServiceException extends KustoClientException {
     public String getIngestionSource() { return ingestionSource; }
 
     public DataServiceException(String message) {
-        this(null, message, TriState.DONTKNOW);
+        this(null, message, TriState.DONT_KNOW);
     }
 
     public DataServiceException(String message, Exception exception, TriState isPermanent) {

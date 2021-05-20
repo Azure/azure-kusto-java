@@ -49,6 +49,6 @@ public class KustoServiceError extends Exception {
             return TriState.fromBool(((DataWebException) exceptions.get(0)).getApiError().isPermanent());
         }
 
-        return TriState.DONTKNOW;
+        return TriState.DONT_KNOW;
     }
 }

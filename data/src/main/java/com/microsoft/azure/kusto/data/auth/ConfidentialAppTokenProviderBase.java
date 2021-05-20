@@ -38,7 +38,7 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
 
         if (result == null) {
             throw new DataServiceException(clusterUrl, "acquireNewAccessToken got 'null' authentication result",
-                    TriState.DONTKNOW);
+                    TriState.DONT_KNOW);
         }
         return result;
     }

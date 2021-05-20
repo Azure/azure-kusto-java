@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.data.exceptions;
 public enum TriState {
     TRUE,
     FALSE,
-    DONTKNOW;
+    DONT_KNOW;
 
     public static TriState fromBool(boolean bool)
     {

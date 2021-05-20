@@ -71,7 +71,7 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
         }
         if (result == null) {
             throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
-                    TriState.DONTKNOW);
+                    TriState.DONT_KNOW);
         }
         return result;
     }
