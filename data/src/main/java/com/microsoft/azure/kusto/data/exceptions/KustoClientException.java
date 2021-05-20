@@ -10,8 +10,4 @@ public abstract class KustoClientException extends Exception {
     }
 
     public abstract TriState isPermanent();
-
-    public static TriState triStateFromBool(boolean bool){
-        return bool ? TriState.TRUE : TriState.FALSE;
-    }
 }

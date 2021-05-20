@@ -46,7 +46,7 @@ public class KustoServiceError extends Exception {
 
     public TriState isPermanent(){
         if (exceptions.size() > 0 && exceptions.get(0) instanceof DataWebException) {
-            return KustoClientException.triStateFromBool(((DataWebException) exceptions.get(0)).getApiError().isPermanent());
+            return TriState.fromBool(((DataWebException) exceptions.get(0)).getApiError().isPermanent());
         }
 
         return TriState.DONTKNOW;

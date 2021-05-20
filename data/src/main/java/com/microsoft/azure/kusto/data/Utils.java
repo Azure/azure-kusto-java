@@ -160,7 +160,7 @@ class Utils {
                 } catch (Exception ignored) {
                 }
                 return new DataServiceException(url, message, formattedException,
-                        KustoClientException.triStateFromBool(formattedException.getApiError().isPermanent()));
+                        TriState.fromBool(formattedException.getApiError().isPermanent()));
             }
         }
     }
