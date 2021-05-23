@@ -9,7 +9,7 @@ import com.microsoft.aad.msal4j.InteractiveRequestParameters;
 import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.TriState;
+import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,14 +64,14 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (TimeoutException | ExecutionException e) {
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, TriState.FALSE);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, TriState.FALSE);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
         if (result == null) {
             throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
-                    TriState.DONT_KNOW);
+                    false);
         }
         return result;
     }

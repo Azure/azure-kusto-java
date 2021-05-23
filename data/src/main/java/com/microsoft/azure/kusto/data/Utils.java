@@ -128,7 +128,7 @@ class Utils {
             }
         } catch (IOException ex) {
             throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
-                    ex, TriState.FALSE);
+                    ex, false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -140,8 +140,7 @@ class Utils {
 
     private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
-            return new DataServiceException(url, "POST failed to send request", thrownException,
-                    TriState.DONT_KNOW);
+            return new DataServiceException(url, "POST failed to send request", thrownException, false);
         } else {
             /*
              *  TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of
@@ -151,7 +150,7 @@ class Utils {
             String activityId = determineActivityId(httpResponse);
             if (StringUtils.isBlank(errorFromResponse)) {
                 errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                return new DataServiceException(url, errorFromResponse, thrownException, TriState.DONT_KNOW);
+                return new DataServiceException(url, errorFromResponse, thrownException, false);
             } else {
                 String message = "";
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
@@ -160,7 +159,7 @@ class Utils {
                 } catch (Exception ignored) {
                 }
                 return new DataServiceException(url, message, formattedException,
-                        TriState.fromBool(formattedException.getApiError().isPermanent()));
+                        formattedException.getApiError().isPermanent());
             }
         }
     }
@@ -233,7 +232,8 @@ class Utils {
             if ("https".equalsIgnoreCase(cleanUrl.getProtocol())) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
-                throw new DataClientException("Cannot forward security token to a remote service over insecure channel (http://)");
+                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
+                        "channel (http://)");
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);

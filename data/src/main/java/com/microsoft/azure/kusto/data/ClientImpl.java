@@ -83,7 +83,7 @@ public class ClientImpl implements Client, StreamingClient {
             throw new DataServiceException(clusterEndpoint,
                     "Error parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
         } catch (Exception e){
-            throw new DataClientException(e.getMessage(), e);
+            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
     }
 

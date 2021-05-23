@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.TriState;
+import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;
@@ -30,15 +30,15 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
             CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(ClientCredentialParameters.builder(scopes).build());
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (ExecutionException | TimeoutException e) {
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, TriState.FALSE);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, TriState.FALSE);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
 
         if (result == null) {
             throw new DataServiceException(clusterUrl, "acquireNewAccessToken got 'null' authentication result",
-                    TriState.DONT_KNOW);
+                    false);
         }
         return result;
     }

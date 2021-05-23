@@ -8,24 +8,19 @@ import org.json.JSONObject;
 
 public class DataWebException extends Exception{
 
-    private String message;
     private final HttpResponse httpResponse;
     private OneApiError apiError;
-
-    public String getMessage() { return message; }
 
     public HttpResponse getHttpResponse() { return httpResponse; }
 
     public DataWebException(String message, HttpResponse httpResponse) {
-        this.message = message;
+        super(message);
         this.httpResponse = httpResponse;
         this.apiError = null;
     }
 
     public DataWebException(String message) {
-        this.message = message;
-        this.httpResponse = null;
-        this.apiError = null;
+        this(message, null);
     }
 
     public OneApiError getApiError() {
@@ -46,6 +41,6 @@ public class DataWebException extends Exception{
 
     @Override
     public String toString() {
-        return message;
+        return this.getMessage();
     }
 }

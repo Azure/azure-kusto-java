@@ -12,11 +12,9 @@
     <scm>
         <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
         <connection>scm:git:https://github.com/Azure/azure-kusto-java</connection>
-
     </scm>
     <distributionManagement>
         <downloadUrl>https://github.com/Azure/azure-kusto-java/releases</downloadUrl>
-
     </distributionManagement>
     <licenses>
         <license>

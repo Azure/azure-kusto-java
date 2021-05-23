@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.TriState;
+import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -316,7 +316,7 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("JsonMapping"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Some error");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     });
 
             // Should fail 3 times and then succeed with the queued client
@@ -341,7 +341,7 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Some error");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     });
 
             // Should fail 3 times and then succeed with the queued client
@@ -367,10 +367,10 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Some error");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     }).thenAnswer((a) -> {
                 times[0]++;
-                throw new DataServiceException("Some error");
+                throw new DataServiceException("some cluster", "Some error", false);
             }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -404,10 +404,10 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Some error", ex, TriState.FALSE);
+                        throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Some error", ex, TriState.FALSE);
+                        throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -438,14 +438,12 @@ class ManagedStreamingIngestClientTest {
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
-                        throw new DataServiceException("Some error", ex, TriState.TRUE);
+                        throw new DataServiceException("some cluster", "Some error", ex, true);
                     }).thenAnswer((a) -> {
-                throw new DataServiceException("Some error", ex, TriState.TRUE);
+                throw new DataServiceException("some cluster", "Some error", ex, true);
             }).thenReturn(null);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-            assertThrows(IngestionServiceException.class, () -> {
-                managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-            });
+            assertThrows(IngestionServiceException.class, () -> managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties));
         } finally {
             reset(streamingClientMock);
         }
