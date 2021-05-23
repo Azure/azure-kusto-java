@@ -8,7 +8,6 @@ import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;

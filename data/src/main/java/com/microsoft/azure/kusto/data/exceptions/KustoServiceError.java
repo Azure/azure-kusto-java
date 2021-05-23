@@ -41,7 +41,7 @@ public class KustoServiceError extends Exception {
         return exceptions.isEmpty() ? getMessage() : "exceptions\":" + exceptions + "}";
     }
 
-    public boolean isPermanent(){
+    public boolean isPermanent() {
         if (!CollectionUtils.isEmpty(exceptions) && exceptions.get(0) instanceof DataWebException) {
             return ((DataWebException) exceptions.get(0)).getApiError().isPermanent();
         }

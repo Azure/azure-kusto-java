@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;

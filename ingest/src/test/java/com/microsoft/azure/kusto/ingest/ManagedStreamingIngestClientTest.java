@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.Permanence;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -406,9 +405,9 @@ class ManagedStreamingIngestClientTest {
                         times[0]++;
                         throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenAnswer((a) -> {
-                        times[0]++;
-                        throw new DataServiceException("some cluster", "Some error", ex, false);
-                    }).thenReturn(null);
+                times[0]++;
+                throw new DataServiceException("some cluster", "Some error", ex, false);
+            }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
