@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -73,7 +73,7 @@ public class KustoResultSetTable implements ResultSet {
         return tableKind;
     }
 
-    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceError {
+    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceQueryError {
         tableName = jsonTable.optString(TABLE_NAME_PROPERTY_NAME);
         tableId = jsonTable.optString(TABLE_ID_PROPERTY_NAME);
         String tableKindString = jsonTable.optString(TABLE_KIND_PROPERTY_NAME);
@@ -104,12 +104,12 @@ public class KustoResultSetTable implements ResultSet {
                     if (exceptions != null) {
                         if (exceptions.length() == 1) {
                             String message = exceptions.getString(0);
-                            throw new KustoServiceError(message);
+                            throw new KustoServiceQueryError(message);
                         } else {
-                            throw new KustoServiceError(exceptions, false, EXCEPTIONS_MESSAGE);
+                            throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceError(((JSONObject) row).getJSONArray(
+                        throw new KustoServiceQueryError(((JSONObject) row).getJSONArray(
                                 "OneApiErrors"),true, EXCEPTIONS_MESSAGE);
                     }
                 }
