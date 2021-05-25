@@ -315,7 +315,7 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("JsonMapping"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     });
 
             // Should fail 3 times and then succeed with the queued client
@@ -340,7 +340,7 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     });
 
             // Should fail 3 times and then succeed with the queued client
@@ -366,10 +366,10 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail");
+                        throw new DataServiceException("some cluster", "Some error", false);
                     }).thenAnswer((a) -> {
                 times[0]++;
-                throw new DataServiceException("Test fail");
+                throw new DataServiceException("some cluster", "Some error", false);
             }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -403,11 +403,11 @@ class ManagedStreamingIngestClientTest {
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
                         times[0]++;
-                        throw new DataServiceException("Test fail", ex);
+                        throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenAnswer((a) -> {
-                        times[0]++;
-                        throw new DataServiceException("Test fail", ex);
-                    }).thenReturn(null);
+                times[0]++;
+                throw new DataServiceException("some cluster", "Some error", ex, false);
+            }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -437,14 +437,12 @@ class ManagedStreamingIngestClientTest {
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     isNull(), any(String.class), eq("mappingName"), any(boolean.class)))
                     .thenAnswer((a) -> {
-                        throw new DataServiceException("Test fail", ex);
+                        throw new DataServiceException("some cluster", "Some error", ex, true);
                     }).thenAnswer((a) -> {
-                throw new DataServiceException("Test fail", ex);
+                throw new DataServiceException("some cluster", "Some error", ex, true);
             }).thenReturn(null);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-            assertThrows(IngestionServiceException.class, () -> {
-                managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-            });
+            assertThrows(IngestionServiceException.class, () -> managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties));
         } finally {
             reset(streamingClientMock);
         }

@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,7 +24,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final List<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
-    public KustoOperationResult(String response, String version) throws KustoServiceError {
+    public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
         if (version.contains("v2")) {
             createFromV2Response(response);
         } else {
@@ -55,7 +55,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         return resultTables.stream().filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult)).findFirst().orElse(null);
     }
 
-    private void createFromV1Response(String response) throws KustoServiceError {
+    private void createFromV1Response(String response) throws KustoServiceQueryError {
         JSONObject jsonObject = new JSONObject(response);
         JSONArray jsonArray = jsonObject.getJSONArray(TABLES_LIST_PROPERTY_NAME);
         for (int i = 0; i < jsonArray.length(); i++) {
@@ -84,7 +84,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         }
     }
 
-    private void createFromV2Response(String response) throws KustoServiceError {
+    private void createFromV2Response(String response) throws KustoServiceQueryError {
         JSONArray jsonArray = new JSONArray(response);
         for (int i = 0; i < jsonArray.length(); i++) {
             JSONObject table = jsonArray.getJSONObject(i);
