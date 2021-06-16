@@ -175,6 +175,10 @@ public class KustoResultSetTable implements ResultSet {
         return (boolean) get(i);
     }
 
+    public Boolean getBooleanObject(int i) {
+        return (Boolean) get(i);
+    }
+
     @Override
     public byte getByte(int i) {
         return (byte) get(i);
@@ -185,9 +189,17 @@ public class KustoResultSetTable implements ResultSet {
         return (short) get(i);
     }
 
+    public short getShortObject(int i) {
+        return (Short) get(i);
+    }
+
     @Override
     public int getInt(int i) {
         return (int) get(i);
+    }
+
+    public Integer getInteger(int i) {
+        return (Integer) get(i);
     }
 
     @Override
@@ -199,9 +211,22 @@ public class KustoResultSetTable implements ResultSet {
         return (long) obj;
     }
 
+    public Long getLongObject(int i) {
+        Object obj = get(i);
+        if (obj instanceof Integer) {
+            return ((Integer) obj).longValue();
+        }
+        return (Long) obj;
+    }
+
+
     @Override
     public float getFloat(int i) {
         return (float) get(i);
+    }
+
+    public Float getFloatObject(int i) {
+        return (Float) get(i);
     }
 
     @Override
@@ -209,9 +234,17 @@ public class KustoResultSetTable implements ResultSet {
         return (double) get(i);
     }
 
+    public Double getDoubleObject(int i) {
+        return (Double) get(i);
+    }
+
     @Override
     @Deprecated
     public BigDecimal getBigDecimal(int i, int i1) {
+        if (get(i) == null) {
+            return null;
+        }
+
         return (BigDecimal) get(i);
     }
 
@@ -227,7 +260,11 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public Time getTime(int i) throws SQLException {
-        return new Time(getDate(i).getTime());
+        Date date = getDate(i);
+        if(date==null){
+            return null;
+        }
+        return new Time(date.getTime());
     }
 
     @Override
@@ -235,11 +272,18 @@ public class KustoResultSetTable implements ResultSet {
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
             case "datetime":
+                if(get(i) == null){
+                    return null;
+                }
                 return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T", " "));
             case "long":
             case "int":
-                return new Timestamp(getLong(i));
+                Long l = getLongObject(i);
+                if(l == null){
+                    return null;
+                }
 
+                return new Timestamp(l);
         }
         throw new SQLException("Error parsing timestamp - expected string or long columns.");
     }
@@ -274,6 +318,10 @@ public class KustoResultSetTable implements ResultSet {
         return (boolean) get(columnName);
     }
 
+    public Boolean getBooleanObject(String columnName) {
+        return (Boolean) get(columnName);
+    }
+
     @Override
     public byte getByte(String columnName) {
         return (byte) get(columnName);
@@ -284,9 +332,17 @@ public class KustoResultSetTable implements ResultSet {
         return (short) get(columnName);
     }
 
+    public short getShortObject(String columnName) {
+        return (Short) get(columnName);
+    }
+
     @Override
     public int getInt(String columnName) {
         return (int) get(columnName);
+    }
+
+    public int getInteger(String columnName) {
+        return (Integer) get(columnName);
     }
 
     @Override
@@ -294,9 +350,17 @@ public class KustoResultSetTable implements ResultSet {
         return (long) get(columnName);
     }
 
+    public Long getLongObject(String columnName) {
+        return getLongObject(findColumn(columnName));
+    }
+
     @Override
     public float getFloat(String columnName) {
         return (float) get(columnName);
+    }
+
+    public Float getFloatObject(String columnName) {
+        return getFloatObject(findColumn(columnName));
     }
 
     @Override
@@ -304,10 +368,14 @@ public class KustoResultSetTable implements ResultSet {
         return (double) get(columnName);
     }
 
+    public Double getDoubleObject(String columnName) {
+        return (Double) get(columnName);
+    }
+
     @Override
     @Deprecated
     public BigDecimal getBigDecimal(String columnName, int i) {
-        return (BigDecimal) get(columnName);
+        return getBigDecimal(findColumn(columnName), i);
     }
 
     @Override
@@ -401,6 +469,10 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public BigDecimal getBigDecimal(int i) {
+        if (get(i) == null) {
+            return null;
+        }
+
         return new BigDecimal(getString(i));
     }
 
@@ -806,6 +878,9 @@ public class KustoResultSetTable implements ResultSet {
      * This will return the full dateTime from Kusto as sql.Date is less precise
      */
     public LocalDateTime getKustoDateTime(int i) {
+        if (get(i) == null) {
+            return null;
+        }
         String dateString = getString(i);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
@@ -833,6 +908,9 @@ public class KustoResultSetTable implements ResultSet {
             case "string":
             case "datetime":
                 try {
+                    if (get(i) == null) {
+                        return null;
+                    }
                     String dateString = getString(i);
                     FastDateFormat dateFormat;
                     if (dateString.length() < 21) {
@@ -846,7 +924,11 @@ public class KustoResultSetTable implements ResultSet {
                 }
             case "long":
             case "int":
-                return new Date(getLong(i));
+                Long longVal = getLongObject(i);
+                if (longVal == null) {
+                    return null;
+                }
+                return new Date(longVal);
         }
         throw new SQLException("Error parsing Date - expected string, long or datetime data type.");
     }
