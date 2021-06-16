@@ -56,7 +56,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         return accessTokenResult.accessToken();
     }
 
-    private void initializeCloudInfo() throws DataServiceException, DataClientException {
+    protected void initializeCloudInfo() throws DataServiceException, DataClientException {
         if (cloudInfo != null) {
             return;
         }

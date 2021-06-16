@@ -50,6 +50,12 @@ class CloudInfo {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
+    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo){
+        synchronized (cache) {
+            cache.put(clusterUrl, cloudInfo);
+        }
+    }
+
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo = cache.get(clusterUrl);

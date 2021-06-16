@@ -20,6 +20,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,10 +42,16 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
+    @BeforeAll
+    public static void setUp() {
+        CloudInfo.manuallyAddToCache("resource.uri", CloudInfo.DEFAULT_CLOUD);
+        CloudInfo.manuallyAddToCache("null://null", CloudInfo.DEFAULT_CLOUD);
+    }
+
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, URISyntaxException {
+            PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -55,6 +62,8 @@ public class AadAuthenticationHelperTest {
                 .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
 
         MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+
+        aadAuthenticationHelper.initializeCloudInfo();
 
         Assertions.assertThrows(DataServiceException.class,
                 () -> aadAuthenticationHelper.acquireNewAccessToken());
