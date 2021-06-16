@@ -18,14 +18,10 @@ public abstract class TokenProviderBase {
     protected static final String ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN = "Error acquiring ApplicationAccessToken";
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final String clusterUrl;
-    protected final Set<String> scopes;
 
     TokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
         URI clusterUri = new URI(clusterUrl);
         this.clusterUrl = String.format("%s://%s", clusterUri.getScheme(), clusterUri.getHost());
-        String scope = String.format("%s/%s", clusterUrl, ".default");
-        scopes = new HashSet<>();
-        scopes.add(scope);
     }
 
     public abstract String acquireAccessToken() throws DataServiceException, DataClientException;

@@ -5,10 +5,12 @@ import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -17,11 +19,16 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     protected static final String ORGANIZATION_URI_SUFFIX = "organizations";
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
     protected static final int TIMEOUT_MS = 20 * 1000;
+    private static final String PersonalTenantIdV2AAD = "9188040d-6c67-4c5b-b112-36a304b66dad"; // Identifies MSA accounts
+    protected final Set<String> scopes = new HashSet<>();
+    private final String authorityId;
     protected String aadAuthorityUrl;
+    protected CloudInfo cloudInfo = null;
+
 
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl);
-        aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
+        this.authorityId = authorityId;
     }
 
     private String determineAadAuthorityUrl(String authorityId) {
@@ -32,7 +39,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         String authorityUrl;
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
         if (aadAuthorityFromEnv == null) {
-            authorityUrl = String.format("https://login.microsoftonline.com/%s/", authorityId);
+            authorityUrl = String.format("%s/%s/", cloudInfo.getLoginEndpoint(), authorityId);
         } else {
             authorityUrl = String.format("%s%s%s/", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", authorityId);
         }
@@ -41,11 +48,36 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
 
     @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
+        initializeCloudInfo();
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             accessTokenResult = acquireNewAccessToken();
         }
         return accessTokenResult.accessToken();
+    }
+
+    private void initializeCloudInfo() throws DataServiceException, DataClientException {
+        if (cloudInfo != null) {
+            return;
+        }
+        synchronized (this) {
+            if (cloudInfo != null) {
+                return;
+            }
+
+            cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
+            aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
+
+            String resourceUri = cloudInfo.getKustoServiceResourceId();
+            if (cloudInfo.isLoginMfaRequired()) {
+                resourceUri = resourceUri.replace(".kusto.", ".kustomfa.");
+            }
+
+            String scope = String.format("%s/%s", resourceUri, ".default");
+            scopes.add(scope);
+
+            onCloudInit();
+        }
     }
 
     protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {
@@ -61,6 +93,8 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         }
     }
 
+    protected abstract void onCloudInit() throws DataClientException;
+
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
     protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
@@ -68,7 +102,13 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     SilentParameters getSilentParameters(Set<IAccount> accountSet) {
         IAccount account = getAccount(accountSet);
         if (account != null) {
-            return SilentParameters.builder(scopes).account(account).authorityUrl(aadAuthorityUrl).build();
+            String authorityUrl = aadAuthorityUrl;
+
+            if (account.homeAccountId() != null && account.homeAccountId().endsWith(PersonalTenantIdV2AAD)) {
+                authorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
+            }
+
+            return SilentParameters.builder(scopes).account(account).authorityUrl(authorityUrl).build();
         }
         return SilentParameters.builder(scopes).authorityUrl(aadAuthorityUrl).build();
     }
@@ -81,4 +121,5 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
             return accountSet.iterator().next();
         }
     }
+
 }

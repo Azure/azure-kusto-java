@@ -1,0 +1,126 @@
+package com.microsoft.azure.kusto.data.auth;
+
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+class CloudInfo {
+    public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
+    public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
+    public static final boolean DEFAULT_LOGIN_MFA_REQUIRED = false;
+    public static final String DEFAULT_PUBLIC_LOGIN_URL = "https://login.microsoftonline.com";
+    public static final String DEFAULT_REDIRECT_URI = "https://microsoft/kustoclient";
+    public static final String DEFAULT_KUSTO_SERVICE_RESOURCE_ID = "https://kusto.kusto.windows.net";
+    public static final String DEFAULT_FIRST_PARTY_AUTHORITY_URL = "https://login.microsoftonline.com/f8cdef31-a31e-4b4a-93e4-5f571e91255a";
+    public static final CloudInfo DEFAULT_CLOUD = new CloudInfo(
+            DEFAULT_LOGIN_MFA_REQUIRED,
+            DEFAULT_PUBLIC_LOGIN_URL,
+            DEFAULT_KUSTO_CLIENT_APP_ID,
+            DEFAULT_REDIRECT_URI,
+            DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
+            DEFAULT_FIRST_PARTY_AUTHORITY_URL
+    );
+
+    private static final Map<String, CloudInfo> cache = new HashMap<>();
+
+    private final boolean loginMfaRequired;
+    private final String loginEndpoint;
+    private final String kustoClientAppId;
+    private final String kustoClientRedirectUri;
+    private final String kustoServiceResourceId;
+    private final String firstPartyAuthorityUrl;
+
+    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId, String firstPartyAuthorityUrl) {
+        this.loginMfaRequired = loginMfaRequired;
+        this.loginEndpoint = loginEndpoint;
+        this.kustoClientAppId = kustoClientAppId;
+        this.kustoClientRedirectUri = kustoClientRedirectUri;
+        this.kustoServiceResourceId = kustoServiceResourceId;
+        this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
+    }
+
+    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
+        synchronized (cache) {
+            CloudInfo cloudInfo = cache.get(clusterUrl);
+            if (cloudInfo != null) {
+                return cloudInfo;
+            }
+
+            CloudInfo result;
+
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpGet request = new HttpGet(clusterUrl + "/" + METADATA_ENDPOINT);
+                request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
+                request.addHeader(HttpHeaders.ACCEPT, "application/json");
+                try (CloseableHttpResponse response = httpClient.execute(request)) {
+                    int statusCode = response.getStatusLine().getStatusCode();
+                    if (statusCode == 200) {
+                        String content = EntityUtils.toString(response.getEntity());
+                        if (content == null || content.equals("") || content.equals("{}")) {
+                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                        }
+                        result = parseCloudInfo(content);
+                    } else if (statusCode == 404) {
+                        result = DEFAULT_CLOUD;
+                    } else {
+                        String errorFromResponse = EntityUtils.toString(response.getEntity());
+                        throw new DataServiceException(clusterUrl,
+                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                    }
+                }
+            } catch (IOException ex) {
+                throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
+            }
+            cache.put(clusterUrl, result);
+            return result;
+        }
+    }
+
+    private static CloudInfo parseCloudInfo(String content) {
+        JSONObject jsonObject = new JSONObject(content);
+        JSONObject innerObject = jsonObject.getJSONObject("AzureAD");
+        return new CloudInfo(
+                innerObject.getBoolean("LoginMfaRequired"),
+                innerObject.getString("LoginEndpoint"),
+                innerObject.getString("KustoClientAppId"),
+                innerObject.getString("KustoClientRedirectUri"),
+                innerObject.getString("KustoServiceResourceId"),
+                innerObject.getString("FirstPartyAuthorityUrl")
+        );
+    }
+
+    public boolean isLoginMfaRequired() {
+        return loginMfaRequired;
+    }
+
+    public String getLoginEndpoint() {
+        return loginEndpoint;
+    }
+
+    public String getKustoClientAppId() {
+        return kustoClientAppId;
+    }
+
+    public String getKustoClientRedirectUri() {
+        return kustoClientRedirectUri;
+    }
+
+    public String getKustoServiceResourceId() {
+        return kustoServiceResourceId;
+    }
+
+    public String getFirstPartyAuthorityUrl() {
+        return firstPartyAuthorityUrl;
+    }
+}

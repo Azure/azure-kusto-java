@@ -11,11 +11,6 @@ import java.util.function.Consumer;
 public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
     public DeviceAuthTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
-        try {
-            clientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
-        } catch (MalformedURLException e) {
-            throw new URISyntaxException(aadAuthorityUrl, ERROR_INVALID_AUTHORITY_URL);
-        }
     }
 
     @Override
