@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -35,6 +35,7 @@ public class KustoResultSetTable implements ResultSet {
     private static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
     private static final String ROWS_PROPERTY_NAME = "Rows";
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
+    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private final List<List<Object>> rows;
     private String tableName;
@@ -73,7 +74,7 @@ public class KustoResultSetTable implements ResultSet {
         return tableKind;
     }
 
-    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceError {
+    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceQueryError {
         tableName = jsonTable.optString(TABLE_NAME_PROPERTY_NAME);
         tableId = jsonTable.optString(TABLE_ID_PROPERTY_NAME);
         String tableKindString = jsonTable.optString(TABLE_KIND_PROPERTY_NAME);
@@ -104,10 +105,13 @@ public class KustoResultSetTable implements ResultSet {
                     if (exceptions != null) {
                         if (exceptions.length() == 1) {
                             String message = exceptions.getString(0);
-                            throw new KustoServiceError(message);
+                            throw new KustoServiceQueryError(message);
                         } else {
-                            throw new KustoServiceError(exceptions);
+                            throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
+                    } else {
+                        throw new KustoServiceQueryError(((JSONObject) row).getJSONArray(
+                                "OneApiErrors"),true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
