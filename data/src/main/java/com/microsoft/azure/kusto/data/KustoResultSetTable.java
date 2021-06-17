@@ -19,6 +19,7 @@ import java.net.URL;
 import java.sql.Date;
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
@@ -260,11 +261,12 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public Time getTime(int i) throws SQLException {
-        Date date = getDate(i);
-        if(date==null){
+        LocalTime time = getLocalTime(i);
+        if (time == null) {
             return null;
         }
-        return new Time(date.getTime());
+
+        return Time.valueOf(getLocalTime(i));
     }
 
     @Override
@@ -272,14 +274,14 @@ public class KustoResultSetTable implements ResultSet {
         switch (columnsAsArray[i].getColumnType()) {
             case "string":
             case "datetime":
-                if(get(i) == null){
+                if (get(i) == null) {
                     return null;
                 }
                 return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T", " "));
             case "long":
             case "int":
                 Long l = getLongObject(i);
-                if(l == null){
+                if (l == null) {
                     return null;
                 }
 
@@ -450,6 +452,18 @@ public class KustoResultSetTable implements ResultSet {
 
     public JSONObject getJSONObject(int i) {
         return (JSONObject) get(i);
+    }
+
+    public UUID getUUID(int i) {
+        Object u = get(i);
+        if (u == null) {
+            return null;
+        }
+        return UUID.fromString((String) u);
+    }
+
+    public UUID getUUID(String columnName) {
+        return getUUID(findColumn(columnName));
     }
 
     @Override
@@ -920,7 +934,7 @@ public class KustoResultSetTable implements ResultSet {
                     }
                     return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
                 } catch (Exception e) {
-                    throw new SQLException("Error parsing Date");
+                    throw new SQLException("Error parsing Date", e);
                 }
             case "long":
             case "int":
@@ -940,12 +954,24 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public Time getTime(int i, Calendar calendar) throws SQLException {
-        return new Time(getDate(i, calendar).getTime());
+        return getTime(i);
     }
 
     @Override
     public Time getTime(String columnName, Calendar calendar) throws SQLException {
-        return getTime(findColumn(columnName), calendar);
+        return getTime(columnName);
+    }
+
+    public LocalTime getLocalTime(int i) {
+        Object time = get(i);
+        if (time == null) {
+            return null;
+        }
+        return LocalTime.parse((String) time);
+    }
+
+    public LocalTime getLocalTime(String columnName) {
+        return getLocalTime(findColumn(columnName));
     }
 
     @Override
