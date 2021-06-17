@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -10,11 +9,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ResultSetTest {
     @Test
@@ -88,6 +83,6 @@ public class ResultSetTest {
         assert res.getInteger(6) == i;
         assert res.getLongObject(7) == l;
         assert res.getDoubleObject(8) == d;
-        assert res.getTime(9) == Time.valueOf(duration.toString());
+        assert res.getTime(9).equals(Time.valueOf(duration.toString()));
     }
 }
