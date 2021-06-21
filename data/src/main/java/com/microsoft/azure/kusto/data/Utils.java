@@ -41,7 +41,6 @@ import java.util.zip.GZIPInputStream;
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final Long GET_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
 
     private Utils() {
         // Hide constructor, as this is a static utility class

@@ -1,17 +1,18 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -66,7 +67,7 @@ class CloudInfo {
             CloudInfo result;
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpGet request = new HttpGet(clusterUrl + "/" + METADATA_ENDPOINT);
+                HttpGet request = new HttpGet(new URIBuilder(clusterUrl).setPath(METADATA_ENDPOINT).build().toString());
                 request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                 request.addHeader(HttpHeaders.ACCEPT, "application/json");
                 try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -85,7 +86,7 @@ class CloudInfo {
                                 "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                     }
                 }
-            } catch (IOException ex) {
+            } catch (IOException | URISyntaxException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
             }
             cache.put(clusterUrl, result);
