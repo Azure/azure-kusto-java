@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
@@ -23,7 +24,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     protected final Set<String> scopes = new HashSet<>();
     private final String authorityId;
     protected String aadAuthorityUrl;
-    protected CloudInfo cloudInfo = null;
+    protected volatile CloudInfo cloudInfo = null;
 
 
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
@@ -31,19 +32,13 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         this.authorityId = authorityId;
     }
 
-    private String determineAadAuthorityUrl(String authorityId) {
+    private String determineAadAuthorityUrl(String authorityId) throws URISyntaxException {
         if (authorityId == null) {
             authorityId = ORGANIZATION_URI_SUFFIX;
         }
 
-        String authorityUrl;
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        if (aadAuthorityFromEnv == null) {
-            authorityUrl = String.format("%s/%s/", cloudInfo.getLoginEndpoint(), authorityId);
-        } else {
-            authorityUrl = String.format("%s%s%s/", aadAuthorityFromEnv, aadAuthorityFromEnv.endsWith("/") ? "" : "/", authorityId);
-        }
-        return authorityUrl;
+        return UriUtils.concatPathToUri(aadAuthorityFromEnv == null ? cloudInfo.getLoginEndpoint(): aadAuthorityFromEnv, authorityId, true);
     }
 
     @Override
@@ -66,14 +61,23 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
             }
 
             cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
-            aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
+            try {
+                aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
+            } catch (URISyntaxException e) {
+                throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
+            }
 
             String resourceUri = cloudInfo.getKustoServiceResourceId();
             if (cloudInfo.isLoginMfaRequired()) {
                 resourceUri = resourceUri.replace(".kusto.", ".kustomfa.");
             }
 
-            String scope = String.format("%s/%s", resourceUri, ".default");
+            String scope = null;
+            try {
+                scope = UriUtils.concatPathToUri(resourceUri, ".default");
+            } catch (URISyntaxException e) {
+                throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
+            }
             scopes.add(scope);
 
             onCloudInit();

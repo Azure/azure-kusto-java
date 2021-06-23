@@ -1,11 +1,11 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -16,7 +16,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-class CloudInfo {
+public class CloudInfo {
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     public static final boolean DEFAULT_LOGIN_MFA_REQUIRED = false;
@@ -67,7 +67,7 @@ class CloudInfo {
             CloudInfo result;
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpGet request = new HttpGet(new URIBuilder(clusterUrl).setPath(METADATA_ENDPOINT).build().toString());
+                HttpGet request = new HttpGet(UriUtils.concatPathToUri(clusterUrl, METADATA_ENDPOINT));
                 request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                 request.addHeader(HttpHeaders.ACCEPT, "application/json");
                 try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -96,7 +96,10 @@ class CloudInfo {
 
     private static CloudInfo parseCloudInfo(String content) {
         JSONObject jsonObject = new JSONObject(content);
-        JSONObject innerObject = jsonObject.getJSONObject("AzureAD");
+        JSONObject innerObject = jsonObject.optJSONObject("AzureAD");
+        if (innerObject == null) {
+            return DEFAULT_CLOUD;
+        }
         return new CloudInfo(
                 innerObject.getBoolean("LoginMfaRequired"),
                 innerObject.getString("LoginEndpoint"),
