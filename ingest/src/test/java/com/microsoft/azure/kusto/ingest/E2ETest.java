@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.ClientImpl;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -343,6 +344,20 @@ class E2ETest {
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCloudInfoWithCluster() throws DataServiceException {
+        String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
+        CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
+        assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
+        assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
+    }
+
+    @Test
+    void testCloudInfoWith404() throws DataServiceException {
+        String fakeClusterUrl = "https://www.microsoft.com/";
+        assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
     }
 
     @Test

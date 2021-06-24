@@ -23,8 +23,9 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     private static final String PersonalTenantIdV2AAD = "9188040d-6c67-4c5b-b112-36a304b66dad"; // Identifies MSA accounts
     protected final Set<String> scopes = new HashSet<>();
     private final String authorityId;
+    private boolean isCloudInfoInit = false;
     protected String aadAuthorityUrl;
-    protected volatile CloudInfo cloudInfo = null;
+    protected CloudInfo cloudInfo = null;
 
 
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
@@ -52,11 +53,11 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     }
 
     protected void initializeCloudInfo() throws DataServiceException, DataClientException {
-        if (cloudInfo != null) {
+        if (isCloudInfoInit) {
             return;
         }
         synchronized (this) {
-            if (cloudInfo != null) {
+            if (isCloudInfoInit) {
                 return;
             }
 
@@ -72,7 +73,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
                 resourceUri = resourceUri.replace(".kusto.", ".kustomfa.");
             }
 
-            String scope = null;
+            String scope;
             try {
                 scope = UriUtils.concatPathToUri(resourceUri, ".default");
             } catch (URISyntaxException e) {
@@ -81,6 +82,8 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
             scopes.add(scope);
 
             onCloudInit();
+
+            isCloudInfoInit = true;
         }
     }
 
