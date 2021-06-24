@@ -39,7 +39,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         }
 
         String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        return UriUtils.concatPathToUri(aadAuthorityFromEnv == null ? cloudInfo.getLoginEndpoint(): aadAuthorityFromEnv, authorityId, true);
+        return UriUtils.setPathForUri(aadAuthorityFromEnv == null ? cloudInfo.getLoginEndpoint(): aadAuthorityFromEnv, authorityId, true);
     }
 
     @Override
@@ -75,7 +75,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
 
             String scope;
             try {
-                scope = UriUtils.concatPathToUri(resourceUri, ".default");
+                scope = UriUtils.setPathForUri(resourceUri, ".default");
             } catch (URISyntaxException e) {
                 throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
             }

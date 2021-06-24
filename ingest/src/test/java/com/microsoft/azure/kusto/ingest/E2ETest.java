@@ -351,6 +351,7 @@ class E2ETest {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
+        assertEquals(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 

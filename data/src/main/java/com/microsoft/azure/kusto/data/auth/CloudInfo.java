@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class CloudInfo {
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
@@ -51,7 +52,7 @@ public class CloudInfo {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo){
+    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) {
         synchronized (cache) {
             cache.put(clusterUrl, cloudInfo);
         }
@@ -67,7 +68,7 @@ public class CloudInfo {
             CloudInfo result;
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpGet request = new HttpGet(UriUtils.concatPathToUri(clusterUrl, METADATA_ENDPOINT));
+                HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
                 request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                 request.addHeader(HttpHeaders.ACCEPT, "application/json");
                 try (CloseableHttpResponse response = httpClient.execute(request)) {
@@ -108,6 +109,29 @@ public class CloudInfo {
                 innerObject.getString("KustoServiceResourceId"),
                 innerObject.getString("FirstPartyAuthorityUrl")
         );
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        CloudInfo cloudInfo = (CloudInfo) o;
+
+        return loginMfaRequired == cloudInfo.loginMfaRequired
+                && Objects.equals(loginEndpoint, cloudInfo.loginEndpoint)
+                && Objects.equals(kustoClientAppId, cloudInfo.kustoClientAppId)
+                && Objects.equals(kustoClientRedirectUri, cloudInfo.kustoClientRedirectUri)
+                && Objects.equals(kustoServiceResourceId, cloudInfo.kustoServiceResourceId)
+                && Objects.equals(firstPartyAuthorityUrl, cloudInfo.firstPartyAuthorityUrl);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(loginMfaRequired, loginEndpoint, kustoClientAppId, kustoClientRedirectUri, kustoServiceResourceId, firstPartyAuthorityUrl);
     }
 
     public boolean isLoginMfaRequired() {
