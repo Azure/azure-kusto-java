@@ -155,7 +155,7 @@ StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 ```
 If the data is compressed:
 ```java
-streamSourceInfo.setIsCompressed(true);
+streamSourceInfo.setCompressionType(CompressionType.gz);
 ```
 
 FileSourceInfo:
