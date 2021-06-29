@@ -162,8 +162,8 @@ public class KustoResultSetTable implements ResultSet {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
-    private Object get(int i) {
-        return currentRow.get(i);
+    private Object get(int columnIndex) {
+        return currentRow.get(columnIndex);
     }
 
     private Object get(String colName) {
@@ -171,61 +171,61 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public String getString(int i) {
-        return get(i).toString();
+    public String getString(int columnIndex) {
+        return get(columnIndex).toString();
     }
 
     @Override
-    public boolean getBoolean(int i) {
-        return (boolean) get(i);
+    public boolean getBoolean(int columnIndex) {
+        return (boolean) get(columnIndex);
     }
 
-    public Boolean getBooleanObject(int i) {
-        return (Boolean) get(i);
-    }
-
-    @Override
-    public byte getByte(int i) {
-        return (byte) get(i);
+    public Boolean getBooleanObject(int columnIndex) {
+        return (Boolean) get(columnIndex);
     }
 
     @Override
-    public short getShort(int i) {
-        Object obj = get(i);
+    public byte getByte(int columnIndex) {
+        return (byte) get(columnIndex);
+    }
+
+    @Override
+    public short getShort(int columnIndex) {
+        Object obj = get(columnIndex);
         if (obj instanceof Integer) {
             return ((Integer) obj).shortValue();
         }
-        return (short) get(i);
+        return (short) get(columnIndex);
     }
 
-    public Short getShortObject(int i) {
-        Object obj = get(i);
+    public Short getShortObject(int columnIndex) {
+        Object obj = get(columnIndex);
         if (obj == null) {
             return null;
         }
-        return getShort(i);
+        return getShort(columnIndex);
     }
 
     @Override
-    public int getInt(int i) {
-        return (int) get(i);
+    public int getInt(int columnIndex) {
+        return (int) get(columnIndex);
     }
 
-    public Integer getIntegerObject(int i) {
-        return (Integer) get(i);
+    public Integer getIntegerObject(int columnIndex) {
+        return (Integer) get(columnIndex);
     }
 
     @Override
-    public long getLong(int i) {
-        Object obj = get(i);
+    public long getLong(int columnIndex) {
+        Object obj = get(columnIndex);
         if (obj instanceof Integer) {
             return ((Integer) obj).longValue();
         }
         return (long) obj;
     }
 
-    public Long getLongObject(int i) {
-        Object obj = get(i);
+    public Long getLongObject(int columnIndex) {
+        Object obj = get(columnIndex);
         if (obj instanceof Integer) {
             return ((Integer) obj).longValue();
         }
@@ -234,69 +234,69 @@ public class KustoResultSetTable implements ResultSet {
 
 
     @Override
-    public float getFloat(int i) {
-        return (float) get(i);
+    public float getFloat(int columnIndex) {
+        return (float) get(columnIndex);
     }
 
-    public Float getFloatObject(int i) {
-        return (Float) get(i);
+    public Float getFloatObject(int columnIndex) {
+        return (Float) get(columnIndex);
     }
 
     @Override
-    public double getDouble(int i) {
-        return (double) get(i);
+    public double getDouble(int columnIndex) {
+        return (double) get(columnIndex);
     }
 
-    public Double getDoubleObject(int i) {
-        Object d = get(i);
+    public Double getDoubleObject(int columnIndex) {
+        Object d = get(columnIndex);
         if (d instanceof BigDecimal) {
             return ((BigDecimal) d).doubleValue();
         }
-        return (Double) get(i);
+        return (Double) get(columnIndex);
     }
 
     @Override
     @Deprecated
-    public BigDecimal getBigDecimal(int i, int i1) {
-        if (get(i) == null) {
+    public BigDecimal getBigDecimal(int columnIndex, int scale) {
+        if (get(columnIndex) == null) {
             return null;
         }
 
-        return (BigDecimal) get(i);
+        return (BigDecimal) get(columnIndex);
     }
 
     @Override
-    public byte[] getBytes(int i) {
-        return (byte[]) get(i);
+    public byte[] getBytes(int columnIndex) {
+        return (byte[]) get(columnIndex);
     }
 
     @Override
-    public Date getDate(int i) throws SQLException {
-        return getDate(i, Calendar.getInstance());
+    public Date getDate(int columnIndex) throws SQLException {
+        return getDate(columnIndex, Calendar.getInstance());
     }
 
     @Override
-    public Time getTime(int i) throws SQLException {
-        LocalTime time = getLocalTime(i);
+    public Time getTime(int columnIndex) throws SQLException {
+        LocalTime time = getLocalTime(columnIndex);
         if (time == null) {
             return null;
         }
 
-        return Time.valueOf(getLocalTime(i));
+        return Time.valueOf(getLocalTime(columnIndex));
     }
 
     @Override
-    public Timestamp getTimestamp(int i) throws SQLException {
-        switch (columnsAsArray[i].getColumnType()) {
+    public Timestamp getTimestamp(int columnIndex) throws SQLException {
+        switch (columnsAsArray[columnIndex].getColumnType()) {
             case "string":
             case "datetime":
-                if (get(i) == null) {
+                if (get(columnIndex) == null) {
                     return null;
                 }
-                return Timestamp.valueOf(StringUtils.chop(getString(i)).replace("T", " "));
+                return Timestamp.valueOf(StringUtils.chop(getString(columnIndex)).replace("T", " "));
             case "long":
             case "int":
-                Long l = getLongObject(i);
+                Long l = getLongObject(columnIndex);
                 if (l == null) {
                     return null;
                 }
@@ -307,20 +307,20 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public InputStream getAsciiStream(int i) throws SQLFeatureNotSupportedException {
+    public InputStream getAsciiStream(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
     @Deprecated
-    public InputStream getUnicodeStream(int i) throws SQLFeatureNotSupportedException {
+    public InputStream getUnicodeStream(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public InputStream getBinaryStream(int i) throws SQLFeatureNotSupportedException {
-        if (columnsAsArray[i].getColumnType().equals("String")) {
-            return new ByteArrayInputStream(getString(i).getBytes());
+    public InputStream getBinaryStream(int columnIndex) throws SQLFeatureNotSupportedException {
+        if (columnsAsArray[columnIndex].getColumnType().equals("String")) {
+            return new ByteArrayInputStream(getString(columnIndex).getBytes());
         }
 
         throw new SQLFeatureNotSupportedException("getBinaryStream is only available for strings");
@@ -392,8 +392,8 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     @Deprecated
-    public BigDecimal getBigDecimal(String columnName, int i) {
-        return getBigDecimal(findColumn(columnName), i);
+    public BigDecimal getBigDecimal(String columnName, int scale) {
+        return getBigDecimal(findColumn(columnName), scale);
     }
 
     @Override
@@ -453,8 +453,8 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Object getObject(int i) {
-        return get(i);
+    public Object getObject(int columnIndex) {
+        return get(columnIndex);
     }
 
     @Override
@@ -466,12 +466,12 @@ public class KustoResultSetTable implements ResultSet {
         return getJSONObject(findColumn(colName));
     }
 
-    public JSONObject getJSONObject(int i) {
-        return (JSONObject) get(i);
+    public JSONObject getJSONObject(int columnIndex) {
+        return (JSONObject) get(columnIndex);
     }
 
-    public UUID getUUID(int i) {
-        Object u = get(i);
+    public UUID getUUID(int columnIndex) {
+        Object u = get(columnIndex);
         if (u == null) {
             return null;
         }
@@ -488,8 +488,8 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Reader getCharacterStream(int i) {
-        return new StringReader(getString(i));
+    public Reader getCharacterStream(int columnIndex) {
+        return new StringReader(getString(columnIndex));
     }
 
     @Override
@@ -498,12 +498,12 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public BigDecimal getBigDecimal(int i) {
-        if (get(i) == null) {
+    public BigDecimal getBigDecimal(int columnIndex) {
+        if (get(columnIndex) == null) {
             return null;
         }
 
-        return new BigDecimal(getString(i));
+        return new BigDecimal(getString(columnIndex));
     }
 
     @Override
@@ -565,12 +565,12 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public boolean absolute(int i) throws SQLFeatureNotSupportedException {
+    public boolean absolute(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public boolean relative(int i) {
+    public boolean relative(int columnIndex) {
         return false;
     }
 
@@ -580,7 +580,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void setFetchDirection(int i) throws SQLFeatureNotSupportedException {
+    public void setFetchDirection(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -590,7 +590,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void setFetchSize(int i) {
+    public void setFetchSize(int columnIndex) {
 
     }
 
@@ -625,97 +625,97 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNull(int i) throws SQLFeatureNotSupportedException {
+    public void updateNull(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateBoolean(int i, boolean b) throws SQLFeatureNotSupportedException {
+    public void updateBoolean(int columnIndex, boolean b) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateByte(int i, byte b) throws SQLFeatureNotSupportedException {
+    public void updateByte(int columnIndex, byte b) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateShort(int i, short i1) throws SQLFeatureNotSupportedException {
+    public void updateShort(int columnIndex, short i1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateInt(int i, int i1) throws SQLFeatureNotSupportedException {
+    public void updateInt(int columnIndex, int columnIndex1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateLong(int i, long l) throws SQLFeatureNotSupportedException {
+    public void updateLong(int columnIndex, long l) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateFloat(int i, float v) throws SQLFeatureNotSupportedException {
+    public void updateFloat(int columnIndex, float v) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateDouble(int i, double v) throws SQLFeatureNotSupportedException {
+    public void updateDouble(int columnIndex, double v) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateBigDecimal(int i, BigDecimal bigDecimal) throws SQLFeatureNotSupportedException {
+    public void updateBigDecimal(int columnIndex, BigDecimal bigDecimal) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateString(int i, String columnName) throws SQLFeatureNotSupportedException {
+    public void updateString(int columnIndex, String columnName) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateBytes(int i, byte[] bytes) throws SQLFeatureNotSupportedException {
+    public void updateBytes(int columnIndex, byte[] bytes) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateDate(int i, Date date) throws SQLFeatureNotSupportedException {
+    public void updateDate(int columnIndex, Date date) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateTime(int i, Time time) throws SQLFeatureNotSupportedException {
+    public void updateTime(int columnIndex, Time time) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateTimestamp(int i, Timestamp timestamp) throws SQLFeatureNotSupportedException {
+    public void updateTimestamp(int columnIndex, Timestamp timestamp) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateAsciiStream(int i, InputStream inputStream, int i1) throws SQLFeatureNotSupportedException {
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, int columnIndex1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateBinaryStream(int i, InputStream inputStream, int i1) throws SQLFeatureNotSupportedException {
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, int columnIndex1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateCharacterStream(int i, Reader reader, int i1) throws SQLFeatureNotSupportedException {
+    public void updateCharacterStream(int columnIndex, Reader reader, int columnIndex1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateObject(int i, Object o, int i1) throws SQLFeatureNotSupportedException {
+    public void updateObject(int columnIndex, Object o, int columnIndex1) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateObject(int i, Object o) throws SQLFeatureNotSupportedException {
+    public void updateObject(int columnIndex, Object o) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -740,7 +740,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateInt(String columnName, int i) throws SQLFeatureNotSupportedException {
+    public void updateInt(String columnName, int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -790,22 +790,22 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateAsciiStream(String columnName, InputStream inputStream, int i) throws SQLFeatureNotSupportedException {
+    public void updateAsciiStream(String columnName, InputStream inputStream, int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateBinaryStream(String columnName, InputStream inputStream, int i) throws SQLFeatureNotSupportedException {
+    public void updateBinaryStream(String columnName, InputStream inputStream, int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateCharacterStream(String columnName, Reader reader, int i) throws SQLFeatureNotSupportedException {
+    public void updateCharacterStream(String columnName, Reader reader, int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public void updateObject(String columnName, Object o, int i) throws SQLFeatureNotSupportedException {
+    public void updateObject(String columnName, Object o, int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -855,28 +855,28 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Object getObject(int i, Map<String, Class<?>> map) throws SQLFeatureNotSupportedException {
+    public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public Ref getRef(int i) throws SQLFeatureNotSupportedException {
+    public Ref getRef(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public Blob getBlob(int i) throws SQLFeatureNotSupportedException {
+    public Blob getBlob(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public Clob getClob(int i) throws SQLFeatureNotSupportedException {
+    public Clob getClob(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
     @Override
-    public Array getArray(int i) {
-        return (Array) get(i);
+    public Array getArray(int columnIndex) {
+        return (Array) get(columnIndex);
     }
 
     @Override
@@ -907,18 +907,18 @@ public class KustoResultSetTable implements ResultSet {
     /*
      * This will return the full dateTime from Kusto as sql.Date is less precise
      */
-    public LocalDateTime getKustoDateTime(int i) {
-        if (get(i) == null) {
+    public LocalDateTime getKustoDateTime(int columnIndex) {
+        if (get(columnIndex) == null) {
             return null;
         }
-        String dateString = getString(i);
+        String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
             dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")).toFormatter();
         } else {
             dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
         }
-        return LocalDateTime.parse(getString(i), dateTimeFormatter);
+        return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
     }
 
     public LocalDateTime getKustoDateTime(String columnName) {
@@ -929,19 +929,19 @@ public class KustoResultSetTable implements ResultSet {
      * This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
      */
     @Override
-    public Date getDate(int i, Calendar calendar) throws SQLException {
+    public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
         if (calendar == null) {
-            return getDate(i);
+            return getDate(columnIndex);
         }
 
-        switch (columnsAsArray[i].getColumnType()) {
+        switch (columnsAsArray[columnIndex].getColumnType()) {
             case "string":
             case "datetime":
                 try {
-                    if (get(i) == null) {
+                    if (get(columnIndex) == null) {
                         return null;
                     }
-                    String dateString = getString(i);
+                    String dateString = getString(columnIndex);
                     FastDateFormat dateFormat;
                     if (dateString.length() < 21) {
                         dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
@@ -954,7 +954,7 @@ public class KustoResultSetTable implements ResultSet {
                 }
             case "long":
             case "int":
-                Long longVal = getLongObject(i);
+                Long longVal = getLongObject(columnIndex);
                 if (longVal == null) {
                     return null;
                 }
@@ -969,8 +969,8 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Time getTime(int i, Calendar calendar) throws SQLException {
-        return getTime(i);
+    public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
+        return getTime(columnIndex);
     }
 
     @Override
@@ -978,8 +978,8 @@ public class KustoResultSetTable implements ResultSet {
         return getTime(columnName);
     }
 
-    public LocalTime getLocalTime(int i) {
-        Object time = get(i);
+    public LocalTime getLocalTime(int columnIndex) {
+        Object time = get(columnIndex);
         if (time == null) {
             return null;
         }
@@ -991,8 +991,8 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Timestamp getTimestamp(int i, Calendar calendar) throws SQLException {
-        return getTimestamp(i);
+    public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
+        return getTimestamp(columnIndex);
     }
 
     @Override
@@ -1001,9 +1001,9 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public URL getURL(int i) throws SQLException {
+    public URL getURL(int columnIndex) throws SQLException {
         try {
-            return new URL(getString(i));
+            return new URL(getString(columnIndex));
         } catch (MalformedURLException e) {
             throw new SQLException(e);
         }
@@ -1019,7 +1019,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateRef(int i, Ref ref) throws SQLFeatureNotSupportedException {
+    public void updateRef(int columnIndex, Ref ref) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
 
     }
@@ -1031,7 +1031,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateBlob(int i, Blob blob) throws SQLFeatureNotSupportedException {
+    public void updateBlob(int columnIndex, Blob blob) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
 
     }
@@ -1043,7 +1043,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateClob(int i, Clob clob) throws SQLFeatureNotSupportedException {
+    public void updateClob(int columnIndex, Clob clob) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
 
     }
@@ -1055,7 +1055,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateArray(int i, Array array) throws SQLFeatureNotSupportedException {
+    public void updateArray(int columnIndex, Array array) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
 
     }
@@ -1066,7 +1066,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public RowId getRowId(int i) throws SQLFeatureNotSupportedException {
+    public RowId getRowId(int columnIndex) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -1076,7 +1076,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateRowId(int i, RowId rowId) throws SQLFeatureNotSupportedException {
+    public void updateRowId(int columnIndex, RowId rowId) throws SQLFeatureNotSupportedException {
         throw new SQLFeatureNotSupportedException("Method not supported");
     }
 
@@ -1096,7 +1096,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNString(int i, String s) {
+    public void updateNString(int columnIndex, String s) {
 
     }
 
@@ -1106,7 +1106,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNClob(int i, NClob nClob) {
+    public void updateNClob(int columnIndex, NClob nClob) {
 
     }
 
@@ -1116,7 +1116,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public NClob getNClob(int i) {
+    public NClob getNClob(int columnIndex) {
         return null;
     }
 
@@ -1126,7 +1126,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public SQLXML getSQLXML(int i) {
+    public SQLXML getSQLXML(int columnIndex) {
         return null;
     }
 
@@ -1136,7 +1136,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateSQLXML(int i, SQLXML sqlxml) {
+    public void updateSQLXML(int columnIndex, SQLXML sqlxml) {
 
     }
 
@@ -1146,7 +1146,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public String getNString(int i) {
+    public String getNString(int columnIndex) {
         return null;
     }
 
@@ -1156,7 +1156,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public Reader getNCharacterStream(int i) {
+    public Reader getNCharacterStream(int columnIndex) {
         return null;
     }
 
@@ -1166,7 +1166,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNCharacterStream(int i, Reader reader, long l) {
+    public void updateNCharacterStream(int columnIndex, Reader reader, long l) {
 
     }
 
@@ -1176,17 +1176,17 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateAsciiStream(int i, InputStream inputStream, long l) {
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, long l) {
 
     }
 
     @Override
-    public void updateBinaryStream(int i, InputStream inputStream, long l) {
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, long l) {
 
     }
 
     @Override
-    public void updateCharacterStream(int i, Reader reader, long l) {
+    public void updateCharacterStream(int columnIndex, Reader reader, long l) {
 
     }
 
@@ -1206,7 +1206,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateBlob(int i, InputStream inputStream, long l) {
+    public void updateBlob(int columnIndex, InputStream inputStream, long l) {
 
     }
 
@@ -1216,7 +1216,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateClob(int i, Reader reader, long l) {
+    public void updateClob(int columnIndex, Reader reader, long l) {
 
     }
 
@@ -1226,7 +1226,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNClob(int i, Reader reader, long l) {
+    public void updateNClob(int columnIndex, Reader reader, long l) {
 
     }
 
@@ -1236,7 +1236,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNCharacterStream(int i, Reader reader) {
+    public void updateNCharacterStream(int columnIndex, Reader reader) {
 
     }
 
@@ -1246,17 +1246,17 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateAsciiStream(int i, InputStream inputStream) {
+    public void updateAsciiStream(int columnIndex, InputStream inputStream) {
 
     }
 
     @Override
-    public void updateBinaryStream(int i, InputStream inputStream) {
+    public void updateBinaryStream(int columnIndex, InputStream inputStream) {
 
     }
 
     @Override
-    public void updateCharacterStream(int i, Reader reader) {
+    public void updateCharacterStream(int columnIndex, Reader reader) {
 
     }
 
@@ -1276,7 +1276,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateBlob(int i, InputStream inputStream) {
+    public void updateBlob(int columnIndex, InputStream inputStream) {
 
     }
 
@@ -1286,7 +1286,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateClob(int i, Reader reader) {
+    public void updateClob(int columnIndex, Reader reader) {
 
     }
 
@@ -1296,7 +1296,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public void updateNClob(int i, Reader reader) {
+    public void updateNClob(int columnIndex, Reader reader) {
 
     }
 
@@ -1306,7 +1306,7 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     @Override
-    public <T> T getObject(int i, Class<T> aClass) {
+    public <T> T getObject(int columnIndex, Class<T> aClass) {
         return null;
     }
 

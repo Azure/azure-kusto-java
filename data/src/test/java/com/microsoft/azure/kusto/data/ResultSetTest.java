@@ -10,8 +10,6 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
-import java.util.Calendar;
-import java.util.TimeZone;
 import java.util.UUID;
 
 public class ResultSetTest {
@@ -93,10 +91,7 @@ public class ResultSetTest {
         Assertions.assertEquals(res.getIntegerObject(6), i);
         Assertions.assertEquals(res.getLongObject(7), l);
         Assertions.assertEquals(res.getDoubleObject(8),d);
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT+1"));
-        calendar.setTime(Time.from(Instant.now()));
-//        calendar.setTime(Time.from(Instant.now().minusSeconds(60*60*12)))
-        res.getTime(9, calendar);
+
         Assertions.assertEquals(res.getTime(9), Time.valueOf(durationAsKustoString));
         Assertions.assertEquals(res.getLocalTime(9), LocalTime.parse(durationAsKustoString));
         Assertions.assertEquals(res.getShort(10), s1);
