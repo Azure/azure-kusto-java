@@ -6,7 +6,11 @@
     <artifactId>kusto-data</artifactId>
     <name>Kusto data client library</name>
     <description>Kusto client library for executing queries and retrieving data</description>
-
+    <url>https://github.com/Azure/azure-kusto-java/tree/master/data</url>
+    <scm>
+        <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
+        <connection>scm:git:https://github.com/Azure/azure-kusto-java</connection>
+    </scm>
     <parent>
         <artifactId>kusto-client</artifactId>
         <groupId>com.microsoft.azure.kusto</groupId>
