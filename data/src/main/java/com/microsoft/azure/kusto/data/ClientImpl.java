@@ -8,7 +8,7 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceError;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.utils.URIBuilder;
@@ -79,8 +79,11 @@ public class ClientImpl implements Client, StreamingClient {
         String clusterEndpoint = determineClusterEndpoint(command);
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
-        } catch (KustoServiceError e) {
-            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        } catch (KustoServiceQueryError e) {
+            throw new DataServiceException(clusterEndpoint,
+                    "Error parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+        } catch (Exception e){
+            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
     }
 
@@ -154,7 +157,7 @@ public class ClientImpl implements Client, StreamingClient {
         String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
             return new KustoOperationResult(response, "v1");
-        } catch (KustoServiceError e) {
+        } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         }
     }
