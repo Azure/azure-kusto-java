@@ -187,11 +187,19 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public short getShort(int i) {
+        Object obj = get(i);
+        if (obj instanceof Integer) {
+            return ((Integer) obj).shortValue();
+        }
         return (short) get(i);
     }
 
-    public short getShortObject(int i) {
-        return (Short) get(i);
+    public Short getShortObject(int i) {
+        Object obj = get(i);
+        if (obj == null) {
+            return null;
+        }
+        return getShort(i);
     }
 
     @Override
@@ -199,7 +207,7 @@ public class KustoResultSetTable implements ResultSet {
         return (int) get(i);
     }
 
-    public Integer getInteger(int i) {
+    public Integer getIntegerObject(int i) {
         return (Integer) get(i);
     }
 
@@ -236,6 +244,10 @@ public class KustoResultSetTable implements ResultSet {
     }
 
     public Double getDoubleObject(int i) {
+        Object d = get(i);
+        if (d instanceof BigDecimal) {
+            return ((BigDecimal) d).doubleValue();
+        }
         return (Double) get(i);
     }
 
@@ -331,11 +343,11 @@ public class KustoResultSetTable implements ResultSet {
 
     @Override
     public short getShort(String columnName) {
-        return (short) get(columnName);
+        return (short) getShort(findColumn(columnName));
     }
 
-    public short getShortObject(String columnName) {
-        return (Short) get(columnName);
+    public Short getShortObject(String columnName) {
+        return getShortObject(findColumn(columnName));
     }
 
     @Override
@@ -343,8 +355,8 @@ public class KustoResultSetTable implements ResultSet {
         return (int) get(columnName);
     }
 
-    public int getInteger(String columnName) {
-        return (Integer) get(columnName);
+    public int getIntegerObject(String columnName) {
+        return getIntegerObject(findColumn(columnName));
     }
 
     @Override
