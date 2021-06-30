@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.ITenantProfile;
+import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
@@ -20,6 +21,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -34,6 +36,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,10 +44,15 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
+    @BeforeAll
+    public static void setUp() {
+        CloudInfo.manuallyAddToCache("https://resource.uri", CloudInfo.DEFAULT_CLOUD);
+    }
+
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, URISyntaxException {
+            PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -52,9 +60,13 @@ public class AadAuthenticationHelperTest {
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
 
         ConnectionStringBuilder csb = ConnectionStringBuilder
-                .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
+                .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
         MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+
+        aadAuthenticationHelper.initializeCloudInfo();
+        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelper.aadAuthorityUrl);
+        assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
 
         Assertions.assertThrows(DataServiceException.class,
                 () -> aadAuthenticationHelper.acquireNewAccessToken());
@@ -103,7 +115,7 @@ public class AadAuthenticationHelperTest {
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
 
         ConnectionStringBuilder csb = ConnectionStringBuilder
-                .createWithAadApplicationCertificate("resource.uri", "client-id", x509Certificate, privateKey);
+                .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
         MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
 
@@ -115,6 +127,9 @@ public class AadAuthenticationHelperTest {
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelperSpy.aadAuthorityUrl);
+        assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
+
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
@@ -125,6 +140,71 @@ public class AadAuthenticationHelperTest {
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
         assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+    }
+
+    @Test
+    @DisplayName("validate cloud settings for non-standard cloud")
+    void checkCloudSettingsAbnormal() throws URISyntaxException, DataServiceException, DataClientException {
+
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
+
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
+                true,
+                "https://nostandard-login-input",
+                "non_standard_client_id",
+                "",
+                "https://aaaa.kusto.bbbb.com",
+                "first_party_url"
+
+        ));
+
+        aadAuthenticationHelper.initializeCloudInfo();
+        assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
+        assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.clientApplication.authority());
+
+        assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.aadAuthorityUrl);
+        HashSet<String> scopes = new HashSet<>(Collections.singletonList("https://aaaa.kustomfa.bbbb.com/.default"));
+        assertEquals(scopes, aadAuthenticationHelper.scopes);
+
+        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
+        assertEquals(scopes, silentParametersNormalUser.scopes());
+        assertEquals("https://nostandard-login-input/weird_auth_id/", silentParametersNormalUser.authorityUrl());
+
+        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
+        assertEquals(scopes, silentParametersMsaUser.scopes());
+        assertEquals("first_party_url", silentParametersMsaUser.authorityUrl());
+    }
+
+    @Test
+    @DisplayName("validate cloud settings for the standard cloud")
+    void checkCloudSettingsNormal() throws URISyntaxException, DataServiceException, DataClientException {
+
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "auth_id", "");
+
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
+
+        aadAuthenticationHelper.initializeCloudInfo();
+        String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/auth_id/";
+        assertEquals(CloudInfo.DEFAULT_KUSTO_CLIENT_APP_ID, aadAuthenticationHelper.clientApplication.clientId());
+        assertEquals(authorityUrl, aadAuthenticationHelper.clientApplication.authority());
+
+        assertEquals(authorityUrl, aadAuthenticationHelper.aadAuthorityUrl);
+        HashSet<String> scopes = new HashSet<>(Collections.singletonList(CloudInfo.DEFAULT_KUSTO_SERVICE_RESOURCE_ID + "/.default"));
+        assertEquals(scopes, aadAuthenticationHelper.scopes);
+
+        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
+        assertEquals(scopes, silentParametersNormalUser.scopes());
+        assertEquals(authorityUrl, silentParametersNormalUser.authorityUrl());
+
+        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
+        assertEquals(scopes, silentParametersMsaUser.scopes());
+        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL, silentParametersMsaUser.authorityUrl());
     }
 
     static class MockAccount implements IAccount {

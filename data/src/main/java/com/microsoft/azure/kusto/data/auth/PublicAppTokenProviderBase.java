@@ -4,6 +4,8 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;
@@ -15,12 +17,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
-    // TODO: Get ClientId from CM endpoint
-    protected static final String CLIENT_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     protected IPublicClientApplication clientApplication;
 
     PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
+    }
+
+    @Override
+    protected void onCloudInit() throws DataClientException {
+        try {
+            clientApplication = PublicClientApplication.builder(cloudInfo.getKustoClientAppId()).authority(aadAuthorityUrl).build();
+        } catch (MalformedURLException e) {
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
+        }
     }
 
     @Override
