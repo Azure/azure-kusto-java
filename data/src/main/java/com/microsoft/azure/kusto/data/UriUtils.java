@@ -9,6 +9,11 @@ public class UriUtils {
         if (ensureTrailingSlash && !path.endsWith("/")) {
             path += "/";
         }
+        if (!path.startsWith("/"))
+        {
+            path = "/" + path;
+        }
+
         return new URIBuilder(uri).setPath(path).build().toString();
     }
 
