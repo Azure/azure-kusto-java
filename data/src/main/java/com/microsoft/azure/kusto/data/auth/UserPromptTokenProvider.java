@@ -44,12 +44,6 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
     UserPromptTokenProvider(String usernameHint, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
         this.usernameHint = usernameHint;
-
-        try {
-            clientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
-        } catch (MalformedURLException e) {
-            throw new URISyntaxException(aadAuthorityUrl, ERROR_INVALID_AUTHORITY_URL);
-        }
     }
 
     @Override
@@ -57,19 +51,21 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
         IAuthenticationResult result;
         try {
             // This is the only auth method that allows the same application to be used for multiple distinct accounts, so reset account cache between sign-ins
-            clientApplication = PublicClientApplication.builder(CLIENT_ID).authority(aadAuthorityUrl).build();
-            CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(usernameHint).build());
+            clientApplication = PublicClientApplication.builder(cloudInfo.getKustoClientAppId()).authority(aadAuthorityUrl).build();
+            CompletableFuture<IAuthenticationResult> future =
+                    clientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(usernameHint).build());
             result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         } catch (TimeoutException | ExecutionException e) {
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e);
+            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
         if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result");
+            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
+                    false);
         }
         return result;
     }

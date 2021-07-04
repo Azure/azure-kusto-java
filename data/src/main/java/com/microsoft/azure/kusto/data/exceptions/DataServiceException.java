@@ -3,26 +3,12 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-public class DataServiceException extends Exception {
-    private String ingestionSource;
-
-    public String getIngestionSource() { return ingestionSource; }
-
-    public DataServiceException(String message) {
-        super(message);
+public class DataServiceException extends KustoDataException {
+    public DataServiceException(String ingestionSource, String message, boolean isPermanent) {
+        this(ingestionSource, message, null, isPermanent);
     }
 
-    public DataServiceException(String message, Exception exception) {
-        super(message, exception);
-    }
-
-    public DataServiceException(String ingestionSource, String message, Exception exception) {
-        super(message, exception);
-        this.ingestionSource = ingestionSource;
-    }
-
-    public DataServiceException(String ingestionSource, String message) {
-        super(message);
-        this.ingestionSource = ingestionSource;
+    public DataServiceException(String ingestionSource, String message, Exception exception, boolean isPermanent) {
+        super(ingestionSource, message, exception, isPermanent);
     }
 }
