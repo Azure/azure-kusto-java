@@ -14,20 +14,28 @@ import java.util.concurrent.Callable;
 
 public class TokenProviderFactory {
     private TokenProviderFactory() {
-        // Hide constructor as this is a Factory
+        // Hide constructor, since this is a Factory
     }
 
     public static TokenProviderBase createTokenProvider(@NotNull ConnectionStringBuilder csb) throws URISyntaxException {
         String clusterUrl = csb.getClusterUrl();
         String authorityId = csb.getAuthorityId();
-        if (StringUtils.isNotBlank(csb.getApplicationClientId()) && StringUtils.isNotBlank(csb.getApplicationKey())) {
-            String clientId = csb.getApplicationClientId();
-            IClientSecret clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
-            return new ApplicationKeyTokenProvider(clientId, clientSecret, clusterUrl, authorityId);
-        } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null && StringUtils.isNotBlank(csb.getApplicationClientId())) {
-            IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
-            String applicationClientId = csb.getApplicationClientId();
-            return new ApplicationCertificateTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
+        if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
+            if (StringUtils.isNotBlank(csb.getApplicationKey())) {
+                String clientId = csb.getApplicationClientId();
+                IClientSecret clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
+                return new ApplicationKeyTokenProvider(clientId, clientSecret, clusterUrl, authorityId);
+            } else if (csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty() && csb.getPrivateKey() != null) {
+                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
+                String applicationClientId = csb.getApplicationClientId();
+                return new SubjectNameIssuerTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
+            } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
+                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
+                String applicationClientId = csb.getApplicationClientId();
+                return new ApplicationCertificateTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
+            } else {
+                throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
+            }
         } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
             String accessToken = csb.getAccessToken();
             return new AccessTokenTokenProvider(accessToken, clusterUrl);
