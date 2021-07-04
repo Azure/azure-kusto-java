@@ -68,7 +68,17 @@ public enum IngestionErrorCode {
     /// Failed to download source from Azure storage - Unknown error
     /// </summary>
     Download_UnknownError,
-    
+
+    /// <summary>
+    /// Access to database is denied.
+    /// </summary>
+    BadRequest_DatabaseAccessDenied,
+
+    /// <summary>
+    /// Authentication to data isn't valid.
+    /// </summary>
+    BadRequest_InvalidAuthentication,
+
     /// <summary>
     /// Failed to invoke update policy. Query schema does not match table schema
     /// </summary>
@@ -113,7 +123,12 @@ public enum IngestionErrorCode {
     /// Invalid kusto identity token
     /// </summary>
     BadRequest_InvalidKustoIdentityToken,
-    
+
+    /// <summary>
+    /// Insufficient security permissions to execute request.
+    /// </summary>
+    Forbidden,
+
     /// <summary>
     /// Blob path without SAS from Unknown blob storage
     /// </summary>
@@ -158,12 +173,47 @@ public enum IngestionErrorCode {
     /// Failed to invoke update policy. Transactional update policy is not allowed in streaming ingestion
     /// </summary>
     UpdatePolicy_Transactional_Not_Allowed_In_Streaming_Ingestion,
-    
+
+    /// <summary>
+    /// Blob is empty.
+    /// </summary>
+    BadRequest_EmptyBlob,
+
+    /// <summary>
+    /// Blob Uri is empty..
+    /// </summary>
+    BadRequest_EmptyBlobUri,
+
+    /// <summary>
+    /// Ingestion properties include both ingestionMapping and ingestionMappingReference, which isn't valid.
+    /// </summary>
+    BadRequest_DuplicateMapping,
+
+    /// <summary>
+    /// Table name is empty or invalid.
+    /// </summary>
+    BadRequest_InvalidOrEmptyTableName,
+
+    /// <summary>
+    /// Database name is empty.
+    /// </summary>
+    BadRequest_EmptyDatabaseName,
+
+    /// <summary>
+    /// Some formats should get ingestion mapping to be ingested and the mapping reference is empty.
+    /// </summary>
+    BadRequest_EmptyMappingReference,
+
     /// <summary>
     /// Failed to parse csv mapping.
     /// </summary>
     BadRequest_InvalidCsvMapping,
-    
+
+    /// <summary>
+    /// Invalid mapping.
+    /// </summary>
+    BadRequest_InvalidMapping,
+
     /// <summary>
     /// Invalid mapping reference.
     /// </summary>
@@ -173,22 +223,37 @@ public enum IngestionErrorCode {
     /// Mapping reference wasn't found.
     /// </summary>
     BadRequest_MappingReferenceWasNotFound,
-    
+
+    /// <summary>
+    /// Azure Data Explorer entity (such as mapping, database, or table) wasn't found.
+    /// </summary>
+    BadRequest_EntityNotFound,
+
     /// <summary>
     /// Failed to parse Json mapping.
     /// </summary>
     BadRequest_InvalidJsonMapping,
-    
+
+    /// <summary>
+    /// Blob is invalid.
+    /// </summary>
+    BadRequest_InvalidBlob,
+
     /// <summary>
     /// Format is not supported
     /// </summary>
     BadRequest_FormatNotSupported,
-    
+
     /// <summary>
-    /// Ingestion properties contains ingestion mapping and ingestion mapping reference.
+    /// Archive is empty.
     /// </summary>
-    BadRequest_DuplicateMapping,
-    
+    BadRequest_EmptyArchive,
+
+    /// <summary>
+    /// Archive is invalid.
+    /// </summary>
+    BadRequest_InvalidArchive,
+
     /// <summary>
     /// Message is corrupted
     /// </summary>
@@ -203,7 +268,47 @@ public enum IngestionErrorCode {
     /// Syntax error
     /// </summary>
     BadRequest_SyntaxError,
-    
+
+    /// <summary>
+    /// Unexpected character in the input stream.
+    /// </summary>
+    BadRequest_UnexpectedCharacterInInputStream,
+
+    /// <summary>
+    /// Table has zero retention policy and isn't the source table for any update policy.
+    /// </summary>
+    BadRequest_ZeroRetentionPolicyWithNoUpdatePolicy,
+
+    /// <summary>
+    /// Creation time that was specified for ingestion, isn't within the SoftDeletePeriod.
+    /// </summary>
+    BadRequest_CreationTimeEarlierThanSoftDeletePeriod,
+
+    /// <summary>
+    /// Request not supported.
+    /// </summary>
+    BadRequest_NotSupported,
+
+    /// <summary>
+    /// Entity name isn't valid.
+    /// </summary>
+    BadRequest_EntityNameIsNotValid,
+
+    /// <summary>
+    /// Ingestion property is malformed.
+    /// </summary>
+    BadRequest_MalformedIngestionProperty,
+
+    /// <summary>
+    /// Ingestion property isn't supported in this context.
+    /// </summary>
+    BadRequest_IngestionPropertyNotSupportedInThisContext,
+
+    /// <summary>
+    /// Blob URI is invalid.
+    /// </summary>
+    BadRequest_InvalidBlobUri,
+
     /// <summary>
     /// Abandoned ingestion.
     /// </summary>
@@ -218,4 +323,39 @@ public enum IngestionErrorCode {
     /// Schema of target table at start time doesn't match the one at commit time.
     /// </summary>
     General_TransientSchemaMismatch,
+
+    /// <summary>
+    /// Avro and Json formats must be ingested with ingestionMapping or ingestionMappingReference parameter..
+    /// </summary>
+    BadRequest_MissingMappingtFailure,
+
+    /// <summary>
+    /// The data contains too large values in a dynamic column. HRESULT: 0x80DA000E.
+    /// </summary>
+    Stream_DynamicPropertyBagTooLarge,
+
+    /// <summary>
+    /// Operation has exceeded the retry attempts limit or timespan limit following a recurring transient error.
+    /// </summary>
+    General_RetryAttemptsExceeded,
+
+    /// <summary>
+    /// The operation has been aborted because of timeout.
+    /// </summary>
+    Timeout,
+
+    /// <summary>
+    /// Ingestion operation ran out of memory.
+    /// </summary>
+    OutOfMemory,
+
+    /// <summary>
+    /// Failed to update schema permanently.
+    /// </summary>
+    Schema_PermanentUpdateFailure,
+
+    /// <summary>
+    /// A new error code unknown to the client
+    /// </summary>
+    Misc,
 }

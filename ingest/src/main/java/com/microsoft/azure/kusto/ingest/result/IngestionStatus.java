@@ -125,17 +125,24 @@ public class IngestionStatus extends TableServiceEntity {
         activityId = id;
     }
 
+    public String errorCodeString;
+
     /// <summary>
-    /// In case of a failure - indicates the failure's error code.
+    /// In case of a failure - indicates the failure's error code. TODO: Deprecate next major version
     /// </summary>
     public IngestionErrorCode errorCode;
 
     public String getErrorCode() {
-        return (errorCode != null ? errorCode : IngestionErrorCode.Unknown).toString();
+        return errorCodeString;
     }
 
     public void setErrorCode(String code) {
-        errorCode = code == null ? IngestionErrorCode.Unknown : IngestionErrorCode.valueOf(code);
+        errorCodeString = code;
+        try{
+            errorCode = code == null ? IngestionErrorCode.Unknown : IngestionErrorCode.valueOf(code);
+        } catch (IllegalArgumentException ex){
+            errorCode = IngestionErrorCode.Misc;
+        }
     }
 
     /// <summary>
