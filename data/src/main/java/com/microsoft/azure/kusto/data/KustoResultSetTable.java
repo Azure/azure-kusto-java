@@ -566,7 +566,7 @@ public class KustoResultSetTable {
         return rows.size();
     }
 
-    public boolean isNullAt(int columnIndex){
+    public boolean isNull(int columnIndex){
         return get(columnIndex) == null;
     }
 }
