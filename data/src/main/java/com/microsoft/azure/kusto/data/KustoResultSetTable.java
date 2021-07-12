@@ -139,7 +139,6 @@ public class KustoResultSetTable {
         return currentRow;
     }
 
-
     public boolean next() {
         boolean hasNext = rowIterator.hasNext();
         if (hasNext) {
@@ -321,7 +320,6 @@ public class KustoResultSetTable {
         return getLongObject(findColumn(columnName));
     }
 
-
     public float getFloat(String columnName) {
         return (float) get(columnName);
     }
@@ -329,7 +327,6 @@ public class KustoResultSetTable {
     public Float getFloatObject(String columnName) {
         return getFloatObject(findColumn(columnName));
     }
-
 
     public double getDouble(String columnName) {
         return (double) get(columnName);
@@ -343,16 +340,13 @@ public class KustoResultSetTable {
         return (byte[]) get(columnName);
     }
 
-
     public Date getDate(String columnName) throws SQLException {
         return getDate(findColumn(columnName));
     }
 
-
     public Time getTime(String columnName) throws SQLException {
         return getTime(findColumn(columnName));
     }
-
 
     public Timestamp getTimestamp(String columnName) throws SQLException {
         return getTimestamp(findColumn(columnName));
@@ -393,7 +387,6 @@ public class KustoResultSetTable {
     public UUID getUUID(String columnName) {
         return getUUID(findColumn(columnName));
     }
-
 
     public int findColumn(String columnName) {
         return columns.get(columnName).getOrdinal();
@@ -442,7 +435,6 @@ public class KustoResultSetTable {
         currentRow = rowIterator.next();
         return true;
     }
-
 
     public boolean last() {
         if (rows.isEmpty())
@@ -522,16 +514,13 @@ public class KustoResultSetTable {
         throw new SQLException("Error parsing Date - expected string, long or datetime data type.");
     }
 
-
     public Date getDate(String columnName, Calendar calendar) throws SQLException {
         return getDate(findColumn(columnName));
     }
 
-
     public Time getTime(int columnIndex, Calendar calendar) throws SQLException {
         return getTime(columnIndex);
     }
-
 
     public Time getTime(String columnName, Calendar calendar) throws SQLException {
         return getTime(columnName);
@@ -549,16 +538,13 @@ public class KustoResultSetTable {
         return getLocalTime(findColumn(columnName));
     }
 
-
     public Timestamp getTimestamp(int columnIndex, Calendar calendar) throws SQLException {
         return getTimestamp(columnIndex);
     }
 
-
     public Timestamp getTimestamp(String columnName, Calendar calendar) throws SQLException {
         return getTimestamp(findColumn(columnName), calendar);
     }
-
 
     public URL getURL(int columnIndex) throws SQLException {
         try {
@@ -567,7 +553,6 @@ public class KustoResultSetTable {
             throw new SQLException(e);
         }
     }
-
 
     public URL getURL(String columnName) throws SQLException {
         try {
