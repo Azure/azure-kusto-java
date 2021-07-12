@@ -151,6 +151,10 @@ public class IngestionProperties {
         this.additionalProperties = additionalProperties;
     }
 
+    public Map<String, String> getAdditionalProperties(){
+        return this.additionalProperties;
+    }
+
     public ArrayList<String> getIngestIfNotExists() {
         return ingestIfNotExists;
     }
