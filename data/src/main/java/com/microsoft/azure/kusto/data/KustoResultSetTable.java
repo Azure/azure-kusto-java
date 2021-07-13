@@ -111,7 +111,7 @@ public class KustoResultSetTable {
                         }
                     } else {
                         throw new KustoServiceQueryError(((JSONObject) row).getJSONArray(
-                                "OneApiErrors"),true, EXCEPTIONS_MESSAGE);
+                                "OneApiErrors"), true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
@@ -235,7 +235,7 @@ public class KustoResultSetTable {
         return (Double) get(columnIndex);
     }
 
-   public byte[] getBytes(int columnIndex) {
+    public byte[] getBytes(int columnIndex) {
         return (byte[]) get(columnIndex);
     }
 
@@ -479,7 +479,6 @@ public class KustoResultSetTable {
     /**
      * This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
      */
-
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
         if (calendar == null) {
             return getDate(columnIndex);
@@ -566,7 +565,7 @@ public class KustoResultSetTable {
         return rows.size();
     }
 
-    public boolean isNull(int columnIndex){
+    public boolean isNull(int columnIndex) {
         return get(columnIndex) == null;
     }
 }
