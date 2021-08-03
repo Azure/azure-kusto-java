@@ -23,7 +23,7 @@ public class ConnectionStringBuilder {
     private List<X509Certificate> x509CertificateChain;
     // PEM-encoded private key
     private PrivateKey privateKey;
-    private String aadAuthorityId; // AAD tenant Id (GUID)
+    private String aadAuthorityId; // AAD tenant Id (GUID or "microsoft.com")
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private String accessToken;
