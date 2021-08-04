@@ -24,6 +24,7 @@ public class ConnectionStringBuilder {
     private String accessToken;
     private Callable<String> tokenProvider;
     private boolean useDeviceCodeAuth;
+    private String userNameForTracing;
 
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
@@ -36,6 +37,7 @@ public class ConnectionStringBuilder {
         accessToken = null;
         tokenProvider = null;
         useDeviceCodeAuth = false;
+        userNameForTracing = null;
     }
 
     public String getClusterUrl() {
@@ -76,6 +78,14 @@ public class ConnectionStringBuilder {
 
     public void setClientVersionForTracing(String clientVersionForTracing) {
         this.clientVersionForTracing = clientVersionForTracing;
+    }
+
+    public String getUserNameForTracing() {
+        return userNameForTracing;
+    }
+
+    public void setUserNameForTracing(String userNameForTracing) {
+        this.userNameForTracing = userNameForTracing;
     }
 
     X509Certificate getX509Certificate() {

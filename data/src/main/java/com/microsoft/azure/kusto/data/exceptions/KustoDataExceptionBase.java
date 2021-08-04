@@ -1,10 +1,10 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
-public abstract class KustoDataException extends Exception {
+public class KustoDataExceptionBase extends Exception {
     private final String ingestionSource;
     private final boolean isPermanent;
 
-    public KustoDataException(String ingestionSource, String message, Exception exception, boolean isPermanent) {
+    public KustoDataExceptionBase(String ingestionSource, String message, Exception exception, boolean isPermanent) {
         super(message, exception);
         this.ingestionSource = ingestionSource;
         this.isPermanent = isPermanent;

@@ -21,23 +21,26 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client, StreamingClient {
     private static final String ADMIN_COMMANDS_PREFIX = ".";
-    private static final String MGMT_ENDPOINT_VERSION = "v1";
-    private static final String QUERY_ENDPOINT_VERSION = "v2";
-    private static final String STREAMING_VERSION = "v1";
+    public static final String MGMT_ENDPOINT_VERSION = "v1";
+    public static final String QUERY_ENDPOINT_VERSION = "v2";
+    public static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
     public static final String FEDERATED_SECURITY_POSTFIX = ";fed=true";
+    public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
+    private final String userNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         String url = csb.getClusterUrl();
@@ -60,6 +63,7 @@ public class ClientImpl implements Client, StreamingClient {
             clientVersionForTracing += "[" + csb.getClientVersionForTracing() + "]";
         }
         applicationNameForTracing = csb.getApplicationNameForTracing();
+        userNameForTracing = csb.getUserNameForTracing();
     }
 
     @Override
@@ -76,7 +80,8 @@ public class ClientImpl implements Client, StreamingClient {
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         String response = executeToJsonResult(database, command, properties);
 
-        String clusterEndpoint = determineClusterEndpoint(command);
+        CommandType commandType = determineCommandType(command);
+        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
@@ -107,11 +112,11 @@ public class ClientImpl implements Client, StreamingClient {
             throw new IllegalArgumentException("Command is empty");
         }
         command = command.trim();
+        CommandType commandType = determineCommandType(command);
+        long timeoutMs = determineTimeout(properties, commandType);
+        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        String clusterEndpoint = determineClusterEndpoint(command);
-        long timeoutMs = determineTimeout(properties, command);
-
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute");
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute", commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
@@ -132,12 +137,12 @@ public class ClientImpl implements Client, StreamingClient {
         if (StringUtils.isBlank(streamFormat)) {
             throw new IllegalArgumentException("Parameter streamFormat is empty.");
         }
-        String clusterEndpoint = String.format("%s/%s/rest/ingest/%s/%s?streamFormat=%s", clusterUrl, STREAMING_VERSION, database, table, streamFormat);
+        String clusterEndpoint = String.format(CommandType.STREAMING_INGEST.getEndpoint(), clusterUrl, database, table, streamFormat);
 
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest");
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest", CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
         Long timeoutMs = null;
         if (properties != null) {
@@ -181,31 +186,21 @@ public class ClientImpl implements Client, StreamingClient {
             throw new IllegalArgumentException("Command is empty");
         }
         command = command.trim();
+        CommandType commandType = determineCommandType(command);
+        long timeoutMs = determineTimeout(properties, commandType);
+        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        String clusterEndpoint = determineClusterEndpoint(command);
-        long timeoutMs = determineTimeout(properties, command);
-
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming");
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming", commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
         return Utils.postToStreamingOutput(clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
-    private String determineClusterEndpoint(String command) {
-        String clusterEndpoint;
-        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            clusterEndpoint = String.format("%s/%s/rest/mgmt", clusterUrl, MGMT_ENDPOINT_VERSION);
-        } else {
-            clusterEndpoint = String.format("%s/%s/rest/query", clusterUrl, QUERY_ENDPOINT_VERSION);
-        }
-        return clusterEndpoint;
-    }
-
-    private long determineTimeout(ClientRequestProperties properties, String command) {
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
         Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
         if (timeoutMs == null) {
-            if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
+            if (commandType == CommandType.ADMIN_COMMAND) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
             } else {
                 timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
@@ -214,19 +209,36 @@ public class ClientImpl implements Client, StreamingClient {
         return timeoutMs;
     }
 
-    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties, String clientRequestIdPrefix) throws DataServiceException, DataClientException {
+    private CommandType determineCommandType(String command) {
+        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
+            return CommandType.ADMIN_COMMAND;
+        }
+        return CommandType.QUERY;
+    }
+
+    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties, String clientRequestIdPrefix, String activityTypeSuffix) throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
             headers.put("x-ms-app", applicationNameForTracing);
         }
+        if (userNameForTracing != null) {
+            headers.put("x-ms-user-id", userNameForTracing);
+        }
         headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
 
-        String clientRequestId = null;
+        String clientRequestId;
         if (properties != null) {
             clientRequestId = properties.getClientRequestId();
+        } else {
+            clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
         }
-        headers.put("x-ms-client-request-id", clientRequestId == null ? String.format("%s;%s", clientRequestIdPrefix, java.util.UUID.randomUUID()) : clientRequestId);
+        headers.put("x-ms-client-request-id", clientRequestId);
+
+        UUID activityId = UUID.randomUUID();
+        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix, activityId, activityId, activityId, clientRequestId);
+        headers.put("x-ms-activitycontext", activityContext);
+
         return headers;
     }
 

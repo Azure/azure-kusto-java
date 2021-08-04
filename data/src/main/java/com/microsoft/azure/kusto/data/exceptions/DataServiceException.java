@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-public class DataServiceException extends KustoDataException {
+public class DataServiceException extends KustoDataExceptionBase {
     public DataServiceException(String ingestionSource, String message, boolean isPermanent) {
         this(ingestionSource, message, null, isPermanent);
     }
