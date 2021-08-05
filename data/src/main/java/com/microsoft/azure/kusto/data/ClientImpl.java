@@ -228,7 +228,7 @@ public class ClientImpl implements Client, StreamingClient {
         headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
 
         String clientRequestId;
-        if (properties != null) {
+        if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {
             clientRequestId = properties.getClientRequestId();
         } else {
             clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
