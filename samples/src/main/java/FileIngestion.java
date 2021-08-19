@@ -37,7 +37,7 @@ public class FileIngestion {
                 csvColumnMapping.setOrdinal(0);
                 ColumnMapping csvColumnMapping2 = new ColumnMapping("ColB", "int");
                 csvColumnMapping2.setOrdinal(1);
-                ingestionProperties2.setDataFormat("Csv");
+                ingestionProperties2.setDataFormat(IngestionProperties.DataFormat.csv);
                 ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.Csv);
 
                 IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);

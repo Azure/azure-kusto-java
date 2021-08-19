@@ -12,7 +12,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
-import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
@@ -112,11 +112,11 @@ class E2ETest {
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
         ingestionPropertiesWithMappingReference.setIngestionMapping(mappingReference, IngestionMappingKind.Json);
-        ingestionPropertiesWithMappingReference.setDataFormat(DATA_FORMAT.json);
+        ingestionPropertiesWithMappingReference.setDataFormat(DataFormat.json);
 
         IngestionProperties ingestionPropertiesWithColumnMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithColumnMapping.setFlushImmediately(true);
-        ingestionPropertiesWithColumnMapping.setDataFormat(DATA_FORMAT.json);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
         ColumnMapping first = new ColumnMapping("rownumber", "int");
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
