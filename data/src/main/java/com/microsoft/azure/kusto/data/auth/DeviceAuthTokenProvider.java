@@ -4,7 +4,6 @@ import com.microsoft.aad.msal4j.*;
 import org.jetbrains.annotations.NotNull;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.util.function.Consumer;
 

@@ -13,13 +13,10 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
-    private final String applicationClientId;
     private final IClientSecret clientSecret;
 
     ApplicationKeyTokenProvider(@NotNull String applicationClientId, @NotNull IClientSecret clientSecret, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
-
-        this.applicationClientId = applicationClientId;
+        super(applicationClientId, clusterUrl, authorityId);
         this.clientSecret = clientSecret;
     }
 
