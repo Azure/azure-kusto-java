@@ -54,7 +54,7 @@ public class StreamingIngest {
         String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
@@ -71,7 +71,7 @@ public class StreamingIngest {
         System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
@@ -85,14 +85,14 @@ public class StreamingIngest {
         //Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         //Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DATA_FORMAT.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
