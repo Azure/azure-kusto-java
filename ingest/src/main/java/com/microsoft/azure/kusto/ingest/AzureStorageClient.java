@@ -56,7 +56,7 @@ class AzureStorageClient {
         table.execute(insert);
     }
 
-    CloudBlockBlob  uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DATA_FORMAT dataFormat)
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
             throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
@@ -64,7 +64,7 @@ class AzureStorageClient {
         return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat.name()));
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, Boolean shouldCompress)
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
             throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
@@ -91,14 +91,11 @@ class AzureStorageClient {
         Ensure.fileExists(filePath);
         Ensure.argIsNotNull(blob, "blob");
 
-        InputStream fin = Files.newInputStream(Paths.get(filePath));
-        BlobOutputStream bos = blob.openOutputStream();
-        GZIPOutputStream gzout = new GZIPOutputStream(bos);
-
-        copyStream(fin, gzout, GZIP_BUFFER_SIZE);
-
-        gzout.close();
-        fin.close();
+        try (InputStream fin = Files.newInputStream(Paths.get(filePath));
+             BlobOutputStream bos = blob.openOutputStream();
+             GZIPOutputStream gzout = new GZIPOutputStream(bos)) {
+            copyStream(fin, gzout, GZIP_BUFFER_SIZE);
+        }
     }
 
     void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
@@ -144,10 +141,10 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        BlobOutputStream bos = blob.openOutputStream();
-        GZIPOutputStream gzout = new GZIPOutputStream(bos);
-        copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
-        gzout.close();
+        try (BlobOutputStream bos = blob.openOutputStream();
+             GZIPOutputStream gzout = new GZIPOutputStream(bos)) {
+            copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
+        }
     }
 
     private void copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
@@ -178,7 +175,7 @@ class AzureStorageClient {
         if (fileName.endsWith(".gz")) {
             return CompressionType.gz;
         }
-        if (fileName.endsWith(".zip")){
+        if (fileName.endsWith(".zip")) {
             return CompressionType.zip;
         }
 
@@ -186,10 +183,10 @@ class AzureStorageClient {
     }
 
     // We don't support compression of Parquet and Orc files
-    static boolean shouldCompress(CompressionType sourceCompressionType, String data_format){
+    static boolean shouldCompress(CompressionType sourceCompressionType, String dataFormat) {
         return sourceCompressionType == null
-            && (data_format == null ||
-                (!data_format.equals(IngestionProperties.DATA_FORMAT.parquet.name())
-                && !data_format.equals(IngestionProperties.DATA_FORMAT.orc.name())));
+                && (dataFormat == null ||
+                (!dataFormat.equals(IngestionProperties.DataFormat.parquet.name())
+                        && !dataFormat.equals(IngestionProperties.DataFormat.orc.name())));
     }
 }

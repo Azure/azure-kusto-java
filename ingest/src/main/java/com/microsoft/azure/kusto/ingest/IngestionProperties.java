@@ -3,26 +3,27 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class IngestionProperties {
-    private String databaseName;
-    private String tableName;
+    private final String databaseName;
+    private final String tableName;
     private boolean flushImmediately;
     private IngestionReportLevel reportLevel;
     private IngestionReportMethod reportMethod;
-    private ArrayList<String> dropByTags;
-    private ArrayList<String> ingestByTags;
-    private ArrayList<String> additionalTags;
-    private ArrayList<String> ingestIfNotExists;
+    private List<String> dropByTags;
+    private List<String> ingestByTags;
+    private List<String> additionalTags;
+    private List<String> ingestIfNotExists;
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
 
@@ -103,7 +104,7 @@ public class IngestionProperties {
         this.reportMethod = reportMethod;
     }
 
-    public ArrayList<String> getDropByTags() {
+    public List<String> getDropByTags() {
         return dropByTags;
     }
 
@@ -113,11 +114,11 @@ public class IngestionProperties {
      *
      * @param dropByTags - suffixes tags list to tag the data being ingested, the resulted tag will be trailed by "drop-by"
      */
-    public void setDropByTags(ArrayList<String> dropByTags) {
+    public void setDropByTags(List<String> dropByTags) {
         this.dropByTags = dropByTags;
     }
 
-    public ArrayList<String> getIngestByTags() {
+    public List<String> getIngestByTags() {
         return ingestByTags;
     }
 
@@ -127,11 +128,11 @@ public class IngestionProperties {
      *
      * @param ingestByTags - suffixes tags list to tag the data being ingested, the resulted tag will be trailed by "ingest-by"
      */
-    public void setIngestByTags(ArrayList<String> ingestByTags) {
+    public void setIngestByTags(List<String> ingestByTags) {
         this.ingestByTags = ingestByTags;
     }
 
-    public ArrayList<String> getAdditionalTags() {
+    public List<String> getAdditionalTags() {
         return additionalTags;
     }
 
@@ -140,7 +141,7 @@ public class IngestionProperties {
      *
      * @param additionalTags list of custom user tags
      */
-    public void setAdditionalTags(ArrayList<String> additionalTags) {
+    public void setAdditionalTags(List<String> additionalTags) {
         this.additionalTags = additionalTags;
     }
 
@@ -151,11 +152,11 @@ public class IngestionProperties {
         this.additionalProperties = additionalProperties;
     }
 
-    public Map<String, String> getAdditionalProperties(){
+    public Map<String, String> getAdditionalProperties() {
         return this.additionalProperties;
     }
 
-    public ArrayList<String> getIngestIfNotExists() {
+    public List<String> getIngestIfNotExists() {
         return ingestIfNotExists;
     }
 
@@ -165,7 +166,7 @@ public class IngestionProperties {
      *
      * @param ingestIfNotExists list of ingestIfNotExists tags
      */
-    public void setIngestIfNotExists(ArrayList<String> ingestIfNotExists) {
+    public void setIngestIfNotExists(List<String> ingestIfNotExists) {
         this.ingestIfNotExists = ingestIfNotExists;
     }
 
@@ -216,17 +217,17 @@ public class IngestionProperties {
         return fullAdditionalProperties;
     }
 
-    public void setDataFormat(DATA_FORMAT dataFormat) {
+    public void setDataFormat(DataFormat dataFormat) {
         additionalProperties.put("format", dataFormat.name());
     }
 
     /**
      * Sets the data format by its name. If the name does not exist, then it does not add it.
      *
-     * @param dataFormatName One of the string values in: {@link DATA_FORMAT DATA_FORMAT}
+     * @param dataFormatName One of the string values in: {@link DataFormat DataFormat}
      */
     public void setDataFormat(String dataFormatName) {
-        String dataFormat = DATA_FORMAT.valueOf(dataFormatName.toLowerCase()).name();
+        String dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase()).name();
         if (!dataFormat.isEmpty()) {
             additionalProperties.put("format", dataFormat);
         }
@@ -239,7 +240,7 @@ public class IngestionProperties {
     /**
      * Sets the predefined ingestion mapping name:
      *
-     * @param mappingReference     The name of a the mapping declared in the destination Kusto database, that
+     * @param mappingReference     The name of the mapping declared in the destination Kusto database, that
      *                             describes the mapping between fields of a object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
@@ -251,13 +252,12 @@ public class IngestionProperties {
      * Please use a mappingReference for production as passing the mapping every time is wasteful
      * Creates an ingestion mapping using the described column mappings:
      *
-     * @param columnMappings The columnMapping used for this ingestion     .
+     * @param columnMappings       The columnMapping used for this ingestion.
      * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setIngestionMapping(ColumnMapping[] columnMappings,IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+    public void setIngestionMapping(ColumnMapping[] columnMappings, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
         this.ingestionMapping = new IngestionMapping(columnMappings, ingestionMappingKind);
     }
-
 
     public void setIngestionMapping(IngestionMapping ingestionMapping) {
         this.ingestionMapping = ingestionMapping;
@@ -279,7 +279,7 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
 
-        if (ingestionMapping.getColumnMappings()  != null) {
+        if (ingestionMapping.getColumnMappings() != null) {
             Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
             IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
             for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
@@ -288,7 +288,23 @@ public class IngestionProperties {
         }
     }
 
-    public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, apacheavro, parquet, orc, raw}
+    public enum DataFormat {
+        csv,
+        tsv,
+        scsv,
+        sohsv,
+        psv,
+        txt,
+        tsve,
+        json,
+        singlejson,
+        multijson,
+        avro,
+        apacheavro,
+        parquet,
+        orc,
+        raw
+    }
 
     public enum IngestionReportLevel {
         FailuresOnly,

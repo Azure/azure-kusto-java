@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -25,14 +25,13 @@ import java.util.function.BiFunction;
 
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.EXPECTED_SERVICE_TYPE;
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.WRONG_ENDPOINT_MESSAGE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QueuedIngestClientTest {
 
-    private static ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    private static AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+    private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static QueuedIngestClient queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
@@ -80,7 +79,7 @@ class QueuedIngestClientTest {
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assert result.getIngestionStatusesLength() == 0;
+        assertEquals(result.getIngestionStatusesLength(), 0);
     }
 
     @Test
@@ -89,7 +88,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assert result.getIngestionStatusesLength() != 0;
+        assertNotEquals(result.getIngestionStatusesLength(), 0);
     }
 
     @Test
@@ -288,8 +287,8 @@ class QueuedIngestClientTest {
         }
         final Holder holder = new Holder();
         holder.name = "fileName";
-        BiFunction<IngestionProperties.DATA_FORMAT, CompressionType, String> genName =
-                (IngestionProperties.DATA_FORMAT format, CompressionType compression) -> {
+        BiFunction<DataFormat, CompressionType, String> genName =
+                (DataFormat format, CompressionType compression) -> {
                     boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format.name());
                     return ingestClient.genBlobName(
                             holder.name,
@@ -298,13 +297,13 @@ class QueuedIngestClientTest {
                             format.name(),
                             shouldCompress ? CompressionType.gz : compression);
                 };
-        String csvNoCompression = genName.apply(DATA_FORMAT.csv, null);
+        String csvNoCompression = genName.apply(DataFormat.csv, null);
         assert(csvNoCompression.endsWith("fileName.csv.gz"));
 
-        String csvCompression = genName.apply(DATA_FORMAT.csv, CompressionType.zip);
+        String csvCompression = genName.apply(DataFormat.csv, CompressionType.zip);
         assert(csvCompression.endsWith("fileName.csv.zip"));
 
-        String parquet = genName.apply(DATA_FORMAT.parquet, null);
+        String parquet = genName.apply(DataFormat.parquet, null);
         assert(parquet.endsWith("fileName.parquet"));
 
         String avroLocalFileName = "avi.avro";
@@ -312,11 +311,11 @@ class QueuedIngestClientTest {
         CompressionType compressionTypeRes = AzureStorageClient.getCompression(avroLocalFileName);
         CompressionType compressionTypeRes2 = AzureStorageClient.getCompression(avroLocalCompressFileName);
         holder.name = avroLocalFileName;
-        String avroName = genName.apply(DATA_FORMAT.avro, compressionTypeRes);
+        String avroName = genName.apply(DataFormat.avro, compressionTypeRes);
         assert(avroName.endsWith("avi.avro.avro.gz"));
 
         holder.name = avroLocalCompressFileName;
-        String avroNameCompression = genName.apply(DATA_FORMAT.avro, compressionTypeRes2);
+        String avroNameCompression = genName.apply(DataFormat.avro, compressionTypeRes2);
         assert(avroNameCompression.endsWith("avi.avro.gz.avro.gz"));
     }
 
