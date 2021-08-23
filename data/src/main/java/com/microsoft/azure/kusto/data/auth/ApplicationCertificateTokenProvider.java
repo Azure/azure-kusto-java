@@ -13,12 +13,10 @@ import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenProviderBase {
-    private final String applicationClientId;
     private final IClientCertificate clientCertificate;
 
     ApplicationCertificateTokenProvider(@NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
-        this.applicationClientId = applicationClientId;
+        super(applicationClientId, clusterUrl, authorityId);
         this.clientCertificate = clientCertificate;
     }
 
