@@ -19,7 +19,7 @@ public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProvider
     @Override
     protected void onCloudInit() throws DataClientException {
         try {
-            clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
+            clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).sendX5c(true).build();
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         }
