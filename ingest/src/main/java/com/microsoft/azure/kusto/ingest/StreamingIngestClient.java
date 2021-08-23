@@ -133,12 +133,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
-            throw new IngestionClientException(e.getMessage(), e);
-        } catch (DataServiceException e) {
-            log.error(e.getMessage(), e);
             if (e.getCause() instanceof DataWebException && "Error in post request".equals(e.getMessage())) {
                 validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             }
+            throw new IngestionClientException(e.getMessage(), e);
+        } catch (DataServiceException e) {
+            log.error(e.getMessage(), e);
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
