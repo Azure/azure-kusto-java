@@ -3,13 +3,19 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.exceptions.TimespanParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.microsoft.azure.kusto.data.Utils.SECONDS_PER_DAY;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
@@ -24,9 +30,11 @@ public class ClientRequestProperties {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
     private static final long NANOS_TO_MILLIS = 1000000L;
-    private HashMap<String, Object> parameters;
-    private HashMap<String, Object> options;
-
+    private final HashMap<String, Object> parameters;
+    private final HashMap<String, Object> options;
+    private static final Pattern PATTERN =
+            Pattern.compile("(\\d+)?\\.?([0-2]?\\d:(?:60|[0-5]\\d):(?:60|[0-5]\\d)(:?\\.\\d+))",
+                    Pattern.CASE_INSENSITIVE);
     public ClientRequestProperties() {
         parameters = new HashMap<>();
         options = new HashMap<>();
@@ -70,7 +78,7 @@ public class ClientRequestProperties {
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
         } else if (timeoutObj instanceof String) {
-            timeout = LocalTime.parse((String) timeoutObj).toNanoOfDay() / NANOS_TO_MILLIS;
+            timeout = getMillisFromTimespanString((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
             timeout = Long.valueOf((Integer) timeoutObj);
         }
@@ -78,8 +86,25 @@ public class ClientRequestProperties {
         return timeout;
     }
 
+    private long getMillisFromTimespanString(String str) throws TimespanParseException {
+        Matcher matcher = PATTERN.matcher(str);
+        if (!matcher.matches()) {
+            throw new TimespanParseException(str);
+        }
+
+        long millis = 0;
+        String days = matcher.group(1);
+        if (days != null) {
+            millis += Long.parseLong(days) * SECONDS_PER_DAY * 1000L;
+        }
+
+        millis += LocalTime.parse(matcher.group(1)).toNanoOfDay() / 1000L;
+        return millis;
+    }
+
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
+        Duration duration = Duration.ofMillis(timeoutInMs);
+        options.put(OPTION_SERVER_TIMEOUT, Utils.formatDurationAsTimespan(duration));
     }
 
     JSONObject toJson() {

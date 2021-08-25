@@ -25,16 +25,20 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.*;
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
+
+import static java.time.temporal.ChronoField.*;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
@@ -46,7 +50,6 @@ class Utils {
 
     static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
-
         HttpClient httpClient = getHttpClient(Math.toIntExact(timeoutMs));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
@@ -65,7 +68,11 @@ class Utils {
                     throw createExceptionFromResponse(url, response, null, responseContent);
                 }
             }
-        } catch (JSONException | IOException e) {
+        }
+        catch (SocketTimeoutException e) {
+            throw new DataServiceException(url, "Timed out in post request:" + e.getMessage(), false);
+        }
+        catch (JSONException | IOException e) {
             throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
         }
         return null;
@@ -250,5 +257,29 @@ class Utils {
         } catch (Exception ignored) {
         }
         return "";
+    }
+    static final int SECONDS_PER_MINUTE = 60;
+    static final int MINUTES_PER_HOUR = 60;
+    static final int HOURS_PER_DAY = 24;
+    static final int SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
+    static final int SECONDS_PER_DAY = HOURS_PER_DAY * SECONDS_PER_HOUR;
+
+    public static String formatDurationAsTimespan(Duration duration) {
+        long seconds = duration.getSeconds();
+        int nanos = duration.getNano();
+
+        long hours = (seconds / SECONDS_PER_HOUR) % HOURS_PER_DAY;
+        long minutes = ((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+        long secs = (seconds % SECONDS_PER_MINUTE);
+        long days = (seconds / SECONDS_PER_DAY);
+        String positive = String.format(
+                "%02d.%02d:%02d:%02d.%.3s",
+                days,
+                hours,
+                minutes,
+                secs,
+                nanos);
+
+        return seconds < 0 ? "-" + positive : positive;
     }
 }

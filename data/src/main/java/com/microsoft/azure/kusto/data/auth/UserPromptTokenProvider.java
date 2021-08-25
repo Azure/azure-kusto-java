@@ -37,7 +37,7 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
 
     private final String usernameHint;
 
-    UserPromptTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+    public UserPromptTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         this(null, clusterUrl, authorityId);
     }
 

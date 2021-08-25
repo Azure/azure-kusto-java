@@ -284,7 +284,8 @@ public class IngestionProperties {
         }
     }
 
-    public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, apacheavro, parquet, orc, raw}
+    public enum DATA_FORMAT {csv, tsv, scsv, sohsv, psv, txt, tsve, json, singlejson, multijson, avro, apacheavro,
+        parquet, orc, raw, w3clogfile}
 
     public enum IngestionReportLevel {
         FailuresOnly,
