@@ -156,7 +156,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(filePath, IngestionProperties.DATA_FORMAT.valueOf(ingestionProperties.getDataFormat()));
+                    estimateFileRawSize(filePath, IngestionProperties.DataFormat.valueOf(ingestionProperties.getDataFormat()));
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
@@ -222,12 +222,11 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         }
     }
 
-    private long estimateFileRawSize(String filePath, IngestionProperties.DATA_FORMAT format) {
-        File file = new File(filePath);
-        long fileSize = file.length();
+    private long estimateFileRawSize(String filePath, IngestionProperties.DataFormat format) {
+        long fileSize = new File(filePath).length();
         return (AzureStorageClient.getCompression(filePath) != null
-                || format == IngestionProperties.DATA_FORMAT.parquet
-                || format == IngestionProperties.DATA_FORMAT.orc) ?
+                || format == IngestionProperties.DataFormat.parquet
+                || format == IngestionProperties.DataFormat.orc) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 

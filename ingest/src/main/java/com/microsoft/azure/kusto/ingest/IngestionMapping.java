@@ -16,7 +16,7 @@ public class IngestionMapping {
     private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
     private String ingestionMappingReference;
-    public final static List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "apacheavro", "parquet", "orc");
+    public static final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "apacheavro", "parquet", "orc");
 
     /**
      * Creates a default ingestion mapping with kind Unknown and empty mapping reference.

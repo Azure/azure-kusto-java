@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
@@ -16,14 +17,20 @@ public class ConnectionStringBuilder {
     private String usernameHint;
     private String applicationClientId;
     private String applicationKey;
+    // Public certificate
     private X509Certificate x509Certificate;
+    // Chain comprised of public certificate, its CA's certificate, and the root CA's certificate
+    private List<X509Certificate> x509CertificateChain;
+    // PEM-encoded private key
     private PrivateKey privateKey;
-    private String aadAuthorityId; // AAD tenant Id (GUID)
+    // AAD tenant Id (GUID or "microsoft.com")
+    private String aadAuthorityId;
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private String accessToken;
     private Callable<String> tokenProvider;
     private boolean useDeviceCodeAuth;
+    private String userNameForTracing;
 
     private ConnectionStringBuilder(String resourceUri) {
         clusterUri = resourceUri;
@@ -32,10 +39,12 @@ public class ConnectionStringBuilder {
         applicationKey = null;
         aadAuthorityId = null;
         x509Certificate = null;
+        x509CertificateChain = null;
         privateKey = null;
         accessToken = null;
         tokenProvider = null;
         useDeviceCodeAuth = false;
+        userNameForTracing = null;
     }
 
     public String getClusterUrl() {
@@ -78,8 +87,20 @@ public class ConnectionStringBuilder {
         this.clientVersionForTracing = clientVersionForTracing;
     }
 
+    public String getUserNameForTracing() {
+        return userNameForTracing;
+    }
+
+    public void setUserNameForTracing(String userNameForTracing) {
+        this.userNameForTracing = userNameForTracing;
+    }
+
     X509Certificate getX509Certificate() {
         return x509Certificate;
+    }
+
+    List<X509Certificate> getX509CertificateChain() {
+        return x509CertificateChain;
     }
 
     PrivateKey getPrivateKey() {
@@ -187,6 +208,39 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
         csb.applicationClientId = applicationClientId;
         csb.x509Certificate = x509Certificate;
+        csb.privateKey = privateKey;
+        csb.aadAuthorityId = authorityId;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String resourceUri,
+                                                                                               String applicationClientId,
+                                                                                               List<X509Certificate> x509CertificateChain,
+                                                                                               PrivateKey privateKey) {
+        return createWithAadApplicationCertificateSubjectNameIssuer(resourceUri, applicationClientId, x509CertificateChain, privateKey, null);
+    }
+
+    public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String resourceUri,
+                                                                                               String applicationClientId,
+                                                                                               List<X509Certificate> x509CertificateChain,
+                                                                                               PrivateKey privateKey,
+                                                                                               String authorityId) {
+        if (StringUtils.isEmpty(resourceUri)) {
+            throw new IllegalArgumentException("resourceUri cannot be null or empty");
+        }
+        if (StringUtils.isEmpty(applicationClientId)) {
+            throw new IllegalArgumentException("applicationClientId cannot be null or empty");
+        }
+        if (x509CertificateChain == null || x509CertificateChain.isEmpty()) {
+            throw new IllegalArgumentException("public certificate chain cannot be null or empty");
+        }
+        if (privateKey == null) {
+            throw new IllegalArgumentException("privateKey cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder(resourceUri);
+        csb.applicationClientId = applicationClientId;
+        csb.x509CertificateChain = x509CertificateChain;
         csb.privateKey = privateKey;
         csb.aadAuthorityId = authorityId;
         return csb;

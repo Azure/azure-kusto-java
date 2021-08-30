@@ -17,9 +17,11 @@ import java.util.concurrent.TimeoutException;
 
 public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProviderBase {
     IConfidentialClientApplication clientApplication;
+    final String applicationClientId;
 
-    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+    ConfidentialAppTokenProviderBase(@NotNull String applicationClientId, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
+        this.applicationClientId = applicationClientId;
     }
 
     @Override

@@ -12,7 +12,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
-import com.microsoft.azure.kusto.ingest.IngestionProperties.DATA_FORMAT;
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
@@ -41,7 +41,7 @@ class E2ETest {
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
-    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID","microsoft.com");
+    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -55,6 +55,7 @@ class E2ETest {
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
+        dmCsb.setUserNameForTracing("testUser");
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
         } catch (URISyntaxException ex) {
@@ -112,11 +113,11 @@ class E2ETest {
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
         ingestionPropertiesWithMappingReference.setIngestionMapping(mappingReference, IngestionMappingKind.Json);
-        ingestionPropertiesWithMappingReference.setDataFormat(DATA_FORMAT.json);
+        ingestionPropertiesWithMappingReference.setDataFormat(DataFormat.json);
 
         IngestionProperties ingestionPropertiesWithColumnMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithColumnMapping.setFlushImmediately(true);
-        ingestionPropertiesWithColumnMapping.setDataFormat(DATA_FORMAT.json);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
         ColumnMapping first = new ColumnMapping("rownumber", "int");
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
