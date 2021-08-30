@@ -98,7 +98,7 @@ public class ClientRequestProperties {
             millis += Long.parseLong(days) * SECONDS_PER_DAY * 1000L;
         }
 
-        millis += LocalTime.parse(matcher.group(1)).toNanoOfDay() / 1000L;
+        millis += LocalTime.parse(matcher.group(2)).toNanoOfDay() / 1000000L;
         return millis;
     }
 
@@ -110,10 +110,18 @@ public class ClientRequestProperties {
     JSONObject toJson() {
         try {
             JSONObject optionsAsJSON = new JSONObject(this.options);
-            Long timeoutInMilliSec = getTimeoutInMilliSec();
-            if (timeoutInMilliSec != null) {
-                LocalTime localTime = LocalTime.ofNanoOfDay(timeoutInMilliSec * NANOS_TO_MILLIS);
-                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, localTime.toString());
+            Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
+
+            if (timeoutObj != null) {
+                String timeoutString = "";
+                if (timeoutObj instanceof Long) {
+                    timeoutString = LocalTime.ofNanoOfDay((Long)timeoutObj * NANOS_TO_MILLIS).toString();
+                } else if (timeoutObj instanceof String) {
+                    timeoutString = (String) timeoutObj;
+                } else if (timeoutObj instanceof Integer) {
+                    timeoutString = LocalTime.ofNanoOfDay((Integer)timeoutObj * NANOS_TO_MILLIS).toString();
+                }
+                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
             }
             JSONObject json = new JSONObject();
             json.put(OPTIONS_KEY, optionsAsJSON);

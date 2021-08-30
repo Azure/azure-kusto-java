@@ -27,9 +27,6 @@ import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.*;
 import java.time.Duration;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
@@ -37,8 +34,7 @@ import java.util.Properties;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
-import static java.time.temporal.ChronoField.*;
-import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static com.microsoft.azure.kusto.data.auth.CloudInfo.LOCALHOST;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
@@ -50,7 +46,9 @@ class Utils {
 
     static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
-        HttpClient httpClient = getHttpClient(Math.toIntExact(timeoutMs));
+        HttpClient httpClient = getHttpClient(timeoutMs > Integer.MAX_VALUE ?
+                Integer.MAX_VALUE :
+                Math.toIntExact(Integer.MAX_VALUE));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
@@ -236,11 +234,12 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol())) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.equalsIgnoreCase(LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
-                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
-                        "channel (http://)");
+//                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
+//                        "channel (http://)");
+                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);
