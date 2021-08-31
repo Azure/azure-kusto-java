@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import java.util.UUID;
 
-import static com.microsoft.azure.kusto.ingest.Ensure.stringIsNotBlank;
+import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
 
 public class BlobSourceInfo extends AbstractSourceInfo {

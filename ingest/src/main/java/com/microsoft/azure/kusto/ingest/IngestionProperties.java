@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.Ensure;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -304,7 +305,7 @@ public class IngestionProperties {
         parquet,
         orc,
         raw,
-      w3clogfile
+        w3clogfile
     }
 
     public enum IngestionReportLevel {

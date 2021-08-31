@@ -15,13 +15,14 @@ public class Query {
 
         try {
             ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
+                ("https://ohadprod.westeurope.kusto.windows.net"),
+                ("d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66"),
+                ("-f90cR6sr-hFC3WBm5ANXtm521_W~ah~Ia"),
+                ("microsoft.com"));
+            ClientRequestProperties c = new ClientRequestProperties();
+            c.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT,900000 );
             ClientImpl client = new ClientImpl(csb);
-
-            KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
+            KustoOperationResult results = client.execute("ohtst", "TestTable2",c );
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.println(String.format("Kusto sent back %s rows.", mainTableResult.count()));
 

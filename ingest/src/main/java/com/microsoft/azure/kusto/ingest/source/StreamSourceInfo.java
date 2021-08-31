@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.ingest.Ensure;
+import com.microsoft.azure.kusto.data.Ensure;
 
 import java.io.InputStream;
 import java.util.Objects;

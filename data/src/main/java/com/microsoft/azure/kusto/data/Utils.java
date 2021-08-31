@@ -10,6 +10,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.EofSensorInputStream;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -46,6 +47,7 @@ class Utils {
 
     static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
+
         HttpClient httpClient = getHttpClient(timeoutMs > Integer.MAX_VALUE ?
                 Integer.MAX_VALUE :
                 Math.toIntExact(Integer.MAX_VALUE));
@@ -210,8 +212,10 @@ class Utils {
      *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
      */
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
-        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
+        SocketConfig socketConfig = SocketConfig.custom().setSoKeepAlive(true).setSoTimeout(timeoutMs).build(); //We need to set socket keep alive
+        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(timeoutMs).setSocketTimeout(timeoutMs).build();
+        return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).
+                setDefaultSocketConfig(socketConfig).build();
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
@@ -227,6 +231,7 @@ class Utils {
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             request.addHeader(entry.getKey(), entry.getValue());
         }
+
         return request;
     }
 
