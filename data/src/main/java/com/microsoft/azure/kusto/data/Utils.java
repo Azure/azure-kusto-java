@@ -212,10 +212,8 @@ class Utils {
      *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
      */
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        SocketConfig socketConfig = SocketConfig.custom().setSoKeepAlive(true).setSoTimeout(timeoutMs).build(); //We need to set socket keep alive
-        RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(timeoutMs).setSocketTimeout(timeoutMs).build();
-        return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).
-                setDefaultSocketConfig(socketConfig).build();
+        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
+        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {

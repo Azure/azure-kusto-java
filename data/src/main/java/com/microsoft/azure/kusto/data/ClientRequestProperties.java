@@ -29,11 +29,10 @@ public class ClientRequestProperties {
     private static final String PARAMETERS_KEY = "Parameters";
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
-    private static final long NANOS_TO_MILLIS = 1000000L;
     private final HashMap<String, Object> parameters;
     private final HashMap<String, Object> options;
     private static final Pattern PATTERN =
-            Pattern.compile("(\\d+)?\\.?([0-2]?\\d:(?:60|[0-5]\\d):(?:60|[0-5]\\d)(:?\\.\\d+))",
+            Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:60|[0-5]\\d):(?:60|[0-5]\\d)(?:\\.\\d+)?)",
                     Pattern.CASE_INSENSITIVE);
     public ClientRequestProperties() {
         parameters = new HashMap<>();
