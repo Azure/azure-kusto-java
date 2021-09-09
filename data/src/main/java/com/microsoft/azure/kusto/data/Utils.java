@@ -32,10 +32,10 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
-
-import static com.microsoft.azure.kusto.data.auth.CloudInfo.LOCALHOST;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
@@ -211,9 +211,16 @@ class Utils {
      *  I'll add as an issue for a future enhancement that both POST methods should reuse the HttpClient via Factory,
      *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
      */
+
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
-        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
+        SocketConfig socketConfig = SocketConfig.custom().setSoKeepAlive(true).setTcpNoDelay(true)
+                .setSoTimeout(timeoutMs).build();
+        RequestConfig requestConfig =
+                RequestConfig.custom().setConnectTimeout(timeoutMs).build();
+
+        return HttpClientBuilder.create().useSystemProperties().setDefaultSocketConfig(socketConfig)
+                .setDefaultRequestConfig(requestConfig).setConnectionTimeToLive(timeoutMs, TimeUnit.MILLISECONDS).build();//strategy
+
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
@@ -237,12 +244,11 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.equalsIgnoreCase(LOCALHOST)) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.equalsIgnoreCase(CloudInfo.LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
-//                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
-//                        "channel (http://)");
-                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
+                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
+                        "channel (http://)");
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);

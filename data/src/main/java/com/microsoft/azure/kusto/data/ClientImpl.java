@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
@@ -55,7 +56,8 @@ public class ClientImpl implements Client, StreamingClient {
         }
 
         clusterUrl = url;
-        aadAuthenticationHelper = TokenProviderFactory.createTokenProvider(csb);
+        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
+                TokenProviderFactory.createTokenProvider(csb) : null;
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -118,7 +120,8 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute", commandType.getActivityTypeSuffix());
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
+                commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
@@ -144,7 +147,8 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest", CommandType.STREAMING_INGEST.getActivityTypeSuffix());
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
+                CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
         Long timeoutMs = null;
         if (properties != null) {
@@ -192,7 +196,8 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming", commandType.getActivityTypeSuffix());
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
+                commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
@@ -218,7 +223,10 @@ public class ClientImpl implements Client, StreamingClient {
         return CommandType.QUERY;
     }
 
-    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties, String clientRequestIdPrefix, String activityTypeSuffix) throws DataServiceException, DataClientException {
+    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
+                                                                String clientRequestIdPrefix,
+                                                                String activityTypeSuffix)
+            throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
@@ -227,8 +235,9 @@ public class ClientImpl implements Client, StreamingClient {
         if (userNameForTracing != null) {
             headers.put("x-ms-user-id", userNameForTracing);
         }
-        headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
-
+        if (aadAuthenticationHelper != null) {
+            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+        }
         String clientRequestId;
         if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {
             clientRequestId = properties.getClientRequestId();
