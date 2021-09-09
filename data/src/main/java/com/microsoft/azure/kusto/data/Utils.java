@@ -155,19 +155,19 @@ class Utils {
              *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
              */
             String activityId = determineActivityId(httpResponse);
-            if (StringUtils.isBlank(errorFromResponse)) {
-                errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                return new DataServiceException(url, errorFromResponse, thrownException, false);
-            } else {
+            if (!StringUtils.isBlank(errorFromResponse)) {
                 String message = "";
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
                 try {
                     message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
+                    return new DataServiceException(url, message, formattedException,
+                            formattedException.getApiError().isPermanent());
                 } catch (Exception ignored) {
                 }
-                return new DataServiceException(url, message, formattedException,
-                        formattedException.getApiError().isPermanent());
             }
+            errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
+            return new DataServiceException(url, errorFromResponse, thrownException, false);
+
         }
     }
 

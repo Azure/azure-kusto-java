@@ -103,8 +103,7 @@ public class ClientRequestProperties {
     }
 
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        Duration duration = Duration.ofMillis(timeoutInMs);
-        options.put(OPTION_SERVER_TIMEOUT, Utils.formatDurationAsTimespan(duration));
+        options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
     JSONObject toJson() {
@@ -115,11 +114,13 @@ public class ClientRequestProperties {
             if (timeoutObj != null) {
                 String timeoutString = "";
                 if (timeoutObj instanceof Long) {
-                    timeoutString = LocalTime.ofNanoOfDay((Long)timeoutObj * NANOS_TO_MILLIS).toString();
+                    Duration duration = Duration.ofMillis((Long) timeoutObj);
+                    timeoutString = Utils.formatDurationAsTimespan(duration);
                 } else if (timeoutObj instanceof String) {
                     timeoutString = (String) timeoutObj;
                 } else if (timeoutObj instanceof Integer) {
-                    timeoutString = LocalTime.ofNanoOfDay((Integer)timeoutObj * NANOS_TO_MILLIS).toString();
+                    Duration duration = Duration.ofMillis((Integer) timeoutObj);
+                    timeoutString = Utils.formatDurationAsTimespan(duration);
                 }
                 optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
             }
