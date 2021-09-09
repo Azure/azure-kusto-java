@@ -50,7 +50,7 @@ class Utils {
 
         HttpClient httpClient = getHttpClient(timeoutMs > Integer.MAX_VALUE ?
                 Integer.MAX_VALUE :
-                Math.toIntExact(Integer.MAX_VALUE));
+                Math.toIntExact(timeoutMs));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
@@ -211,16 +211,9 @@ class Utils {
      *  I'll add as an issue for a future enhancement that both POST methods should reuse the HttpClient via Factory,
      *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
      */
-
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        SocketConfig socketConfig = SocketConfig.custom().setSoKeepAlive(true).setTcpNoDelay(true)
-                .setSoTimeout(timeoutMs).build();
-        RequestConfig requestConfig =
-                RequestConfig.custom().setConnectTimeout(timeoutMs).build();
-
-        return HttpClientBuilder.create().useSystemProperties().setDefaultSocketConfig(socketConfig)
-                .setDefaultRequestConfig(requestConfig).setConnectionTimeToLive(timeoutMs, TimeUnit.MILLISECONDS).build();//strategy
-
+        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
+        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
