@@ -22,7 +22,8 @@ public class Query {
             ClientRequestProperties c = new ClientRequestProperties();
             c.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT,900000 );
             ClientImpl client = new ClientImpl(csb);
-            KustoOperationResult results = client.execute("ohtst", "TestTable2",c );
+
+            KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.println(String.format("Kusto sent back %s rows.", mainTableResult.count()));
 
