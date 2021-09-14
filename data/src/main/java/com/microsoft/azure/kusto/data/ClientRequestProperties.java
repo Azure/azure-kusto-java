@@ -12,10 +12,11 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.microsoft.azure.kusto.data.Utils.SECONDS_PER_DAY;
+import static com.microsoft.azure.kusto.data.Utils.SECONDS_PER_HOUR;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
@@ -29,11 +30,13 @@ public class ClientRequestProperties {
     private static final String PARAMETERS_KEY = "Parameters";
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
-    private final HashMap<String, Object> parameters;
-    private final HashMap<String, Object> options;
+    private final Map<String, Object> parameters;
+    private final Map<String, Object> options;
     private static final Pattern PATTERN =
-            Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:60|[0-5]\\d):(?:60|[0-5]\\d)(?:\\.\\d+)?)",
+            Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:[0-5]?\\d):(?:[0-5]?\\d)(?:\\.\\d+)?)",
                     Pattern.CASE_INSENSITIVE);
+    private static final long MAX_TIMEOUT_MS = SECONDS_PER_HOUR * 1000;
+
     public ClientRequestProperties() {
         parameters = new HashMap<>();
         options = new HashMap<>();
@@ -77,7 +80,7 @@ public class ClientRequestProperties {
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
         } else if (timeoutObj instanceof String) {
-            timeout = getMillisFromTimespanString((String) timeoutObj);
+            timeout = getTimoutMillisFromTimespanString((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
             timeout = Long.valueOf((Integer) timeoutObj);
         }
@@ -85,7 +88,7 @@ public class ClientRequestProperties {
         return timeout;
     }
 
-    private long getMillisFromTimespanString(String str) throws TimespanParseException {
+    private long getTimoutMillisFromTimespanString(String str) throws TimespanParseException {
         Matcher matcher = PATTERN.matcher(str);
         if (!matcher.matches()) {
             throw new TimespanParseException(str);
@@ -94,7 +97,7 @@ public class ClientRequestProperties {
         long millis = 0;
         String days = matcher.group(1);
         if (days != null) {
-            millis += Long.parseLong(days) * SECONDS_PER_DAY * 1000L;
+            return MAX_TIMEOUT_MS;
         }
 
         millis += LocalTime.parse(matcher.group(2)).toNanoOfDay() / 1000000L;
@@ -144,11 +147,11 @@ public class ClientRequestProperties {
             while (it.hasNext()) {
                 String propertyName = it.next();
                 if (propertyName.equals(OPTIONS_KEY)) {
-                    JSONObject options = (JSONObject) jsonObj.get(propertyName);
-                    Iterator<String> optionsIt = options.keys();
+                    JSONObject optionsJson = (JSONObject) jsonObj.get(propertyName);
+                    Iterator<String> optionsIt = optionsJson.keys();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
-                        crp.setOption(optionName, options.get(optionName));
+                        crp.setOption(optionName, optionsJson.get(optionName));
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
                     JSONObject parameters = (JSONObject) jsonObj.get(propertyName);

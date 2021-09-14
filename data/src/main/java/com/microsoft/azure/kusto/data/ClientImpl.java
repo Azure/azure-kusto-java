@@ -19,10 +19,7 @@ import org.json.JSONObject;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class ClientImpl implements Client, StreamingClient {
@@ -47,7 +44,7 @@ public class ClientImpl implements Client, StreamingClient {
         String url = csb.getClusterUrl();
         URI clusterUri = new URI(url);
         String host = clusterUri.getHost();
-        Ensure.argIsNotNull(clusterUri.getAuthority(), "clusterUri.authority");
+        Objects.requireNonNull(clusterUri.getAuthority(), "clusterUri.authority");
 
         String auth = clusterUri.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_POSTFIX)) {
@@ -57,7 +54,7 @@ public class ClientImpl implements Client, StreamingClient {
 
         clusterUrl = url;
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
-                TokenProviderFactory.createTokenProvider(csb) : null;
+                null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
