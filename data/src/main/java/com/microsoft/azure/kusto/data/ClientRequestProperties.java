@@ -3,8 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.TimespanParseException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -13,6 +13,7 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +36,7 @@ public class ClientRequestProperties {
     private static final Pattern PATTERN =
             Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:[0-5]?\\d):(?:[0-5]?\\d)(?:\\.\\d+)?)",
                     Pattern.CASE_INSENSITIVE);
-    private static final long MAX_TIMEOUT_MS = SECONDS_PER_HOUR * 1000;
+    static final long MAX_TIMEOUT_MS = SECONDS_PER_HOUR * 1000;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
@@ -80,7 +81,7 @@ public class ClientRequestProperties {
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
         } else if (timeoutObj instanceof String) {
-            timeout = getTimoutMillisFromTimespanString((String) timeoutObj);
+            timeout = parseTimeoutFromTimespanString((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
             timeout = Long.valueOf((Integer) timeoutObj);
         }
@@ -88,19 +89,19 @@ public class ClientRequestProperties {
         return timeout;
     }
 
-    private long getTimoutMillisFromTimespanString(String str) throws TimespanParseException {
+    private long parseTimeoutFromTimespanString(String str) throws ParseException {
         Matcher matcher = PATTERN.matcher(str);
         if (!matcher.matches()) {
-            throw new TimespanParseException(str);
+            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", str));
         }
 
         long millis = 0;
         String days = matcher.group(1);
-        if (days != null) {
+        if (days != null && !days.equals("0")) {
             return MAX_TIMEOUT_MS;
         }
 
-        millis += LocalTime.parse(matcher.group(2)).toNanoOfDay() / 1000000L;
+        millis += TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(matcher.group(2)).toNanoOfDay());
         return millis;
     }
 

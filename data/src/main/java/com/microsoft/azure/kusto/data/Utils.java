@@ -237,7 +237,7 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.equalsIgnoreCase(CloudInfo.LOCALHOST)) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
                 throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
@@ -263,16 +263,14 @@ class Utils {
     static final int MINUTES_PER_HOUR = 60;
     static final int HOURS_PER_DAY = 24;
     static final int SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
-    static final int SECONDS_PER_DAY = HOURS_PER_DAY * SECONDS_PER_HOUR;
 
     public static String formatDurationAsTimespan(Duration duration) {
         long seconds = duration.getSeconds();
         int nanos = duration.getNano();
-
-        long hours = (seconds / SECONDS_PER_HOUR) % HOURS_PER_DAY;
-        long minutes = ((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-        long secs = (seconds % SECONDS_PER_MINUTE);
-        long days = (seconds / SECONDS_PER_DAY);
+        long hours = TimeUnit.SECONDS.toHours(seconds) % HOURS_PER_DAY;
+        long minutes = TimeUnit.SECONDS.toMinutes( seconds) % SECONDS_PER_MINUTE;
+        long secs = seconds % SECONDS_PER_MINUTE;
+        long days = TimeUnit.SECONDS.toDays(seconds);
         String positive = String.format(
                 "%02d.%02d:%02d:%02d.%.3s",
                 days,

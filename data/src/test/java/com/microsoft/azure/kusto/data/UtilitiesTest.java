@@ -13,10 +13,13 @@ public class UtilitiesTest {
         clientRequestProperties.setTimeoutInMilliSec(timeout);
         Assertions.assertEquals(timeout, clientRequestProperties.getTimeoutInMilliSec());
         Assertions.assertEquals(timeout, clientRequestProperties.getOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT));
-        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "1.01:40:02.1");
-        clientRequestProperties.getTimeoutInMilliSec();
-        Assertions.assertEquals(25 * (60 * 60 * 1000L) + 40 * 60 * 1000L + 2000L + 100L,
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "0.01:40:02.1");
+        Assertions.assertEquals((60 * 60 * 1000L) + 40 * 60 * 1000L + 2000L + 100L,
                 clientRequestProperties.getTimeoutInMilliSec());
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "1.01:40:02.1");
+        Assertions.assertEquals(ClientRequestProperties.MAX_TIMEOUT_MS,
+                clientRequestProperties.getTimeoutInMilliSec());
+
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "15:00");
         Assertions.assertEquals(15 * (60 * 60 * 1000L), clientRequestProperties.getTimeoutInMilliSec());
     }
