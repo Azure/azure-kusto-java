@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;

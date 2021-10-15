@@ -35,14 +35,14 @@ public class ResultSetTest {
         String str = "str";
         Instant now = Instant.now();
 
-        Duration duration = Duration.ofHours(2);
+        Duration duration = Duration.ofHours(2).plusSeconds(1);
         BigDecimal dec = BigDecimal.valueOf(1, 1);
         UUID uuid = UUID.randomUUID();
         int i = 1;
         long l = 100000000000L;
         double d = 1.1d;
         short s1 = 10;
-        String durationAsKustoString = formatDuration(duration);
+        String durationAsKustoString = LocalTime.MIDNIGHT.plus(duration).toString();
         row1.put(true);
         row1.put(str);
         row1.put(now);
@@ -96,16 +96,4 @@ public class ResultSetTest {
         Assertions.assertEquals(res.getLocalTime(9), LocalTime.parse(durationAsKustoString));
         Assertions.assertEquals(res.getShort(10), s1);
     }
-
-    public static String formatDuration(Duration duration) {
-        long seconds = duration.getSeconds();
-        long absSeconds = Math.abs(seconds);
-        String positive = String.format(
-                "%02d:%02d:%02d",
-                absSeconds / 3600,
-                (absSeconds % 3600) / 60,
-                absSeconds % 60);
-        return seconds < 0 ? "-" + positive : positive;
-    }
-
 }

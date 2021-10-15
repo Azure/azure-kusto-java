@@ -4,12 +4,18 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
@@ -23,9 +29,12 @@ public class ClientRequestProperties {
     private static final String PARAMETERS_KEY = "Parameters";
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
-    private static final long NANOS_TO_MILLIS = 1000000L;
-    private HashMap<String, Object> parameters;
-    private HashMap<String, Object> options;
+    private final Map<String, Object> parameters;
+    private final Map<String, Object> options;
+    private static final Pattern PATTERN =
+            Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:[0-5]?\\d):(?:[0-5]?\\d)(?:\\.\\d+)?)",
+                    Pattern.CASE_INSENSITIVE);
+    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toSeconds(1) * 1000;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
@@ -70,12 +79,28 @@ public class ClientRequestProperties {
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
         } else if (timeoutObj instanceof String) {
-            timeout = LocalTime.parse((String) timeoutObj).toNanoOfDay() / NANOS_TO_MILLIS;
+            timeout = parseTimeoutFromTimespanString((String) timeoutObj);
         } else if (timeoutObj instanceof Integer) {
             timeout = Long.valueOf((Integer) timeoutObj);
         }
 
         return timeout;
+    }
+
+    private long parseTimeoutFromTimespanString(String str) throws ParseException {
+        Matcher matcher = PATTERN.matcher(str);
+        if (!matcher.matches()) {
+            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", str));
+        }
+
+        long millis = 0;
+        String days = matcher.group(1);
+        if (days != null && !days.equals("0")) {
+            return MAX_TIMEOUT_MS;
+        }
+
+        millis += TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(matcher.group(2)).toNanoOfDay());
+        return millis;
     }
 
     public void setTimeoutInMilliSec(Long timeoutInMs) {
@@ -85,10 +110,20 @@ public class ClientRequestProperties {
     JSONObject toJson() {
         try {
             JSONObject optionsAsJSON = new JSONObject(this.options);
-            Long timeoutInMilliSec = getTimeoutInMilliSec();
-            if (timeoutInMilliSec != null) {
-                LocalTime localTime = LocalTime.ofNanoOfDay(timeoutInMilliSec * NANOS_TO_MILLIS);
-                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, localTime.toString());
+            Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
+
+            if (timeoutObj != null) {
+                String timeoutString = "";
+                if (timeoutObj instanceof Long) {
+                    Duration duration = Duration.ofMillis((Long) timeoutObj);
+                    timeoutString = Utils.formatDurationAsTimespan(duration);
+                } else if (timeoutObj instanceof String) {
+                    timeoutString = (String) timeoutObj;
+                } else if (timeoutObj instanceof Integer) {
+                    Duration duration = Duration.ofMillis((Integer) timeoutObj);
+                    timeoutString = Utils.formatDurationAsTimespan(duration);
+                }
+                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
             }
             JSONObject json = new JSONObject();
             json.put(OPTIONS_KEY, optionsAsJSON);
@@ -111,11 +146,11 @@ public class ClientRequestProperties {
             while (it.hasNext()) {
                 String propertyName = it.next();
                 if (propertyName.equals(OPTIONS_KEY)) {
-                    JSONObject options = (JSONObject) jsonObj.get(propertyName);
-                    Iterator<String> optionsIt = options.keys();
+                    JSONObject optionsJson = (JSONObject) jsonObj.get(propertyName);
+                    Iterator<String> optionsIt = optionsJson.keys();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
-                        crp.setOption(optionName, options.get(optionName));
+                        crp.setOption(optionName, optionsJson.get(optionName));
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
                     JSONObject parameters = (JSONObject) jsonObj.get(propertyName);

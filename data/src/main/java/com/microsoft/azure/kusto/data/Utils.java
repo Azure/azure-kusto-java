@@ -25,16 +25,16 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.*;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
@@ -47,7 +47,9 @@ class Utils {
     static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
 
-        HttpClient httpClient = getHttpClient(Math.toIntExact(timeoutMs));
+        HttpClient httpClient = getHttpClient(timeoutMs > Integer.MAX_VALUE ?
+                Integer.MAX_VALUE :
+                Math.toIntExact(timeoutMs));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
@@ -65,7 +67,11 @@ class Utils {
                     throw createExceptionFromResponse(url, response, null, responseContent);
                 }
             }
-        } catch (JSONException | IOException e) {
+        }
+        catch (SocketTimeoutException e) {
+            throw new DataServiceException(url, "Timed out in post request:" + e.getMessage(), false);
+        }
+        catch (JSONException | IOException e) {
             throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
         }
         return null;
@@ -148,19 +154,19 @@ class Utils {
              *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
              */
             String activityId = determineActivityId(httpResponse);
-            if (StringUtils.isBlank(errorFromResponse)) {
-                errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                return new DataServiceException(url, errorFromResponse, thrownException, false);
-            } else {
+            if (!StringUtils.isBlank(errorFromResponse)) {
                 String message = "";
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
                 try {
                     message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
+                    return new DataServiceException(url, message, formattedException,
+                            formattedException.getApiError().isPermanent());
                 } catch (Exception ignored) {
                 }
-                return new DataServiceException(url, message, formattedException,
-                        formattedException.getApiError().isPermanent());
             }
+            errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
+            return new DataServiceException(url, errorFromResponse, thrownException, false);
+
         }
     }
 
@@ -222,6 +228,7 @@ class Utils {
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             request.addHeader(entry.getKey(), entry.getValue());
         }
+
         return request;
     }
 
@@ -229,7 +236,7 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol())) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
                 throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
@@ -250,5 +257,23 @@ class Utils {
         } catch (Exception ignored) {
         }
         return "";
+    }
+
+    public static String formatDurationAsTimespan(Duration duration) {
+        long seconds = duration.getSeconds();
+        int nanos = duration.getNano();
+        long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
+        long minutes = TimeUnit.SECONDS.toMinutes( seconds) % TimeUnit.MINUTES.toSeconds(1);
+        long secs = seconds % TimeUnit.HOURS.toSeconds(1);
+        long days = TimeUnit.SECONDS.toDays(seconds);
+        String positive = String.format(
+                "%02d.%02d:%02d:%02d.%.3s",
+                days,
+                hours,
+                minutes,
+                secs,
+                nanos);
+
+        return seconds < 0 ? "-" + positive : positive;
     }
 }

@@ -23,7 +23,7 @@ public class Query {
 
             KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
-            System.out.println(String.format("Kusto sent back %s rows.", mainTableResult.count()));
+            System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 
             // iterate values
             while (mainTableResult.next()) {

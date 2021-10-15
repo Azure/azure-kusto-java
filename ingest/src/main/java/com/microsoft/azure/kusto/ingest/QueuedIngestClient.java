@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -90,22 +91,23 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 ingestionBlobInfo.id = blobSourceInfo.getSourceId();
             }
 
-            if (ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue) {
+            IngestionStatus status = new IngestionStatus(ingestionBlobInfo.id);
+            status.database = ingestionProperties.getDatabaseName();
+            status.table = ingestionProperties.getTableName();
+            status.status = OperationStatus.Queued;
+            status.updatedOn = Date.from(Instant.now());
+            status.ingestionSourceId = ingestionBlobInfo.id;
+            status.setIngestionSourcePath(urlWithoutSecrets);
+            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
+                && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
+            if (reportToTable) {
+                status.status = OperationStatus.Pending;
                 String tableStatusUri = resourceManager
                         .getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
                 ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
                 ingestionBlobInfo.IngestionStatusInTable.PartitionKey = ingestionBlobInfo.id.toString();
-
-                IngestionStatus status = new IngestionStatus(ingestionBlobInfo.id);
-                status.database = ingestionProperties.getDatabaseName();
-                status.table = ingestionProperties.getTableName();
-                status.status = OperationStatus.Pending;
-                status.updatedOn = Date.from(Instant.now());
-                status.ingestionSourceId = ingestionBlobInfo.id;
-                status.setIngestionSourcePath(urlWithoutSecrets);
-
                 azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
@@ -117,7 +119,9 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     resourceManager
                             .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
                     , serializedIngestionBlobInfo);
-            return new TableReportIngestionResult(tableStatuses);
+            return reportToTable
+                    ? new TableReportIngestionResult(tableStatuses)
+                    : new IngestionStatusResult(status);
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {

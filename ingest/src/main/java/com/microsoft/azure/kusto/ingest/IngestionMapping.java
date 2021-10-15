@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * This class describes the ingestion mapping to use for an ingestion request.
- * When a CSV data source schema and the target schema doesn't match or when using JSON, AVRO, PARQUET or ORC formats,
+ * When a CSV data source schema and the target schema doesn't match or when using JSON, AVRO formats,
  * there is a need to define an ingestion mapping to map the source schema to the table schema.
  * This class describes a pre-define ingestion mapping by its name- mapping reference and its kind.
  */
@@ -16,7 +16,7 @@ public class IngestionMapping {
     private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
     private String ingestionMappingReference;
-    public static final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro", "apacheavro", "parquet", "orc");
+    public static final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
 
     /**
      * Creates a default ingestion mapping with kind Unknown and empty mapping reference.
@@ -97,6 +97,6 @@ public class IngestionMapping {
      Represents an ingestion mapping kind - the format of the source data to map from.
     */
     public enum IngestionMappingKind {
-        unknown, Csv, Json, Parquet, Avro, ApacheAvro, Orc
+        unknown, Csv, Json, Parquet, Avro, ApacheAvro, Orc, W3CLogFile
     }
 }
