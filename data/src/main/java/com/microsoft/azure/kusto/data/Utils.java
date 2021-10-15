@@ -10,7 +10,6 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.EofSensorInputStream;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
@@ -259,17 +258,13 @@ class Utils {
         }
         return "";
     }
-    static final int SECONDS_PER_MINUTE = 60;
-    static final int MINUTES_PER_HOUR = 60;
-    static final int HOURS_PER_DAY = 24;
-    static final int SECONDS_PER_HOUR = SECONDS_PER_MINUTE * MINUTES_PER_HOUR;
 
     public static String formatDurationAsTimespan(Duration duration) {
         long seconds = duration.getSeconds();
         int nanos = duration.getNano();
-        long hours = TimeUnit.SECONDS.toHours(seconds) % HOURS_PER_DAY;
-        long minutes = TimeUnit.SECONDS.toMinutes( seconds) % SECONDS_PER_MINUTE;
-        long secs = seconds % SECONDS_PER_MINUTE;
+        long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
+        long minutes = TimeUnit.SECONDS.toMinutes( seconds) % TimeUnit.MINUTES.toSeconds(1);
+        long secs = seconds % TimeUnit.HOURS.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
         String positive = String.format(
                 "%02d.%02d:%02d:%02d.%.3s",

@@ -17,8 +17,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.microsoft.azure.kusto.data.Utils.SECONDS_PER_HOUR;
-
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).
  * Such properties may be used to provide additional information to Kusto (for example, for the purpose of correlating client/service interaction),
@@ -36,7 +34,7 @@ public class ClientRequestProperties {
     private static final Pattern PATTERN =
             Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:[0-5]?\\d):(?:[0-5]?\\d)(?:\\.\\d+)?)",
                     Pattern.CASE_INSENSITIVE);
-    static final long MAX_TIMEOUT_MS = SECONDS_PER_HOUR * 1000;
+    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toSeconds(1) * 1000;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();

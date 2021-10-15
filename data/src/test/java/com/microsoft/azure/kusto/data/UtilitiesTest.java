@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.microsoft.azure.kusto.data.Utils.SECONDS_PER_HOUR;
 
 public class UtilitiesTest {
     @Test

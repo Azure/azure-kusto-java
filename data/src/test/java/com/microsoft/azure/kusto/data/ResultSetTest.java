@@ -35,14 +35,14 @@ public class ResultSetTest {
         String str = "str";
         Instant now = Instant.now();
 
-        Duration duration = Duration.ofHours(2);
+        Duration duration = Duration.ofHours(2).plusSeconds(1);
         BigDecimal dec = BigDecimal.valueOf(1, 1);
         UUID uuid = UUID.randomUUID();
         int i = 1;
         long l = 100000000000L;
         double d = 1.1d;
         short s1 = 10;
-        String durationAsKustoString = Utils.formatDurationAsTimespan(duration);
+        String durationAsKustoString = LocalTime.MIDNIGHT.plus(duration).toString();
         row1.put(true);
         row1.put(str);
         row1.put(now);
