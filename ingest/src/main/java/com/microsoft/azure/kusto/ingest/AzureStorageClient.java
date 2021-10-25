@@ -141,9 +141,9 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (BlobOutputStream bos = blob.openOutputStream();
-             GZIPOutputStream gzout = new GZIPOutputStream(bos)) {
-            copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
+        try (
+             GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }
 

@@ -9,6 +9,8 @@ import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
+import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
@@ -25,9 +27,6 @@ import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -41,6 +40,7 @@ class E2ETest {
     private static final String databaseName = System.getProperty("TEST_DATABASE");
     private static final String appId = System.getProperty("APP_ID");
     private static final String appKey = System.getProperty("APP_KEY");
+    private static String token = null;
     private static final String tenantId = System.getProperty("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
@@ -64,9 +64,11 @@ class E2ETest {
 
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
+            TokenProviderBase tokenProvider = TokenProviderFactory.createTokenProvider(engineCsb);
+            token = tokenProvider.acquireAccessToken();
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
-        } catch (URISyntaxException ex) {
+        } catch (URISyntaxException | DataServiceException | DataClientException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
@@ -86,10 +88,9 @@ class E2ETest {
     private static void CreateTableAndMapping() {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
-        } catch (Exception ex) {
+        } catch (Exception ignored) {
         }
         try {
-            Thread.sleep(2000);
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
@@ -97,10 +98,15 @@ class E2ETest {
 
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
-            Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
+        } catch (Exception ex) {
+            Assertions.fail("Failed to create ingestion mapping", ex);
+        }
+
+        try {
+            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
@@ -109,6 +115,7 @@ class E2ETest {
     private static void createTestData() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
 
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
@@ -218,7 +225,7 @@ class E2ETest {
             result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
             //result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
-            Assertions.fail("Failed to execute show database principal command", ex);
+            Assertions.fail("Failed to execute show database principals command", ex);
         }
         KustoResultSetTable mainTableResultSet = result.getPrimaryResults();
         while (mainTableResultSet.next()) {
@@ -320,14 +327,6 @@ class E2ETest {
     }
 
     @Test
-    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
-        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getProperty("PUBLIC_X509CER_FILE_LOC"));
-        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getProperty("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getProperty("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
-        assertTrue(canAuthenticate(engineCsb));
-    }
-
-    @Test
     void testCreateWithAadApplicationCredentials() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         assertTrue(canAuthenticate(engineCsb));
@@ -335,14 +334,13 @@ class E2ETest {
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
-        String token = System.getProperty("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getProperty("ENGINE_CONNECTION_STRING"), token);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
-        Callable<String> tokenProviderCallable = () -> System.getProperty("TOKEN");
+        Callable<String> tokenProviderCallable = () -> token;
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getProperty("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
     }
