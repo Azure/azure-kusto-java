@@ -38,15 +38,15 @@ class E2ETest {
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ClientImpl queryClient;
-    private static final String databaseName = System.getenv("TEST_DATABASE");
-    private static final String appId = System.getenv("APP_ID");
-    private static final String appKey = System.getenv("APP_KEY");
-    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
+    private static final String databaseName = System.getProperty("TEST_DATABASE");
+    private static final String appId = System.getProperty("APP_ID");
+    private static final String appKey = System.getProperty("APP_KEY");
+    private static final String tenantId = System.getProperty("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
     private static List<TestDataItem> dataForTests;
-    private static final String tableName = "JavaTest";
+    private static final String tableName = "JavaTest" + System.currentTimeMillis() / 1000L;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
@@ -54,7 +54,7 @@ class E2ETest {
     public static void setUp() {
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
@@ -62,7 +62,7 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
@@ -308,48 +308,48 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getProperty("ENGINE_CONNECTION_STRING"), null, System.getProperty("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithDeviceAuthentication() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getProperty("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
-        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
-        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
+        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getProperty("PUBLIC_X509CER_FILE_LOC"));
+        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getProperty("PRIVATE_PKCS8_FILE_LOC"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getProperty("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
-        String token = System.getenv("TOKEN");
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
+        String token = System.getProperty("TOKEN");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getProperty("ENGINE_CONNECTION_STRING"), token);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
-        Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
+        Callable<String> tokenProviderCallable = () -> System.getProperty("TOKEN");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getProperty("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCloudInfoWithCluster() throws DataServiceException {
-        String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
+        String clusterUrl = System.getProperty("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertEquals(CloudInfo.DEFAULT_CLOUD, cloudInfo);
