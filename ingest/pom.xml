@@ -92,6 +92,7 @@
                     <ignoredUnusedDeclaredDependencies>
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                         <dependency>org.slf4j:slf4j-simple</dependency>
+                        <dependency>org.junit.jupiter</dependency>
                     </ignoredUnusedDeclaredDependencies>
                 </configuration>
                 <executions>
