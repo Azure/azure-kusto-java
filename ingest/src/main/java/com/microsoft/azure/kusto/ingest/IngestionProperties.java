@@ -290,6 +290,17 @@ public class IngestionProperties {
         }
     }
 
+    public void validateResultSetProperties() {
+        String givenDataFormat = this.getDataFormat();
+        if (givenDataFormat == null) {
+            this.setDataFormat(IngestionProperties.DataFormat.csv);
+        } else {
+            Ensure.isTrue(givenDataFormat.equals(IngestionProperties.DataFormat.csv.name()),
+                    String.format("ResultSet translates into csv format but {%s} was given", givenDataFormat));
+        }
+        validate();
+    }
+
     public enum DataFormat {
         csv,
         tsv,

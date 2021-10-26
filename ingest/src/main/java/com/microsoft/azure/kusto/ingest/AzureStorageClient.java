@@ -178,7 +178,6 @@ class AzureStorageClient {
         if (fileName.endsWith(".zip")) {
             return CompressionType.zip;
         }
-
         return null;
     }
 
@@ -188,5 +187,19 @@ class AzureStorageClient {
                 && (dataFormat == null ||
                 (!dataFormat.equals(IngestionProperties.DataFormat.parquet.name())
                         && !dataFormat.equals(IngestionProperties.DataFormat.orc.name())));
+    }
+
+    static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf('\\');
+        if (lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
     }
 }

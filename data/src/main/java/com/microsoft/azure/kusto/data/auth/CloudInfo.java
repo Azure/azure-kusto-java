@@ -56,9 +56,9 @@ public class CloudInfo {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) {
+    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) throws URISyntaxException {
         synchronized (cache) {
-            cache.put(clusterUrl, cloudInfo);
+            cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfo);
         }
     }
 

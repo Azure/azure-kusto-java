@@ -19,6 +19,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -30,6 +31,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+
+import static com.microsoft.azure.kusto.ingest.AzureStorageClient.removeExtension;
 
 public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 
@@ -238,8 +241,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
+                removeExtension(fileName),
                 UUID.randomUUID().toString(),
-                fileName,
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);
     }
@@ -252,7 +255,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
-        ingestionProperties.validate();
+        ingestionProperties.validateResultSetProperties();
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);

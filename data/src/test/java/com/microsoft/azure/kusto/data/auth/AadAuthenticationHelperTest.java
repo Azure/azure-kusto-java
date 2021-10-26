@@ -45,7 +45,7 @@ import static org.mockito.Mockito.spy;
 
 public class AadAuthenticationHelperTest {
     @BeforeAll
-    public static void setUp() {
+    public static void setUp() throws URISyntaxException {
         CloudInfo.manuallyAddToCache("https://resource.uri", CloudInfo.DEFAULT_CLOUD);
     }
 
@@ -69,7 +69,7 @@ public class AadAuthenticationHelperTest {
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
 
         Assertions.assertThrows(DataServiceException.class,
-                () -> aadAuthenticationHelper.acquireNewAccessToken());
+                aadAuthenticationHelper::acquireNewAccessToken);
     }
 
     public static KeyCert readPem(String path, String password)

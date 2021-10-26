@@ -93,7 +93,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
-        ingestionProperties.validate();
+        ingestionProperties.validateResultSetProperties();
         try {
             StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);

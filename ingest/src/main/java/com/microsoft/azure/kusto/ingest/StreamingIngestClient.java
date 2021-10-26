@@ -96,7 +96,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
-        ingestionProperties.validate();
+        ingestionProperties.validateResultSetProperties();
+
         try {
             StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
@@ -130,12 +131,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
-            if (e.getCause() instanceof DataWebException && "Error in post request".equals(e.getMessage())) {
-                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
-            }
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
+            if (e.getMessage().contains("404")) {
+                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
+            }
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
