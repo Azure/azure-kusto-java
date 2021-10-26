@@ -32,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.microsoft.azure.kusto.ingest.AzureStorageClient.removeExtension;
+import com.microsoft.azure.kusto.ingest.AzureStorageClient;
 
 public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 
@@ -241,7 +241,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
-                removeExtension(fileName),
+                AzureStorageClient.removeExtension(fileName),
                 UUID.randomUUID().toString(),
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);

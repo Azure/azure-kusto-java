@@ -323,6 +323,7 @@ class E2ETest {
     @Test
     @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithDeviceAuthentication() {
+        // TODO manually change to the right principal name
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getProperty("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
