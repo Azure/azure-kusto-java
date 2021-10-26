@@ -314,6 +314,7 @@ class E2ETest {
     }
 
     @Test
+    @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithUserPrompt() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getProperty("ENGINE_CONNECTION_STRING"), null, System.getProperty("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
