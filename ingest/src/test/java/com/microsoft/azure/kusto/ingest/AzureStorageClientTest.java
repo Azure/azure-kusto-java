@@ -51,7 +51,7 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void PostMessageToQueue_NullContent_IllegalArgumentException() {
+    void testPostMessageToQueue_NullContent_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> azureStorageClient.postMessageToQueue("queuePath", null));

@@ -134,7 +134,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
-            if (e.getMessage().contains("404")) {
+            if (e.getMessage() != null && e.getMessage().contains("404")) {
                 validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             }
             throw new IngestionServiceException(e.getMessage(), e);

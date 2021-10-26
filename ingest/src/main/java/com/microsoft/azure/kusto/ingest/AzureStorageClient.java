@@ -196,7 +196,7 @@ class AzureStorageClient {
 
         int extensionPos = filename.lastIndexOf('.');
         int lastDirSeparator = filename.lastIndexOf('\\');
-        if (lastDirSeparator > extensionPos) {
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
             return filename;
         } else {
             return filename.substring(0, extensionPos);

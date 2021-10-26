@@ -103,6 +103,7 @@
                         </goals>
                         <configuration>
                             <ignoredDependencies>
+                                <ignoredDependency>org.junit.jupiter</ignoredDependency>
                                 <ignoredDependency>com.nimbusds:nimbus-jose-jwt:jar</ignoredDependency>
                             </ignoredDependencies>
                         </configuration>
@@ -184,13 +185,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>${junit.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
+            <artifactId>junit-jupiter</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
