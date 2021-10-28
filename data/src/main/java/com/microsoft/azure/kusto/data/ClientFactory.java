@@ -13,10 +13,18 @@ public class ClientFactory {
     }
 
     public static Client createClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        return new ClientImpl(csb);
+        return createClient(csb, null);
+    }
+
+    public static Client createClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
+        return new ClientImpl(csb, properties);
     }
 
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        return new ClientImpl(csb);
+        return createStreamingClient(csb, null);
+    }
+
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
+        return new ClientImpl(csb, properties);
     }
 }

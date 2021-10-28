@@ -17,7 +17,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -26,7 +25,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
@@ -59,15 +57,17 @@ class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
+      CloseableHttpClient httpClient, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
-
-        HttpClient httpClient = getHttpClient(timeoutMs > Integer.MAX_VALUE ?
-                Integer.MAX_VALUE :
-                Math.toIntExact(timeoutMs));
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
+            int requestTimeout = timeoutMs > Integer.MAX_VALUE ?
+              Integer.MAX_VALUE :
+              Math.toIntExact(timeoutMs);
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            request.setConfig(requestConfig);
 
             // Execute and get the response
             HttpResponse response = httpClient.execute(request);
@@ -90,33 +90,31 @@ class Utils {
         return null;
     }
 
-    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers) throws DataServiceException, DataClientException {
-        return postToStreamingOutput(url, payload, timeoutMs, headers, 0);
+    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers,
+      CloseableHttpClient httpClient) throws DataServiceException, DataClientException {
+        return postToStreamingOutput(url, payload, timeoutMs, headers, httpClient, 0);
     }
 
-    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers,
+      CloseableHttpClient httpClient, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
         String errorFromResponse = null;
-        /*
-         *  The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse).
-         *  We use CloseParentResourcesStream so that when the stream is closed, these resources are closed as well. We
-         *  shouldn't need to do that, per https://hc.apache.org/httpcomponents-client-4.5.x/current/tutorial/html/fundamentals.html:
-         *  "In order to ensure proper release of system resources one must close either the content stream associated
-         *  with the entity or the response itself." However, in my testing this wasn't reliably the case.
-         *  We further use EofSensorInputStream to close the stream even if not explicitly closed, once all content is consumed.
-         */
-        CloseableHttpClient httpClient = null;
+
         CloseableHttpResponse httpResponse = null;
         try {
-            httpClient = getHttpClient(Math.toIntExact(timeoutTimeMs - System.currentTimeMillis()));
-            httpResponse = httpClient.execute(setupHttpPostRequest(uri, payload, null, headers));
+            HttpPost httpPost = setupHttpPostRequest(uri, payload, null, headers);
+            int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            httpPost.setConfig(requestConfig);
+
+            httpResponse = httpClient.execute(httpPost);
 
             int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
 
             if (responseStatusCode == HttpStatus.SC_OK) {
-                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpClient, httpResponse), null);
+                InputStream contentStream = new EofSensorInputStream(httpResponse.getEntity().getContent(), null);
                 Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING)).findFirst();
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
@@ -131,18 +129,18 @@ class Utils {
                 }
                 // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which handles the above logic
                 returnInputStream = true;
+                httpResponse.close();
                 return contentStream;
             }
 
             errorFromResponse = EntityUtils.toString(httpResponse.getEntity());
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
-            httpClient.close();
 
             if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
                 Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(redirectLocation.get().getValue(), payload, timeoutMs, headers, redirectCount + 1);
+                    return postToStreamingOutput(redirectLocation.get().getValue(), payload, timeoutMs, headers, httpClient,redirectCount + 1);
                 }
             }
         } catch (IOException ex) {
@@ -151,7 +149,7 @@ class Utils {
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
-            closeResourcesIfNeeded(returnInputStream, httpClient, httpResponse);
+            closeResourcesIfNeeded(returnInputStream, httpResponse);
         }
 
         throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
@@ -197,19 +195,16 @@ class Utils {
         }
     }
 
-    private static void closeResourcesIfNeeded(boolean returnInputStream, CloseableHttpClient httpClient, CloseableHttpResponse httpResponse) {
+    private static void closeResourcesIfNeeded(boolean returnInputStream, CloseableHttpResponse httpResponse) {
         // If we close the resources after returning the InputStream to the caller, they won't be able to read from it
         if (!returnInputStream) {
             try {
                 if (httpResponse != null) {
                     httpResponse.close();
                 }
-                if (httpClient != null) {
-                    httpClient.close();
-                }
             } catch (IOException ex) {
                 // There's nothing we can do if the resources can't be closed, and we don't want to add an exception to the signature
-                LOGGER.error("Couldn't close HttpClient resources. This won't affect the POST call, but should be investigated.");
+                LOGGER.error("Couldn't close HttpResponse. This won't affect the POST call, but should be investigated.");
             }
         }
     }
@@ -226,20 +221,6 @@ class Utils {
             activityId = activityIdHeader.get().getValue();
         }
         return activityId;
-    }
-
-    /*
-     *  TODO: Per the Apache HttpClient docs: "Generally it is recommended to have a single instance of HttpClient per
-     *  communication component or even per application. However, if the application makes use of HttpClient only very
-     *  infrequently, and keeping an idle instance of HttpClient in memory is not warranted, it is highly recommended to
-     *  explicitly shut down the multithreaded connection manager prior to disposing the HttpClient instance. This will
-     *  ensure proper closure of all HTTP connections in the connection pool."
-     *  I'll add as an issue for a future enhancement that both POST methods should reuse the HttpClient via Factory,
-     *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
-     */
-    private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
-        return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
     }
 
     private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
@@ -304,3 +285,4 @@ class Utils {
         return seconds < 0 ? "-" + positive : positive;
     }
 }
+

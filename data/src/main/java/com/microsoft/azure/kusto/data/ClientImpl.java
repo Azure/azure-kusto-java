@@ -39,19 +39,24 @@ public class ClientImpl implements Client, StreamingClient {
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
     private final String userNameForTracing;
+    private final SingletonHttpClient singletonHttpClient;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
-        String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
-        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
+      this(csb, null);
+    }
+
+    ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+      URI clusterUrlForParsing = new URI(csb.getClusterUrl());
+      String host = clusterUrlForParsing.getHost();
+      Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
+      String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
             csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme()).setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
         }
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
-                null : TokenProviderFactory.createTokenProvider(csb);
+            null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -62,6 +67,8 @@ public class ClientImpl implements Client, StreamingClient {
         }
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
+        singletonHttpClient = SingletonHttpClient.of(properties);
+        Runtime.getRuntime().addShutdownHook(new Thread(singletonHttpClient::close));
     }
 
     @Override
@@ -119,7 +126,8 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS,
+          headers, singletonHttpClient.getHttpClient(), false);
     }
 
     @Override
@@ -159,7 +167,8 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS,
+          headers, singletonHttpClient.getHttpClient(), leaveOpen);
         try {
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -195,7 +204,8 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.postToStreamingOutput(clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        return Utils.postToStreamingOutput(clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS,
+          headers, singletonHttpClient.getHttpClient());
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
