@@ -47,6 +47,9 @@ mvn install
 - [Ingest a file](samples/README.md#file-ingestion-sample)
 - [Check status of an ingest operation](samples/README.md#query-table-status-sample)
 
+## Best Practices
+See the SDK [best practices guide](https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-best-practices), which though written for the .NET SDK, applies similarly here.
+
 # Need Support?
 - **Have a feature request for SDKs?** Please post it on [User Voice](https://feedback.azure.com/forums/915733-azure-data-explorer) to help us prioritize
 - **Have a technical question?** Ask on [Stack Overflow with tag "azure-data-explorer"](https://stackoverflow.com/questions/tagged/azure-data-explorer)
