@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedList;
@@ -37,26 +38,23 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
+    private final AzureStorageClientV2 azureStorageClientv2;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
     QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         Client client = ClientFactory.createClient(csb);
         this.resourceManager = new ResourceManager(client);
+        this.azureStorageClientv2 = new AzureStorageClientV2();
         this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csb.getClusterUrl();
-    }
-
-    QueuedIngestClient(ResourceManager resourceManager) {
-        log.info("Creating a new IngestClient");
-        this.resourceManager = resourceManager;
-        azureStorageClient = new AzureStorageClient();
     }
 
     QueuedIngestClient(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
-        this.azureStorageClient = azureStorageClient;
+        this.azureStorageClientv2 = new AzureStorageClientV2();
+        this.azureStorageClient = new AzureStorageClient();
     }
 
     @Override
@@ -108,7 +106,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
                 ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
                 ingestionBlobInfo.IngestionStatusInTable.PartitionKey = ingestionBlobInfo.id.toString();
-                azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
+                azureStorageClientv2.azureTableInsertEntity(tableStatusUri, status);
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
 
@@ -124,7 +122,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     : new IngestionStatusResult(status);
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException | InvalidKeyException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         } catch (IngestionServiceException e) {
             validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
@@ -156,8 +154,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     ingestionProperties.getDataFormat(),
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
-            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
+            CloudBlockBlob blob = azureStorageClientv2.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress, false);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath, IngestionProperties.DataFormat.valueOf(ingestionProperties.getDataFormat()));

@@ -29,13 +29,49 @@ class AzureStorageClientTest {
     static private File testFile;
     static private String testFilePathCompressed;
     static private CloudBlockBlob blob;
-
+//TODO disable Azure-Storage-Log-String-To-Sign
     @BeforeAll
-    static void setUp() throws StorageException, URISyntaxException {
+    static void setUp() throws StorageException, URISyntaxException, IOException {
+//        String resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
+//        File file = new File(resourcesPath, "dataset.csv");
+File file = new File("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\big_dataset.csv");
+        String blob = "https://ohaduaenorth.blob.core.windows.net/uploadtest2?sp=rw&st=2021-11-04T09:43:41Z&se=2022-11-04T17:43:41Z&spr=https&sv=2020-08-04&sr=c&sig=%2Bt3GgbirVFE4BausWXUZB6b4bMQDhmwBjvzFbi4VmdI%3D";
+        AzureStorageClientV2 azureStorageClientV2 = new AzureStorageClientV2();
+        AzureStorageClient azureStorageClient = new AzureStorageClient();
+        System.out.println("AzureStorageClient start test");
+        try {
+//            azureStorageClientV2.uploadLocalFileToBlob(file.getPath(), Integer.toString(4), blob, true, true);
+//
+//            azureStorageClientV2.uploadLocalFileToBlob(file.getPath(), Integer.toString(2), blob, true, false);
+//            azureStorageClient.uploadLocalFileToBlob(file.getPath(), Integer.toString(3), blob, true);
+
+            int count = 2;
+            int off = 51;
+            for (int i = off; i< off + count; i++) {
+                long t1 = System.currentTimeMillis();
+                azureStorageClient.uploadLocalFileToBlob(file.getPath(), Integer.toString(i * count), blob, true);
+                long t2 = System.currentTimeMillis();
+                System.out.println("AzureStorageClient took:" + (t2 - t1));
+            }
+//            t1 = System.currentTimeMillis();
+//            for (int i = 1; i < count; i++) {
+//                azureStorageClientV2.uploadLocalFileToBlob(file.getPath(), Integer.toString(i * count * count), blob, true, false);
+//            }
+//            t2 = System.currentTimeMillis();
+//            System.out.println("AzureStorageClientv2 false took:" + (t2 - t1));
+            for (int i = off; i < off+count; i++) {
+                long t1 = System.currentTimeMillis();
+                azureStorageClientV2.uploadLocalFileToBlob(file.getPath(), Integer.toString(i * count * count* count), blob, true, true);
+                long t2 = System.currentTimeMillis();
+                System.out.println("AzureStorageClientv2 true:" + (t2 - t1));
+            }
+        }catch(Exception ex) {
+            ex.printStackTrace();
+            }
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         testFile = new File(testFilePath);
         testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
-        blob = new CloudBlockBlob(new URI("https://ms.com/storageUri"));
+        AzureStorageClientTest.blob = new CloudBlockBlob(new URI("https://ms.com/storageUri"));
     }
 
     @BeforeEach

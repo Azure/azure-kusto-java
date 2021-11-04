@@ -31,7 +31,7 @@ import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int GZIP_BUFFER_SIZE = 16384;
+    private static final int GZIP_BUFFER_SIZE = 4*1024*1024;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
@@ -88,10 +88,6 @@ class AzureStorageClient {
     }
 
     void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
-        // Ensure
-        Ensure.fileExists(filePath);
-        Ensure.argIsNotNull(blob, "blob");
-
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
              GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
             copyStream(fin, gzout, GZIP_BUFFER_SIZE);
