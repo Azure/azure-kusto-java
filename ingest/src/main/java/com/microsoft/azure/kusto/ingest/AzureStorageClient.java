@@ -62,10 +62,10 @@ class AzureStorageClient {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
-        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat.name()));
+        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat.name()), GZIP_BUFFER_SIZE);
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
+    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress, int buffer)
             throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
@@ -78,7 +78,7 @@ class AzureStorageClient {
         CloudBlockBlob blob = container.getBlockBlobReference(blobName);
 
         if (shouldCompress) {
-            compressAndUploadFileToBlob(filePath, blob);
+            compressAndUploadFileToBlob(filePath, blob, buffer);
         } else {
             File file = new File(filePath);
             uploadFileToBlob(file, blob);
@@ -87,10 +87,10 @@ class AzureStorageClient {
         return blob;
     }
 
-    void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob) throws IOException, StorageException {
+    void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob, int buffer) throws IOException, StorageException {
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
              GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
-            copyStream(fin, gzout, GZIP_BUFFER_SIZE);
+            copyStream(fin, gzout, buffer);
         }
     }
 

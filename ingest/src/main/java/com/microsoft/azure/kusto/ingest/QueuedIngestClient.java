@@ -155,7 +155,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             CloudBlockBlob blob = azureStorageClientv2.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress, false);
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress, 16234);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath, IngestionProperties.DataFormat.valueOf(ingestionProperties.getDataFormat()));
