@@ -43,13 +43,17 @@ public class TokenProviderFactory {
             Callable<String> tokenProvider = csb.getTokenProvider();
             return new CallbackTokenProvider(tokenProvider, clusterUrl);
         } else if(csb.isUseDeviceCodeAuth()) {
-            return new DeviceAuthTokenProvider(clusterUrl,authorityId);
-        } else {
+            return new DeviceAuthTokenProvider(clusterUrl, authorityId);
+        } else if (csb.isUseManagedIdentityAuth()) {
+            return new ManagedIdentityTokenProvider(csb.getManagedIdentityClientId(), clusterUrl);
+        } else if (csb.isUseUserPromptAuth()) {
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();
                 return new UserPromptTokenProvider(usernameHint, clusterUrl, authorityId);
             }
             return new UserPromptTokenProvider(clusterUrl, authorityId);
+        } else {
+            throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
         }
     }
 }
