@@ -16,13 +16,11 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
 
     public ManagedIdentityTokenProvider(String managedIdentityClientId, @NotNull String clusterUrl) throws URISyntaxException {
         super(clusterUrl);
+       ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
         if (StringUtils.isNotBlank(managedIdentityClientId)) {
-            this.managedIdentityCredential = new ManagedIdentityCredentialBuilder()
-                    .clientId(managedIdentityClientId) // only required for user assigned
-                    .build();
-        } else {
-            this.managedIdentityCredential = new ManagedIdentityCredentialBuilder().build();
+            builder = builder.clientId(managedIdentityClientId); // only required for user assigned
         }
+        this.managedIdentityCredential = builder.build();
         tokenRequestContext = new TokenRequestContext().addScopes(clusterUrl);
     }
 
