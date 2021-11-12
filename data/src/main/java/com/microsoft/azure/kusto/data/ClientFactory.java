@@ -16,6 +16,15 @@ public class ClientFactory {
         return createClient(csb, null);
     }
 
+    /**
+     * Creates a new {@linkplain Client} instance with the given connection string. The underlying HTTP client is
+     * customized with the given properties.
+     *
+     * @param csb the connection string builder
+     * @param properties HTTP client properties
+     * @return a fully constructed {@linkplain Client} instance
+     * @throws URISyntaxException if the cluster URL is invalid
+     */
     public static Client createClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
         return new ClientImpl(csb, properties);
     }
