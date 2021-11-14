@@ -144,11 +144,9 @@ public class KustoSampleApp {
                             continue;
                         }
                     }
-                } else {
-                    if (StringUtils.isBlank(mappingName)){
-                        System.out.println("The configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.");
-                        continue;
-                    }
+                } else if (StringUtils.isBlank(mappingName)) {
+                    System.out.println("The configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.");
+                    continue;
                 }
 
                 // Learn More: For more information about ingesting data to Kusto in Java, see: https://docs.microsoft.com/azure/data-explorer/java-ingest-data
