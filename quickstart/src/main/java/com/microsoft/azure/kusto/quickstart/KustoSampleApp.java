@@ -122,7 +122,6 @@ public class KustoSampleApp {
                 boolean useExistingMapping = Boolean.parseBoolean(file.get("useExistingMapping"));
                 String mappingName = file.get("mappingName");
 
-// Method, but pay attention to "continue"
                 // Learn More: For more information about providing inline mappings and mapping references, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/mappings
                 if (!useExistingMapping) {
                     String mappingValue = file.get("mappingValue");
@@ -152,7 +151,6 @@ public class KustoSampleApp {
                     }
                 }
 
-// Method
                 // Learn More: For more information about ingesting data to Kusto in Java, see: https://docs.microsoft.com/azure/data-explorer/java-ingest-data
                 String sourceType = file.get("sourceType");
                 String uri = file.get("dataSourceUri");
