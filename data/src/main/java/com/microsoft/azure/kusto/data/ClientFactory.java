@@ -12,6 +12,14 @@ public class ClientFactory {
         // Hide the default constructor, as this is a factory with static methods
     }
 
+    /**
+     * Creates a new {@linkplain Client} instance with the given connection string. The underlying HTTP client is
+     * created with default settings.
+     *
+     * @param csb the connection string builder
+     * @return a fully constructed {@linkplain Client} instance
+     * @throws URISyntaxException if the cluster URL is invalid
+     */
     public static Client createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return createClient(csb, null);
     }
@@ -29,10 +37,27 @@ public class ClientFactory {
         return new ClientImpl(csb, properties);
     }
 
+    /**
+     * Creates a new {@linkplain StreamingClient} instance with the given connection string. The underlying HTTP client
+     * is created with default settings.
+     *
+     * @param csb the connection string builder
+     * @return a fully constructed {@linkplain StreamingClient} instance
+     * @throws URISyntaxException if the cluster URL is invalid
+     */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return createStreamingClient(csb, null);
     }
 
+    /**
+     * Creates a new {@linkplain StreamingClient} instance with the given connection string. The underlying HTTP client
+     * is customized with the given properties.
+     *
+     * @param csb the connection string builder
+     * @param properties HTTP client properties
+     * @return a fully constructed {@linkplain StreamingClient} instance
+     * @throws URISyntaxException if the cluster URL is invalid
+     */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
         return new ClientImpl(csb, properties);
     }
