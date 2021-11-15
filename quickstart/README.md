@@ -32,5 +32,5 @@ You can use it as a baseline to write your own first kusto client application, a
 2. You can also make the script run without stopping between steps by setting `waitForUser = False`
 
 ###Troubleshooting
-* If you are having trouble running python on your machine or need instructions on how to install python, you can consult the following [python environment setup tutorial](https://www.tutorialspoint.com/python/python_environment.htm) from _TutorialsPoint_.
-* If you are having trouble running the script from your IDE of choice, first check if the script runs from commandline, then consult the troubleshooting references of your IDE.
+* If you are having trouble running Java on your machine or need instructions on how to install Java, you can consult a Java environment setup tutorial, like [this one](https://www.tutorialspoint.com/java/java_environment_setup.htm).
+* If you are having trouble running the script from your IDE of choice, first check if the script runs from command line, then consult the troubleshooting references of your IDE.

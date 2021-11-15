@@ -136,7 +136,7 @@ public class KustoSampleApp {
                         waitForUserToProceed(String.format("Create a %s mapping reference named '%s'", ingestionMappingKind, mappingName));
 
                         if (StringUtils.isBlank(mappingName)) {
-                            mappingName = "DefaultQuickstartMappingName" + UUID.randomUUID().toString().substring(0, 5);
+                            mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
                         }
                         String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName, ingestionMappingKind.name().toLowerCase(), mappingName, mappingValue);
                         if (!execute(kustoClient, databaseName, mappingCommand, ExecutionType.CONTROL_COMMAND)) {
