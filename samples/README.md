@@ -32,6 +32,26 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
 ClientImpl client = new ClientImpl(csb);
 ```
 
+If you'd like to tweak the underlying HTTP client used to make the requests, build an HTTP client properties object
+and use that along the Connection string to initialise the client:
+
+```java
+ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+        System.getProperty("clusterPath"),
+        System.getProperty("appId"),
+        System.getProperty("appKey"),
+        System.getProperty("appTenant"));
+
+HttpClientProperties properties = HttpClientProperties.builder()
+        .keepAlive(true)
+        .maxKeepAliveTime(120)
+        .maxConnectionsPerRoute(40)
+        .maxConnectionsTotal(40)
+        .build();
+
+ClientImpl client = new ClientImpl(csb, properties);
+```
+
 2. Execute query
 
 ```java

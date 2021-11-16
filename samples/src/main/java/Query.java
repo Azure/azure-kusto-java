@@ -3,6 +3,7 @@
 
 import com.microsoft.azure.kusto.data.ClientImpl;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -19,7 +20,15 @@ public class Query {
                     System.getProperty("appId"),
                     System.getProperty("appKey"),
                     System.getProperty("appTenant"));
-            ClientImpl client = new ClientImpl(csb);
+
+            HttpClientProperties properties = HttpClientProperties.builder()
+                    .keepAlive(true)
+                    .maxKeepAliveTime(120)
+                    .maxConnectionsPerRoute(40)
+                    .maxConnectionsTotal(40)
+                    .build();
+
+            ClientImpl client = new ClientImpl(csb, properties);
 
             KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
             KustoResultSetTable mainTableResult = results.getPrimaryResults();

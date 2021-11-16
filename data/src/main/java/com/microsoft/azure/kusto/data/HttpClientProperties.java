@@ -85,7 +85,7 @@ public class HttpClientProperties {
         return maxConnectionRoute;
     }
 
-    static class Builder {
+    public static class Builder {
 
         private Integer maxIdleTime = 120;
         private Boolean keepAlive;
