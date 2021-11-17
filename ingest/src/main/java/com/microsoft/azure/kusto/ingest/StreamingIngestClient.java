@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -18,8 +20,6 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -76,14 +76,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         ingestionProperties.validate();
 
         try {
-            CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobSourceInfo.getBlobPath()));
-            return ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob);
-        } catch (URISyntaxException | IllegalArgumentException e) {
+            BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
+            return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient);
+        } catch (IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
-            log.error(msg, e);
-            throw new IngestionClientException(msg, e);
-        } catch (StorageException e) {
-            String msg = "Unexpected Storage error when ingesting a blob.";
             log.error(msg, e);
             throw new IngestionClientException(msg, e);
         }
@@ -199,17 +195,16 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return inputStream;
     }
 
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
+    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob) throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
-        cloudBlockBlob.downloadAttributes();
-        if (cloudBlockBlob.getProperties().getLength() == 0) {
+        if (cloudBlockBlob.getProperties().getBlobSize() == 0) {
             String message = "Empty blob.";
             log.error(message);
             throw new IngestionClientException(message);
         }
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(blobPath));
+        streamSourceInfo.setCompressionType(IngestionUtils.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 

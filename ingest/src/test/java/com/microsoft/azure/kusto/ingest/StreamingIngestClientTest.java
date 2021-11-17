@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -12,9 +15,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.*;
-import com.microsoft.azure.storage.blob.BlobInputStream;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -469,17 +469,15 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromBlob() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
-
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 1000);
+        when(blobProperties.getBlobSize()).thenReturn((long) 1000);
 
         BlobInputStream blobInputStream = mock(BlobInputStream.class);
         when(blobInputStream.read(any(byte[].class))).thenReturn(10).thenReturn(-1);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
@@ -585,14 +583,13 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromBlob_EmptyBlob_IngestClientException() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
 
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 0);
+        when(blobProperties.getBlobSize()).thenReturn((long) 0);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
 
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,

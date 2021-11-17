@@ -3,18 +3,17 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableClientBuilder;
+import com.azure.data.tables.models.TableEntity;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueClientBuilder;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobOutputStream;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.queue.CloudQueue;
-import com.microsoft.azure.storage.queue.CloudQueueMessage;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableOperation;
-import com.microsoft.azure.storage.table.TableServiceEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,121 +22,113 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
 
-class AzureStorageClient {
+public class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int GZIP_BUFFER_SIZE = 4*1024*1024;
-    private static final int STREAM_BUFFER_SIZE = 16384;
+    public static final int GZIP_BUFFER_SIZE = 16384;
+    public static final int STREAM_BUFFER_SIZE = 16384;
 
-    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+    void postMessageToQueue(String queuePath, String content) throws URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(queuePath, "queuePath");
         Ensure.stringIsNotBlank(content, "content");
-
-        CloudQueue queue = new CloudQueue(new URI(queuePath));
-        CloudQueueMessage queueMessage = new CloudQueueMessage(content);
-        queue.addMessage(queueMessage);
+        QueueClient queueClient = new QueueClientBuilder()
+                .connectionString(queuePath)
+                .buildClient();
+        queueClient.sendMessage(content);
     }
 
-    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-            URISyntaxException {
-        // Ensure
+    public void azureTableInsertEntity(String tableUri, TableEntity tableEntity) throws URISyntaxException {
         Ensure.stringIsNotBlank(tableUri, "tableUri");
-        Ensure.argIsNotNull(entity, "entity");
+        Ensure.argIsNotNull(tableEntity, "tableEntity");
 
-        CloudTable table = new CloudTable(new URI(tableUri));
-        // Create an operation to add the new customer to the table basics table.
-        TableOperation insert = TableOperation.insert(entity);
-        // Submit the operation to the table service.
-        table.execute(insert);
+        TableClient tableClient = new TableClientBuilder().connectionString(tableUri).buildClient();
+        tableClient.createEntity(tableEntity);
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-            throws URISyntaxException, StorageException, IOException {
-        Ensure.fileExists(filePath);
-
-        CompressionType sourceCompressionType = getCompression(filePath);
-        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat.name()), GZIP_BUFFER_SIZE);
+    BlobClient uploadLocalFileToBlob(File file, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
+            throws  IOException {
+        Ensure.fileExists(file,"file");
+        CompressionType sourceCompressionType = IngestionUtils.getCompression(file.getPath());
+        return uploadLocalFileToBlob(file, blobName, new BlobContainerClientBuilder().endpoint(storageUri).buildClient(),
+                shouldCompress(sourceCompressionType, dataFormat.name()));
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress, int buffer)
-            throws URISyntaxException, StorageException, IOException {
-        log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
+    BlobClient uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
+            throws IOException {
+        log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, container.getBlobContainerUrl());
 
         // Ensure
-        Ensure.fileExists(filePath);
+        Ensure.fileExists(file,"sourceFile");
         Ensure.stringIsNotBlank(blobName, "blobName");
-        Ensure.stringIsNotBlank(storageUri, "storageUri");
+        Ensure.argIsNotNull(container, "container");
 
-        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName);
-
+        BlobClient blobClient = container.getBlobClient(blobName);
         if (shouldCompress) {
-            compressAndUploadFileToBlob(filePath, blob, buffer);
+            compressAndUploadFileToBlob(file, blobClient);
         } else {
-            File file = new File(filePath);
-            uploadFileToBlob(file, blob);
+            uploadFileToBlob(file,blobClient);
         }
 
-        return blob;
+        return blobClient;
     }
 
-    void compressAndUploadFileToBlob(String filePath, CloudBlockBlob blob, int buffer) throws IOException, StorageException {
-        try (InputStream fin = Files.newInputStream(Paths.get(filePath));
-             GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
-            copyStream(fin, gzout, buffer);
-        }
-    }
-
-    void uploadFileToBlob(File sourceFile, CloudBlockBlob blob) throws IOException, StorageException {
+    void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException {
         // Ensure
-        Ensure.argIsNotNull(blob, "blob");
+        Ensure.argIsNotNull(blobClient, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
 
-        blob.uploadFromFile(sourceFile.getAbsolutePath());
+        blobClient.uploadFromFile(sourceFile.getPath());
     }
 
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
-            throws IOException, URISyntaxException, StorageException {
-        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
+    public void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException {
+        Ensure.fileExists(sourceFile, "sourceFile");
+        Ensure.argIsNotNull(blob, "blob");
+
+        try (InputStream fin = Files.newInputStream(sourceFile.toPath());
+            GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+            copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
+        }
+    }
+
+    BlobClient uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
+            throws IOException, URISyntaxException {
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
 
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.stringIsNotBlank(blobName, "blobName");
-        Ensure.stringIsNotBlank(storageUri, "storageUri");
+        Ensure.argIsNotNull(container, "container");
 
-        CloudBlobContainer container = new CloudBlobContainer(new URI(storageUri));
-        CloudBlockBlob blob = container.getBlockBlobReference(blobName);
-
+        BlobClient blobClient = container.getBlobClient(blobName);
         if (shouldCompress) {
-            compressAndUploadStream(inputStream, blob);
+            compressAndUploadStream(inputStream, blobClient);
         } else {
-            uploadStream(inputStream, blob);
+            uploadStream(inputStream, blobClient);
         }
-        return blob;
+
+        return blobClient;
     }
 
-    void uploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
+    void uploadStream(InputStream inputStream, BlobClient blob) throws IOException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        BlobOutputStream bos = blob.openOutputStream();
-        copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
-        bos.close();
+        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream();
+        copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
+        blobOutputStream.close();
     }
 
-    void compressAndUploadStream(InputStream inputStream, CloudBlockBlob blob) throws StorageException, IOException {
+    void compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (BlobOutputStream bos = blob.openOutputStream();
+        try (OutputStream bos = blob.getBlockBlobClient().getBlobOutputStream();
              GZIPOutputStream gzout = new GZIPOutputStream(bos)) {
             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
@@ -151,31 +142,14 @@ class AzureStorageClient {
         }
     }
 
-    String getBlobPathWithSas(CloudBlockBlob blob) {
-        Ensure.argIsNotNull(blob, "blob");
-
-        StorageCredentialsSharedAccessSignature signature =
-                (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
-        return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
-    }
-
-    long getBlobSize(String blobPath) throws StorageException, URISyntaxException {
+    long getBlobSize(String blobPath) {
         Ensure.stringIsNotBlank(blobPath, "blobPath");
-
-        CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-        blockBlob.downloadAttributes();
-        return blockBlob.getProperties().getLength();
+        BlobClient blobClient = new BlobClientBuilder().connectionString(blobPath).buildClient();
+        return blobClient.getProperties().getBlobSize();
     }
 
-    static CompressionType getCompression(String fileName) {
-        if (fileName.endsWith(".gz")) {
-            return CompressionType.gz;
-        }
-        if (fileName.endsWith(".zip")) {
-            return CompressionType.zip;
-        }
-
-        return null;
+    String getBlobPathWithSas(String blobSas, String blobName) {
+        return blobSas.concat(blobName);
     }
 
     // We don't support compression of Parquet and Orc files

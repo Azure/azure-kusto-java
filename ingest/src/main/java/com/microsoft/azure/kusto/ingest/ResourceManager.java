@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
@@ -15,11 +17,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-class ResourceManager implements Closeable {
+public class ResourceManager implements Closeable {
 
     public enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
@@ -48,24 +51,28 @@ class ResourceManager implements Closeable {
         }
     }
 
-    private Map<ResourceType, IngestionResource> ingestionResources;
+    private Map<ResourceType, IngestionResource<String>> ingestionResources;
     private String identityToken;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final Timer timer;
-    private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
-    private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
+    private IngestionResource<ContainerWithSas> containers;
 
-    ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
+    private final HttpClient httpClient;
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
+        httpClient = new NettyAsyncHttpClientBuilder().
+                responseTimeout(Duration.ofHours(1)).build();
         init();
     }
 
@@ -113,9 +120,8 @@ class ResourceManager implements Closeable {
     }
 
     String getIngestionResource(ResourceType resourceType) throws IngestionServiceException, IngestionClientException {
-        IngestionResource ingestionResource = ingestionResources.get(resourceType);
+        IngestionResource<String> ingestionResource = ingestionResources.get(resourceType);
         if (ingestionResource == null) {
-            // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
             refreshIngestionResources();
             try {
                 // If the write lock is locked, then the read will wait here.
@@ -129,7 +135,18 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.readLock().unlock();
             }
         }
-        return ingestionResource.nextStorageUrl();
+        return ingestionResource.nextResource();
+    }
+
+    ContainerWithSas getTempStorage() throws IngestionClientException, IngestionServiceException {
+        if (this.containers == null) {
+            refreshIngestionResources();
+        }
+        ContainerWithSas containerWithSas = this.containers.nextResource();
+        if (containerWithSas == null) {
+            throw new IngestionServiceException("Unable to get ingestion resources for this type: " + ResourceType.TEMP_STORAGE.name());
+        }
+        return containerWithSas;
     }
 
     String getIdentityToken() throws IngestionServiceException, IngestionClientException {
@@ -151,9 +168,9 @@ class ResourceManager implements Closeable {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         if (resourceType != null) {
             if (!ingestionResources.containsKey(resourceType)) {
-                ingestionResources.put(resourceType, new IngestionResource(resourceType));
+                ingestionResources.put(resourceType, new IngestionResource<>(resourceType));
             }
-            ingestionResources.get(resourceType).addStorageUrl(storageUrl);
+            ingestionResources.get(resourceType).addResource(storageUrl);
         }
     }
 
@@ -173,6 +190,7 @@ class ResourceManager implements Closeable {
                         addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
+                createContainerClients();
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } catch (DataClientException e) {
@@ -181,6 +199,14 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
+    }
+
+    // SDK team suggests to keep the container clients
+    private void createContainerClients() {
+        IngestionResource<String> ingestionResource = ingestionResources.get(ResourceType.TEMP_STORAGE);
+        this.containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
+        ingestionResource.resourcesList.forEach(st->
+                this.containers.addResource(new ContainerWithSas(st, httpClient)));
     }
 
     private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
@@ -222,23 +248,23 @@ class ResourceManager implements Closeable {
         throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
     }
 
-    private static class IngestionResource {
+    private static class IngestionResource<T> {
         ResourceType resourceType;
         int roundRobinIdx = 0;
-        List<String> storageUrls;
+        List<T> resourcesList;
 
         IngestionResource(ResourceType resourceType) {
             this.resourceType = resourceType;
-            storageUrls = new ArrayList<>();
+            resourcesList = new ArrayList<>();
         }
 
-        void addStorageUrl(String storageUrl) {
-            storageUrls.add(storageUrl);
+        void addResource(T resource) {
+            resourcesList.add(resource);
         }
 
-        String nextStorageUrl() {
-            roundRobinIdx = (roundRobinIdx + 1) % storageUrls.size();
-            return storageUrls.get(roundRobinIdx);
+        T nextResource() {
+            roundRobinIdx = (roundRobinIdx + 1) % resourcesList.size();
+            return resourcesList.get(roundRobinIdx);
         }
     }
 }

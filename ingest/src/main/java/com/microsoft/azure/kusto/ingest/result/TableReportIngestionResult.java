@@ -3,11 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableOperation;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableClientBuilder;
+import com.azure.data.tables.models.TableEntity;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,13 +20,12 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws StorageException, URISyntaxException {
+    public List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            CloudTable table = new CloudTable(new URI(descriptor.TableConnectionString));
-            TableOperation operation = TableOperation.retrieve(descriptor.PartitionKey, descriptor.RowKey,
-                    IngestionStatus.class);
-            results.add(table.execute(operation).getResultAsType());
+            TableClient table = new TableClientBuilder().endpoint(descriptor.TableConnectionString).buildClient();
+            TableEntity entity = table.getEntity(descriptor.PartitionKey, descriptor.RowKey);
+            results.add(IngestionStatus.fromEntity(entity));
         }
 
         return results;

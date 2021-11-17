@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
@@ -37,7 +38,7 @@ public class IngestionUtils {
         }
 
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
+        streamSourceInfo.setCompressionType(getCompression(filePath));
         return streamSourceInfo;
     }
 
@@ -53,5 +54,16 @@ public class IngestionUtils {
         }
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
+    }
+
+    static CompressionType getCompression(String fileName) {
+        if (fileName.endsWith(".gz")) {
+            return CompressionType.gz;
+        }
+        if (fileName.endsWith(".zip")) {
+            return CompressionType.zip;
+        }
+
+        return null;
     }
 }

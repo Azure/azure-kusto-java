@@ -3,9 +3,13 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.microsoft.azure.storage.table.TableServiceEntity;
+
+import com.azure.data.tables.models.TableEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /// <summary>
@@ -14,13 +18,19 @@ import java.util.UUID;
 /// <remarks>
 /// Any change to this class must be made in a backwards/forwards-compatible manner.
 /// </remarks>
-public class IngestionStatus extends TableServiceEntity {
+public class IngestionStatus {
     /// <summary>
     /// The updated status of the ingestion. The ingestion status will be 'Pending'
     /// during the ingestion's process
     /// and will be updated as soon as the ingestion completes.
     /// </summary>
     public OperationStatus status;
+    Map<String, Object> personalInfo = new HashMap<>();
+    static ObjectMapper mapper = new ObjectMapper();
+
+    public static IngestionStatus fromEntity(TableEntity tableEntity) {
+        return mapper.convertValue(tableEntity.getProperties(), IngestionStatus.class);
+    }
 
     public String getStatus() {
         return status.toString();
@@ -28,6 +38,7 @@ public class IngestionStatus extends TableServiceEntity {
     
     public void setStatus(String s) {
         status = OperationStatus.valueOf(s);
+        personalInfo.put("Status", status);
     }
 
     /// <summary>
@@ -58,6 +69,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setIngestionSourcePath(String path) {
         ingestionSourcePath = path;
+        personalInfo.put("IngestionSourcePath", ingestionSourcePath);
     }
 
     /// <summary>
@@ -71,6 +83,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setDatabase(String db) {
         database = db;
+        personalInfo.put("Database", database);
     }
 
     /// <summary>
@@ -84,6 +97,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setTable(String t) {
         table = t;
+        personalInfo.put("Table", table);
     }
 
     /// <summary>
@@ -97,6 +111,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setUpdatedOn(Date lastUpdated) {
         updatedOn = lastUpdated;
+        personalInfo.put("UpdatedOn", updatedOn);
     }
 
     /// <summary>
@@ -188,7 +203,7 @@ public class IngestionStatus extends TableServiceEntity {
     public IngestionStatus() {
     }
 
-    public IngestionStatus(UUID uuid) {
-        super(uuid.toString(), uuid.toString());
+    public Map<String, Object> getEntityProperties(){
+        return personalInfo;
     }
 }
