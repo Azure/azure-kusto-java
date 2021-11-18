@@ -35,7 +35,7 @@ public class IngestionStatus {
     public String getStatus() {
         return status.toString();
     }
-    
+
     public void setStatus(String s) {
         status = OperationStatus.valueOf(s);
         personalInfo.put("Status", status);
@@ -153,9 +153,9 @@ public class IngestionStatus {
 
     public void setErrorCode(String code) {
         errorCodeString = code;
-        try{
+        try {
             errorCode = code == null ? IngestionErrorCode.Unknown : IngestionErrorCode.valueOf(code);
-        } catch (IllegalArgumentException ex){
+        } catch (IllegalArgumentException ex) {
             errorCode = IngestionErrorCode.Misc;
         }
     }
@@ -203,7 +203,7 @@ public class IngestionStatus {
     public IngestionStatus() {
     }
 
-    public Map<String, Object> getEntityProperties(){
+    public Map<String, Object> getEntityProperties() {
         return personalInfo;
     }
 }

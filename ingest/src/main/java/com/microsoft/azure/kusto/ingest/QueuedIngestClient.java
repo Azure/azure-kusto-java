@@ -97,13 +97,13 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
-                String tableStatusUri = resourceManager
-                        .getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
+                TableWithSas statusTable = resourceManager
+                        .getStatusTable();
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
-                ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
+                ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = statusTable.getUri();
                 ingestionBlobInfo.IngestionStatusInTable.RowKey = id;
                 ingestionBlobInfo.IngestionStatusInTable.PartitionKey = id;
-                azureStorageClient.azureTableInsertEntity(tableStatusUri, new TableEntity(id, id).setProperties(status.getEntityProperties()));
+                azureStorageClient.azureTableInsertEntity(statusTable.getTable(), new TableEntity(id, id).setProperties(status.getEntityProperties()));
                 tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
             }
 
@@ -111,9 +111,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
             azureStorageClient.postMessageToQueue(
-                    resourceManager
-                            .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
-                    , serializedIngestionBlobInfo);
+                    resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
                     : new IngestionStatusResult(status);

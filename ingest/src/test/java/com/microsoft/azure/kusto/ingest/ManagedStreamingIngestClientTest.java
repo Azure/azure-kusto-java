@@ -52,26 +52,23 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
-                .thenReturn("queue1")
-                .thenReturn("queue2");
+        when(resourceManagerMock.getQueue())
+                .thenReturn(new QueueWithSas("queue1?", null))
+                .thenReturn(new QueueWithSas("queue2?",null));
 
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
-                .thenReturn("http://statusTable.com");
+        when(resourceManagerMock.getStatusTable())
+                .thenReturn(new TableWithSas("http://statusTable.com", null));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean()))
                 .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).buildClient());
 
-//        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class))).thenReturn(STORAGE_URI);
+        when(azureStorageClientMock.getBlobPathWithSas(anyString(),anyString())).thenReturn(STORAGE_URI);
 
-        when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
+        doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
-
-        doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableEntity.class));
-
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
 
         streamingClientMock = mock(StreamingClient.class);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));
@@ -79,7 +76,7 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        doReturn("storage1", "storage2").when(resourceManagerMock).getTempStorage();
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
@@ -125,7 +122,7 @@ class ManagedStreamingIngestClientTest {
 
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captur.capture());
         assert (((IngestionStatus) captur.getValue().getProperties()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 

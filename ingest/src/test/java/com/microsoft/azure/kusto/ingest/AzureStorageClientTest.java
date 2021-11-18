@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
@@ -17,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.sql.Blob;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
@@ -58,14 +58,14 @@ class AzureStorageClientTest {
     void PostMessageToQueue_NullContent_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.postMessageToQueue("queuePath", null));
+                () -> azureStorageClient.postMessageToQueue(new QueueWithSas("queuePath?sas",null).getQueue(), null));
     }
 
     @Test
     void PostMessageToQueue_NullEntity_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.azureTableInsertEntity("tableUri", null));
+                () -> azureStorageClient.azureTableInsertEntity(mock(TableClient.class), null));
     }
 
     @Test
@@ -106,7 +106,7 @@ class AzureStorageClientTest {
     void UploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(testFile, null, "storageUri", IngestionProperties.DataFormat.csv));
+                () -> azureStorageClient.uploadLocalFileToBlob(testFile, null, "storageUri", IngestionProperties.DataFormat.json));
     }
 
     @Test
@@ -234,12 +234,5 @@ class AzureStorageClientTest {
                     IllegalArgumentException.class,
                     () -> azureStorageClient.compressAndUploadStream(stream, null));
         }
-    }
-
-    @Test
-    void GetBlobSize_NullBlobPath_IllegalArgumentException() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> azureStorageClient.getBlobSize(null));
     }
 }

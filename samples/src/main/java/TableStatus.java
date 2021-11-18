@@ -20,20 +20,20 @@ public class TableStatus {
     public static void main(String[] args) {
         try {
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
-
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    "https://ingest-ohadprod.westeurope.kusto.windows.net",
+                    "d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66",
+                    "-f90cR6sr-hFC3WBm5ANXtm521_W~ah~Ia",
+                    "microsoft.com");
             IngestionResult ingestionResult;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+                IngestionProperties ingestionProperties = new IngestionProperties("ohtst",
+                        "TestTable2");
                 ingestionProperties.setReportMethod(QueueAndTable);
+                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\data\\data.csv", 0);
+
                 ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
                 ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             }
             List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();

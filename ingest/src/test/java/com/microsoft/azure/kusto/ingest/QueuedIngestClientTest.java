@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -19,7 +20,6 @@ import org.mockito.ArgumentCaptor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.function.BiFunction;
@@ -42,13 +42,12 @@ class QueuedIngestClientTest {
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
+        when(resourceManagerMock.getQueue())
+                .thenReturn(new QueueWithSas("https://storage.queue.core.windows.net/queue1?sas",null))
+                .thenReturn(new QueueWithSas("https://storage.queue.core.windows.net/queue2?sas",null));
 
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
-                .thenReturn("queue1")
-                .thenReturn("queue2");
-
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
-                .thenReturn("http://statusTable.com");
+        when(resourceManagerMock.getStatusTable())
+                .thenReturn(new TableWithSas("https://storage.table.core.windows.net/statusTable.com?sas", null));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
@@ -57,19 +56,18 @@ class QueuedIngestClientTest {
 
         when(azureStorageClientMock.getBlobPathWithSas(anyString(),anyString())).thenReturn(STORAGE_URI);
 
-        when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
-
         when(azureStorageClientMock.uploadLocalFileToBlob(any(File.class), anyString(), any(), anyBoolean()))
                 .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).buildClient());
 
-        doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableEntity.class));
+        doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
     }
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        doReturn(new ContainerWithSas("https://storage.blob.core.windows.net?sas", null),
+                new ContainerWithSas("https://storage.blob.core.windows.net?sas", null)).when(resourceManagerMock).getTempStorage();
 
         queuedIngestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
@@ -115,7 +113,7 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captur.capture());
         assert (((IngestionStatus) captur.getValue().getProperties()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
@@ -123,7 +121,7 @@ class QueuedIngestClientTest {
     void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
         queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-//        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
+        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(),anyString());
     }
 
     @Test
@@ -259,7 +257,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionServiceException() throws Exception {
-        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        doThrow(IngestionServiceException.class).when(resourceManagerMock).getTempStorage();
         when(resourceManagerMock.retrieveServiceType()).thenReturn(EXPECTED_SERVICE_TYPE);
 
         queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
@@ -269,7 +267,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionClientException() throws Exception {
-        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        doThrow(IngestionServiceException.class).when(resourceManagerMock).getTempStorage();
         when(resourceManagerMock.retrieveServiceType()).thenReturn(ENDPOINT_SERVICE_TYPE_ENGINE);
 
         queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");

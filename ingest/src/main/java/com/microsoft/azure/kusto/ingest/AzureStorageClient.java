@@ -31,21 +31,16 @@ public class AzureStorageClient {
     public static final int GZIP_BUFFER_SIZE = 16384;
     public static final int STREAM_BUFFER_SIZE = 16384;
 
-    void postMessageToQueue(String queuePath, String content) throws URISyntaxException {
+    void postMessageToQueue(QueueClient queueClient, String content) throws URISyntaxException {
         // Ensure
-        Ensure.stringIsNotBlank(queuePath, "queuePath");
+        Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
-        QueueClient queueClient = new QueueClientBuilder()
-                .connectionString(queuePath)
-                .buildClient();
         queueClient.sendMessage(content);
     }
 
-    public void azureTableInsertEntity(String tableUri, TableEntity tableEntity) throws URISyntaxException {
-        Ensure.stringIsNotBlank(tableUri, "tableUri");
+    public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException {
+        Ensure.argIsNotNull(tableClient, "tableClient");
         Ensure.argIsNotNull(tableEntity, "tableEntity");
-
-        TableClient tableClient = new TableClientBuilder().connectionString(tableUri).buildClient();
         tableClient.createEntity(tableEntity);
     }
 
@@ -140,12 +135,6 @@ public class AzureStorageClient {
         while ((length = inputStream.read(buffer)) > 0) {
             outputStream.write(buffer, 0, length);
         }
-    }
-
-    long getBlobSize(String blobPath) {
-        Ensure.stringIsNotBlank(blobPath, "blobPath");
-        BlobClient blobClient = new BlobClientBuilder().connectionString(blobPath).buildClient();
-        return blobClient.getProperties().getBlobSize();
     }
 
     String getBlobPathWithSas(String blobSas, String blobName) {

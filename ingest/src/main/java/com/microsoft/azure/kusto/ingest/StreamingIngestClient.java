@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.lang.invoke.MethodHandles;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
 
