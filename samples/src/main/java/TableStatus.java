@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
-import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
@@ -46,6 +46,11 @@ public class TableStatus {
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
+
+            // Print date nicely
+            objectMapper.findAndRegisterModules();
+            objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+
             String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
             System.out.println(resultAsJson);
         } catch (Exception e) {

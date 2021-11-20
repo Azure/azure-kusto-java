@@ -8,6 +8,8 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +30,6 @@ class AzureStorageClientTest {
 
     static private String testFilePath;
     static private File testFile;
-    static private String testFilePathCompressed;
     static private File testFileCompressed;
     static private BlobClient blob;
 
@@ -36,7 +37,7 @@ class AzureStorageClientTest {
     static void setUp() {
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         testFile = new File(testFilePath);
-        testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
+        String testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
         testFileCompressed = new File(testFilePathCompressed);
         blob = new BlobClientBuilder().endpoint("https://ms.com/storageUri/blobName")
                 .buildClient();
@@ -45,6 +46,14 @@ class AzureStorageClientTest {
     @BeforeEach
     void setUpEach() {
         azureStorageClientSpy = spy(azureStorageClient);
+    }
+
+    void uploadLocalFileToBlob(File file, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
+            throws IOException {
+        Ensure.fileExists(file, "file");
+        CompressionType sourceCompressionType = IngestionUtils.getCompression(file.getPath());
+        azureStorageClientSpy. uploadLocalFileToBlob(file, blobName, new BlobContainerClientBuilder().endpoint(storageUri).buildClient(),
+                AzureStorageClient.shouldCompress(sourceCompressionType, dataFormat.name()));
     }
 
     @Test
@@ -58,7 +67,7 @@ class AzureStorageClientTest {
     void PostMessageToQueue_NullContent_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.postMessageToQueue(new QueueWithSas("queuePath?sas",null).getQueue(), null));
+                () -> azureStorageClient.postMessageToQueue(TestUtils.queueWithSasFromQueueName("queue1").getQueue(), null));
     }
 
     @Test
@@ -90,7 +99,7 @@ class AzureStorageClientTest {
             throws IOException {
         doNothing().when(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(BlobClient.class));
 
-        azureStorageClientSpy.uploadLocalFileToBlob(testFileCompressed, "blobName",
+        uploadLocalFileToBlob(testFileCompressed, "blobName",
                 "https://ms.com/blob", IngestionProperties.DataFormat.csv);
         verify(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(BlobClient.class));
     }
@@ -99,21 +108,21 @@ class AzureStorageClientTest {
     void UploadLocalFileToBlob_NullFilePath_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(null, "blobName", "storageUri", IngestionProperties.DataFormat.csv));
+                () -> uploadLocalFileToBlob(null, "blobName", "storageUri", IngestionProperties.DataFormat.csv));
     }
 
     @Test
     void UploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(testFile, null, "storageUri", IngestionProperties.DataFormat.json));
+                () -> uploadLocalFileToBlob(testFile, null, "storageUri", IngestionProperties.DataFormat.json));
     }
 
     @Test
     void UploadLocalFileToBlob_NullStorageUri_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(testFile, "blobName", null, IngestionProperties.DataFormat.csv));
+                () -> uploadLocalFileToBlob(testFile, "blobName", null, IngestionProperties.DataFormat.csv));
     }
 
     @Test
@@ -121,7 +130,7 @@ class AzureStorageClientTest {
         File notExistingFile = new File("not.existing.file.path");
         assertThrows(
                 IOException.class,
-                () -> azureStorageClient.uploadLocalFileToBlob(notExistingFile, "blobName", "storageUri", IngestionProperties.DataFormat.csv));
+                () -> uploadLocalFileToBlob(notExistingFile, "blobName", "storageUri", IngestionProperties.DataFormat.csv));
     }
 
     @Test

@@ -7,10 +7,13 @@ import com.azure.storage.blob.BlobContainerClientBuilder;
 public class ContainerWithSas {
     private final String sas;
     private final BlobContainerClient container;
-    ContainerWithSas(String url, HttpClient httpClient){
-        this.sas = '?' + url.split("\\?")[1];
-        this.container  = new BlobContainerClientBuilder()
-                .endpoint(url)
+
+    ContainerWithSas(String url, HttpClient httpClient) {
+        String[] parts = url.split("\\?");
+        this.sas = '?' + parts[1];
+        this.container = new BlobContainerClientBuilder()
+                .endpoint(parts[0])
+                .sasToken(parts[1])
                 .httpClient(httpClient)
                 .buildClient();
     }

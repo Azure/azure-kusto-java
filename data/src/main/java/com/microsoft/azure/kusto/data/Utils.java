@@ -211,7 +211,7 @@ class Utils {
      *  because it can be created with a specified timeout, and we'd need to create an HttpClient per-timeout.
      */
     private static CloseableHttpClient getHttpClient(int timeoutMs) {
-        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).build();
+        RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeoutMs).setConnectionRequestTimeout(timeoutMs).build();
         return HttpClientBuilder.create().useSystemProperties().setDefaultRequestConfig(requestConfig).build();
     }
 

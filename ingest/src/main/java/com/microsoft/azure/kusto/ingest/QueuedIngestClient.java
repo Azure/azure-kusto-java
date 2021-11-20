@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -87,16 +89,16 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
 
             String id = ingestionBlobInfo.id.toString();
             IngestionStatus status = new IngestionStatus();
-            status.database = ingestionProperties.getDatabaseName();
-            status.table = ingestionProperties.getTableName();
-            status.status = OperationStatus.Queued;
-            status.updatedOn = Date.from(Instant.now());
-            status.ingestionSourceId = ingestionBlobInfo.id;
+            status.setDatabase(ingestionProperties.getDatabaseName());
+            status.setTable(ingestionProperties.getTableName());
+            status.setStatus(OperationStatus.Queued);
+            status.setUpdatedOn(Instant.now());
+            status.setIngestionSourceId(ingestionBlobInfo.id);
             status.setIngestionSourcePath(urlWithoutSecrets);
             boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
                 && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
             if (reportToTable) {
-                status.status = OperationStatus.Pending;
+                status.setStatus(OperationStatus.Pending);
                 TableWithSas statusTable = resourceManager
                         .getStatusTable();
                 ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
@@ -115,6 +117,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
                     : new IngestionStatusResult(status);
+        } catch (BlobStorageException e) {
+            throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         } catch (IngestionServiceException e) {
@@ -156,6 +160,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
             return ingestFromBlob(blobSourceInfo, ingestionProperties);
+        } catch (BlobStorageException e) {
+            throw new IngestionServiceException("Failed to ingest from file", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         } catch (IngestionServiceException e) {
@@ -206,6 +212,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 streamSourceInfo.getStream().close();
             }
             return ingestionResult;
+        } catch (BlobStorageException e) {
+            throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
         } catch (IngestionServiceException e) {

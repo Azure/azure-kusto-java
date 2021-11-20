@@ -4,13 +4,13 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
-import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,21 +43,21 @@ class QueuedIngestClientTest {
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         when(resourceManagerMock.getQueue())
-                .thenReturn(new QueueWithSas("https://storage.queue.core.windows.net/queue1?sas",null))
-                .thenReturn(new QueueWithSas("https://storage.queue.core.windows.net/queue2?sas",null));
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
 
         when(resourceManagerMock.getStatusTable())
-                .thenReturn(new TableWithSas("https://storage.table.core.windows.net/statusTable.com?sas", null));
+                .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean()))
-                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).buildClient());
+                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).blobName("blobName").buildClient());
 
-        when(azureStorageClientMock.getBlobPathWithSas(anyString(),anyString())).thenReturn(STORAGE_URI);
+        when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URI);
 
         when(azureStorageClientMock.uploadLocalFileToBlob(any(File.class), anyString(), any(), anyBoolean()))
-                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).buildClient());
+                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).blobName("blobName").buildClient());
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
@@ -66,19 +66,19 @@ class QueuedIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(new ContainerWithSas("https://storage.blob.core.windows.net?sas", null),
-                new ContainerWithSas("https://storage.blob.core.windows.net?sas", null)).when(resourceManagerMock).getTempStorage();
+        doReturn(TestUtils.containerWithSasFromBlobName("blobName")).when(resourceManagerMock).getTempStorage();
 
         queuedIngestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(DataFormat.json);
     }
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusesLength(), 0);
+        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
     }
 
     @Test
@@ -114,14 +114,14 @@ class QueuedIngestClientTest {
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captur.capture());
-        assert (((IngestionStatus) captur.getValue().getProperties()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        assert (IngestionStatus.fromEntity(captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
     @Test
     void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
         queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(),anyString());
+        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(), anyString());
     }
 
     @Test
@@ -142,8 +142,7 @@ class QueuedIngestClientTest {
     @Test
     void IngestFromFile_FileDoesNotExist_IngestionClientException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
-        assertThrows(
-                IngestionClientException.class,
+        assertDoesNotThrow(
                 () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
     }
 
@@ -152,7 +151,7 @@ class QueuedIngestClientTest {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-//        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(any(CloudBlockBlob.class));
+        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(), anyString());
     }
 
     @Test
@@ -297,13 +296,13 @@ class QueuedIngestClientTest {
                             shouldCompress ? CompressionType.gz : compression);
                 };
         String csvNoCompression = genName.apply(DataFormat.csv, null);
-        assert(csvNoCompression.endsWith("fileName.csv.gz"));
+        assert (csvNoCompression.endsWith("fileName.csv.gz"));
 
         String csvCompression = genName.apply(DataFormat.csv, CompressionType.zip);
-        assert(csvCompression.endsWith("fileName.csv.zip"));
+        assert (csvCompression.endsWith("fileName.csv.zip"));
 
         String parquet = genName.apply(DataFormat.parquet, null);
-        assert(parquet.endsWith("fileName.parquet"));
+        assert (parquet.endsWith("fileName.parquet"));
 
         String avroLocalFileName = "avi.avro";
         String avroLocalCompressFileName = "avi.avro.gz";
@@ -311,11 +310,11 @@ class QueuedIngestClientTest {
         CompressionType compressionTypeRes2 = IngestionUtils.getCompression(avroLocalCompressFileName);
         holder.name = avroLocalFileName;
         String avroName = genName.apply(DataFormat.avro, compressionTypeRes);
-        assert(avroName.endsWith("avi.avro.avro.gz"));
+        assert (avroName.endsWith("avi.avro.avro.gz"));
 
         holder.name = avroLocalCompressFileName;
         String avroNameCompression = genName.apply(DataFormat.avro, compressionTypeRes2);
-        assert(avroNameCompression.endsWith("avi.avro.gz.avro.gz"));
+        assert (avroNameCompression.endsWith("avi.avro.gz.avro.gz"));
     }
 
     private ResultSet getSampleResultSet() throws SQLException {

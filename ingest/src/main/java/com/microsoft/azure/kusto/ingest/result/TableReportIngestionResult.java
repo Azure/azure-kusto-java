@@ -4,26 +4,26 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
-import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.ingest.AzureStorageClient;
 
-import java.net.URISyntaxException;
+import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 
 public class TableReportIngestionResult implements IngestionResult {
 
-    private List<IngestionStatusInTableDescription> descriptors;
+    private final List<IngestionStatusInTableDescription> descriptors;
 
     public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
         this.descriptors = descriptors;
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException {
+    public List<IngestionStatus> getIngestionStatusCollection() throws ParseException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            TableClient table = new TableClientBuilder().endpoint(descriptor.TableConnectionString).buildClient();
+            TableClient table = AzureStorageClient.TableClientFromUrl(descriptor.TableConnectionString);
             TableEntity entity = table.getEntity(descriptor.PartitionKey, descriptor.RowKey);
             results.add(IngestionStatus.fromEntity(entity));
         }
@@ -35,5 +35,4 @@ public class TableReportIngestionResult implements IngestionResult {
     public int getIngestionStatusesLength() {
         return descriptors.size();
     }
-
 }

@@ -63,7 +63,7 @@ class StreamingIngestClientTest {
     @BeforeEach
     void setUpEach() throws Exception {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
         when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
 

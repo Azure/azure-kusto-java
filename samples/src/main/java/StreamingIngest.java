@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 
 public class StreamingIngest {
 
@@ -46,7 +47,7 @@ public class StreamingIngest {
         }
     }
 
-    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException {
+    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException, ParseException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Create Stream from string and Ingest
@@ -78,7 +79,7 @@ public class StreamingIngest {
         System.out.println(status.toString());
     }
 
-    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException {
+    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
         //Ingest CSV file

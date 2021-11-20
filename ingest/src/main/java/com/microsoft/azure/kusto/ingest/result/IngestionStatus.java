@@ -5,8 +5,11 @@ package com.microsoft.azure.kusto.ingest.result;
 
 
 import com.azure.data.tables.models.TableEntity;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
+
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,20 +28,21 @@ public class IngestionStatus {
     /// and will be updated as soon as the ingestion completes.
     /// </summary>
     public OperationStatus status;
-    Map<String, Object> personalInfo = new HashMap<>();
-    static ObjectMapper mapper = new ObjectMapper();
-
-    public static IngestionStatus fromEntity(TableEntity tableEntity) {
-        return mapper.convertValue(tableEntity.getProperties(), IngestionStatus.class);
-    }
+    private Map<String, Object> personalInfo = new HashMap<>();
 
     public String getStatus() {
         return status.toString();
     }
 
     public void setStatus(String s) {
-        status = OperationStatus.valueOf(s);
-        personalInfo.put("Status", status);
+        if (s != null) {
+            setStatus(OperationStatus.valueOf(s));
+        }
+    }
+
+    public void setStatus(OperationStatus st) {
+        status = st;
+        personalInfo.put("Status", st);
     }
 
     /// <summary>
@@ -103,13 +107,13 @@ public class IngestionStatus {
     /// <summary>
     /// The last updated time of the ingestion status.
     /// </summary>
-    public Date updatedOn;
+    public Instant updatedOn;
 
-    public Date getUpdatedOn() {
+    public Instant getUpdatedOn() {
         return updatedOn;
     }
 
-    public void setUpdatedOn(Date lastUpdated) {
+    public void setUpdatedOn(Instant lastUpdated) {
         updatedOn = lastUpdated;
         personalInfo.put("UpdatedOn", updatedOn);
     }
@@ -170,7 +174,9 @@ public class IngestionStatus {
     }
 
     public void setFailureStatus(String status) {
-        failureStatus = IngestionFailureInfo.FailureStatusValue.valueOf(status);
+        if (status != null) {
+            failureStatus = IngestionFailureInfo.FailureStatusValue.valueOf(status);
+        }
     }
 
     /// <summary>
@@ -205,5 +211,41 @@ public class IngestionStatus {
 
     public Map<String, Object> getEntityProperties() {
         return personalInfo;
+    }
+
+    public static IngestionStatus fromEntity(TableEntity tableEntity) throws ParseException {
+        IngestionStatus ingestionStatus = new IngestionStatus();
+        Object ingestionSourceId = tableEntity.getProperty("IngestionSourceId");
+        ingestionStatus.ingestionSourceId = ingestionSourceId == null ? null : (UUID) ingestionSourceId;
+        ingestionStatus.database = (String) tableEntity.getProperty("Database");
+        ingestionStatus.table = (String) tableEntity.getProperty("Table");
+        Object operationId = tableEntity.getProperty("OperationId");
+        ingestionStatus.operationId = ingestionSourceId == null ? null : (UUID) operationId;
+        Object status = tableEntity.getProperty("Status");
+        if (status instanceof String) {
+            ingestionStatus.setStatus((String) status);
+        } else {
+            ingestionStatus.setStatus((OperationStatus) status);
+        }
+        Object activityId = tableEntity.getProperty("ActivityId");
+        ingestionStatus.activityId = ingestionSourceId == null ? null : (UUID) activityId;
+        ingestionStatus.setFailureStatus((String) tableEntity.getProperty("FailureStatus"));
+        Object originatesFromUpdatePolicy = tableEntity.getProperty("OriginatesFromUpdatePolicy");
+        ingestionStatus.originatesFromUpdatePolicy = originatesFromUpdatePolicy != null && (boolean) originatesFromUpdatePolicy;
+        ingestionStatus.ingestionSourcePath = (String) tableEntity.getProperty("IngestionSourcePath");
+        Object errorCode = tableEntity.getProperty("ErrorCode");
+        if (errorCode != null) {
+            ingestionStatus.setErrorCode((String) errorCode);
+        }
+
+        ingestionStatus.details = (String) tableEntity.getProperty("Details");
+        Object updatedOn = tableEntity.getProperty("UpdatedOn");
+
+        if (updatedOn instanceof OffsetDateTime) {
+            ingestionStatus.setUpdatedOn(((OffsetDateTime) updatedOn).toInstant());
+        } else {
+            ingestionStatus.setUpdatedOn((Instant) updatedOn);
+        }
+        return ingestionStatus;
     }
 }

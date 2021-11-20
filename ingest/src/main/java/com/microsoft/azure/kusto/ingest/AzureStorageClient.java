@@ -3,17 +3,17 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.BinaryData;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.queue.QueueClient;
-import com.azure.storage.queue.QueueClientBuilder;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,8 @@ public class AzureStorageClient {
         // Ensure
         Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
-        queueClient.sendMessage(content);
+        byte[] bytesEncoded = Base64.encodeBase64(content.getBytes());
+        queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
     }
 
     public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException {
@@ -44,20 +45,12 @@ public class AzureStorageClient {
         tableClient.createEntity(tableEntity);
     }
 
-    BlobClient uploadLocalFileToBlob(File file, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-            throws  IOException {
-        Ensure.fileExists(file,"file");
-        CompressionType sourceCompressionType = IngestionUtils.getCompression(file.getPath());
-        return uploadLocalFileToBlob(file, blobName, new BlobContainerClientBuilder().endpoint(storageUri).buildClient(),
-                shouldCompress(sourceCompressionType, dataFormat.name()));
-    }
-
     BlobClient uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
             throws IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, container.getBlobContainerUrl());
 
         // Ensure
-        Ensure.fileExists(file,"sourceFile");
+        Ensure.fileExists(file, "sourceFile");
         Ensure.stringIsNotBlank(blobName, "blobName");
         Ensure.argIsNotNull(container, "container");
 
@@ -65,7 +58,7 @@ public class AzureStorageClient {
         if (shouldCompress) {
             compressAndUploadFileToBlob(file, blobClient);
         } else {
-            uploadFileToBlob(file,blobClient);
+            uploadFileToBlob(file, blobClient);
         }
 
         return blobClient;
@@ -84,7 +77,7 @@ public class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-            GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+             GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
             copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
         }
     }
@@ -147,5 +140,17 @@ public class AzureStorageClient {
                 && (dataFormat == null ||
                 (!dataFormat.equals(IngestionProperties.DataFormat.parquet.name())
                         && !dataFormat.equals(IngestionProperties.DataFormat.orc.name())));
+    }
+
+    public static TableClient TableClientFromUrl(String url) {
+        String[] parts = url.split("\\?");
+        int tableNameIndex = parts[0].lastIndexOf('/');
+        String tableName = parts[0].substring(tableNameIndex+1);
+
+        return new TableClientBuilder()
+                .endpoint(parts[0].substring(0, tableNameIndex))
+                .sasToken(parts[1])
+                .tableName(tableName)
+                .buildClient();
     }
 }

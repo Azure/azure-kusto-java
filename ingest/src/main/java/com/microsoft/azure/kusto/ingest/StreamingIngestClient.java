@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -79,6 +80,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient);
         } catch (IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
+            log.error(msg, e);
+            throw new IngestionClientException(msg, e);
+        } catch (BlobStorageException e) {
+            String msg = "Unexpected Storage error when ingesting a blob.";
             log.error(msg, e);
             throw new IngestionClientException(msg, e);
         }
@@ -196,10 +201,16 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob) throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
-        if (cloudBlockBlob.getProperties().getBlobSize() == 0) {
-            String message = "Empty blob.";
-            log.error(message);
-            throw new IngestionClientException(message);
+        try{
+            // No need to check blob size if it was given to us that it's not empty
+            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) {
+                String message = "Empty blob.";
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
+        } catch (BlobStorageException ex) {
+            throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
+                    ex.getStatusCode() == 403 ? "this might mean the blob doesn't exist" : ""), ex);
         }
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());

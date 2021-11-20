@@ -53,18 +53,17 @@ class ManagedStreamingIngestClientTest {
     @BeforeAll
     static void setUp() throws Exception {
         when(resourceManagerMock.getQueue())
-                .thenReturn(new QueueWithSas("queue1?", null))
-                .thenReturn(new QueueWithSas("queue2?",null));
-
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
         when(resourceManagerMock.getStatusTable())
-                .thenReturn(new TableWithSas("http://statusTable.com", null));
+                .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean()))
-                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).buildClient());
+                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URI).blobName("blobName").buildClient());
 
-        when(azureStorageClientMock.getBlobPathWithSas(anyString(),anyString())).thenReturn(STORAGE_URI);
+        when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URI);
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
@@ -76,18 +75,19 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn("storage1", "storage2").when(resourceManagerMock).getTempStorage();
+        doReturn(TestUtils.containerWithSasFromBlobName("blobName"), TestUtils.containerWithSasFromBlobName("blobName2")).when(resourceManagerMock).getTempStorage();
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
     }
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusesLength(), 0);
+        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
     }
 
     @Test
@@ -123,7 +123,7 @@ class ManagedStreamingIngestClientTest {
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captur.capture());
-        assert (((IngestionStatus) captur.getValue().getProperties()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        assert (IngestionStatus.fromEntity(captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
     @Test
@@ -196,6 +196,7 @@ class ManagedStreamingIngestClientTest {
         ArgumentCaptor<InputStream> argumentCaptor = ArgumentCaptor.forClass(InputStream.class);
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
+
         OperationStatus status = managedStreamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -341,9 +342,9 @@ class ManagedStreamingIngestClientTest {
                         times[0]++;
                         throw new DataServiceException("some cluster", "Some error", false);
                     }).thenAnswer((a) -> {
-                        times[0]++;
-                        throw new DataServiceException("some cluster", "Some error", false);
-                    }).thenReturn(null);
+                times[0]++;
+                throw new DataServiceException("some cluster", "Some error", false);
+            }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -378,9 +379,9 @@ class ManagedStreamingIngestClientTest {
                         times[0]++;
                         throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenAnswer((a) -> {
-                        times[0]++;
-                        throw new DataServiceException("some cluster", "Some error", ex, false);
-                    }).thenReturn(null);
+                times[0]++;
+                throw new DataServiceException("some cluster", "Some error", ex, false);
+            }).thenReturn(null);
 
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -412,8 +413,8 @@ class ManagedStreamingIngestClientTest {
                     .thenAnswer((a) -> {
                         throw new DataServiceException("some cluster", "Some error", ex, true);
                     }).thenAnswer((a) -> {
-                        throw new DataServiceException("some cluster", "Some error", ex, true);
-                    }).thenReturn(null);
+                throw new DataServiceException("some cluster", "Some error", ex, true);
+            }).thenReturn(null);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             assertThrows(IngestionServiceException.class, () -> managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties));
         } finally {
