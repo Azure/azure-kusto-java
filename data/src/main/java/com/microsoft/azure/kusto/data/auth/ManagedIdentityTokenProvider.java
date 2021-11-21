@@ -16,7 +16,7 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
 
     public ManagedIdentityTokenProvider(String managedIdentityClientId, @NotNull String clusterUrl) throws URISyntaxException {
         super(clusterUrl);
-       ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
+        ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
         if (StringUtils.isNotBlank(managedIdentityClientId)) {
             builder = builder.clientId(managedIdentityClientId); // only required for user assigned
         }
