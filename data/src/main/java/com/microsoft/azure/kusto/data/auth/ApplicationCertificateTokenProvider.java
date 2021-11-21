@@ -21,7 +21,7 @@ public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenPro
     }
 
     @Override
-    protected void onCloudInit() throws DataClientException {
+    protected void setClientApplicationBasedOnCloudInfo() throws DataClientException {
         try {
             clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).build();
         } catch (MalformedURLException e) {

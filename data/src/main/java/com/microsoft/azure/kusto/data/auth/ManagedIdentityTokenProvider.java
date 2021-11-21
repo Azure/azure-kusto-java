@@ -12,7 +12,7 @@ import java.net.URISyntaxException;
 
 public class ManagedIdentityTokenProvider extends TokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
-    private final TokenRequestContext tokenRequestContext;
+    private TokenRequestContext tokenRequestContext;
 
     public ManagedIdentityTokenProvider(String managedIdentityClientId, @NotNull String clusterUrl) throws URISyntaxException {
         super(clusterUrl);
@@ -24,8 +24,14 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
         tokenRequestContext = new TokenRequestContext().addScopes(clusterUrl + "/.default");
     }
 
+    private void setRequiredMembersBasedOnCloudInfo() throws DataServiceException {
+        tokenRequestContext = new TokenRequestContext().addScopes(determineScope());
+    }
+
     @Override
     public String acquireAccessToken() throws DataServiceException {
+        initializeCloudInfo();
+        setRequiredMembersBasedOnCloudInfo();
         AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);

@@ -21,7 +21,7 @@ public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBas
     }
 
     @Override
-    protected void onCloudInit() throws DataClientException {
+    protected void setClientApplicationBasedOnCloudInfo() throws DataClientException {
         try {
             clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientSecret).authority(aadAuthorityUrl).build();
         } catch (MalformedURLException e) {
