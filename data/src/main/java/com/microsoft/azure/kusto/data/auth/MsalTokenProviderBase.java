@@ -31,15 +31,6 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         this.authorityId = authorityId;
     }
 
-    private String determineAadAuthorityUrl(String authorityId) throws URISyntaxException {
-        if (authorityId == null) {
-            authorityId = ORGANIZATION_URI_SUFFIX;
-        }
-
-        String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        return UriUtils.setPathForUri(aadAuthorityFromEnv == null ? cloudInfo.getLoginEndpoint(): aadAuthorityFromEnv, authorityId, true);
-    }
-
     private void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
         aadAuthorityUrl = determineAadAuthorityUrl();
         scopes.add(determineScope());
