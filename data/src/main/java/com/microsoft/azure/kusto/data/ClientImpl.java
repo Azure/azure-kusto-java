@@ -47,8 +47,8 @@ public class ClientImpl implements Client, StreamingClient {
         Objects.requireNonNull(clusterUri.getAuthority(), "clusterUri.authority");
 
         String auth = clusterUri.getAuthority().toLowerCase();
-        if (host == null && auth.endsWith(FEDERATED_SECURITY_POSTFIX)) {
-            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_POSTFIX))).toString();
+        if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
+            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString();
             csb.setClusterUrl(url);
         }
 
