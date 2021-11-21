@@ -21,7 +21,7 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
             builder = builder.clientId(managedIdentityClientId); // only required for user assigned
         }
         this.managedIdentityCredential = builder.build();
-        tokenRequestContext = new TokenRequestContext().addScopes(clusterUrl);
+        tokenRequestContext = new TokenRequestContext().addScopes(clusterUrl + "/.default");
     }
 
     @Override
