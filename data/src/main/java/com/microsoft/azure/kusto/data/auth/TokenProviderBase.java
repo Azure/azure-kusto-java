@@ -25,11 +25,11 @@ public abstract class TokenProviderBase {
     }
 
     protected void initializeCloudInfo() throws DataServiceException {
-        if (cloudInfo == null) {
+        if (cloudInfo != null) {
             return;
         }
         synchronized (this) {
-            if (cloudInfo == null) {
+            if (cloudInfo != null) {
                 return;
             }
 
