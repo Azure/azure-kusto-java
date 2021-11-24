@@ -15,8 +15,8 @@ import java.net.URISyntaxException;
 public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientSecret clientSecret;
 
-    ApplicationKeyTokenProvider(@NotNull String applicationClientId, @NotNull IClientSecret clientSecret, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(applicationClientId, clusterUrl, authorityId);
+    ApplicationKeyTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientSecret clientSecret, String authorityId) throws URISyntaxException {
+        super(clusterUrl, applicationClientId, authorityId);
         this.clientSecret = clientSecret;
     }
 

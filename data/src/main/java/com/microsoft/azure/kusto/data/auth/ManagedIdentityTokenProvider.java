@@ -14,7 +14,7 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
-    public ManagedIdentityTokenProvider(String managedIdentityClientId, @NotNull String clusterUrl) throws URISyntaxException {
+    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId) throws URISyntaxException {
         super(clusterUrl);
         ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
         if (StringUtils.isNotBlank(managedIdentityClientId)) {

@@ -24,32 +24,32 @@ public class TokenProviderFactory {
             if (StringUtils.isNotBlank(csb.getApplicationKey())) {
                 String clientId = csb.getApplicationClientId();
                 IClientSecret clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
-                return new ApplicationKeyTokenProvider(clientId, clientSecret, clusterUrl, authorityId);
+                return new ApplicationKeyTokenProvider(clusterUrl, clientId, clientSecret, authorityId);
             } else if (csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty() && csb.getPrivateKey() != null) {
                 IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
                 String applicationClientId = csb.getApplicationClientId();
-                return new SubjectNameIssuerTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
+                return new SubjectNameIssuerTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId);
             } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
                 IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
                 String applicationClientId = csb.getApplicationClientId();
-                return new ApplicationCertificateTokenProvider(applicationClientId, clientCertificate, clusterUrl, authorityId);
+                return new ApplicationCertificateTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId);
             } else {
                 throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
             }
         } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
             String accessToken = csb.getAccessToken();
-            return new AccessTokenTokenProvider(accessToken, clusterUrl);
+            return new AccessTokenTokenProvider(clusterUrl, accessToken);
         } else if (csb.getTokenProvider() != null) {
             Callable<String> tokenProvider = csb.getTokenProvider();
-            return new CallbackTokenProvider(tokenProvider, clusterUrl);
+            return new CallbackTokenProvider(clusterUrl, tokenProvider);
         } else if(csb.isUseDeviceCodeAuth()) {
             return new DeviceAuthTokenProvider(clusterUrl, authorityId);
         } else if (csb.isUseManagedIdentityAuth()) {
-            return new ManagedIdentityTokenProvider(csb.getManagedIdentityClientId(), clusterUrl);
+            return new ManagedIdentityTokenProvider(clusterUrl, csb.getManagedIdentityClientId());
         } else if (csb.isUseUserPromptAuth()) {
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();
-                return new UserPromptTokenProvider(usernameHint, clusterUrl, authorityId);
+                return new UserPromptTokenProvider(clusterUrl, usernameHint, authorityId);
             }
             return new UserPromptTokenProvider(clusterUrl, authorityId);
         } else {

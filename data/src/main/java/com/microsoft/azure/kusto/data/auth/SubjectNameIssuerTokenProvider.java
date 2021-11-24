@@ -11,8 +11,8 @@ import java.net.URISyntaxException;
 public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientCertificate clientCertificate;
 
-    SubjectNameIssuerTokenProvider(@NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(applicationClientId, clusterUrl, authorityId);
+    SubjectNameIssuerTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, String authorityId) throws URISyntaxException {
+        super(clusterUrl, applicationClientId, authorityId);
         this.clientCertificate = clientCertificate;
     }
 
