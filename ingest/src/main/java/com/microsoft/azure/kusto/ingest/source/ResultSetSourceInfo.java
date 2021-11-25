@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Represents the Resultset source information used for ingestion.
+ * Represents the ResultSet source information used for ingestion.
  */
 public class ResultSetSourceInfo extends AbstractSourceInfo {
 

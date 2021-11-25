@@ -11,13 +11,13 @@ import java.net.URISyntaxException;
 public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientCertificate clientCertificate;
 
-    SubjectNameIssuerTokenProvider(@NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(applicationClientId, clusterUrl, authorityId);
+    SubjectNameIssuerTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, String authorityId) throws URISyntaxException {
+        super(clusterUrl, applicationClientId, authorityId);
         this.clientCertificate = clientCertificate;
     }
 
     @Override
-    protected void onCloudInit() throws DataClientException {
+    protected void setClientApplicationBasedOnCloudInfo() throws DataClientException {
         try {
             clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate).authority(aadAuthorityUrl).validateAuthority(false).sendX5c(true).build();
         } catch (MalformedURLException e) {

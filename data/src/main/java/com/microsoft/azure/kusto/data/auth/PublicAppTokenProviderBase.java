@@ -24,7 +24,7 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     }
 
     @Override
-    protected void onCloudInit() throws DataClientException {
+    protected void setClientApplicationBasedOnCloudInfo() throws DataClientException {
         try {
             clientApplication = PublicClientApplication.builder(cloudInfo.getKustoClientAppId()).authority(aadAuthorityUrl).build();
         } catch (MalformedURLException e) {

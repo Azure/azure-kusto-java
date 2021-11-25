@@ -109,6 +109,7 @@ class E2ETest {
     private static void createTestData() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
 
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
@@ -124,6 +125,7 @@ class E2ETest {
         second.setPath("$.rowguid");
         ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.Json);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
 
         dataForTests = Arrays.asList(new TestDataItem() {
             {
@@ -277,7 +279,7 @@ class E2ETest {
     @Test
     void testStreamingIngestFromStream() throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
-            if (item.testOnstreamingIngestion) {
+            if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
                 InputStream stream = new FileInputStream(item.file);
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
                 if (item.file.getPath().endsWith(".gz")) {
@@ -352,7 +354,6 @@ class E2ETest {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
-        assertEquals(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 
