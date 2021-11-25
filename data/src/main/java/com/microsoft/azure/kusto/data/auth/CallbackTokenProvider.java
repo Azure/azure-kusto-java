@@ -13,7 +13,7 @@ import java.util.concurrent.Callable;
 public class CallbackTokenProvider extends TokenProviderBase {
     private final Callable<String> tokenProvider;
 
-    CallbackTokenProvider(@NotNull Callable<String> tokenProvider, @NotNull String clusterUrl) throws URISyntaxException {
+    CallbackTokenProvider(@NotNull String clusterUrl, @NotNull Callable<String> tokenProvider) throws URISyntaxException {
         super(clusterUrl);
         this.tokenProvider = tokenProvider;
     }
