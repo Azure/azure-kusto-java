@@ -1,3 +1,7 @@
+### Prerequisites
+1. Set up Java on your machine. For instructions, consult a Java environment setup tutorial, like [this one](https://www.tutorialspoint.com/java/java_environment_setup.htm).
+2. Set up [Apache Maven](https://maven.apache.org/install.html), which is the most popular Java dependency management tool.
+
 ### Instructions
 1. Download the **DOWNLOAD_LINK** as a zip file
 2. Extract the app source code to your folder of choice
@@ -7,5 +11,4 @@
 
 ### Troubleshooting
 
-* If you are having trouble running Java on your machine or need instructions on how to install Java, you can consult a Java environment setup tutorial, like [this one](https://www.tutorialspoint.com/java/java_environment_setup.htm).
 * If you are having trouble running the script from your IDE, first check if the script runs from command line, then consult the troubleshooting references of your IDE.

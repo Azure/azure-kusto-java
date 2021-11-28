@@ -72,7 +72,7 @@ public class KustoSampleApp {
                 if (alterTable) {
                     // Tip: Usually table was originally created with a schema appropriate for the data being ingested, so this wouldn't be needed.
                     // Learn More: For more information about altering table schemas, see: https://docs.microsoft.com/en-us/azure/data-explorer/kusto/management/alter-table-command
-                    alterExistingTableToProvidedSchema(kustoClient, databaseName, tableName, tableSchema);
+                    alterMergeExistingTableToProvidedSchema(kustoClient, databaseName, tableName, tableSchema);
                 }
 
                 if (queryData) {
@@ -232,9 +232,9 @@ public class KustoSampleApp {
         }
     }
 
-    private static void alterExistingTableToProvidedSchema(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        waitForUserToProceed(String.format("Alter existing table '%s.%s' to align with the provided schema", databaseName, tableName));
-        String command = String.format(".alter table %s %s", tableName, tableSchema);
+    private static void alterMergeExistingTableToProvidedSchema(Client kustoClient, String databaseName, String tableName, String tableSchema) {
+        waitForUserToProceed(String.format("Alter-merge existing table '%s.%s' to align with the provided schema", databaseName, tableName));
+        String command = String.format(".alter-merge table %s %s", tableName, tableSchema);
         if (!executeControlCommand(kustoClient, databaseName, command)) {
             die("Failed to alter table");
         }

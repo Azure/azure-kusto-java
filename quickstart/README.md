@@ -9,7 +9,7 @@ You can use it as a baseline to write your own first kusto client application, a
 ## Using the App for the first time
 
 ### Prerequisites
-1. Set up Java on your machine. For instructions on how to install Java, consult a Java environment setup tutorial, like [this one](https://www.tutorialspoint.com/java/java_environment_setup.htm).
+1. Set up Java on your machine. For instructions, consult a Java environment setup tutorial, like [this one](https://www.tutorialspoint.com/java/java_environment_setup.htm).
 2. Set up [Apache Maven](https://maven.apache.org/install.html), which is the most popular Java dependency management tool.
 
 ### Retrieving the app from GitHub
