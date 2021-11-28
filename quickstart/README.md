@@ -29,11 +29,11 @@ You can use it as a baseline to write your own first kusto client application, a
 ### Running the app
 1. Open a command line window to the folder downloaded above
 2. Run `mvn clean install` to compile the source code into a binary
-3. Run the binary using `java target\kusto-quickstart-[version]-jar-with-dependencies.jar`
+3. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`
 
 ### Optional Changes
 1. Within the app itself, you may alter the default User-Prompt authentication method by editing `authenticationMode`
 2. You can also make the app run without stopping between steps by setting `waitForUser = False`
 
 ###Troubleshooting
-* If you are having trouble running the app from your IDE of choice, first check if the app runs from command line, then consult the troubleshooting references of your IDE.
+* If you are having trouble running the app from your IDE, first check if the app runs from command line, then consult the troubleshooting references of your IDE.

@@ -83,16 +83,6 @@ public class KustoSampleApp {
                 // Tip: This is generally a one-time configuration.
                 // Learn More: For more information about creating tables, see: https://docs.microsoft.com/azure/data-explorer/one-click-table
                 createNewTable(kustoClient, databaseName, tableName, tableSchema);
-
-                /*
-                    Learn More:
-                    Kusto batches data for ingestion efficiency. The default batching policy ingests data when one of the following conditions are met:
-                     1) More than 1,000 files were queued for ingestion for the same table by the same user
-                     2) More than 1GB of data was queued for ingestion for the same table by the same user
-                     3) More than 5 minutes have passed since the first file was queued for ingestion for the same table by the same user
-                    For more information about customizing the ingestion batching policy, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
-                 */
-                alterBatchingPolicy(kustoClient, databaseName, tableName);
             }
 
             if (ingestData) {
@@ -113,7 +103,7 @@ public class KustoSampleApp {
             }
 
             if (queryData) {
-                executePostIngestionValidationQueries(kustoClient, databaseName, tableName);
+                executeValidationQueries(kustoClient, databaseName, tableName, ingestData);
             }
         } catch (URISyntaxException e) {
             die("Couldn't create Kusto client", e);
@@ -222,10 +212,23 @@ public class KustoSampleApp {
     }
 
     private static void createNewTable(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        waitForUserToProceed(String.format("Create table '%s.%s' if it doesn't exist", databaseName, tableName));
+        waitForUserToProceed(String.format("Create table '%s.%s'", databaseName, tableName));
         String command = String.format(".create table %s %s", tableName, tableSchema);
         if (!executeControlCommand(kustoClient, databaseName, command)) {
             die("Failed to create table or validate it exists");
+        }
+
+        /*
+            Learn More:
+            Kusto batches data for ingestion efficiency. The default batching policy ingests data when one of the following conditions are met:
+             1) More than 1,000 files were queued for ingestion for the same table by the same user
+             2) More than 1GB of data was queued for ingestion for the same table by the same user
+             3) More than 5 minutes have passed since the first file was queued for ingestion for the same table by the same user
+            For more information about customizing the ingestion batching policy, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
+         */
+        // Disabled to prevent the surprising behavior of an existing batching policy being changed, without intent.
+        if (false) {
+            alterBatchingPolicy(kustoClient, databaseName, tableName);
         }
     }
 
@@ -242,6 +245,7 @@ public class KustoSampleApp {
         KustoOperationResult result;
         try {
             result = kustoClient.execute(databaseName, controlCommand, clientRequestProperties);
+            // Tip: Generally wouldn't print the response from a control command. We print here to demonstrate what the response looks like.
             System.out.printf("Response from executed control command '%s':%n", controlCommand);
             KustoResultSetTable primaryResults = result.getPrimaryResults();
             for (int rowNum = 1; primaryResults.next(); rowNum++) {
@@ -373,7 +377,7 @@ public class KustoSampleApp {
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
         //  See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
         if (sourceType.equalsIgnoreCase("localfilesource")) {
-            ingestDataFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, 0);
+            ingestDataFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
         } else if (sourceType.equalsIgnoreCase("blobsource")) {
             ingestDataFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
         } else {
@@ -381,14 +385,13 @@ public class KustoSampleApp {
         }
     }
 
-    private static void ingestDataFromFile(IngestClient ingestClient, String databaseName, String tableName, String uri, IngestionProperties.DataFormat dataFormat, String mappingName, long fileSize) {
+    private static void ingestDataFromFile(IngestClient ingestClient, String databaseName, String tableName, String uri, IngestionProperties.DataFormat dataFormat, String mappingName) {
         IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
 
         // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length()).
         //  Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
         // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source id and log it somewhere.
-        File fileToIngest = new File(".\\" + uri);
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(fileToIngest.getPath(), fileSize, UUID.randomUUID());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(uri, 0, UUID.randomUUID());
         try {
             ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
         } catch (IngestionClientException e) {
@@ -449,12 +452,13 @@ public class KustoSampleApp {
         System.out.println();
     }
 
-    private static void executePostIngestionValidationQueries(Client kustoClient, String databaseName, String tableName) {
-        System.out.printf("Step %s: Get post-ingestion row count for '%s.%s'%n", step++, databaseName, tableName);
+    private static void executeValidationQueries(Client kustoClient, String databaseName, String tableName, boolean ingestData) {
+        String optionalPostIngestionMessage = ingestData ? "post-ingestion " : "";
+        System.out.printf("Step %s: Get %srow count for '%s.%s'%n", step++, optionalPostIngestionMessage, databaseName, tableName);
         executeQuery(kustoClient, databaseName, String.format("%s | count", tableName));
         System.out.println();
 
-        System.out.printf("Step %s: Get sample of post-ingestion data:%n", step++);
+        System.out.printf("Step %s: Get sample of %sdata:%n", step++, optionalPostIngestionMessage);
         executeQuery(kustoClient, databaseName, String.format("%s | take 2", tableName));
         System.out.println();
     }
