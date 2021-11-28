@@ -1,6 +1,6 @@
 ### Instructions
 1. Download the **DOWNLOAD_LINK** as a zip file
-2. Unpack the app source code to your folder of choice
+2. Extract the app source code to your folder of choice
 3. Open a command line window to the folder downloaded above
 4. Run `mvn clean install` to compile the source code into a binary
 5. Run the binary using `java target\kusto-quickstart-[version]-jar-with-dependencies.jar`

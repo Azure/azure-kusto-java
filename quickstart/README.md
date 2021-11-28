@@ -23,7 +23,7 @@ You can use it as a baseline to write your own first kusto client application, a
 4. Click on _Generate Sample App Code_ button
 5. Follow the wizard
 6. Download the app as a zip file
-7. Unpack the app source code to your folder of choice
+7. Extract the app source code to your folder of choice
 8. The configuration parameters defined in `kusto-sample-config.json` are already defined appropriately for your ADX cluster, which you can verify
 
 ### Running the app

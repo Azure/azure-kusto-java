@@ -9,9 +9,9 @@ dev: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Cu
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
-- data: The main client that allows interaction with Kusto, including creating a connection, issuing (control) commands and querying data.
+- data: The main client that allows interaction with Kusto, including creating a connection, issuing (control) commands and querying data
 - ingest: Provides an easy way to bring data into Kusto
-- quickstart: Self-contained, configurable and runnable sample app for easily getting started with the SDK.
+- quickstart: Self-contained, configurable and runnable sample app for easily getting started with the SDK
 - samples: Sample code implementing various scenarios
 
 # Install
