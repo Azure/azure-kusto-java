@@ -32,6 +32,9 @@ jobs:
           DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
           TEST_DATABASE: e2e
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
       - name: Run the Maven verify phase
         run: mvn --batch-mode --update-snapshots verify
       - name: Test Report
