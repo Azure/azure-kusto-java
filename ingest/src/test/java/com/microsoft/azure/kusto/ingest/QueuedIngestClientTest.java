@@ -88,7 +88,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(1, result.getIngestionStatusesLength());
+        assertNotEquals(0, result.getIngestionStatusesLength());
     }
 
     @Test
