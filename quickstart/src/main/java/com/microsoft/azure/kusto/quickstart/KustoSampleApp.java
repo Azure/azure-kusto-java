@@ -73,16 +73,6 @@ public class KustoSampleApp {
                     // Tip: Usually table was originally created with a schema appropriate for the data being ingested, so this wouldn't be needed.
                     // Learn More: For more information about altering table schemas, see: https://docs.microsoft.com/en-us/azure/data-explorer/kusto/management/alter-table-command
                     alterExistingTableToProvidedSchema(kustoClient, databaseName, tableName, tableSchema);
-
-                    /*
-                        Learn More:
-                        Kusto batches data for ingestion efficiency. The default batching policy ingests data when one of the following conditions are met:
-                         1) More than 1,000 files were queued for ingestion for the same table by the same user
-                         2) More than 1GB of data was queued for ingestion for the same table by the same user
-                         3) More than 5 minutes have passed since the first file was queued for ingestion for the same table by the same user
-                        For more information about customizing the ingestion batching policy, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
-                     */
-                    alterBatchingPolicy(kustoClient, databaseName, tableName);
                 }
 
                 if (queryData) {
@@ -93,6 +83,16 @@ public class KustoSampleApp {
                 // Tip: This is generally a one-time configuration.
                 // Learn More: For more information about creating tables, see: https://docs.microsoft.com/azure/data-explorer/one-click-table
                 createNewTable(kustoClient, databaseName, tableName, tableSchema);
+
+                /*
+                    Learn More:
+                    Kusto batches data for ingestion efficiency. The default batching policy ingests data when one of the following conditions are met:
+                     1) More than 1,000 files were queued for ingestion for the same table by the same user
+                     2) More than 1GB of data was queued for ingestion for the same table by the same user
+                     3) More than 5 minutes have passed since the first file was queued for ingestion for the same table by the same user
+                    For more information about customizing the ingestion batching policy, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
+                 */
+                alterBatchingPolicy(kustoClient, databaseName, tableName);
             }
 
             if (ingestData) {
