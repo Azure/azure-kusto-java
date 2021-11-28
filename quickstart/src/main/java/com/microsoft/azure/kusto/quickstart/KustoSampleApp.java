@@ -29,9 +29,9 @@ import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_SERV
 
 public class KustoSampleApp {
     // TODO - Config:
-    //  If this quickstart app was downloaded from OneClick, kusto-sample-config.json should be pre-populated with your cluster's details
-    //  If this quickstart app was downloaded from GitHub, edit kusto-sample-config.json and modify the cluster URL and database fields appropriately
-    private static final String CONFIG_FILE_NAME = "kusto-sample-config.json";
+    //  If this quickstart app was downloaded from OneClick, kusto_sample_config.json should be pre-populated with your cluster's details
+    //  If this quickstart app was downloaded from GitHub, edit kusto_sample_config.json and modify the cluster URL and database fields appropriately
+    private static final String CONFIG_FILE_NAME = "kusto_sample_config.json";
 
     // TODO - Config (Optional): Change the authentication method from User Prompt to any of the other options
     //  Some of the auth modes require additional environment variables to be set in order to work (see usage in generateConnectionString below)

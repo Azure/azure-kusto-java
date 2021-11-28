@@ -14,7 +14,7 @@ You can use it as a baseline to write your own first kusto client application, a
 
 ### Retrieving the app from GitHub
 1. Download the app files from this GitHub repo
-2. Modify `kusto-sample-config.json`, changing `KustoUri`, `IngestUri` and `DatabaseName` appropriately for your ADX cluster
+2. Modify `kusto_sample_config.json`, changing `KustoUri`, `IngestUri` and `DatabaseName` appropriately for your ADX cluster
 
 ### Retrieving the app from OneClick
 1. Open a browser and type your cluster's URL (e.g. https://myadxcluster.westeurope.kusto.windows.net/), and you will be redirected to the _Azure Data Explorer_ website
@@ -24,10 +24,10 @@ You can use it as a baseline to write your own first kusto client application, a
 5. Follow the wizard
 6. Download the app as a zip file
 7. Extract the app source code to your folder of choice
-8. The configuration parameters defined in `kusto-sample-config.json` are already defined appropriately for your ADX cluster, which you can verify
+8. The configuration parameters defined in `kusto_sample_config.json` are already defined appropriately for your ADX cluster, which you can verify
 
 ### Running the app
-1. Open a command line window to the folder downloaded above
+1. Open a command line window to the folder extracted to above
 2. Run `mvn clean install` to compile the source code into a binary
 3. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`
 
