@@ -76,10 +76,10 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
+    void IngestFromBlob_IngestionReportMethodIsQueue_IngestionStatusHardcoded1() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusesLength(), 0);
+        assertEquals(1, result.getIngestionStatusesLength());
     }
 
     @Test
@@ -88,7 +88,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(result.getIngestionStatusesLength(), 0);
+        assertNotEquals(1, result.getIngestionStatusesLength());
     }
 
     @Test
