@@ -31,7 +31,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         this.authorityId = authorityId;
     }
 
-    public void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
+    private void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
         aadAuthorityUrl = determineAadAuthorityUrl();
         scopes.add(determineScope());
         setClientApplicationBasedOnCloudInfo();
