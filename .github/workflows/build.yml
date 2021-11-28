@@ -37,13 +37,6 @@ jobs:
           TENANT_ID: ${{ secrets.TENANT_ID }}
       - name: Run the Maven verify phase
         run: mvn --batch-mode --update-snapshots verify
-      - name: Test Report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
-        with:
-          name: Java Tests
-          path: data/target/surefire-reports/*.xml,ingest/target/surefire-reports/*.xml
-          reporter: java-junit
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()

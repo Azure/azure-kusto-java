@@ -65,11 +65,11 @@ public class AadAuthenticationHelperTest {
         MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
 
         aadAuthenticationHelper.initializeCloudInfo();
-        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelper.aadAuthorityUrl);
+        aadAuthenticationHelper.setRequiredMembersBasedOnCloudInfo();
+        assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
 
-        Assertions.assertThrows(DataServiceException.class,
-                () -> aadAuthenticationHelper.acquireNewAccessToken());
+        Assertions.assertThrows(DataServiceException.class, aadAuthenticationHelper::acquireNewAccessToken);
     }
 
     public static KeyCert readPem(String path, String password)
@@ -127,7 +127,7 @@ public class AadAuthenticationHelperTest {
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
-        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelperSpy.aadAuthorityUrl);
+        assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelperSpy.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
 
 
@@ -160,6 +160,7 @@ public class AadAuthenticationHelperTest {
         ));
 
         aadAuthenticationHelper.initializeCloudInfo();
+        aadAuthenticationHelper.setRequiredMembersBasedOnCloudInfo();
         assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
         assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.clientApplication.authority());
 
@@ -188,6 +189,7 @@ public class AadAuthenticationHelperTest {
         CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
 
         aadAuthenticationHelper.initializeCloudInfo();
+        aadAuthenticationHelper.setRequiredMembersBasedOnCloudInfo();
         String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/auth_id/";
         assertEquals(CloudInfo.DEFAULT_KUSTO_CLIENT_APP_ID, aadAuthenticationHelper.clientApplication.clientId());
         assertEquals(authorityUrl, aadAuthenticationHelper.clientApplication.authority());
