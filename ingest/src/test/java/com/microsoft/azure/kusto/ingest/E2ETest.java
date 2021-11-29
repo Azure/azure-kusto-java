@@ -92,7 +92,7 @@ class E2ETest {
     }
 
     private static boolean isCIExecution() {
-        return System.getenv("AUTOMATIC_TESTING") != null || System.getenv("AUTOMATIC_TESTING").equals("1");
+        return System.getenv("AUTOMATIC_TESTING") != null && System.getenv("AUTOMATIC_TESTING").equals("1");
     }
 
     private static void createTableAndMapping() {
