@@ -37,6 +37,7 @@ jobs:
           APP_ID: ${{ secrets.APP_ID }}
           APP_KEY: ${{ secrets.APP_KEY }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
+          AUTOMATIC_TESTING: 1
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()

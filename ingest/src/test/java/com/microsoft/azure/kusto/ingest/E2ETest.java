@@ -310,13 +310,14 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
+        Assumptions.assumeTrue(System.getenv("AUTOMATIC_TESTING") == null || !System.getenv("AUTOMATIC_TESTING").equals("1"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
-    @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithDeviceAuthentication() {
+        Assumptions.assumeTrue(System.getenv("AUTOMATIC_TESTING") == null || !System.getenv("AUTOMATIC_TESTING").equals("1"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
