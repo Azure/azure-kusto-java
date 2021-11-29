@@ -20,8 +20,11 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -35,6 +38,7 @@ import java.util.concurrent.Callable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ClientImpl queryClient;
@@ -77,16 +81,21 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            log.info("Starting tear down");
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            log.info("Finished tear down");
         } catch (Exception ex) {
+            log.error("Tear down error", ex);
             Assertions.fail("Failed to drop table", ex);
         }
+        log.info("End tear down");
     }
 
     private static void CreateTableAndMapping() {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
-        } catch (Exception ex) {
+        } catch (Exception ignored) {
+
         }
         try {
             Thread.sleep(2000);
@@ -278,19 +287,31 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromStream() throws FileNotFoundException {
+        log.info("Starting streaming ingest test");
         for (TestDataItem item : dataForTests) {
+            log.info("Starting streaming ingest test for {}", item.file.getPath());
             if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
+                log.info("{} was selected", item.file.getPath());
                 InputStream stream = new FileInputStream(item.file);
+                log.info("stream created");
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+                log.info("streamSourceInfo created");
                 if (item.file.getPath().endsWith(".gz")) {
                     streamSourceInfo.setCompressionType(CompressionType.gz);
+                    log.info("CompressionType set");
                 }
+                log.info("after compression");
                 try {
+                    log.info("before streaming ingest");
                     streamingIngestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                    log.info("after streaming ingest");
                 } catch (Exception ex) {
+                    log.error("Failed to ingest", ex);
                     Assertions.fail(ex);
                 }
+                log.info("before row count");
                 assertRowCount(item.rows, true);
+                log.info("after row count");
             }
         }
     }
