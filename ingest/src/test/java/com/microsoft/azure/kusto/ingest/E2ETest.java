@@ -31,7 +31,9 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -50,12 +52,13 @@ class E2ETest {
     private static String resourcesPath;
     private static int currentCount = 0;
     private static List<TestDataItem> dataForTests;
-    private static final String tableName = "JavaTest";
+    private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
     @BeforeAll
     public static void setUp() {
+        tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime());
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
@@ -81,14 +84,10 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            log.info("Starting tear down");
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
-            log.info("Finished tear down");
         } catch (Exception ex) {
-            log.error("Tear down error", ex);
             Assertions.fail("Failed to drop table", ex);
         }
-        log.info("End tear down");
     }
 
     private static void CreateTableAndMapping() {
@@ -113,6 +112,14 @@ class E2ETest {
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
+
+        try {
+            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
+        }
+        catch (Exception ex) {
+            Assertions.fail("Failed to refresh cache", ex);
+        }
+
     }
 
     private static void createTestData() {
@@ -287,31 +294,19 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromStream() throws FileNotFoundException {
-        log.info("Starting streaming ingest test");
         for (TestDataItem item : dataForTests) {
-            log.info("Starting streaming ingest test for {}", item.file.getPath());
             if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
-                log.info("{} was selected", item.file.getPath());
                 InputStream stream = new FileInputStream(item.file);
-                log.info("stream created");
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-                log.info("streamSourceInfo created");
                 if (item.file.getPath().endsWith(".gz")) {
                     streamSourceInfo.setCompressionType(CompressionType.gz);
-                    log.info("CompressionType set");
                 }
-                log.info("after compression");
                 try {
-                    log.info("before streaming ingest");
                     streamingIngestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
-                    log.info("after streaming ingest");
                 } catch (Exception ex) {
-                    log.error("Failed to ingest", ex);
                     Assertions.fail(ex);
                 }
-                log.info("before row count");
                 assertRowCount(item.rows, true);
-                log.info("after row count");
             }
         }
     }
