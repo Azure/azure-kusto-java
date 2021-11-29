@@ -16,15 +16,26 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -38,7 +49,11 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class E2ETest {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -47,7 +62,7 @@ class E2ETest {
     private static ClientImpl queryClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
-    private static final String appKey = System.getenv("APP_KEY");
+    private static String appKey;
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
@@ -58,7 +73,17 @@ class E2ETest {
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
     @BeforeAll
-    public static void setUp() {
+    public static void setUp() throws IOException {
+         appKey = System.getenv("APP_KEY");
+         if (appKey == null) {
+             String secretPath = System.getProperty("SecretPath");
+             if (secretPath == null) {
+                 throw new IllegalArgumentException("SecretPath is not set");
+             }
+             appKey= Files.readAllLines(Paths.get(secretPath)).get(0);
+         }
+
+
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime());
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
