@@ -78,7 +78,7 @@ class E2ETest {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
-        CreateTableAndMapping();
+        createTableAndMapping();
         createTestData();
     }
 
@@ -91,7 +91,11 @@ class E2ETest {
         }
     }
 
-    private static void CreateTableAndMapping() {
+    private static boolean isCIExecution() {
+        return System.getenv("AUTOMATIC_TESTING") != null || System.getenv("AUTOMATIC_TESTING").equals("1");
+    }
+
+    private static void createTableAndMapping() {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ignored) {
@@ -324,14 +328,14 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        Assumptions.assumeTrue(System.getenv("AUTOMATIC_TESTING") == null || !System.getenv("AUTOMATIC_TESTING").equals("1"));
+        Assumptions.assumeTrue(!isCIExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithDeviceAuthentication() {
-        Assumptions.assumeTrue(System.getenv("AUTOMATIC_TESTING") == null || !System.getenv("AUTOMATIC_TESTING").equals("1"));
+        Assumptions.assumeTrue(!isCIExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
