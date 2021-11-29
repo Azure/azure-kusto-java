@@ -94,16 +94,6 @@ class E2ETest {
     private static void CreateTableAndMapping() {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
-        } catch (Exception ignored) {
-        }
-
-        try {
-            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
-        } catch (Exception ex) {
-            Assertions.fail("Failed to refresh cache", ex);
-        }
-
-        try {
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
@@ -117,6 +107,12 @@ class E2ETest {
                     tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
+        }
+
+        try {
+            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
+        } catch (Exception ex) {
+            Assertions.fail("Failed to refresh cache", ex);
         }
     }
 
