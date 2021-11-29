@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -94,10 +95,15 @@ class E2ETest {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ignored) {
-
         }
+
         try {
-            Thread.sleep(2000);
+            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
+        } catch (Exception ex) {
+            Assertions.fail("Failed to refresh cache", ex);
+        }
+
+        try {
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
@@ -112,14 +118,6 @@ class E2ETest {
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
-
-        try {
-            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
-        }
-        catch (Exception ex) {
-            Assertions.fail("Failed to refresh cache", ex);
-        }
-
     }
 
     private static void createTestData() {
@@ -340,8 +338,8 @@ class E2ETest {
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
-        Assumptions.assumeTrue(System.getenv("PUBLIC_X509CER_FILE_LOC") != null);
-        Assumptions.assumeTrue(System.getenv("PRIVATE_PKCS8_FILE_LOC") != null);
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PUBLIC_X509CER_FILE_LOC")));
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
@@ -356,7 +354,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
-        Assumptions.assumeTrue(System.getenv("TOKEN") != null);
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         String token = System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
         assertTrue(canAuthenticate(engineCsb));
@@ -364,7 +362,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
-        Assumptions.assumeTrue(System.getenv("TOKEN") != null);
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
