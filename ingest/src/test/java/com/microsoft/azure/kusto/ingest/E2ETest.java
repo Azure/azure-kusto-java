@@ -91,8 +91,8 @@ class E2ETest {
         }
     }
 
-    private static boolean isCIExecution() {
-        return System.getenv("AUTOMATIC_TESTING") != null && System.getenv("AUTOMATIC_TESTING").equals("1");
+    private static boolean IsManualExecution() {
+        return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
 
     private static void createTableAndMapping() {
@@ -324,14 +324,14 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        Assumptions.assumeTrue(!isCIExecution());
+        Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithDeviceAuthentication() {
-        Assumptions.assumeTrue(!isCIExecution());
+        Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
