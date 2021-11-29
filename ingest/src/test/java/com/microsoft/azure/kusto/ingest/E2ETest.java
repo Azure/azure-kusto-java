@@ -323,6 +323,8 @@ class E2ETest {
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
+        Assumptions.assumeTrue(System.getenv("PUBLIC_X509CER_FILE_LOC") != null);
+        Assumptions.assumeTrue(System.getenv("PRIVATE_PKCS8_FILE_LOC") != null);
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
@@ -337,6 +339,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
+        Assumptions.assumeTrue(System.getenv("TOKEN") != null);
         String token = System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
         assertTrue(canAuthenticate(engineCsb));
@@ -344,6 +347,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
+        Assumptions.assumeTrue(System.getenv("TOKEN") != null);
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
