@@ -1,6 +1,6 @@
 # Quick Start App
 
-The quick start application is a **self-contained and runnable** example app that demonstrates authenticating, connecting to, administering, ingesting data into and querying Azure Data Explorer using the azure-kusto-python SDK.
+The quick start application is a **self-contained and runnable** example app that demonstrates authenticating, connecting to, administering, ingesting data into and querying Azure Data Explorer using the azure-kusto-java SDK.
 You can use it as a baseline to write your own first kusto client application, altering the code as you go, or copy code sections out of it into your app.
 
 **Tip:** The app includes comments with tips on recommendations, coding best practices, links to reference materials and recommended TODO changes when adapting the code to your needs.

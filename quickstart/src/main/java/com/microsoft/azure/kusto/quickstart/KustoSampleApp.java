@@ -182,6 +182,7 @@ public class KustoSampleApp {
                 csb = ConnectionStringBuilder.createWithAadApplicationCredentials(endpointUrl, System.getenv("APP_ID"), System.getenv("APP_KEY"), System.getenv("APP_TENANT"));
                 break;
             case "AppCertificate":
+                // TODO - Config (Optional): App Id & tenant, path to public certificate and path to private certificate pem file to authenticate with
                 csb = createAppCertificateStringBuilder(endpointUrl);
                 break;
             case "DeviceCode":
