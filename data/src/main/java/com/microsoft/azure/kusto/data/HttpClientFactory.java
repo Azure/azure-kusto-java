@@ -56,7 +56,7 @@ class HttpClientFactory {
                 .evictExpiredConnections()
                 .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
 
-        if (properties.isKeepAlive()) {
+        if (properties.isKeepAlive() != null && properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy =
                     new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
 

@@ -88,7 +88,7 @@ public class HttpClientProperties {
     public static class Builder {
 
         private Integer maxIdleTime = 120;
-        private Boolean keepAlive;
+        private Boolean keepAlive = false;
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;

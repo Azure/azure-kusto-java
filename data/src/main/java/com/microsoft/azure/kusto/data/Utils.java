@@ -57,8 +57,8 @@ class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(String url, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
-      CloseableHttpClient httpClient, boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(CloseableHttpClient httpClient, String url, String payload, InputStream stream, long timeoutMs,
+      Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
         URI uri = parseUriFromUrlString(url);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
@@ -90,13 +90,13 @@ class Utils {
         return null;
     }
 
-    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers,
-      CloseableHttpClient httpClient) throws DataServiceException, DataClientException {
-        return postToStreamingOutput(url, payload, timeoutMs, headers, httpClient, 0);
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs,
+      Map<String, String> headers) throws DataServiceException, DataClientException {
+        return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
-    static InputStream postToStreamingOutput(String url, String payload, long timeoutMs, Map<String, String> headers,
-      CloseableHttpClient httpClient, int redirectCount) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs,
+      Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
@@ -129,7 +129,6 @@ class Utils {
                 }
                 // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which handles the above logic
                 returnInputStream = true;
-                httpResponse.close();
                 return contentStream;
             }
 
@@ -140,7 +139,7 @@ class Utils {
             if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
                 Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(redirectLocation.get().getValue(), payload, timeoutMs, headers, httpClient,redirectCount + 1);
+                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), payload, timeoutMs, headers,redirectCount + 1);
                 }
             }
         } catch (IOException ex) {
