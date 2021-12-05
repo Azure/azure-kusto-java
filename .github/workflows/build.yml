@@ -1,0 +1,48 @@
+# This workflow will install the dependencies, run tests and lint every push
+
+name: Build Java
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: ['8']
+    name: Java ${{ matrix.java }}
+    steps:
+#      Uncomment to run locally with "act"
+#      - name: Download Maven
+#        run: |
+#          curl -sL https://www-eu.apache.org/dist/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.zip -o maven.zip
+#          apt-get update
+#          apt-get -y install unzip
+#          unzip -d /usr/share maven.zip
+#          rm maven.zip
+#          ln -s /usr/share/apache-maven-3.8.4/bin/mvn /usr/bin/mvn
+#          echo "M2_HOME=/usr/share/apache-maven-3.8.4" | tee -a /etc/environment
+      - uses: actions/checkout@v2
+      - name: Setup java ${{ matrix.java }}
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: ${{ matrix.java }}
+          cache: 'maven'
+      - name: Run the Maven verify phase
+        run: mvn --batch-mode --update-snapshots verify
+        env:
+          DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
+          ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
+          TEST_DATABASE: e2e
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          CI_EXECUTION: 1
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: |
+            data/target/surefire-reports/*.xml
+            ingest/target/surefire-reports/*.xml
