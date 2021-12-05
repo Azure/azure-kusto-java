@@ -305,6 +305,7 @@ public class IngestionProperties {
         avro,
         apacheavro,
         parquet,
+        sstream,
         orc,
         raw,
         w3clogfile
