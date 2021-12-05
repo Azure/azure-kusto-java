@@ -16,42 +16,75 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class E2ETest {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ClientImpl queryClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
-    private static final String appKey = System.getenv("APP_KEY");
+    private static String appKey;
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
     private static List<TestDataItem> dataForTests;
-    private static final String tableName = "JavaTest";
+    private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
     @BeforeAll
-    public static void setUp() {
+    public static void setUp() throws IOException {
+         appKey = System.getenv("APP_KEY");
+         if (appKey == null) {
+             String secretPath = System.getProperty("SecretPath");
+             if (secretPath == null) {
+                 throw new IllegalArgumentException("SecretPath is not set");
+             }
+             appKey= Files.readAllLines(Paths.get(secretPath)).get(0);
+         }
+
+
+        tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime());
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
@@ -70,7 +103,7 @@ class E2ETest {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
 
-        CreateTableAndMapping();
+        createTableAndMapping();
         createTestData();
     }
 
@@ -83,13 +116,13 @@ class E2ETest {
         }
     }
 
-    private static void CreateTableAndMapping() {
+    private static boolean IsManualExecution() {
+        return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
+    }
+
+    private static void createTableAndMapping() {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
-        } catch (Exception ex) {
-        }
-        try {
-            Thread.sleep(2000);
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
@@ -104,11 +137,18 @@ class E2ETest {
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
+
+        try {
+            queryClient.executeToJsonResult(databaseName, ".clear database cache streamingingestion schema");
+        } catch (Exception ex) {
+            Assertions.fail("Failed to refresh cache", ex);
+        }
     }
 
     private static void createTestData() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
 
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
@@ -124,6 +164,7 @@ class E2ETest {
         second.setPath("$.rowguid");
         ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.Json);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
 
         dataForTests = Arrays.asList(new TestDataItem() {
             {
@@ -277,7 +318,7 @@ class E2ETest {
     @Test
     void testStreamingIngestFromStream() throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
-            if (item.testOnstreamingIngestion) {
+            if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
                 InputStream stream = new FileInputStream(item.file);
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
                 if (item.file.getPath().endsWith(".gz")) {
@@ -308,19 +349,22 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
+        Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
-    @Disabled("This is an interactive approach. Remove this line to test manually.")
     void testCreateWithDeviceAuthentication() {
+        Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PUBLIC_X509CER_FILE_LOC")));
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
@@ -335,6 +379,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadAccessTokenAuthentication() {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         String token = System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
         assertTrue(canAuthenticate(engineCsb));
@@ -342,6 +387,7 @@ class E2ETest {
 
     @Test
     void testCreateWithAadTokenProviderAuthentication() {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
@@ -352,7 +398,6 @@ class E2ETest {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
-        assertEquals(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 

@@ -20,12 +20,10 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     protected static final String ORGANIZATION_URI_SUFFIX = "organizations";
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
     protected static final int TIMEOUT_MS = 20 * 1000;
-    private static final String PersonalTenantIdV2AAD = "9188040d-6c67-4c5b-b112-36a304b66dad"; // Identifies MSA accounts
+    private static final String PERSONAL_TENANT_IDV2_AAD = "9188040d-6c67-4c5b-b112-36a304b66dad"; // Identifies MSA accounts
     protected final Set<String> scopes = new HashSet<>();
     private final String authorityId;
-    private boolean isCloudInfoInit = false;
     protected String aadAuthorityUrl;
-    protected CloudInfo cloudInfo = null;
 
 
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
@@ -33,58 +31,33 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         this.authorityId = authorityId;
     }
 
-    private String determineAadAuthorityUrl(String authorityId) throws URISyntaxException {
-        if (authorityId == null) {
-            authorityId = ORGANIZATION_URI_SUFFIX;
-        }
-
-        String aadAuthorityFromEnv = System.getenv("AadAuthorityUri");
-        return UriUtils.setPathForUri(aadAuthorityFromEnv == null ? cloudInfo.getLoginEndpoint(): aadAuthorityFromEnv, authorityId, true);
+    protected void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
+        aadAuthorityUrl = determineAadAuthorityUrl();
+        scopes.add(determineScope());
+        setClientApplicationBasedOnCloudInfo();
     }
+
+    private String determineAadAuthorityUrl() throws DataClientException {
+        String aadAuthorityUrlFromEnv = System.getenv("AadAuthorityUri");
+        String authorityIdToUse = authorityId != null ? authorityId : ORGANIZATION_URI_SUFFIX;
+        try {
+            return UriUtils.setPathForUri(aadAuthorityUrlFromEnv == null ? cloudInfo.getLoginEndpoint() : aadAuthorityUrlFromEnv, authorityIdToUse, true);
+        } catch (URISyntaxException e) {
+            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
+        }
+    }
+
+    protected abstract void setClientApplicationBasedOnCloudInfo() throws DataClientException;
 
     @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
         initializeCloudInfo();
+        setRequiredMembersBasedOnCloudInfo();
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             accessTokenResult = acquireNewAccessToken();
         }
         return accessTokenResult.accessToken();
-    }
-
-    protected void initializeCloudInfo() throws DataServiceException, DataClientException {
-        if (isCloudInfoInit) {
-            return;
-        }
-        synchronized (this) {
-            if (isCloudInfoInit) {
-                return;
-            }
-
-            cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
-            try {
-                aadAuthorityUrl = determineAadAuthorityUrl(authorityId);
-            } catch (URISyntaxException e) {
-                throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
-            }
-
-            String resourceUri = cloudInfo.getKustoServiceResourceId();
-            if (cloudInfo.isLoginMfaRequired()) {
-                resourceUri = resourceUri.replace(".kusto.", ".kustomfa.");
-            }
-
-            String scope;
-            try {
-                scope = UriUtils.setPathForUri(resourceUri, ".default");
-            } catch (URISyntaxException e) {
-                throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
-            }
-            scopes.add(scope);
-
-            onCloudInit();
-
-            isCloudInfoInit = true;
-        }
     }
 
     protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {
@@ -100,8 +73,6 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         }
     }
 
-    protected abstract void onCloudInit() throws DataClientException;
-
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
     protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
@@ -111,7 +82,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         if (account != null) {
             String authorityUrl = aadAuthorityUrl;
 
-            if (account.homeAccountId() != null && account.homeAccountId().endsWith(PersonalTenantIdV2AAD)) {
+            if (account.homeAccountId() != null && account.homeAccountId().endsWith(PERSONAL_TENANT_IDV2_AAD)) {
                 authorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
             }
 
@@ -128,5 +99,4 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
             return accountSet.iterator().next();
         }
     }
-
 }

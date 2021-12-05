@@ -19,7 +19,7 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
     IConfidentialClientApplication clientApplication;
     final String applicationClientId;
 
-    ConfidentialAppTokenProviderBase(@NotNull String applicationClientId, @NotNull String clusterUrl, String authorityId) throws URISyntaxException {
+    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, @NotNull String applicationClientId, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
         this.applicationClientId = applicationClientId;
     }
