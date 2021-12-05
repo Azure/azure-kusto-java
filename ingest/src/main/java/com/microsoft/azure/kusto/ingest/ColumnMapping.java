@@ -96,10 +96,12 @@ public class ColumnMapping implements Serializable {
         switch (mappingKind)
         {
             case Csv:
+            case SStream:
                 return !StringUtils.isEmpty(this.columnName);
             case Json:
             case Parquet:
             case Orc:
+            case W3CLogFile:
                 TransformationMethod transformationMethod = getTransform();
                 return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
                         || transformationMethod == TransformationMethod.SourceLineNumber

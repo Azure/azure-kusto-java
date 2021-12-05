@@ -305,6 +305,7 @@ public class IngestionProperties {
         avro(IngestionMapping.IngestionMappingKind.Avro, true),
         apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false),
         parquet(IngestionMapping.IngestionMappingKind.Parquet, false),
+        sstream(IngestionMapping.IngestionMappingKind.SStream, false),
         orc(IngestionMapping.IngestionMappingKind.Orc, false),
         raw(IngestionMapping.IngestionMappingKind.unknown, false),
         w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false);
