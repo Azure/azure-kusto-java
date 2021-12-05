@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -58,13 +59,13 @@ public class CloudInfo {
 
     public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) {
         synchronized (cache) {
-            cache.put(clusterUrl, cloudInfo);
+            cache.put(StringUtils.stripEnd(clusterUrl, "/"), cloudInfo);
         }
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
         synchronized (cache) {
-            CloudInfo cloudInfo = cache.get(clusterUrl);
+            CloudInfo cloudInfo = cache.get(StringUtils.stripEnd(clusterUrl, "/"));
             if (cloudInfo != null) {
                 return cloudInfo;
             }

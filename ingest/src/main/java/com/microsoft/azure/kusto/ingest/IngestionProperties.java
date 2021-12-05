@@ -279,7 +279,8 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
-        Ensure.argIsNotNull(getDataFormat(), "dataFormat");
+        // TODO: Investigate whether we want dataFormat to be required (including checking other SDKs), and if so, add it to the next major release (as it's a breaking change)
+        //Ensure.argIsNotNull(getDataFormat(), "dataFormat");
 
         if (ingestionMapping.getColumnMappings() != null) {
             Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
