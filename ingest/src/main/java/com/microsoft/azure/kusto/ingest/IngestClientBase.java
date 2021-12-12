@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ public abstract class IngestClientBase {
             URIBuilder existingEndpoint;
             try {
                 existingEndpoint = new URIBuilder(dataSource);
-                endpointUriToSuggestStr = emendEndpointUri(existingEndpoint);
+                endpointUriToSuggestStr = amendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
                 log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
             }
@@ -56,5 +57,5 @@ public abstract class IngestClientBase {
 
     protected abstract String retrieveServiceType() throws IngestionServiceException, IngestionClientException;
 
-    protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
+    protected abstract String amendEndpointUri(URIBuilder existingEndpoint);
 }

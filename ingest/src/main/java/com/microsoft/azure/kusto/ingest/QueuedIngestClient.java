@@ -59,6 +59,11 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         this.azureStorageClient = azureStorageClient;
     }
 
+    public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
+        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
+        return existingEndpoint.toString();
+    }
+
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
@@ -269,9 +274,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
-        return existingEndpoint.toString();
+    protected String amendEndpointUri(URIBuilder existingEndpoint) {
+        return generateDmUriSuggestion(existingEndpoint);
     }
 
     @Override

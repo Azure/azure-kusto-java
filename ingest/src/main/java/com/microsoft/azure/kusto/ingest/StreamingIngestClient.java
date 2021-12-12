@@ -50,6 +50,14 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         this.streamingClient = streamingClient;
     }
 
+    public static String generateEngineUriSuggestion(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
+            existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
+            return existingEndpoint.toString();
+        }
+        return "";
+    }
+
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
@@ -226,12 +234,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
-            existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
-            return existingEndpoint.toString();
-        }
-        return "";
+    protected String amendEndpointUri(URIBuilder existingEndpoint) {
+        return generateEngineUriSuggestion(existingEndpoint);
     }
 
     @Override
