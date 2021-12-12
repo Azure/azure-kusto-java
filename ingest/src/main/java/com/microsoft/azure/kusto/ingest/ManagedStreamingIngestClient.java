@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.util.UUID;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
@@ -38,12 +40,14 @@ public class ManagedStreamingIngestClient implements IngestClient {
     public static final int MAX_RETRY_CALLS = 3;
     private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
+    private final ExponentialRetry exponentialRetryTemplate;
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
+        exponentialRetryTemplate = new ExponentialRetry(MAX_RETRY_CALLS);
     }
 
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
@@ -52,6 +56,17 @@ public class ManagedStreamingIngestClient implements IngestClient {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
+        exponentialRetryTemplate = new ExponentialRetry(MAX_RETRY_CALLS);
+    }
+
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient,
+                                        ExponentialRetry retryTemplate) {
+        log.info("Creating a new ManagedStreamingIngestClient from raw parts");
+        queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
+        streamingIngestClient = new StreamingIngestClient(streamingClient);
+        exponentialRetryTemplate = retryTemplate;
     }
 
     @Override
@@ -117,10 +132,20 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
         streamSourceInfo.setLeaveOpen(true);
 
+        UUID sourceId = streamSourceInfo.getSourceId();
+        if (sourceId == null) {
+            sourceId = UUID.randomUUID();
+        }
+
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBase(),
+                exponentialRetryTemplate.getMaxJitter());
         try {
-            for (int i = 0; i < MAX_RETRY_CALLS; i++) {
+            while (retry.shouldRetry()) {
                 try {
-                    return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+                    log.info("Streaming ingest attempt {}", retry.getCurrentAttempt());
+                    String clientRequestId = String.format("KJC.execute_managed_streaming_ingest;%s;%d", sourceId,
+                            retry.getCurrentAttempt());
+                    return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties, clientRequestId);
                 } catch (Exception e) {
                     if (e instanceof IngestionServiceException
                             && e.getCause() != null
@@ -139,7 +164,10 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         }
                     }
 
-                    log.info("Streaming ingestion failed, trying again", e);
+                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s +~ %s seconds", retry.getCurrentSleepMs(),
+                            retry.getMaxJitter()), e);
+                    retry.doBackoff();
+
                     try {
                         streamSourceInfo.getStream().reset();
                     } catch (IOException ioException) {

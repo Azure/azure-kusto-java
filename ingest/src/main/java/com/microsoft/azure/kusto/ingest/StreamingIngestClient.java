@@ -22,6 +22,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +110,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        return ingestFromStream(streamSourceInfo, ingestionProperties, null);
+    }
+
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -117,13 +122,20 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         String format = getFormat(ingestionProperties);
         String mappingReference = getMappingReference(ingestionProperties, format);
+
+        ClientRequestProperties clientRequestProperties = null;
+        if (clientRequestId != null) {
+            clientRequestProperties = new ClientRequestProperties();
+            clientRequestProperties.setClientRequestId(clientRequestId);
+        }
+
         try {
             InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
             log.debug("Executing streaming ingest");
             this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
-                    null,
+                    clientRequestProperties,
                     format,
                     mappingReference,
                     !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
