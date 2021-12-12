@@ -41,18 +41,15 @@ public class ClientImpl implements Client, StreamingClient {
     private final String userNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        String url = csb.getClusterUrl();
-        URI clusterUri = new URI(url);
-        String host = clusterUri.getHost();
-        Objects.requireNonNull(clusterUri.getAuthority(), "clusterUri.authority");
-
-        String auth = clusterUri.getAuthority().toLowerCase();
+        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
+        String host = clusterUrlForParsing.getHost();
+        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
+        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
-            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString();
-            csb.setClusterUrl(url);
+            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme()).setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
         }
 
-        clusterUrl = url;
+        clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
                 null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
