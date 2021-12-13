@@ -187,7 +187,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
             while (retry.shouldTry()) {
                 try {
                     log.info("Streaming ingest attempt {}", retry.getCurrentAttempt());
-                    String clientRequestId = String.format("KJC.execute_managed_streaming_ingest;%s;%d", sourceId,
+                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest;%s;%d", sourceId,
                             retry.getCurrentAttempt());
                     return streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, clientRequestId);
                 } catch (Exception e) {

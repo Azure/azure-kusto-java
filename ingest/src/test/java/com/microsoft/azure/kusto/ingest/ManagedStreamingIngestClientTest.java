@@ -535,7 +535,7 @@ class ManagedStreamingIngestClientTest {
         assertNotNull(clientRequestId);
         String[] values = clientRequestId.split(";");
         assertEquals(3, values.length);
-        assertEquals("KJC.execute_managed_streaming_ingest", values[0]);
+        assertEquals("KJC.executeManagedStreamingIngest", values[0]);
         assertDoesNotThrow(() -> {
             UUID actual = UUID.fromString(values[1]);
             if (expectedUUID != null) {
