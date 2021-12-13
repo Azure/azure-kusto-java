@@ -181,8 +181,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId);
         managedSourceInfo.setCompressionType(streamSourceInfo.getCompressionType());
 
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBase(),
-                exponentialRetryTemplate.getMaxJitter());
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBaseSecs(),
+                exponentialRetryTemplate.getMaxJitterSecs());
         try {
             while (retry.shouldTry()) {
                 try {
@@ -208,8 +208,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         }
                     }
 
-                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s +~ %s seconds", retry.getCurrentSleepMs(),
-                            retry.getMaxJitter()), e);
+                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s +~ %s seconds", retry.getCurrentSleepSecs(),
+                            retry.getMaxJitterSecs()), e);
                     retry.doBackoff();
 
                     try {

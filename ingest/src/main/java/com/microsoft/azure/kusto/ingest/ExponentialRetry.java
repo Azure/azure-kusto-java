@@ -2,18 +2,18 @@ package com.microsoft.azure.kusto.ingest;
 
 public class ExponentialRetry {
     private final int maxAttempts;
-    private final double sleepBase;
-    private final double maxJitter;
+    private final double sleepBaseSecs;
+    private final double maxJitterSecs;
     private int currentAttempt;
 
     public ExponentialRetry(int maxAttempts) {
         this(maxAttempts, 1.0, 0.0);
     }
 
-    public ExponentialRetry(int maxAttempts, double sleepBaseSec, double maxJitterSec) {
+    public ExponentialRetry(int maxAttempts, double sleepBaseSecs, double maxJitterSecs) {
         this.maxAttempts = maxAttempts;
-        this.sleepBase = sleepBaseSec;
-        this.maxJitter = maxJitterSec;
+        this.sleepBaseSecs = sleepBaseSecs;
+        this.maxJitterSecs = maxJitterSecs;
         this.currentAttempt = 0;
     }
 
@@ -21,16 +21,16 @@ public class ExponentialRetry {
         return maxAttempts;
     }
 
-    public double getSleepBase() {
-        return sleepBase;
+    public double getSleepBaseSecs() {
+        return sleepBaseSecs;
     }
 
-    public double getMaxJitter() {
-        return maxJitter;
+    public double getMaxJitterSecs() {
+        return maxJitterSecs;
     }
 
-    public double getCurrentSleepMs() {
-        return sleepBase * (float) Math.pow(2, currentAttempt);
+    public double getCurrentSleepSecs() {
+        return sleepBaseSecs * (float) Math.pow(2, currentAttempt);
     }
 
     public int getCurrentAttempt() {
@@ -46,8 +46,8 @@ public class ExponentialRetry {
             throw new IllegalStateException("Max attempts exceeded");
         }
 
-        double sleepTime = getCurrentSleepMs();
-        double jitter = (float)Math.random() * maxJitter;
+        double sleepTime = getCurrentSleepSecs();
+        double jitter = (float)Math.random() * maxJitterSecs;
         double sleepMs = (sleepTime + jitter) * 1000;
         try {
             Thread.sleep((long)sleepMs);
