@@ -4,7 +4,7 @@ public class ExponentialRetry {
     private final int maxAttempts;
     private final double sleepBase;
     private final double maxJitter;
-    private int retries;
+    private int currentAttempt;
 
     public ExponentialRetry(int maxAttempts) {
         this(maxAttempts, 1.0, 0.0);
@@ -14,7 +14,7 @@ public class ExponentialRetry {
         this.maxAttempts = maxAttempts;
         this.sleepBase = sleepBaseSec;
         this.maxJitter = maxJitterSec;
-        this.retries = 0;
+        this.currentAttempt = 0;
     }
 
     public int getMaxAttempts() {
@@ -30,18 +30,22 @@ public class ExponentialRetry {
     }
 
     public double getCurrentSleepMs() {
-        return sleepBase * (float) Math.pow(2, retries);
+        return sleepBase * (float) Math.pow(2, currentAttempt);
     }
 
     public int getCurrentAttempt() {
-        return retries;
+        return currentAttempt;
     }
 
-    public boolean shouldRetry() {
-        return retries < maxAttempts;
+    public boolean shouldTry() {
+        return currentAttempt < maxAttempts;
     }
 
     public void doBackoff(){
+        if (!shouldTry()) {
+            throw new IllegalStateException("Max attempts exceeded");
+        }
+
         double sleepTime = getCurrentSleepMs();
         double jitter = (float)Math.random() * maxJitter;
         double sleepMs = (sleepTime + jitter) * 1000;
@@ -50,7 +54,7 @@ public class ExponentialRetry {
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while sleeping");
         }
-        retries++;
+        currentAttempt++;
     }
 
 

@@ -184,7 +184,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBase(),
                 exponentialRetryTemplate.getMaxJitter());
         try {
-            while (retry.shouldRetry()) {
+            while (retry.shouldTry()) {
                 try {
                     log.info("Streaming ingest attempt {}", retry.getCurrentAttempt());
                     String clientRequestId = String.format("KJC.execute_managed_streaming_ingest;%s;%d", sourceId,
