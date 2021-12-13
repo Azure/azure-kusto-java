@@ -117,7 +117,7 @@ class ManagedStreamingIngestClientTest {
         doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
-                new ExponentialRetry(ManagedStreamingIngestClient.MAX_RETRY_CALLS, 0, 0));
+                new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0, 0));
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
     }
@@ -353,7 +353,7 @@ class ManagedStreamingIngestClientTest {
 
             // Should fail 3 times and then succeed with the queued client
             managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-            assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
+            assertEquals(ManagedStreamingIngestClient.ATTEMPT_COUNT, times[0]);
         } finally {
             reset(streamingClientMock);
         }
@@ -377,7 +377,7 @@ class ManagedStreamingIngestClientTest {
 
             // Should fail 3 times and then succeed with the queued client
             managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-            assertEquals(ManagedStreamingIngestClient.MAX_RETRY_CALLS, times[0]);
+            assertEquals(ManagedStreamingIngestClient.ATTEMPT_COUNT, times[0]);
         } finally {
             reset(streamingClientMock);
         }

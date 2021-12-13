@@ -35,7 +35,7 @@ import sun.misc.IOUtils;
  * This class combines a managed streaming client with a queued streaming client, to create an optimized experience.
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
- * It tries {@value MAX_RETRY_CALLS} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
+ * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
  * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  * Note that {@code ingestFromBlob} behaves differently from the other methods - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.
@@ -43,7 +43,7 @@ import sun.misc.IOUtils;
 public class ManagedStreamingIngestClient implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    public static final int MAX_RETRY_CALLS = 3;
+    public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
     private final QueuedIngestClient queuedIngestClient;
     private final StreamingIngestClient streamingIngestClient;
@@ -66,7 +66,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
-        exponentialRetryTemplate = new ExponentialRetry(MAX_RETRY_CALLS);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
@@ -75,7 +75,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
-        exponentialRetryTemplate = new ExponentialRetry(MAX_RETRY_CALLS);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
