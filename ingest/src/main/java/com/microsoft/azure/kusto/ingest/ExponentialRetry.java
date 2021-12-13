@@ -7,7 +7,7 @@ public class ExponentialRetry {
     private int currentAttempt;
 
     public ExponentialRetry(int maxAttempts) {
-        this(maxAttempts, 1.0, 0.0);
+        this(maxAttempts, 1.0, 1.0);
     }
 
     public ExponentialRetry(int maxAttempts, double sleepBaseSecs, double maxJitterSecs) {

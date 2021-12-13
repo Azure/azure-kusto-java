@@ -26,6 +26,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +61,7 @@ class E2ETest {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
+    private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ClientImpl queryClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
@@ -99,6 +102,7 @@ class E2ETest {
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
+            managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
@@ -270,12 +274,13 @@ class E2ETest {
         return found;
     }
 
-    @Test
-    void testIngestFromFile() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromFile(boolean isManaged) {
         for (TestDataItem item : dataForTests) {
             FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
             try {
-                ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
@@ -283,8 +288,9 @@ class E2ETest {
         }
     }
 
-    @Test
-    void testIngestFromStream() throws FileNotFoundException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
             InputStream stream = new FileInputStream(item.file);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
@@ -292,7 +298,7 @@ class E2ETest {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
-                ingestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }

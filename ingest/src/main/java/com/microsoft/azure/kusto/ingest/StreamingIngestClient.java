@@ -184,7 +184,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             if (!format.equalsIgnoreCase(ingestionMappingKind.name())) {
                 message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", format, ingestionMappingKind.name());
             }
-            if (StringUtils.isBlank(mappingReference)) {
+            if (StringUtils.isBlank(mappingReference) && ingestionMapping.getColumnMappings() == null) {
                 message = String.format("Mapping reference must be specified for %s format.", format);
             }
             if (message != null) {
