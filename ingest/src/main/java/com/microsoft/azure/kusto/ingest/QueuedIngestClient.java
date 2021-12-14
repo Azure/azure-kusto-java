@@ -60,6 +60,10 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().startsWith(INGEST_PREFIX))
+        {
+            throw new IllegalArgumentException("The URI is already a DM URI");
+        }
         existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
         return existingEndpoint.toString();
     }
@@ -243,7 +247,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 fileName,
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);

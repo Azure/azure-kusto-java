@@ -45,8 +45,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
-    private final QueuedIngestClient queuedIngestClient;
-    private final StreamingIngestClient streamingIngestClient;
+    final QueuedIngestClient queuedIngestClient;
+    final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
 
     /**

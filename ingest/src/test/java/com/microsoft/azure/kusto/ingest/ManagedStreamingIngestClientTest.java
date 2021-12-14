@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -32,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -329,6 +331,7 @@ class ManagedStreamingIngestClientTest {
         if (leaveOpen) {
             assertDoesNotThrow(() -> inputStream.read(new byte[1]));
         } else {
+            //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
             assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
         }
     }
@@ -418,6 +421,7 @@ class ManagedStreamingIngestClientTest {
             if (leaveOpen) {
                 assertDoesNotThrow(() -> inputStream.read(new byte[1]));
             } else {
+                //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
                 assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
             }
         } finally {
@@ -463,6 +467,7 @@ class ManagedStreamingIngestClientTest {
             if (leaveOpen) {
                 assertDoesNotThrow(() -> inputStream.read(new byte[1]));
             } else {
+                //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
                 assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
             }
         } finally {
@@ -519,12 +524,49 @@ class ManagedStreamingIngestClientTest {
         InputStream value = capture.getValue();
         if (leaveOpen) {
             assertArrayEquals(bytes, IOUtils.readAllBytes(value));
-        }
-        else {
+        } else {
+            //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
             assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
         }
 
     }
+
+    @Test
+    void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
+        ManagedStreamingIngestClient client =
+                ManagedStreamingIngestClient.fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
+        assertNotNull(client);
+        assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
+        assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
+    }
+
+    @Test
+    void CreateManagedStreamingIngestClient_WithWrongDmUri_Fail() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ManagedStreamingIngestClient client =
+                    ManagedStreamingIngestClient.fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
+        });
+    }
+
+    @Test
+    void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
+        ManagedStreamingIngestClient client =
+                ManagedStreamingIngestClient.fromEngineConnectionString(
+                        ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
+        assertNotNull(client);
+        assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
+        assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
+    }
+
+    @Test
+    void CreateManagedStreamingIngestClient_WithWrongEngineUri_Fail() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ManagedStreamingIngestClient client =
+                    ManagedStreamingIngestClient.fromEngineConnectionString(
+                            ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
+        });
+    }
+
 
     private static void verifyClientRequestId() {
         verifyClientRequestId(0, null);

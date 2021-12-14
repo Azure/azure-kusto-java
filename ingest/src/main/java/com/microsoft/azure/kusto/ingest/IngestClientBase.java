@@ -13,7 +13,7 @@ import java.net.URISyntaxException;
 
 public abstract class IngestClientBase {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    protected String connectionDataSource;
+    String connectionDataSource;
     private String endpointServiceType;
     private String suggestedEndpointUri;
     public static final String INGEST_PREFIX = "ingest-";
@@ -49,6 +49,9 @@ public abstract class IngestClientBase {
                 endpointUriToSuggestStr = amendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
                 log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
+            }
+            catch (IllegalArgumentException e) {
+                log.error("URI is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
             }
         }
 
