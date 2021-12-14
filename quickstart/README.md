@@ -32,7 +32,7 @@ You can use it as a baseline to write your own first kusto client application, a
 
 ### Optional changes
 1. Within the app itself, you can change the default User-Prompt authentication method by editing `authenticationMode`
-1. You can also make the app run without stopping between steps by setting `waitForUser = False`
+1. Change the app to run without stopping between steps by setting `waitForUser = False`
 
 ### Troubleshooting
 * If you are having trouble running the app from your IDE, first check if the app runs from the command line, then consult the troubleshooting references of your IDE.
