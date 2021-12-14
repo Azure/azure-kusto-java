@@ -49,12 +49,26 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
 
+    /**
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param dmConnectionString dm connection string
+     * @return a new ManagedStreamingIngestClient
+     */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
     }
 
+    /**
+     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * This method infers the DM connection string from the engine connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param engineConnectionString engine connection string
+     * @return a new ManagedStreamingIngestClient
+     */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(QueuedIngestClient.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
@@ -78,7 +92,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    public ManagedStreamingIngestClient(ResourceManager resourceManager,
+    ManagedStreamingIngestClient(ResourceManager resourceManager,
                                         AzureStorageClient storageClient,
                                         StreamingClient streamingClient,
                                         ExponentialRetry retryTemplate) {
