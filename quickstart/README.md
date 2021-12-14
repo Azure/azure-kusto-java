@@ -21,7 +21,9 @@ You can use it as a baseline to write your own first kusto client application, a
 1. On the left menu, select **Data**.
 1. Click **Generate Sample App Code** and then follow the instructions in the wizard.
 1. Download the app as a ZIP file.
-1. Extract the app source code. **Note**: The configuration parameters defined in the `kusto_sample_config.json` file are preconfigured with the appropriate values for your cluster. Verify that these are correct.
+1. Extract the app source code.  
+**Note**: The configuration parameters defined in the `kusto_sample_config.json` file are preconfigured with the appropriate values for your cluster. Verify that these are correct.
+
 
 ### Run the app
 1. Open a command line window and navigate to the folder where you extracted the app.
