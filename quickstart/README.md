@@ -26,6 +26,7 @@ You can use it as a baseline to write your own first kusto client application, a
 **Note**: The configuration parameters defined in the `kusto_sample_config.json` file are preconfigured with the appropriate values for your cluster. Verify that these are correct.
 
 ### Run the app
+
 1. Open a command line window and navigate to the folder where you extracted the app.
 1. Run `mvn clean install` to compile the source code into a binary.
 1. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`.
