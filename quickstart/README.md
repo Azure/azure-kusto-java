@@ -9,10 +9,12 @@ You can use it as a baseline to write your own first kusto client application, a
 ## Using the App for the first time
 
 ### Prerequisites
-1. Set up Java on your machine. For instructions, consult a Java environment setup tutorial, like [this](https://www.tutorialspoint.com/java/java_environment_setup.htm).
+
+1. Set up Java version 8 or higher on your machine. For instructions, consult a Java environment setup tutorial, like [this](https://www.tutorialspoint.com/java/java_environment_setup.htm).
 1. Set up [Apache Maven](https://maven.apache.org/install.html), which is the most popular Java dependency management tool.
 
 ### Retrieving the app from GitHub
+
 1. Download the app files from this GitHub repo.
 1. Modify the `kusto_sample_config.json` file, changing `KustoUri`, `IngestUri` and `DatabaseName` appropriately for your cluster.
 
@@ -22,7 +24,7 @@ You can use it as a baseline to write your own first kusto client application, a
 1. On the left menu, select **Data**.
 1. Click **Generate Sample App Code** and then follow the instructions in the wizard.
 1. Download the app as a ZIP file.
-1. Extract the app source code.  
+1. Extract the app source code.
 **Note**: The configuration parameters defined in the `kusto_sample_config.json` file are preconfigured with the appropriate values for your cluster. Verify that these are correct.
 
 ### Run the app
@@ -35,8 +37,9 @@ You can use it as a baseline to write your own first kusto client application, a
 
 You can make the following changes from within the app itself:
 
-- Change the default User-Prompt authentication method by editing `authenticationMode`.
-- Change the app to run without stopping between steps by setting `waitForUser = False`
+- Change the default User-Prompt authentication method by editing `AUTHENTICATION_MODE`.
+- Change the app to run without stopping between steps by setting `WAIT_FOR_USER = false`
 
 ### Troubleshooting
+
 * If you are having trouble running the app from your IDE, first check if the app runs from the command line, then consult the troubleshooting references of your IDE.
