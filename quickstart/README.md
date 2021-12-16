@@ -32,7 +32,7 @@ You can use it as a baseline to write your own first kusto client application, a
 ### Optional changes
 You can make the following changes from within the app itself:
 
-1. Change the default User-Prompt authentication method by editing `authenticationMode`.
+- Change the default User-Prompt authentication method by editing `authenticationMode`.
 1. Change the app to run without stopping between steps by setting `waitForUser = False`
 
 ### Troubleshooting
