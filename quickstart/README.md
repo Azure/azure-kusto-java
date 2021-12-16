@@ -17,6 +17,7 @@ You can use it as a baseline to write your own first kusto client application, a
 1. Modify the `kusto_sample_config.json` file, changing `KustoUri`, `IngestUri` and `DatabaseName` appropriately for your cluster.
 
 ### Retrieving the app from OneClick
+
 1. Open a browser and type your cluster's URL (e.g. https://mycluster.westeurope.kusto.windows.net/). You will be redirected to the _Azure Data Explorer_ Web UI.
 1. On the left menu, select **Data**.
 1. Click **Generate Sample App Code** and then follow the instructions in the wizard.
