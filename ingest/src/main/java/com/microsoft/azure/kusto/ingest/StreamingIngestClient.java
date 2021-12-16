@@ -115,8 +115,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
-        String format = getFormat(ingestionProperties);
-        String mappingReference = getMappingReference(ingestionProperties, format);
+        IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.getDataFormatFromString(ingestionProperties.getDataFormatStr());
+        String mappingReference = getMappingReference(ingestionProperties, dataFormat);
         try {
             InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
             log.debug("Executing streaming ingest");
@@ -124,7 +124,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.getTableName(),
                     stream,
                     null,
-                    format,
+                    dataFormat.name(),
                     mappingReference,
                     !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
 
@@ -147,25 +147,17 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return new IngestionStatusResult(ingestionStatus);
     }
 
-    private String getFormat(IngestionProperties ingestionProperties) {
-        String format = ingestionProperties.getDataFormat();
-        if (format == null) {
-            return "csv";
-        }
-        return format;
-    }
-
-    private String getMappingReference(IngestionProperties ingestionProperties, String format) throws IngestionClientException {
+    private String getMappingReference(IngestionProperties ingestionProperties, IngestionProperties.DataFormat dataFormat) throws IngestionClientException {
         IngestionMapping ingestionMapping = ingestionProperties.getIngestionMapping();
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        if (IngestionMapping.mappingRequiredFormats.contains(format)) {
+        if (dataFormat.isMappingRequired()) {
             String message = null;
-            if (!format.equalsIgnoreCase(ingestionMappingKind.name())) {
-                message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", format, ingestionMappingKind.name());
+            if (!dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+                message = String.format("Wrong ingestion mapping for format %s, found %s mapping kind.", dataFormat.name(), ingestionMappingKind.name());
             }
             if (StringUtils.isBlank(mappingReference)) {
-                message = String.format("Mapping reference must be specified for %s format.", format);
+                message = String.format("Mapping reference must be specified for %s format.", dataFormat.name());
             }
             if (message != null) {
                 log.error(message);

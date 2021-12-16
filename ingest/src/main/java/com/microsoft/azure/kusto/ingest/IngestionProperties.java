@@ -234,7 +234,7 @@ public class IngestionProperties {
         }
     }
 
-    public String getDataFormat() {
+    public String getDataFormatStr() {
         return additionalProperties.get("format");
     }
 
@@ -280,7 +280,7 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
         // TODO: Investigate whether we want dataFormat to be required (including checking other SDKs), and if so, add it to the next major release (as it's a breaking change)
-        //Ensure.argIsNotNull(getDataFormat(), "dataFormat");
+        //Ensure.argIsNotNull(getDataFormatStr(), "dataFormat");
 
         if (ingestionMapping.getColumnMappings() != null) {
             Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
@@ -292,30 +292,32 @@ public class IngestionProperties {
     }
 
     public enum DataFormat {
-        csv(IngestionMapping.IngestionMappingKind.Csv, false),
-        tsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        scsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        sohsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        psv(IngestionMapping.IngestionMappingKind.Csv, false),
-        txt(IngestionMapping.IngestionMappingKind.unknown, false),
-        tsve(IngestionMapping.IngestionMappingKind.Csv, false),
-        json(IngestionMapping.IngestionMappingKind.Json, true),
-        singlejson(IngestionMapping.IngestionMappingKind.Json, true),
-        multijson(IngestionMapping.IngestionMappingKind.Json, true),
-        avro(IngestionMapping.IngestionMappingKind.Avro, true),
-        apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false),
-        parquet(IngestionMapping.IngestionMappingKind.Parquet, false),
-        sstream(IngestionMapping.IngestionMappingKind.SStream, false),
-        orc(IngestionMapping.IngestionMappingKind.Orc, false),
-        raw(IngestionMapping.IngestionMappingKind.unknown, false),
-        w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false);
+        csv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        tsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        scsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        sohsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        psv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        txt(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        tsve(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        json(IngestionMapping.IngestionMappingKind.Json, true, true),
+        singlejson(IngestionMapping.IngestionMappingKind.Json, true, true),
+        multijson(IngestionMapping.IngestionMappingKind.Json, true, true),
+        avro(IngestionMapping.IngestionMappingKind.Avro, true, false),
+        apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false, true),
+        parquet(IngestionMapping.IngestionMappingKind.Parquet, false, false),
+        sstream(IngestionMapping.IngestionMappingKind.SStream, false, true),
+        orc(IngestionMapping.IngestionMappingKind.Orc, false, false),
+        raw(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false, true);
 
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
         private final boolean mappingRequired;
+        private final boolean compressible;
 
-        DataFormat(IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired) {
+        DataFormat(IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired, boolean compressible) {
             this.ingestionMappingKind = ingestionMappingKind;
             this.mappingRequired = mappingRequired;
+            this.compressible = compressible;
         }
 
         public IngestionMapping.IngestionMappingKind getIngestionMappingKind() {
@@ -324,6 +326,17 @@ public class IngestionProperties {
 
         public boolean isMappingRequired() {
             return mappingRequired;
+        }
+
+        public boolean isCompressible() {
+            return compressible;
+        }
+
+        public static IngestionProperties.DataFormat getDataFormatFromString(String ingestionPropertiesDataFormat) {
+            if (ingestionPropertiesDataFormat == null) {
+                return IngestionProperties.DataFormat.csv;
+            }
+            return IngestionProperties.DataFormat.valueOf(ingestionPropertiesDataFormat.toLowerCase());
         }
     }
 

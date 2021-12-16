@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * This class describes the ingestion mapping to use for an ingestion request.
@@ -16,7 +15,6 @@ public class IngestionMapping {
     private ColumnMapping[] columnMappings;
     private IngestionMappingKind ingestionMappingKind;
     private String ingestionMappingReference;
-    public static final List<String> mappingRequiredFormats = Arrays.asList("json", "singlejson", "avro");
 
     /**
      * Creates a default ingestion mapping with kind Unknown and empty mapping reference.

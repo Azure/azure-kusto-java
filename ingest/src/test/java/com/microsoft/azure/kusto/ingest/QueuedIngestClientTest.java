@@ -289,7 +289,7 @@ class QueuedIngestClientTest {
         holder.name = "fileName";
         BiFunction<DataFormat, CompressionType, String> genName =
                 (DataFormat format, CompressionType compression) -> {
-                    boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format.name());
+                    boolean shouldCompress = AzureStorageClient.shouldCompress(compression, format);
                     return ingestClient.genBlobName(
                             holder.name,
                             "db1",
