@@ -32,6 +32,7 @@ You can use it as a baseline to write your own first kusto client application, a
 1. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`.
 
 ### Optional changes
+
 You can make the following changes from within the app itself:
 
 - Change the default User-Prompt authentication method by editing `authenticationMode`.
