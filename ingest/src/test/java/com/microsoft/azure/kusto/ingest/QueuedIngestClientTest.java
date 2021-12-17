@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class QueuedIngestClientTest {
-
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static QueuedIngestClient queuedIngestClient;
@@ -312,7 +311,7 @@ class QueuedIngestClientTest {
         CompressionType compressionTypeRes2 = AzureStorageClient.getCompression(avroLocalCompressFileName);
         holder.name = avroLocalFileName;
         String avroName = genName.apply(DataFormat.avro, compressionTypeRes);
-        assert(avroName.endsWith("avi.avro.avro.gz"));
+        assert(avroName.endsWith("avi.avro.avro"));
 
         holder.name = avroLocalCompressFileName;
         String avroNameCompression = genName.apply(DataFormat.avro, compressionTypeRes2);
