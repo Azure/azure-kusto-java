@@ -200,7 +200,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    ingestionProperties.getDataFormatStr(), // Used to use an empty string if the DataFormatStr was empty. Now it can't be empty, with a default of CSV
+                    dataFormat.name(), // Used to use an empty string if the DataFormatStr was empty. Now it can't be empty, with a default of CSV
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
