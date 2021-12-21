@@ -118,7 +118,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
         String mappingReference = getMappingReference(ingestionProperties, dataFormat);
         try {
-            InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
+            InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat) ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen()) : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
             this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),

@@ -147,7 +147,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             Ensure.fileExists(filePath);
             CompressionType sourceCompressionType = AzureStorageClient.getCompression(filePath);
             IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
-            boolean shouldCompress = AzureStorageClient.shouldCompress(sourceCompressionType, dataFormat);
+            boolean shouldCompress = IngestClientBase.shouldCompress(sourceCompressionType, dataFormat);
 
             File file = new File(filePath);
             String blobName = genBlobName(
@@ -194,7 +194,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 throw new IngestionClientException("The provided stream is empty.");
             }
             IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
-            boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat);
+            boolean shouldCompress = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat);
 
             String blobName = genBlobName(
                     "StreamUpload",

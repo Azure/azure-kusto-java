@@ -62,7 +62,7 @@ class AzureStorageClient {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
-        return uploadLocalFileToBlob(filePath, blobName, storageUri, shouldCompress(sourceCompressionType, dataFormat));
+        return uploadLocalFileToBlob(filePath, blobName, storageUri, IngestClientBase.shouldCompress(sourceCompressionType, dataFormat));
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
@@ -179,10 +179,5 @@ class AzureStorageClient {
         }
 
         return null;
-    }
-
-    // We don't support compression of Parquet and Orc files
-    static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
-        return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
     }
 }
