@@ -59,7 +59,6 @@ public abstract class IngestClientBase {
 
     protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
 
-    // We don't support compression of Parquet and Orc files
     static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
         return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
     }
