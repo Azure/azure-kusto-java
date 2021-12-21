@@ -8,8 +8,11 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +30,8 @@ public class IngestionProperties {
     private List<String> ingestIfNotExists;
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
+    private DataFormat dataFormat;
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
@@ -174,7 +179,7 @@ public class IngestionProperties {
     Map<String, String> getIngestionProperties() throws IOException {
         Map<String, String> fullAdditionalProperties = new HashMap<>();
         if (!dropByTags.isEmpty() || !ingestByTags.isEmpty() || !additionalTags.isEmpty()) {
-            ArrayList<String> tags = new ArrayList<>();
+            List<String> tags = new ArrayList<>();
             if (!additionalTags.isEmpty()) {
                 tags.addAll(additionalTags);
             }
@@ -201,6 +206,10 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
+        if (dataFormat != null) {
+            fullAdditionalProperties.put("format", dataFormat.name());
+        }
+
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         if (StringUtils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
@@ -219,7 +228,7 @@ public class IngestionProperties {
     }
 
     public void setDataFormat(DataFormat dataFormat) {
-        additionalProperties.put("format", dataFormat.name());
+        this.dataFormat = dataFormat;
     }
 
     /**
@@ -228,21 +237,27 @@ public class IngestionProperties {
      * @param dataFormatName One of the string values in: {@link DataFormat DataFormat}
      */
     public void setDataFormat(String dataFormatName) {
-        String dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase()).name();
-        if (!dataFormat.isEmpty()) {
-            additionalProperties.put("format", dataFormat);
+        try {
+            this.dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            log.warn("IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.", dataFormatName);
         }
     }
 
-    public String getDataFormatStr() {
-        return additionalProperties.get("format");
+    /**
+     * Returns the DataFormat if it exists, and otherwise defaults to CSV
+     *
+     * @return The DataFormat if it exists, and otherwise defaults to CSV
+     */
+    public DataFormat getDataFormat() {
+        return dataFormat != null ? dataFormat : DataFormat.csv;
     }
 
     /**
      * Sets the predefined ingestion mapping name:
      *
      * @param mappingReference     The name of the mapping declared in the destination Kusto database, that
-     *                             describes the mapping between fields of a object and columns of a Kusto table.
+     *                             describes the mapping between fields of an object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
@@ -279,8 +294,6 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
-        // TODO: Investigate whether we want dataFormat to be required (including checking other SDKs), and if so, add it to the next major release (as it's a breaking change)
-        //Ensure.argIsNotNull(getDataFormatStr(), "dataFormat");
 
         if (ingestionMapping.getColumnMappings() != null) {
             Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");

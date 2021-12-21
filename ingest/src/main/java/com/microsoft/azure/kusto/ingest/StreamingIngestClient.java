@@ -115,7 +115,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
-        IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.getDataFormatFromString(ingestionProperties.getDataFormatStr());
+        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
         String mappingReference = getMappingReference(ingestionProperties, dataFormat);
         try {
             InputStream stream = (streamSourceInfo.getCompressionType() != null) ? streamSourceInfo.getStream() : compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());

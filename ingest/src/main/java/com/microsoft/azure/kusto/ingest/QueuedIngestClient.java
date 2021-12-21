@@ -146,7 +146,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             String filePath = fileSourceInfo.getFilePath();
             Ensure.fileExists(filePath);
             CompressionType sourceCompressionType = AzureStorageClient.getCompression(filePath);
-            IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.getDataFormatFromString(ingestionProperties.getDataFormatStr());
+            IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
             boolean shouldCompress = AzureStorageClient.shouldCompress(sourceCompressionType, dataFormat);
 
             File file = new File(filePath);
@@ -154,7 +154,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     file.getName(),
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.name(), // Used to use an empty string if the DataFormatStr was empty. Now it can't be empty, with a default of CSV
+                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
@@ -193,14 +193,14 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             } else if (streamSourceInfo.getStream().available() <= 0) {
                 throw new IngestionClientException("The provided stream is empty.");
             }
-            IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.getDataFormatFromString(ingestionProperties.getDataFormatStr());
+            IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
             boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat);
 
             String blobName = genBlobName(
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.name(), // Used to use an empty string if the DataFormatStr was empty. Now it can't be empty, with a default of CSV
+                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
