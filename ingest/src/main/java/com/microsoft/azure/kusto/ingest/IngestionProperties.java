@@ -295,7 +295,7 @@ public class IngestionProperties {
             this.setDataFormat(IngestionProperties.DataFormat.csv);
         } else {
             Ensure.isTrue(givenDataFormat.equals(IngestionProperties.DataFormat.csv.name()),
-                    String.format("ResultSet translates into csv format but {%s} was given", givenDataFormat));
+                    String.format("ResultSet translates into csv format but '%s' was given", givenDataFormat));
         }
         validate();
     }
