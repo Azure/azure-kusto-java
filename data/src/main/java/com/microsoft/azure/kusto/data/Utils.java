@@ -155,7 +155,7 @@ class Utils {
              */
             String activityId = determineActivityId(httpResponse);
             if (!StringUtils.isBlank(errorFromResponse)) {
-                String message = "";
+                String message;
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
                 try {
                     message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
@@ -165,6 +165,9 @@ class Utils {
                 }
             }
             errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
+            if (thrownException == null) {
+                thrownException = new DataWebException(errorFromResponse, httpResponse);
+            }
             return new DataServiceException(url, errorFromResponse, thrownException, false);
 
         }
