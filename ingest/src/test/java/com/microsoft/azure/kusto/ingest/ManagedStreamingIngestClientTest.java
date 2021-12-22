@@ -92,11 +92,11 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsNotTable_QueuedIngestionStatus() throws Exception {
+    void IngestFromBlob_IngestionReportMethodIsQueue_IngestionStatusHardcoded() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusesLength(), 1);
-        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
+        assertEquals(1, result.getIngestionStatusesLength());
+        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
     }
 
     @Test
@@ -105,7 +105,7 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(result.getIngestionStatusesLength(), 0);
+        assertNotEquals(0, result.getIngestionStatusesLength());
     }
 
     @Test

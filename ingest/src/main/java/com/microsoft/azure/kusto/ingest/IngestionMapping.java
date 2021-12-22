@@ -97,6 +97,6 @@ public class IngestionMapping {
      Represents an ingestion mapping kind - the format of the source data to map from.
     */
     public enum IngestionMappingKind {
-        unknown, Csv, Json, Parquet, Avro, ApacheAvro, Orc, W3CLogFile
+        unknown, Csv, Json, Avro, Parquet, SStream, Orc, ApacheAvro, W3CLogFile
     }
 }

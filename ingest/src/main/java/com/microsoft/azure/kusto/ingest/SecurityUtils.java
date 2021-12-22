@@ -14,7 +14,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-class SecurityUtils {
+public class SecurityUtils {
     private SecurityUtils() {
         // Hide constructor as this is a Utils class
     }

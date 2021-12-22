@@ -4,14 +4,15 @@
 
 
 master: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
-dev: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=dev)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
+![Github Actions Build](https://github.com/Azure/azure-kusto-java/actions/workflows/build.yml/badge.svg)
 
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
-- data: the main client that allows interaction with Kusto. It's able to create a connection, issue (control) commands and query data.
-- ingest: this provides an easy way to bring data into Kusto
-- samples 
+- data: The main client that allows interaction with Kusto, including creating a connection, issuing (control) commands and querying data
+- ingest: Provides an easy way to bring data into Kusto
+- quickstart: Self-contained, configurable and runnable sample app for easily getting started with the SDK
+- samples: Sample code implementing various scenarios
 
 # Install
 

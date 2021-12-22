@@ -32,7 +32,7 @@ public class ClientImpl implements Client, StreamingClient {
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
-    public static final String FEDERATED_SECURITY_POSTFIX = ";fed=true";
+    public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
@@ -41,18 +41,15 @@ public class ClientImpl implements Client, StreamingClient {
     private final String userNameForTracing;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        String url = csb.getClusterUrl();
-        URI clusterUri = new URI(url);
-        String host = clusterUri.getHost();
-        Objects.requireNonNull(clusterUri.getAuthority(), "clusterUri.authority");
-
-        String auth = clusterUri.getAuthority().toLowerCase();
-        if (host == null && auth.endsWith(FEDERATED_SECURITY_POSTFIX)) {
-            url = new URIBuilder().setScheme(clusterUri.getScheme()).setHost(auth.substring(0, clusterUri.getAuthority().indexOf(FEDERATED_SECURITY_POSTFIX))).toString();
-            csb.setClusterUrl(url);
+        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
+        String host = clusterUrlForParsing.getHost();
+        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
+        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
+        if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
+            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme()).setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
         }
 
-        clusterUrl = url;
+        clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
                 null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";

@@ -279,7 +279,6 @@ public class IngestionProperties {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
-        Ensure.argIsNotNull(getDataFormat(), "dataFormat");
 
         if (ingestionMapping.getColumnMappings() != null) {
             Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
@@ -302,22 +301,39 @@ public class IngestionProperties {
     }
 
     public enum DataFormat {
-        csv,
-        tsv,
-        scsv,
-        sohsv,
-        psv,
-        txt,
-        tsve,
-        json,
-        singlejson,
-        multijson,
-        avro,
-        apacheavro,
-        parquet,
-        orc,
-        raw,
-        w3clogfile
+        csv(IngestionMapping.IngestionMappingKind.Csv, false),
+        tsv(IngestionMapping.IngestionMappingKind.Csv, false),
+        scsv(IngestionMapping.IngestionMappingKind.Csv, false),
+        sohsv(IngestionMapping.IngestionMappingKind.Csv, false),
+        psv(IngestionMapping.IngestionMappingKind.Csv, false),
+        txt(IngestionMapping.IngestionMappingKind.unknown, false),
+        tsve(IngestionMapping.IngestionMappingKind.Csv, false),
+        json(IngestionMapping.IngestionMappingKind.Json, true),
+        singlejson(IngestionMapping.IngestionMappingKind.Json, true),
+        multijson(IngestionMapping.IngestionMappingKind.Json, true),
+        avro(IngestionMapping.IngestionMappingKind.Avro, true),
+        apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false),
+        parquet(IngestionMapping.IngestionMappingKind.Parquet, false),
+        sstream(IngestionMapping.IngestionMappingKind.SStream, false),
+        orc(IngestionMapping.IngestionMappingKind.Orc, false),
+        raw(IngestionMapping.IngestionMappingKind.unknown, false),
+        w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false);
+
+        private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
+        private final boolean mappingRequired;
+
+        DataFormat(IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired) {
+            this.ingestionMappingKind = ingestionMappingKind;
+            this.mappingRequired = mappingRequired;
+        }
+
+        public IngestionMapping.IngestionMappingKind getIngestionMappingKind() {
+            return ingestionMappingKind;
+        }
+
+        public boolean isMappingRequired() {
+            return mappingRequired;
+        }
     }
 
     public enum IngestionReportLevel {

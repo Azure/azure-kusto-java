@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
@@ -78,10 +79,11 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsNotTable_HasOneResult() throws Exception {
+    void IngestFromBlob_IngestionReportMethodIsQueue_IngestionStatusHardcoded1() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
+        assertEquals(1, result.getIngestionStatusesLength());
+        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
     }
 
     @Test
@@ -90,7 +92,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(result.getIngestionStatusesLength(), 0);
+        assertNotEquals(0, result.getIngestionStatusesLength());
     }
 
     @Test

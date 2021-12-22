@@ -476,8 +476,14 @@ public class KustoResultSetTable {
         return getKustoDateTime(findColumn(columnName));
     }
 
-
-    // This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
+    /**
+     * This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
+     *
+     * @param columnIndex         Column index that contains the date
+     * @param calendar            Calendar container appropriate timezone
+     * @throws SQLException       Throws SQLException if date can't be parsed
+     * @return Date
+     */
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
         if (calendar == null) {
             return getDate(columnIndex);

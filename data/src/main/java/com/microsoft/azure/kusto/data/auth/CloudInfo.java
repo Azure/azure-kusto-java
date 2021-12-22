@@ -64,7 +64,12 @@ public class CloudInfo {
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
         synchronized (cache) {
-            CloudInfo cloudInfo = cache.get(clusterUrl);
+            CloudInfo cloudInfo;
+            try {
+                cloudInfo = cache.get(UriUtils.setPathForUri(clusterUrl, ""));
+            } catch (URISyntaxException ex) {
+                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true);
+            }
             if (cloudInfo != null) {
                 return cloudInfo;
             }
