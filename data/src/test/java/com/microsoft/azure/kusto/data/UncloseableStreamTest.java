@@ -13,7 +13,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 class UncloseableStreamTest {
@@ -36,18 +35,21 @@ class UncloseableStreamTest {
 
     @Test
     void read() throws IOException {
+        //noinspection ResultOfMethodCallIgnored ignore for test
         stream.read();
         verify(stream.getInnerStream(), times(1)).read();
     }
 
     @Test
     void skip() throws IOException {
+        //noinspection ResultOfMethodCallIgnored ignore for test
         stream.skip(0);
         verify(stream.getInnerStream(), times(1)).skip(eq((long)0));
     }
 
     @Test
     void available() throws IOException {
+        //noinspection ResultOfMethodCallIgnored ignore for test
         stream.available();
         verify(stream.getInnerStream(), times(1)).available();
     }
@@ -66,6 +68,7 @@ class UncloseableStreamTest {
 
     @Test
     void markSupported() {
+        //noinspection ResultOfMethodCallIgnored ignore for test
         stream.markSupported();
         verify(stream.getInnerStream(), times(1)).markSupported();
     }

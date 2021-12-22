@@ -44,7 +44,7 @@
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
         <json.version>20201115</json.version>
-        <fasterxml.jackson.core.version>[2.11.0,2.12.0)</fasterxml.jackson.core.version>
+        <fasterxml.jackson.core.version>[2.11.0,2.13.0]</fasterxml.jackson.core.version>
         <azure-storage.version>8.6.6</azure-storage.version>
         <azure-identity.version>1.3.7</azure-identity.version> <!-- Do not use 1.4.1, as it has a showstopping bug for us. Any version that includes https://github.com/Azure/azure-sdk-for-java/pull/25580 is OK -->
         <azure-core.version>1.21.0</azure-core.version>
@@ -54,8 +54,8 @@
         <!-- Test dependencies -->
         <bouncycastle.version>1.68</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>
-        <sqlite-jdbc.version>3.34.0</sqlite-jdbc.version>
-        <annotations.version>20.1.0</annotations.version>
+        <sqlite-jdbc.version>3.36.0.2</sqlite-jdbc.version>
+        <annotations.version>22.0.0</annotations.version>
 
         <!-- Other dependencies -->
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
@@ -66,8 +66,8 @@
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
         <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
-        <junit.version>5.7.1</junit.version>
-        <mockito.version>3.7.7</mockito.version>
+        <junit.version>5.8.2</junit.version>
+        <mockito.version>4.1.0</mockito.version>
     </properties>
 
     <modules>
