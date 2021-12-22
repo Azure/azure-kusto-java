@@ -52,6 +52,9 @@ public interface IngestClient extends Closeable {
      * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
      * according to the properties mentioned in {@code ingestionProperties}
      *
+     * Ingesting from ResultSet is equivalent to ingesting from a csv stream.
+     * The DataFormat should be empty or set to "csv", and the mapping, should it be provided, should be csv mapping.
+     *
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
