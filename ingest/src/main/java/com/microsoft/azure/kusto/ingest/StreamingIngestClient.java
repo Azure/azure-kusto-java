@@ -116,7 +116,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         streamSourceInfo.validate();
         ingestionProperties.validate();
-        if (StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
+        if (dataFormat.isMappingRequired() && StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
             throw new IngestionClientException(String.format("Mapping reference must be specified for streaming ingestion.", dataFormat.name()));
         }
 
