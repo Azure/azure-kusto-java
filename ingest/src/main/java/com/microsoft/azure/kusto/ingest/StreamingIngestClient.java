@@ -112,10 +112,14 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
+        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
+
         streamSourceInfo.validate();
         ingestionProperties.validate();
+        if (StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
+            throw new IngestionClientException(String.format("Mapping reference must be specified for streaming ingestion.", dataFormat.name()));
+        }
 
-        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
         try {
             InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat) ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen()) : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
