@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -250,6 +251,7 @@ public class IngestionProperties {
      *
      * @return The DataFormat if it exists, and otherwise defaults to CSV
      */
+    @NotNull
     public DataFormat getDataFormat() {
         return dataFormat != null ? dataFormat : DataFormat.csv;
     }
@@ -319,7 +321,7 @@ public class IngestionProperties {
             }
         }
 
-        if (dataFormat != null && ingestionMappingKind != null && ingestionMappingKind != IngestionMapping.IngestionMappingKind.unknown && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+        if (dataFormat != null &&  dataFormat.isMappingRequired() && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
                 message += String.format("Wrong ingestion mapping for format '%s'; found '%s' mapping kind.", dataFormat.name(), ingestionMappingKind.name());
         }
 

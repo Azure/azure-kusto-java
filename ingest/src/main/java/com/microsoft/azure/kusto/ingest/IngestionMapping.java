@@ -9,7 +9,7 @@ import java.util.Arrays;
  * This class describes the ingestion mapping to use for an ingestion request.
  * When a CSV data source schema and the target schema doesn't match or when using JSON, AVRO formats,
  * there is a need to define an ingestion mapping to map the source schema to the table schema.
- * This class describes a pre-define ingestion mapping by its name- mapping reference and its kind.
+ * This class describes a pre-defined ingestion mapping by its name- mapping reference and its kind.
  */
 public class IngestionMapping {
     private ColumnMapping[] columnMappings;
