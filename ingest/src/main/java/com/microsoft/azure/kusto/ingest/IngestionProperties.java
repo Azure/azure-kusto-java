@@ -7,9 +7,14 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +32,8 @@ public class IngestionProperties {
     private List<String> ingestIfNotExists;
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
+    private DataFormat dataFormat;
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
@@ -174,7 +181,7 @@ public class IngestionProperties {
     Map<String, String> getIngestionProperties() throws IOException {
         Map<String, String> fullAdditionalProperties = new HashMap<>();
         if (!dropByTags.isEmpty() || !ingestByTags.isEmpty() || !additionalTags.isEmpty()) {
-            ArrayList<String> tags = new ArrayList<>();
+            List<String> tags = new ArrayList<>();
             if (!additionalTags.isEmpty()) {
                 tags.addAll(additionalTags);
             }
@@ -201,6 +208,10 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
 
+        if (dataFormat != null) {
+            fullAdditionalProperties.put("format", dataFormat.name());
+        }
+
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         if (StringUtils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
@@ -219,7 +230,7 @@ public class IngestionProperties {
     }
 
     public void setDataFormat(DataFormat dataFormat) {
-        additionalProperties.put("format", dataFormat.name());
+        this.dataFormat = dataFormat;
     }
 
     /**
@@ -228,21 +239,28 @@ public class IngestionProperties {
      * @param dataFormatName One of the string values in: {@link DataFormat DataFormat}
      */
     public void setDataFormat(String dataFormatName) {
-        String dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase()).name();
-        if (!dataFormat.isEmpty()) {
-            additionalProperties.put("format", dataFormat);
+        try {
+            this.dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase());
+        } catch (IllegalArgumentException ex) {
+            log.warn("IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.", dataFormatName);
         }
     }
 
-    public String getDataFormat() {
-        return additionalProperties.get("format");
+    /**
+     * Returns the DataFormat if it exists, and otherwise defaults to CSV
+     *
+     * @return The DataFormat if it exists, and otherwise defaults to CSV
+     */
+    @NotNull
+    public DataFormat getDataFormat() {
+        return dataFormat != null ? dataFormat : DataFormat.csv;
     }
 
     /**
      * Sets the predefined ingestion mapping name:
      *
      * @param mappingReference     The name of the mapping declared in the destination Kusto database, that
-     *                             describes the mapping between fields of a object and columns of a Kusto table.
+     *                             describes the mapping between fields of an object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
     public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
@@ -275,47 +293,71 @@ public class IngestionProperties {
     /**
      * Validate the minimum non-empty values needed for data ingestion and mappings.
      */
-    void validate() {
+    void validate() throws IngestionClientException {
         Ensure.stringIsNotBlank(databaseName, "databaseName");
         Ensure.stringIsNotBlank(tableName, "tableName");
         Ensure.argIsNotNull(reportMethod, "reportMethod");
-        // TODO: Investigate whether we want dataFormat to be required (including checking other SDKs), and if so, add it to the next major release (as it's a breaking change)
-        //Ensure.argIsNotNull(getDataFormat(), "dataFormat");
+
+        String mappingReference = ingestionMapping.getIngestionMappingReference();
+        IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
+        String message = null;
 
         if (ingestionMapping.getColumnMappings() != null) {
-            Ensure.isFalse(StringUtils.isNotBlank(ingestionMapping.getIngestionMappingReference()), "Both mapping reference and column mappings were defined");
-            IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-            for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
-                Ensure.isTrue(column.isValid(ingestionMappingKind), String.format("Column mapping '%s' is invalid", column.columnName));
+            if (StringUtils.isNotBlank(mappingReference)) {
+                message += String.format("Both mapping reference '%s' and column mappings were defined.", mappingReference);
             }
+            for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
+                if (!column.isValid(ingestionMappingKind)) {
+                    message += String.format("Column mapping '%s' is invalid", column.columnName);
+                }
+            }
+        } else if (StringUtils.isBlank(mappingReference)) {
+            if (dataFormat != null && dataFormat.isMappingRequired()) {
+                message += String.format("Mapping must be specified for '%s' format.", dataFormat.name());
+            }
+
+            if (ingestionMappingKind != null && ingestionMappingKind != IngestionMapping.IngestionMappingKind.unknown) {
+                message += String.format("If IngestionMappingKind was defined ('%s'), mapping must be specified.", ingestionMappingKind);
+            }
+        }
+
+        if (dataFormat != null &&  dataFormat.isMappingRequired() && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+                message += String.format("Wrong ingestion mapping for format '%s'; found '%s' mapping kind.", dataFormat.name(), ingestionMappingKind.name());
+        }
+
+        if (message != null) {
+            log.error(message);
+            throw new IngestionClientException(message);
         }
     }
 
     public enum DataFormat {
-        csv(IngestionMapping.IngestionMappingKind.Csv, false),
-        tsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        scsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        sohsv(IngestionMapping.IngestionMappingKind.Csv, false),
-        psv(IngestionMapping.IngestionMappingKind.Csv, false),
-        txt(IngestionMapping.IngestionMappingKind.unknown, false),
-        tsve(IngestionMapping.IngestionMappingKind.Csv, false),
-        json(IngestionMapping.IngestionMappingKind.Json, true),
-        singlejson(IngestionMapping.IngestionMappingKind.Json, true),
-        multijson(IngestionMapping.IngestionMappingKind.Json, true),
-        avro(IngestionMapping.IngestionMappingKind.Avro, true),
-        apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false),
-        parquet(IngestionMapping.IngestionMappingKind.Parquet, false),
-        sstream(IngestionMapping.IngestionMappingKind.SStream, false),
-        orc(IngestionMapping.IngestionMappingKind.Orc, false),
-        raw(IngestionMapping.IngestionMappingKind.unknown, false),
-        w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false);
+        csv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        tsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        scsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        sohsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        psv(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        txt(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        tsve(IngestionMapping.IngestionMappingKind.Csv, false, true),
+        json(IngestionMapping.IngestionMappingKind.Json, true, true),
+        singlejson(IngestionMapping.IngestionMappingKind.Json, true, true),
+        multijson(IngestionMapping.IngestionMappingKind.Json, true, true),
+        avro(IngestionMapping.IngestionMappingKind.Avro, true, false),
+        apacheavro(IngestionMapping.IngestionMappingKind.ApacheAvro, false, true),
+        parquet(IngestionMapping.IngestionMappingKind.Parquet, false, false),
+        sstream(IngestionMapping.IngestionMappingKind.SStream, false, true),
+        orc(IngestionMapping.IngestionMappingKind.Orc, false, false),
+        raw(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false, true);
 
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
         private final boolean mappingRequired;
+        private final boolean compressible;
 
-        DataFormat(IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired) {
+        DataFormat(IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired, boolean compressible) {
             this.ingestionMappingKind = ingestionMappingKind;
             this.mappingRequired = mappingRequired;
+            this.compressible = compressible;
         }
 
         public IngestionMapping.IngestionMappingKind getIngestionMappingKind() {
@@ -324,6 +366,17 @@ public class IngestionProperties {
 
         public boolean isMappingRequired() {
             return mappingRequired;
+        }
+
+        public boolean isCompressible() {
+            return compressible;
+        }
+
+        public static IngestionProperties.DataFormat getDataFormatFromString(String ingestionPropertiesDataFormat) {
+            if (ingestionPropertiesDataFormat == null) {
+                return IngestionProperties.DataFormat.csv;
+            }
+            return IngestionProperties.DataFormat.valueOf(ingestionPropertiesDataFormat.toLowerCase());
         }
     }
 
