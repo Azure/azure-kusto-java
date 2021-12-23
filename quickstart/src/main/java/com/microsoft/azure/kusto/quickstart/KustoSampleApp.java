@@ -134,7 +134,7 @@ public class KustoSampleApp {
 
     private static void loadConfigs(String configFileName) {
         File configFile = new File(".\\" + configFileName);
-        Map<String, Object> configs = null;
+        Map<String, Object> configs;
         try {
             configs = new ObjectMapper().readValue(configFile, HashMap.class);
 
@@ -435,7 +435,7 @@ public class KustoSampleApp {
         IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
         ingestionProperties.setDataFormat(dataFormat);
         // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
-        if (StringUtils.isNotBlank(mappingName) && dataFormat != null) {
+        if (StringUtils.isNotBlank(mappingName)) {
             ingestionProperties.setIngestionMapping(mappingName, dataFormat.getIngestionMappingKind());
         }
         // TODO (config - optional): Setting the ingestion batching policy takes up to 5 minutes to take effect.

@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;

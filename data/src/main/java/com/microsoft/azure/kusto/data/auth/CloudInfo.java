@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -36,6 +35,7 @@ public class CloudInfo {
     public static final String LOCALHOST = "http://localhost";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
+
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
     }

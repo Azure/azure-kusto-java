@@ -9,7 +9,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
@@ -301,13 +300,13 @@ class QueuedIngestClientTest {
                             shouldCompress ? CompressionType.gz : compression);
                 };
         String csvNoCompression = genName.apply(DataFormat.csv, null);
-        assert(csvNoCompression.endsWith(".csv.gz"));
+        assert (csvNoCompression.endsWith(".csv.gz"));
 
         String csvCompression = genName.apply(DataFormat.csv, CompressionType.zip);
-        assert(csvCompression.endsWith(".csv.zip"));
+        assert (csvCompression.endsWith(".csv.zip"));
 
         String parquet = genName.apply(DataFormat.parquet, null);
-        assert(parquet.endsWith(".parquet"));
+        assert (parquet.endsWith(".parquet"));
 
         String avroLocalFileName = "avi.avro";
         String avroLocalCompressFileName = "avi.avro.gz";
@@ -315,11 +314,11 @@ class QueuedIngestClientTest {
         CompressionType compressionTypeRes2 = AzureStorageClient.getCompression(avroLocalCompressFileName);
         holder.name = avroLocalFileName;
         String avroName = genName.apply(DataFormat.avro, compressionTypeRes);
-        assert(avroName.endsWith(".avro.gz"));
+        assert (avroName.endsWith(".avro"));
 
         holder.name = avroLocalCompressFileName;
         String avroNameCompression = genName.apply(DataFormat.avro, compressionTypeRes2);
-        assert(avroNameCompression.endsWith(".avro.gz"));
+        assert (avroNameCompression.endsWith(".avro.gz"));
     }
 
     private ResultSet getSampleResultSet() throws SQLException {

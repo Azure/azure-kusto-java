@@ -66,7 +66,7 @@ public class AadAuthenticationHelperTest {
 
         aadAuthenticationHelper.initializeCloudInfo();
         aadAuthenticationHelper.setRequiredMembersBasedOnCloudInfo();
-        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelper.aadAuthorityUrl);
+        assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
         Assertions.assertThrows(DataServiceException.class,
                 aadAuthenticationHelper::acquireNewAccessToken);
@@ -127,7 +127,7 @@ public class AadAuthenticationHelperTest {
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
-        assertEquals("https://login.microsoftonline.com/organizations/",aadAuthenticationHelperSpy.aadAuthorityUrl);
+        assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelperSpy.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
 
 
