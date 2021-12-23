@@ -3,16 +3,16 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.format.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,15 +25,15 @@ import java.util.regex.Pattern;
  * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
 public class ClientRequestProperties {
-    private static final String OPTIONS_KEY = "Options";
-    private static final String PARAMETERS_KEY = "Parameters";
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
+    public static final Pattern PATTERN =
+            Pattern.compile("(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?(?:([0-5]?\\d))(:)(?:([0-5]?\\d))(?:(\\.)(\\d+))?",
+                    Pattern.CASE_INSENSITIVE);
+    private static final String OPTIONS_KEY = "Options";
+    private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
-    private static final Pattern PATTERN =
-            Pattern.compile("(?:(\\d+)\\.)?((?:[0-2]?\\d:)?(?:[0-5]?\\d):(?:[0-5]?\\d)(?:\\.\\d+)?)",
-                    Pattern.CASE_INSENSITIVE);
     static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toSeconds(1) * 1000;
 
     public ClientRequestProperties() {
@@ -59,6 +59,65 @@ public class ClientRequestProperties {
 
     public void setParameter(String name, Object value) {
         parameters.put(name, value);
+    }
+
+    public void setParameter(String name, String value) {
+        Ensure.stringIsNotBlank(name, "name");
+        Ensure.argIsNotNull(value, "value");
+
+        parameters.put(name, value);
+    }
+
+    public void setParameter(String name, Date value) {
+        Ensure.stringIsNotBlank(name, "name");
+        Ensure.argIsNotNull(value, "value");
+
+        parameters.put(name, new CslDateTimeFormat(value).toString());
+    }
+
+    public void setParameter(String name, LocalDateTime value) {
+        Ensure.stringIsNotBlank(name, "name");
+        Ensure.argIsNotNull(value, "value");
+
+        parameters.put(name, new CslDateTimeFormat(value).toString());
+    }
+
+    public void setParameter(String name, Duration value) {
+        Ensure.stringIsNotBlank(name, "name");
+        Ensure.argIsNotNull(value, "value");
+
+        parameters.put(name, new CslTimeFormat(value).toString());
+    }
+
+    public void setParameter(String name, boolean value) {
+        Ensure.stringIsNotBlank(name, "name");
+
+        parameters.put(name, new CslBoolFormat(value).toString());
+    }
+
+    public void setParameter(String name, int value) {
+        Ensure.stringIsNotBlank(name, "name");
+
+        parameters.put(name, new CslIntFormat(value).toString());
+    }
+
+    public void setParameter(String name, long value) {
+        Ensure.stringIsNotBlank(name, "name");
+
+        parameters.put(name, new CslLongFormat(value).toString());
+    }
+
+    public void setParameter(String name, double value) {
+        Ensure.stringIsNotBlank(name, "name");
+
+        parameters.put(name, new CslRealFormat(value).toString());
+    }
+
+    public void setParameter(String name, UUID value) {
+        Ensure.stringIsNotBlank(name, "name");
+        Ensure.argIsNotNull(value, "value");
+
+        parameters.put(name, new CslUuidFormat(value).toString());
     }
 
     public Object getParameter(String name) {
@@ -99,7 +158,13 @@ public class ClientRequestProperties {
             return MAX_TIMEOUT_MS;
         }
 
-        millis += TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(matcher.group(2)).toNanoOfDay());
+        String timespanWithoutDays = "";
+        for (int i = 3; i <= 9; i++) {
+            if (matcher.group(i) != null) {
+                timespanWithoutDays += matcher.group(i);
+            }
+        }
+        millis += TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(timespanWithoutDays).toNanoOfDay());
         return millis;
     }
 

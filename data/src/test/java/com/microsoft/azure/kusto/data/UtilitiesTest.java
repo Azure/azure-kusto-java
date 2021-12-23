@@ -6,8 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
-
-public class UtilitiesTest {
+class UtilitiesTest {
     @Test
     @DisplayName("Convert millis to .Net timespan")
     void convertMillisToTimespan() {
