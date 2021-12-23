@@ -19,7 +19,6 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,8 +30,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-
-import com.microsoft.azure.kusto.ingest.AzureStorageClient;
 
 public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 

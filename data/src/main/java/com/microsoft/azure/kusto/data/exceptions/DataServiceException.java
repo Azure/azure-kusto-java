@@ -21,10 +21,6 @@ public class DataServiceException extends KustoDataExceptionBase {
         }
 
         HttpResponse httpResponse = ((DataWebException) cause).getHttpResponse();
-        if (httpResponse == null) {
-            return false;
-        }
-
-        return httpResponse.getStatusLine().getStatusCode() == 404;
+        return httpResponse != null && httpResponse.getStatusLine().getStatusCode() == 404;
     }
 }

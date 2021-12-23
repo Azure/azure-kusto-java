@@ -88,7 +88,6 @@ class ManagedStreamingIngestClientTest {
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
     }
 
     @Test
