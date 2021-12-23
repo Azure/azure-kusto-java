@@ -99,7 +99,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             status.ingestionSourceId = ingestionBlobInfo.id;
             status.setIngestionSourcePath(urlWithoutSecrets);
             boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
-                && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
+                    && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
                 String tableStatusUri = resourceManager
@@ -146,21 +146,22 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             String filePath = fileSourceInfo.getFilePath();
             Ensure.fileExists(filePath);
             CompressionType sourceCompressionType = AzureStorageClient.getCompression(filePath);
-            boolean shouldCompress = AzureStorageClient.shouldCompress(sourceCompressionType, ingestionProperties.getDataFormat());
+            IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
+            boolean shouldCompress = IngestClientBase.shouldCompress(sourceCompressionType, dataFormat);
 
             File file = new File(filePath);
             String blobName = genBlobName(
                     file.getName(),
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    ingestionProperties.getDataFormat(),
+                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(filePath, IngestionProperties.DataFormat.valueOf(ingestionProperties.getDataFormat()));
+                    estimateFileRawSize(filePath, dataFormat.isCompressible());
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
@@ -192,13 +193,14 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             } else if (streamSourceInfo.getStream().available() <= 0) {
                 throw new IngestionClientException("The provided stream is empty.");
             }
-            boolean shouldCompress = AzureStorageClient.shouldCompress(streamSourceInfo.getCompressionType(), ingestionProperties.getDataFormat());
+            IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
+            boolean shouldCompress = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat);
 
             String blobName = genBlobName(
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    ingestionProperties.getDataFormat(),
+                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
@@ -226,11 +228,9 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         }
     }
 
-    private long estimateFileRawSize(String filePath, IngestionProperties.DataFormat format) {
+    private long estimateFileRawSize(String filePath, boolean isCompressible) {
         long fileSize = new File(filePath).length();
-        return (AzureStorageClient.getCompression(filePath) != null
-                || format == IngestionProperties.DataFormat.parquet
-                || format == IngestionProperties.DataFormat.orc) ?
+        return (AzureStorageClient.getCompression(filePath) != null || !isCompressible) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
@@ -239,7 +239,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 databaseName,
                 tableName,
                 AzureStorageClient.removeExtension(fileName),
-                UUID.randomUUID().toString(),
+                UUID.randomUUID(),
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);
     }

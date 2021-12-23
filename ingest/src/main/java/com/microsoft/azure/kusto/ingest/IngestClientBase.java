@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -57,4 +58,8 @@ public abstract class IngestClientBase {
     protected abstract String retrieveServiceType() throws IngestionServiceException, IngestionClientException;
 
     protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
+
+    static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
+        return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
+    }
 }
