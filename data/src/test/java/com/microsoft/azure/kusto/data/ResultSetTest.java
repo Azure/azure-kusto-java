@@ -2,14 +2,19 @@ package com.microsoft.azure.kusto.data;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.*;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.TimeZone;
 import java.util.UUID;
 
 public class ResultSetTest {
@@ -81,16 +86,18 @@ public class ResultSetTest {
 
         res.next();
         Assertions.assertTrue(res.getBooleanObject(0));
-        Assertions.assertEquals(res.getString(1),str);
+        Assertions.assertEquals(res.getString(1), str);
         Assertions.assertEquals(res.getTimestamp(2), Timestamp.valueOf(now.atZone(ZoneId.of("UTC")).toLocalDateTime()));
-        Assertions.assertEquals(new Date(now.getEpochSecond() * 1000).toString(), res.getDate(2).toString());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Assertions.assertEquals(sdf.format(new Date(now.getEpochSecond() * 1000)), res.getDate(2).toString());
 
         Assertions.assertEquals(res.getBigDecimal(3), dec);
         Assertions.assertEquals(res.getJSONObject(4).toString(), new JSONObject().toString());
         Assertions.assertEquals(res.getUUID(5), uuid);
         Assertions.assertEquals(res.getIntegerObject(6), i);
         Assertions.assertEquals(res.getLongObject(7), l);
-        Assertions.assertEquals(res.getDoubleObject(8),d);
+        Assertions.assertEquals(res.getDoubleObject(8), d);
 
         Assertions.assertEquals(res.getTime(9), Time.valueOf(durationAsKustoString));
         Assertions.assertEquals(res.getLocalTime(9), LocalTime.parse(durationAsKustoString));

@@ -16,26 +16,15 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -49,11 +38,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -74,14 +59,14 @@ class E2ETest {
 
     @BeforeAll
     public static void setUp() throws IOException {
-         appKey = System.getenv("APP_KEY");
-         if (appKey == null) {
-             String secretPath = System.getProperty("SecretPath");
-             if (secretPath == null) {
-                 throw new IllegalArgumentException("SecretPath is not set");
-             }
-             appKey= Files.readAllLines(Paths.get(secretPath)).get(0);
-         }
+        appKey = System.getenv("APP_KEY");
+        if (appKey == null) {
+            String secretPath = System.getProperty("SecretPath");
+            if (secretPath == null) {
+                throw new IllegalArgumentException("SecretPath is not set");
+            }
+            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
+        }
 
 
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime());
@@ -130,7 +115,6 @@ class E2ETest {
 
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
-            Thread.sleep(2000);
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString));
@@ -259,7 +243,7 @@ class E2ETest {
             result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
             //result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
-            Assertions.fail("Failed to execute show database principal command", ex);
+            Assertions.fail("Failed to execute show database principals command", ex);
         }
         KustoResultSetTable mainTableResultSet = result.getPrimaryResults();
         while (mainTableResultSet.next()) {
@@ -398,6 +382,7 @@ class E2ETest {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
+        assertNotNull(cloudInfo);
         assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 
