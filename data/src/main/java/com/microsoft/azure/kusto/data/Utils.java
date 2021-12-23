@@ -3,7 +3,10 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
@@ -34,7 +37,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
 
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
@@ -67,11 +69,9 @@ class Utils {
                     throw createExceptionFromResponse(url, response, null, responseContent);
                 }
             }
-        }
-        catch (SocketTimeoutException e) {
+        } catch (SocketTimeoutException e) {
             throw new DataServiceException(url, "Timed out in post request:" + e.getMessage(), false);
-        }
-        catch (JSONException | IOException e) {
+        } catch (JSONException | IOException e) {
             throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
         }
         return null;
@@ -155,7 +155,7 @@ class Utils {
              */
             String activityId = determineActivityId(httpResponse);
             if (!StringUtils.isBlank(errorFromResponse)) {
-                String message = "";
+                String message;
                 DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
                 try {
                     message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
@@ -165,6 +165,9 @@ class Utils {
                 }
             }
             errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
+            if (thrownException == null) {
+                thrownException = new DataWebException(errorFromResponse, httpResponse);
+            }
             return new DataServiceException(url, errorFromResponse, thrownException, false);
 
         }
@@ -263,7 +266,7 @@ class Utils {
         long seconds = duration.getSeconds();
         int nanos = duration.getNano();
         long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
-        long minutes = TimeUnit.SECONDS.toMinutes( seconds) % TimeUnit.MINUTES.toSeconds(1);
+        long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
         long secs = seconds % TimeUnit.HOURS.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
         String positive = String.format(

@@ -177,7 +177,20 @@ class AzureStorageClient {
         if (fileName.endsWith(".zip")) {
             return CompressionType.zip;
         }
-
         return null;
+    }
+
+    static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf('\\');
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
     }
 }

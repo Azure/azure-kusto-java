@@ -238,8 +238,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
+                AzureStorageClient.removeExtension(fileName),
                 UUID.randomUUID(),
-                fileName,
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);
     }
@@ -252,7 +252,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
-        ingestionProperties.validate();
+        ingestionProperties.validateResultSetProperties();
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);

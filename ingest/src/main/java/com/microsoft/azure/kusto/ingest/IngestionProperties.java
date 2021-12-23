@@ -43,6 +43,7 @@ public class IngestionProperties {
      * <p>{@code reportMethod} : {@code IngestionReportMethod.Queue;}</p>
      * <p>{@code flushImmediately} : {@code false;}</p>
      * <p>{@code additionalProperties} : {@code new HashMap();}</p>
+     * <p>{@code dataFormat} : {@code DataFormat.csv;}</p>
      * </blockquote>
      *
      * @param databaseName the name of the database in the destination Kusto cluster.
@@ -60,10 +61,12 @@ public class IngestionProperties {
         this.ingestIfNotExists = new ArrayList<>();
         this.additionalTags = new ArrayList<>();
         this.ingestionMapping = new IngestionMapping();
+        this.dataFormat = DataFormat.csv;
     }
 
     /**
      * Copy constructor for {@code IngestionProperties}.
+     *
      * @param other the instance to copy from.
      */
     public IngestionProperties(IngestionProperties other) {
@@ -72,6 +75,7 @@ public class IngestionProperties {
         this.reportLevel = other.reportLevel;
         this.reportMethod = other.reportMethod;
         this.flushImmediately = other.flushImmediately;
+        this.dataFormat = other.getDataFormat();
         this.additionalProperties = new HashMap<>(other.additionalProperties);
         this.dropByTags = new ArrayList<>(other.dropByTags);
         this.ingestByTags = new ArrayList<>(other.ingestByTags);
@@ -207,10 +211,7 @@ public class IngestionProperties {
             fullAdditionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson);
         }
         fullAdditionalProperties.putAll(additionalProperties);
-
-        if (dataFormat != null) {
-            fullAdditionalProperties.put("format", dataFormat.name());
-        }
+        fullAdditionalProperties.put("format", dataFormat.name());
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         if (StringUtils.isNotBlank(mappingReference)) {
@@ -247,13 +248,13 @@ public class IngestionProperties {
     }
 
     /**
-     * Returns the DataFormat if it exists, and otherwise defaults to CSV
+     * Returns the DataFormat
      *
-     * @return The DataFormat if it exists, and otherwise defaults to CSV
+     * @return The DataFormat
      */
     @NotNull
     public DataFormat getDataFormat() {
-        return dataFormat != null ? dataFormat : DataFormat.csv;
+        return dataFormat;
     }
 
     /**
@@ -312,7 +313,7 @@ public class IngestionProperties {
                 }
             }
         } else if (StringUtils.isBlank(mappingReference)) {
-            if (dataFormat != null && dataFormat.isMappingRequired()) {
+            if (dataFormat.isMappingRequired()) {
                 message += String.format("Mapping must be specified for '%s' format.", dataFormat.name());
             }
 
@@ -321,14 +322,21 @@ public class IngestionProperties {
             }
         }
 
-        if (dataFormat != null &&  dataFormat.isMappingRequired() && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message += String.format("Wrong ingestion mapping for format '%s'; found '%s' mapping kind.", dataFormat.name(), ingestionMappingKind.name());
+        if (dataFormat.isMappingRequired() && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+            message += String.format("Wrong ingestion mapping for format '%s'; found '%s' mapping kind.", dataFormat.name(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
         }
 
         if (message != null) {
             log.error(message);
             throw new IngestionClientException(message);
         }
+    }
+
+    public void validateResultSetProperties() throws IngestionClientException {
+        Ensure.isTrue(IngestionProperties.DataFormat.csv.equals(getDataFormat()),
+                String.format("ResultSet translates into csv format but '%s' was given", getDataFormat()));
+
+        validate();
     }
 
     public enum DataFormat {
@@ -370,13 +378,6 @@ public class IngestionProperties {
 
         public boolean isCompressible() {
             return compressible;
-        }
-
-        public static IngestionProperties.DataFormat getDataFormatFromString(String ingestionPropertiesDataFormat) {
-            if (ingestionPropertiesDataFormat == null) {
-                return IngestionProperties.DataFormat.csv;
-            }
-            return IngestionProperties.DataFormat.valueOf(ingestionPropertiesDataFormat.toLowerCase());
         }
     }
 

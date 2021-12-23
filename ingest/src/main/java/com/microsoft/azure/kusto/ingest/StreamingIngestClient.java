@@ -7,7 +7,6 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -96,7 +95,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         resultSetSourceInfo.validate();
-        ingestionProperties.validate();
+        ingestionProperties.validateResultSetProperties();
+
         try {
             StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
@@ -117,7 +117,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         streamSourceInfo.validate();
         ingestionProperties.validate();
         if (dataFormat.isMappingRequired() && StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
-            throw new IngestionClientException(String.format("Mapping reference must be specified for streaming ingestion.", dataFormat.name()));
+            throw new IngestionClientException(String.format("Mapping reference must be specified for DataFormat '%s' in streaming ingestion.", dataFormat.name()));
         }
 
         try {
@@ -133,12 +133,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
-            if (e.getCause() instanceof DataWebException && "Error in post request".equals(e.getMessage())) {
-                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
-            }
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
+            if (e.is404Error()) {
+                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
+            }
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
