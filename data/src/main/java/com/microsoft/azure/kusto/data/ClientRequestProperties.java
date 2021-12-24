@@ -28,7 +28,7 @@ public class ClientRequestProperties {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
     public static final Pattern PATTERN =
-            Pattern.compile("(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?(?:([0-5]?\\d))(:)(?:([0-5]?\\d))(?:(\\.)(\\d+))?",
+            Pattern.compile("(-?)(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?([0-5]?\\d)(:)([0-5]?\\d)(?:(\\.)(\\d+))?",
                     Pattern.CASE_INSENSITIVE);
     private static final String OPTIONS_KEY = "Options";
     private static final String PARAMETERS_KEY = "Parameters";
@@ -149,17 +149,20 @@ public class ClientRequestProperties {
     private long parseTimeoutFromTimespanString(String str) throws ParseException {
         Matcher matcher = PATTERN.matcher(str);
         if (!matcher.matches()) {
-            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", str));
+            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 
+        if ("-".equals(matcher.group(1))) {
+            throw new IllegalArgumentException(String.format("Negative timeouts are invalid. Value: '%s'", str));
+        }
         long millis = 0;
-        String days = matcher.group(1);
+        String days = matcher.group(2);
         if (days != null && !days.equals("0")) {
             return MAX_TIMEOUT_MS;
         }
 
         String timespanWithoutDays = "";
-        for (int i = 3; i <= 9; i++) {
+        for (int i = 4; i <= 10; i++) {
             if (matcher.group(i) != null) {
                 timespanWithoutDays += matcher.group(i);
             }

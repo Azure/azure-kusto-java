@@ -22,6 +22,7 @@ public class CslTimeFormat extends CslFormat {
     }
 
     public CslTimeFormat(String value) {
+        Duration absoluteDuration;
         if (StringUtils.isBlank(value)) {
             this.value = null;
         } else {
@@ -31,19 +32,24 @@ public class CslTimeFormat extends CslFormat {
             }
 
             long nanos = 0;
-            String days = matcher.group(1);
+            String days = matcher.group(2);
             if (days != null && !days.equals("0")) {
                 nanos = TimeUnit.DAYS.toNanos(Integer.parseInt(days));
             }
 
             String timespanWithoutDays = "";
-            for (int i = 3; i <= 9; i++) {
+            for (int i = 4; i <= 10; i++) {
                 if (matcher.group(i) != null) {
                     timespanWithoutDays += matcher.group(i);
                 }
             }
             nanos += LocalTime.parse(timespanWithoutDays).toNanoOfDay();
-            this.value = Duration.ofNanos(nanos);
+            absoluteDuration = Duration.ofNanos(nanos);
+            if ("-".equals(matcher.group(1))) {
+                this.value = absoluteDuration.minus(absoluteDuration).minus(absoluteDuration);
+            } else {
+                this.value = absoluteDuration;
+            }
         }
     }
 
