@@ -26,7 +26,7 @@ public class CslTimeFormat extends CslFormat {
         if (StringUtils.isBlank(value)) {
             this.value = null;
         } else {
-            Matcher matcher = ClientRequestProperties.PATTERN.matcher(value);
+            Matcher matcher = ClientRequestProperties.KUSTO_TIME_REGEX.matcher(value);
             if (!matcher.matches()) {
                 throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", value));
             }
