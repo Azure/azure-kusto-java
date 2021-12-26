@@ -308,7 +308,7 @@ public class IngestionProperties {
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        String message = null;
+        String message = "";
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
             if (dataFormat.isMappingRequired()) {
@@ -345,7 +345,7 @@ public class IngestionProperties {
             }
         }
 
-        if (message != null) {
+        if (!message.equals("")) {
             log.error(message);
             throw new IngestionClientException(message);
         }
