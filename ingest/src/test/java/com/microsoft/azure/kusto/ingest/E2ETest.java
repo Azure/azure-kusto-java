@@ -390,6 +390,45 @@ class E2ETest {
     }
 
     @Test
+    void testParameterizedQuery() throws DataServiceException, DataClientException {
+        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
+
+        TestDataItem item = new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        };
+
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        try {
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+        } catch (Exception ex) {
+            Assertions.fail(ex);
+        }
+        assertRowCount(item.rows, false);
+
+        ClientRequestProperties crp = new ClientRequestProperties();
+        crp.setParameter("xdoubleParam", 2.0002);
+        crp.setParameter("xboolParam", false);
+        crp.setParameter("xint16Param", 2);
+        crp.setParameter("xint64Param", 2L);
+        crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
+        crp.setParameter("xtextParam", "Two");
+        crp.setParameter("xtimeParam", new CslTimeFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
+
+        String query = String.format("declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam", tableName);
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
+        KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
+        mainTableResult.next();
+        String results = mainTableResult.getString(13);
+        assertEquals("Two", results);
+    }
+
+    @Test
     void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case

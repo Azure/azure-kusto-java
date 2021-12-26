@@ -44,11 +44,10 @@ public class CslTimeFormat extends CslFormat {
                 }
             }
             nanos += LocalTime.parse(timespanWithoutDays).toNanoOfDay();
-            absoluteDuration = Duration.ofNanos(nanos);
             if ("-".equals(matcher.group(1))) {
-                this.value = absoluteDuration.minus(absoluteDuration).minus(absoluteDuration);
+                this.value = Duration.ofNanos(nanos).negated();
             } else {
-                this.value = absoluteDuration;
+                this.value = Duration.ofNanos(nanos);
             }
         }
     }
@@ -68,12 +67,16 @@ public class CslTimeFormat extends CslFormat {
         Ensure.argIsNotNull(value, "value");
 
         String result = "";
-        Duration valueWithoutDays = value;
-        if (value.toDays() > 0) {
-            result += value.toDays() + ".";
-            valueWithoutDays = value.minusDays(value.toDays());
+        Duration valueWithoutDays = value.isNegative() ? value.negated() : value;
+        if (valueWithoutDays.toDays() > 0) {
+            result += valueWithoutDays.toDays() + ".";
+            valueWithoutDays = valueWithoutDays.minusDays(valueWithoutDays.toDays());
         }
         result += LocalTime.MIDNIGHT.plus(valueWithoutDays).format(DATE_TIME_FORMATTER);
+        if (value.isNegative()) {
+            result = "-" + result;
+        }
+
         return result;
     }
 }

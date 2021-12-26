@@ -12,7 +12,7 @@ import java.util.Date;
 public class CslDateTimeFormat extends CslFormat {
     public static final String KUSTO_DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'";
     public static final String KUSTO_DATETIME_PATTERN_NO_FRACTIONS = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN).withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN).withZone(ZoneId.of("UTC"));
 
     private final LocalDateTime value;
 
@@ -60,6 +60,6 @@ public class CslDateTimeFormat extends CslFormat {
     String getValueAsString() {
         Ensure.argIsNotNull(value, "value");
 
-        return value.format(dtf);
+        return value.format(DATE_TIME_FORMATTER);
     }
 }
