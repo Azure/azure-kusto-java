@@ -51,8 +51,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     public static String generateEngineUriSuggestion(URIBuilder existingEndpoint) {
-        if (!existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
-            throw new IllegalArgumentException("The URI is already an engine URI");
+        if (!existingEndpoint.getHost().toLowerCase().startsWith(IngestClientBase.INGEST_PREFIX)) {
+            throw new IllegalArgumentException("The URL is already formatted as the suggested Engine endpoint, so no suggestion can be made");
         }
 
         existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
@@ -235,7 +235,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    protected String amendEndpointUri(URIBuilder existingEndpoint) {
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
         return generateEngineUriSuggestion(existingEndpoint);
     }
 

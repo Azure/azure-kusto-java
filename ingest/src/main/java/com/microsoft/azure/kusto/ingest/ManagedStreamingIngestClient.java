@@ -55,6 +55,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param dmConnectionString dm connection string
      * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
@@ -68,6 +69,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param engineConnectionString engine connection string
      * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);

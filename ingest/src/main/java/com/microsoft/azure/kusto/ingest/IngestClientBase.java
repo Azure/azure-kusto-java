@@ -46,12 +46,11 @@ public abstract class IngestClientBase {
             URIBuilder existingEndpoint;
             try {
                 existingEndpoint = new URIBuilder(dataSource);
-                endpointUriToSuggestStr = amendEndpointUri(existingEndpoint);
+                endpointUriToSuggestStr = emendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
                 log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
-            }
-            catch (IllegalArgumentException e) {
-                log.error("URI is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
+            } catch (IllegalArgumentException e) {
+                log.error("URL is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
             }
         }
 
@@ -60,5 +59,5 @@ public abstract class IngestClientBase {
 
     protected abstract String retrieveServiceType() throws IngestionServiceException, IngestionClientException;
 
-    protected abstract String amendEndpointUri(URIBuilder existingEndpoint);
+    protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
 }

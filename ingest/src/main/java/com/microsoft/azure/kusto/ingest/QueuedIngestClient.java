@@ -60,7 +60,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().startsWith(INGEST_PREFIX))
+        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX))
         {
             throw new IllegalArgumentException("The URI is already a DM URI");
         }
@@ -278,7 +278,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    protected String amendEndpointUri(URIBuilder existingEndpoint) {
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
         return generateDmUriSuggestion(existingEndpoint);
     }
 
