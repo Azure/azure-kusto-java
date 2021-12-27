@@ -62,7 +62,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
         if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX))
         {
-            throw new IllegalArgumentException("The URI is already a DM URI");
+            throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
         }
         existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
         return existingEndpoint.toString();
