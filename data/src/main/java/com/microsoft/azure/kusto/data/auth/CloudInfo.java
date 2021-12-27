@@ -2,8 +2,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -37,6 +35,7 @@ public class CloudInfo {
     public static final String LOCALHOST = "http://localhost";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
+
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
     }
@@ -57,15 +56,20 @@ public class CloudInfo {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) {
+    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) throws URISyntaxException {
         synchronized (cache) {
-            cache.put(StringUtils.stripEnd(clusterUrl, "/"), cloudInfo);
+            cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfo);
         }
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
         synchronized (cache) {
-            CloudInfo cloudInfo = cache.get(StringUtils.stripEnd(clusterUrl, "/"));
+            CloudInfo cloudInfo;
+            try {
+                cloudInfo = cache.get(UriUtils.setPathForUri(clusterUrl, ""));
+            } catch (URISyntaxException ex) {
+                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true);
+            }
             if (cloudInfo != null) {
                 return cloudInfo;
             }

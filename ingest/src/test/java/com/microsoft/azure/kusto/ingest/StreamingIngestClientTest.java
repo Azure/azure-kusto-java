@@ -16,6 +16,9 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,7 +67,6 @@ class StreamingIngestClientTest {
     @BeforeEach
     void setUpEach() throws Exception {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-
         when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
 
@@ -242,7 +244,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'json' format."));
     }
 
     @Test
@@ -255,7 +257,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; found 'Csv' mapping kind."));
     }
 
     @Test
@@ -266,7 +268,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for avro format."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'avro' format."));
     }
 
     @Test
@@ -278,7 +280,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format avro, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'avro'; found 'Csv' mapping kind."));
     }
 
     @Test
@@ -330,8 +332,9 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
-        DataClientException dataClientException = new DataClientException("some cluster", "Error in post request",
-                new DataWebException("Error in post request", null));
+        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404",
+                new DataWebException("Error in post request", new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), 404, "Not found"))),
+                true);
         doThrow(dataClientException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()), eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
         when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult("{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}", "v1"));
 
@@ -463,7 +466,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'json' format."));
     }
 
     @Test
@@ -476,7 +479,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; found 'Csv' mapping kind."));
     }
 
     @Test

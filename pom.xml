@@ -66,7 +66,7 @@
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
         <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
-        <junit.version>5.7.1</junit.version>
+        <junit.version>5.8.1</junit.version>
         <mockito.version>3.7.7</mockito.version>
     </properties>
 
