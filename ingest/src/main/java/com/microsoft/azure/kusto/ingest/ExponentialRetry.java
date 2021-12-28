@@ -44,7 +44,8 @@ public class ExponentialRetry {
         try {
             Thread.sleep((long)sleepMs);
         } catch (InterruptedException e) {
-            throw new RuntimeException("Interrupted while sleeping");
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while sleeping", e);
         }
         currentAttempt++;
 
