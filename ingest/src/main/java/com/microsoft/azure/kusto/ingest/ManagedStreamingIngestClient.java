@@ -175,6 +175,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
+        // NOTE: ByteArrayInputStream's close method is a no-op, so we don't need to close it.
         ByteArrayInputStream byteArrayStream = new ByteArrayInputStream(streamingBytes);
 
         if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
@@ -200,7 +201,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBaseSecs(),
                 exponentialRetryTemplate.getMaxJitterSecs());
         try {
-            while (retry.shouldTry()) {
+            do {
                 try {
                     log.info("Streaming ingest attempt {}", retry.getCurrentAttempt());
                     String clientRequestId = String.format("KJC.executeManagedStreamingIngest;%s;%d", sourceId,
@@ -226,7 +227,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
                     log.info(String.format("Streaming ingestion failed, trying again after sleep of %s +~ %s seconds", retry.getCurrentSleepSecs(),
                             retry.getMaxJitterSecs()), e);
-                    retry.doBackoff();
 
                     try {
                         managedSourceInfo.getStream().reset();
@@ -234,7 +234,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         throw new IngestionClientException("Failed to reset stream", ioException);
                     }
                 }
-            }
+            } while (retry.doBackoff());
 
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         } finally {

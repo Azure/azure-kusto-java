@@ -37,15 +37,7 @@ public class ExponentialRetry {
         return currentAttempt;
     }
 
-    public boolean shouldTry() {
-        return currentAttempt < maxAttempts;
-    }
-
-    public void doBackoff(){
-        if (!shouldTry()) {
-            throw new IllegalStateException("Max attempts exceeded");
-        }
-
+    public boolean doBackoff(){
         double sleepTime = getCurrentSleepSecs();
         double jitter = (float)Math.random() * maxJitterSecs;
         double sleepMs = (sleepTime + jitter) * 1000;
@@ -55,6 +47,8 @@ public class ExponentialRetry {
             throw new RuntimeException("Interrupted while sleeping");
         }
         currentAttempt++;
+
+        return currentAttempt < maxAttempts;
     }
 
 
