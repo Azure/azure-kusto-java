@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 public class ClientRequestProperties {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
-    public static final Pattern KUSTO_TIME_REGEX =
+    public static final Pattern KUSTO_TIMESPAN_REGEX =
             Pattern.compile("(-?)(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?([0-5]?\\d)(:)([0-5]?\\d)(?:(\\.)(\\d+))?",
                     Pattern.CASE_INSENSITIVE);
     private static final String OPTIONS_KEY = "Options";
@@ -86,7 +86,7 @@ public class ClientRequestProperties {
         Ensure.stringIsNotBlank(name, "name");
         Ensure.argIsNotNull(value, "value");
 
-        parameters.put(name, new CslTimeFormat(value).toString());
+        parameters.put(name, new CslTimespanFormat(value).toString());
     }
 
     public void setParameter(String name, boolean value) {
@@ -147,7 +147,7 @@ public class ClientRequestProperties {
     }
 
     private long parseTimeoutFromTimespanString(String str) throws ParseException {
-        Matcher matcher = KUSTO_TIME_REGEX.matcher(str);
+        Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
             throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }

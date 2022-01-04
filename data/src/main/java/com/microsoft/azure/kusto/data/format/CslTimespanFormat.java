@@ -11,22 +11,21 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
-public class CslTimeFormat extends CslFormat {
-    public static final String KUSTO_TIME_PATTERN = "HH:mm:ss.SSSSSSS";
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(KUSTO_TIME_PATTERN);
+public class CslTimespanFormat extends CslFormat {
+    public static final String KUSTO_TIMESPAN_PATTERN = "HH:mm:ss.SSSSSSS";
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(KUSTO_TIMESPAN_PATTERN);
 
     private final Duration value;
 
-    public CslTimeFormat(Duration value) {
+    public CslTimespanFormat(Duration value) {
         this.value = value;
     }
 
-    public CslTimeFormat(String value) {
-        Duration absoluteDuration;
+    public CslTimespanFormat(String value) {
         if (StringUtils.isBlank(value)) {
             this.value = null;
         } else {
-            Matcher matcher = ClientRequestProperties.KUSTO_TIME_REGEX.matcher(value);
+            Matcher matcher = ClientRequestProperties.KUSTO_TIMESPAN_REGEX.matcher(value);
             if (!matcher.matches()) {
                 throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", value));
             }

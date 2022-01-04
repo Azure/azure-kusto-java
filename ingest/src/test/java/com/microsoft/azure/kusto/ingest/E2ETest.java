@@ -12,7 +12,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
-import com.microsoft.azure.kusto.data.format.CslTimeFormat;
+import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -418,7 +418,7 @@ class E2ETest {
         crp.setParameter("xint64Param", 2L);
         crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
         crp.setParameter("xtextParam", "Two");
-        crp.setParameter("xtimeParam", new CslTimeFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
+        crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
 
         String query = String.format("declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam", tableName);
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);

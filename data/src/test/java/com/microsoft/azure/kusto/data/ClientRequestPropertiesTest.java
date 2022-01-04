@@ -4,7 +4,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
-import com.microsoft.azure.kusto.data.format.CslTimeFormat;
+import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import org.json.JSONException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -174,9 +174,30 @@ class ClientRequestPropertiesTest {
     }
 
     @Test
-    void testCreateCslTimeFormatFromString() {
+    void testCreateCslDateTimeFormatFromStringWithTypeAndValue() {
+        String localDateTimeString = "datetime( 2024-09-29T08:28:54.5440000Z)";
+        String result = new CslDateTimeFormat(localDateTimeString).toString();
+        Assertions.assertEquals("datetime(2024-09-29T08:28:54.5440000Z)", result);
+    }
+
+    @Test
+    void testCreateCslDateTimeFormatFromStringWithJustYear() {
+        String localDateTimeString = "datetime( 2024)";
+        String result = new CslDateTimeFormat(localDateTimeString).toString();
+        Assertions.assertEquals("datetime(2024-01-01T00:00:00.0000000Z)", result);
+    }
+
+    @Test
+    void testCreateCslDateTimeFormatFromStringWithStringLiteral() {
+        String localDateTimeString = "h\\\"2024-09-29T08:28:54.5440000Z\\\"";
+        String result = new CslDateTimeFormat(localDateTimeString).toString();
+        Assertions.assertEquals("datetime(2024-09-29T08:28:54.5440000Z)", result);
+    }
+
+    @Test
+    void testCreateCslTimespanFormatFromString() {
         String timeString = "23:59:35.9853375";
-        String result = new CslTimeFormat(timeString).toString();
+        String result = new CslTimespanFormat(timeString).toString();
         Assertions.assertEquals("time(" + timeString + ")", result);
     }
 }
