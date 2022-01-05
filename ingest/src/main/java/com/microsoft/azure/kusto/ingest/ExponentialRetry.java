@@ -1,16 +1,24 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
+
 public class ExponentialRetry {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
     private final int maxAttempts;
     double sleepBaseSecs;
     double maxJitterSecs;
-    private int currentAttempt;
 
     public ExponentialRetry(int maxAttempts) {
         this.maxAttempts = maxAttempts;
         this.sleepBaseSecs = 1.0;
         this.maxJitterSecs = 1.0;
-        this.currentAttempt = 0;
     }
 
     public ExponentialRetry(ExponentialRetry other) {
@@ -19,30 +27,36 @@ public class ExponentialRetry {
         this.maxJitterSecs = other.maxJitterSecs;
     }
 
-    private double getCurrentSleepSecs() {
-        return sleepBaseSecs * (float) Math.pow(2, currentAttempt);
-    }
+    public <T> T execute(KustoCheckedFunction<Integer, T> function) throws IngestionClientException, IngestionServiceException {
+        for (int currentAttempt = 0; currentAttempt < maxAttempts; currentAttempt++) {
+            log.info("Attempt {}", currentAttempt);
 
-    public int getCurrentAttempt() {
-        return currentAttempt;
-    }
+            try {
+                T result = function.apply(currentAttempt);
+                if (result != null) {
+                    return result;
+                }
+            }
+            catch (Exception e) {
+                log.error("Error is permanent, stopping", e);
+                throw e;
+            }
 
-    public String nextTimeToSleep() {
-        return String.format("%s +~ %s seconds", getCurrentSleepSecs(), maxJitterSecs);
-    }
+            double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
 
-    public boolean doBackoff() {
-        double jitterSecs = (float) Math.random() * maxJitterSecs;
-        double sleepMs = (getCurrentSleepSecs() + jitterSecs) * 1000;
-        try {
-            Thread.sleep((long) sleepMs);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while sleeping", e);
+            log.info("Operation failed, trying again after sleep of %{} +~ %{} seconds", currentSleepSecs, maxJitterSecs);
+
+            double jitterSecs = (float) Math.random() * maxJitterSecs;
+            double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
+            try {
+                Thread.sleep((long) sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while sleeping", e);
+            }
         }
-        currentAttempt++;
 
-        return currentAttempt < maxAttempts;
+        return null;
     }
 
 

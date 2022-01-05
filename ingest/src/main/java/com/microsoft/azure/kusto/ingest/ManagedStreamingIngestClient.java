@@ -197,12 +197,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
 
         ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+
+        UUID finalSourceId = sourceId;
         try {
-            do {
+            IngestionResult result = retry.execute(currentAttempt -> {
                 try {
-                    log.info("Streaming ingest attempt {}", retry.getCurrentAttempt());
-                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest;%s;%d", sourceId,
-                            retry.getCurrentAttempt());
+                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest;%s;%d", finalSourceId, currentAttempt);
                     return streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, clientRequestId);
                 } catch (Exception e) {
                     if (e instanceof IngestionServiceException
@@ -214,7 +214,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         try {
                             OneApiError oneApiError = webException.getApiError();
                             if (oneApiError.isPermanent()) {
-                                log.error("Error is permanent, stopping.");
                                 throw e;
                             }
                         } catch (JSONException je) {
@@ -222,7 +221,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         }
                     }
 
-                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s", retry.nextTimeToSleep()), e);
+                    log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
 
                     try {
                         managedSourceInfo.getStream().reset();
@@ -230,7 +229,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         throw new IngestionClientException("Failed to reset stream", ioException);
                     }
                 }
-            } while (retry.doBackoff());
+                return null;
+            });
+
+            if (result != null) {
+                return result;
+            }
 
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         } finally {
