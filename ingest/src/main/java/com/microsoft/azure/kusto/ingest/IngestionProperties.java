@@ -319,9 +319,7 @@ public class IngestionProperties {
                 message += String.format("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
             }
         } else { // a mapping was provided
-            if (dataFormat.getIngestionMappingKind() == null) {
-                message += String.format("Data format '%s' does not support mappings", dataFormat.name());
-            } else if (!dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+            if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
                 message += String.format("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
                         dataFormat.name(), dataFormat.getIngestionMappingKind(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
             }
