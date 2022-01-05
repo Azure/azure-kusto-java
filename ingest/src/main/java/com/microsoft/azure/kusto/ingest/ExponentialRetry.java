@@ -32,8 +32,8 @@ public class ExponentialRetry {
     }
 
     public boolean doBackoff() {
-        double jitterSeconds = (float) Math.random() * maxJitterSecs;
-        double sleepMs = (getCurrentSleepSecs() + jitterSeconds) * 1000;
+        double jitterSecs = (float) Math.random() * maxJitterSecs;
+        double sleepMs = (getCurrentSleepSecs() + jitterSecs) * 1000;
         try {
             Thread.sleep((long) sleepMs);
         } catch (InterruptedException e) {
