@@ -362,7 +362,7 @@ public class IngestionProperties {
         scsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
         sohsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
         psv(IngestionMapping.IngestionMappingKind.Csv, false, true),
-        txt(null, false, true),
+        txt(IngestionMapping.IngestionMappingKind.Csv, false, true),
         tsve(IngestionMapping.IngestionMappingKind.Csv, false, true),
         json(IngestionMapping.IngestionMappingKind.Json, true, true),
         singlejson(IngestionMapping.IngestionMappingKind.Json, true, true),
@@ -372,7 +372,7 @@ public class IngestionProperties {
         parquet(IngestionMapping.IngestionMappingKind.Parquet, false, false),
         sstream(IngestionMapping.IngestionMappingKind.SStream, false, true),
         orc(IngestionMapping.IngestionMappingKind.Orc, false, false),
-        raw(null, false, true),
+        raw(IngestionMapping.IngestionMappingKind.Csv, false, true),
         w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false, true);
 
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
