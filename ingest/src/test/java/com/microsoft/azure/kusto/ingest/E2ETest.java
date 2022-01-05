@@ -425,7 +425,7 @@ class E2ETest {
         // Specialized use case - API streams raw json for performance
         stopWatch.reset();
         stopWatch.start();
-        // Note: The InputStream *must* be closed by the caller to prevent memory leaks
+        // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
              BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();

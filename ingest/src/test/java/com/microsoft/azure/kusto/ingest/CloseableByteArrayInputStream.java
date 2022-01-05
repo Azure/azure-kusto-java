@@ -4,7 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
-// NOTE: ByteArrayInputStream's close method is a no-op, this class makes reading after close into an error, for test purposes
+// ByteArrayInputStream's close method is a no-op, this class makes reading after close into an error, for test purposes
 public class CloseableByteArrayInputStream extends java.io.ByteArrayInputStream {
     private boolean closed;
 

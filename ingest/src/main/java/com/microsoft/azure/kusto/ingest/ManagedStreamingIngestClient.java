@@ -175,14 +175,13 @@ public class ManagedStreamingIngestClient implements IngestClient {
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-        // NOTE: ByteArrayInputStream's close method is a no-op, so we don't need to close it.
+        // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
         ByteArrayInputStream byteArrayStream = new ByteArrayInputStream(streamingBytes);
 
         if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
-            log.info("Stream size is greater than max streaming size (%d bytes). Falling back to queued.");
+            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", streamingBytes.length);
             StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                    streamSourceInfo.isLeaveOpen(), sourceId);
-            managedSourceInfo.setCompressionType(streamSourceInfo.getCompressionType());
+                    streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         }
 
@@ -195,11 +194,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
             }
         }
 
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId);
-        managedSourceInfo.setCompressionType(streamSourceInfo.getCompressionType());
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
 
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate.getMaxAttempts(), exponentialRetryTemplate.getSleepBaseSecs(),
-                exponentialRetryTemplate.getMaxJitterSecs());
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
         try {
             do {
                 try {
@@ -225,8 +222,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         }
                     }
 
-                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s +~ %s seconds", retry.getCurrentSleepSecs(),
-                            retry.getMaxJitterSecs()), e);
+                    log.info(String.format("Streaming ingestion failed, trying again after sleep of %s", retry.nextTimeToSleep()), e);
 
                     try {
                         managedSourceInfo.getStream().reset();

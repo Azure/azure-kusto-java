@@ -118,8 +118,12 @@ class ManagedStreamingIngestClientTest {
     void setUpEach() throws IngestionServiceException, IngestionClientException {
         doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
 
+        ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT);
+        retryTemplate.sleepBaseSecs = 0;
+        retryTemplate.maxJitterSecs = 0;
+
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
-                new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0, 0));
+                retryTemplate);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
     }
@@ -332,8 +336,9 @@ class ManagedStreamingIngestClientTest {
         if (leaveOpen) {
             assertDoesNotThrow(() -> inputStream.read(new byte[1]));
         } else {
-            //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
-            assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
+            assertThrows(IOException.class, () -> {
+                int _ignored = inputStream.read(new byte[1]);
+            });
         }
     }
 
@@ -422,8 +427,9 @@ class ManagedStreamingIngestClientTest {
             if (leaveOpen) {
                 assertDoesNotThrow(() -> inputStream.read(new byte[1]));
             } else {
-                //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
-                assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
+                assertThrows(IOException.class, () -> {
+                    int _ignored = inputStream.read(new byte[1]);
+                });
             }
         } finally {
             reset(streamingClientMock);
@@ -468,8 +474,9 @@ class ManagedStreamingIngestClientTest {
             if (leaveOpen) {
                 assertDoesNotThrow(() -> inputStream.read(new byte[1]));
             } else {
-                //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
-                assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
+                assertThrows(IOException.class, () -> {
+                    int _ignored = inputStream.read(new byte[1]);
+                });
             }
         } finally {
             reset(streamingClientMock);
@@ -526,8 +533,9 @@ class ManagedStreamingIngestClientTest {
         if (leaveOpen) {
             assertArrayEquals(bytes, IOUtils.readAllBytes(value));
         } else {
-            //noinspection ResultOfMethodCallIgnored - we are expecting an exception, so we don't care about the result
-            assertThrows(IOException.class, () -> inputStream.read(new byte[1]));
+            assertThrows(IOException.class, () -> {
+                int _ignored = inputStream.read(new byte[1]);
+            });
         }
 
     }

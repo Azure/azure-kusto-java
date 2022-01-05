@@ -2,34 +2,24 @@ package com.microsoft.azure.kusto.ingest;
 
 public class ExponentialRetry {
     private final int maxAttempts;
-    private final double sleepBaseSecs;
-    private final double maxJitterSecs;
+    double sleepBaseSecs;
+    double maxJitterSecs;
     private int currentAttempt;
 
     public ExponentialRetry(int maxAttempts) {
-        this(maxAttempts, 1.0, 1.0);
-    }
-
-    public ExponentialRetry(int maxAttempts, double sleepBaseSecs, double maxJitterSecs) {
         this.maxAttempts = maxAttempts;
-        this.sleepBaseSecs = sleepBaseSecs;
-        this.maxJitterSecs = maxJitterSecs;
+        this.sleepBaseSecs = 1.0;
+        this.maxJitterSecs = 1.0;
         this.currentAttempt = 0;
     }
 
-    public int getMaxAttempts() {
-        return maxAttempts;
+    public ExponentialRetry(ExponentialRetry other) {
+        this.maxAttempts = other.maxAttempts;
+        this.sleepBaseSecs = other.sleepBaseSecs;
+        this.maxJitterSecs = other.maxJitterSecs;
     }
 
-    public double getSleepBaseSecs() {
-        return sleepBaseSecs;
-    }
-
-    public double getMaxJitterSecs() {
-        return maxJitterSecs;
-    }
-
-    public double getCurrentSleepSecs() {
+    private double getCurrentSleepSecs() {
         return sleepBaseSecs * (float) Math.pow(2, currentAttempt);
     }
 
@@ -37,12 +27,15 @@ public class ExponentialRetry {
         return currentAttempt;
     }
 
-    public boolean doBackoff(){
-        double sleepTime = getCurrentSleepSecs();
-        double jitter = (float)Math.random() * maxJitterSecs;
-        double sleepMs = (sleepTime + jitter) * 1000;
+    public String nextTimeToSleep() {
+        return String.format("%s +~ %s seconds", getCurrentSleepSecs(), maxJitterSecs);
+    }
+
+    public boolean doBackoff() {
+        double jitterSeconds = (float) Math.random() * maxJitterSecs;
+        double sleepMs = (getCurrentSleepSecs() + jitterSeconds) * 1000;
         try {
-            Thread.sleep((long)sleepMs);
+            Thread.sleep((long) sleepMs);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while sleeping", e);
