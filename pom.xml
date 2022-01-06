@@ -68,6 +68,7 @@
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
         <junit.version>5.8.2</junit.version>
         <mockito.version>4.1.0</mockito.version>
+        <jacoco.version>0.8.7</jacoco.version>
     </properties>
 
     <modules>
@@ -101,6 +102,25 @@
                         <phase>clean</phase>
                         <goals>
                             <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
                         </goals>
                     </execution>
                 </executions>
