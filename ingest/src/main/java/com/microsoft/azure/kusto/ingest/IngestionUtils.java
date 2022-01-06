@@ -5,7 +5,6 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.univocity.parsers.csv.CsvRoutines;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +19,11 @@ import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 
 public class IngestionUtils {
-    private final static Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private IngestionUtils() {
+        // Hide the default constructor, since this is a utils class
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @NotNull
     public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable) throws IngestionClientException, FileNotFoundException {
@@ -51,5 +54,17 @@ public class IngestionUtils {
         }
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
+    }
+
+    public static byte[] readBytesFromInputStream(InputStream value, int testByteArraySize) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int numBytesRead;
+        byte[] data = new byte[testByteArraySize];
+
+        while ((numBytesRead = value.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, numBytesRead);
+        }
+
+        return buffer.toByteArray();
     }
 }

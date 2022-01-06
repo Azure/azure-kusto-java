@@ -42,8 +42,6 @@ import java.sql.ResultSetMetaData;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import sun.misc.IOUtils;
-
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyCompressedStreamContent;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -519,7 +517,8 @@ class ManagedStreamingIngestClientTest {
     @ParameterizedTest
     @CsvSource({"true,true", "false,true", "true,false", "false,false"})
     void IngestFromStream_IngestOverFileLimit_QueuedFallback(boolean leaveOpen, boolean useSourceId) throws Exception {
-        byte[] bytes = new byte[5 * 1024 * 1024];
+        int testByteArraySize = 5 * 1024 * 1024;
+        byte[] bytes = new byte[testByteArraySize];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = (byte) i;
         }
@@ -540,13 +539,12 @@ class ManagedStreamingIngestClientTest {
 
         InputStream value = capture.getValue();
         if (leaveOpen) {
-            assertArrayEquals(bytes, IOUtils.readAllBytes(value));
+            assertArrayEquals(bytes, IngestionUtils.readBytesFromInputStream(value, testByteArraySize));
         } else {
             assertThrows(IOException.class, () -> {
                 int _ignored = inputStream.read(new byte[1]);
             });
         }
-
     }
 
     @Test
