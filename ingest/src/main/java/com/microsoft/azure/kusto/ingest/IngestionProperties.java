@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.TextStringBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -311,40 +312,41 @@ public class IngestionProperties {
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        String message = "";
+        TextStringBuilder message = new TextStringBuilder();
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
             if (dataFormat.isMappingRequired()) {
-                message += String.format("Mapping must be specified for '%s' format.%n", dataFormat.name());
+                message.appendln("Mapping must be specified for '%s' format.", dataFormat.name());
             }
 
             if (ingestionMappingKind != null) {
-                message += String.format("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.%n", ingestionMappingKind);
+                message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
             }
         } else { // a mapping was provided
             if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message += String.format("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.%n",
+                message.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
                         dataFormat.name(), dataFormat.getIngestionMappingKind(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
             }
 
             if (ingestionMapping.getColumnMappings() != null) {
                 if (StringUtils.isNotBlank(mappingReference)) {
-                    message += String.format("Both mapping reference '%s' and column mappings were defined.%n", mappingReference);
+                    message.appendln("Both mapping reference '%s' and column mappings were defined.", mappingReference);
                 }
 
                 if (ingestionMappingKind != null) {
                     for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
                         if (!column.isValid(ingestionMappingKind)) {
-                            message += String.format("Column mapping '%s' is invalid.%n", column.columnName);
+                            message.appendln("Column mapping '%s' is invalid.", column.columnName);
                         }
                     }
                 }
             }
         }
 
-        if (!message.equals("")) {
-            log.error(message);
-            throw new IngestionClientException(message);
+        if (!message.isEmpty()) {
+            String messageStr = message.build();
+            log.error(messageStr);
+            throw new IngestionClientException(messageStr);
         }
     }
 

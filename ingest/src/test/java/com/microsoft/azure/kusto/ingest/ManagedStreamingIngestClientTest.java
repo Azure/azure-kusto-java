@@ -526,6 +526,7 @@ class ManagedStreamingIngestClientTest {
 
         UUID sourceId = useSourceId ? CustomUUID : null;
         InputStream inputStream = new CloseableByteArrayInputStream(bytes);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
 
         ArgumentCaptor<InputStream> capture = ArgumentCaptor.forClass(InputStream.class);
 
