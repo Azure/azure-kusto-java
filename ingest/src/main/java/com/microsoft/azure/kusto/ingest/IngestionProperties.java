@@ -238,9 +238,7 @@ public class IngestionProperties {
      * @throws IllegalArgumentException  if null argument is passed
      */
     public void setDataFormat(@NotNull DataFormat dataFormat) {
-        if (dataFormat == null) {
-            throw new IllegalArgumentException("DataFormat cannot be set to null");
-        }
+        Ensure.argIsNotNull(dataFormat, "dataFormat");
 
         this.dataFormat = dataFormat;
     }
