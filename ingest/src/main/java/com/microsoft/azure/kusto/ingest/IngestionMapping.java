@@ -17,10 +17,9 @@ public class IngestionMapping {
     private String ingestionMappingReference;
 
     /**
-     * Creates a default ingestion mapping with kind Unknown and empty mapping reference.
+     * Creates a default ingestion mapping with null kind and empty mapping reference.
      */
     public IngestionMapping() {
-        this.ingestionMappingKind = IngestionMappingKind.unknown;
     }
 
     /**
@@ -95,6 +94,6 @@ public class IngestionMapping {
      Represents an ingestion mapping kind - the format of the source data to map from.
     */
     public enum IngestionMappingKind {
-        unknown, Csv, Json, Avro, Parquet, SStream, Orc, ApacheAvro, W3CLogFile
+        Csv, Json, Avro, Parquet, SStream, Orc, ApacheAvro, W3CLogFile
     }
 }
