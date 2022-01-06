@@ -312,34 +312,30 @@ public class IngestionProperties {
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
             if (dataFormat.isMappingRequired()) {
-                message += String.format("Mapping must be specified for '%s' format.", dataFormat.name());
+                message += String.format("Mapping must be specified for '%s' format.%n", dataFormat.name());
             }
 
             if (ingestionMappingKind != null) {
-                message += String.format("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
+                message += String.format("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.%n", ingestionMappingKind);
             }
         } else { // a mapping was provided
             if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message += String.format("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
+                message += String.format("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.%n",
                         dataFormat.name(), dataFormat.getIngestionMappingKind(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
             }
 
             if (ingestionMapping.getColumnMappings() != null) {
                 if (StringUtils.isNotBlank(mappingReference)) {
-                    message += String.format("Both mapping reference '%s' and column mappings were defined.", mappingReference);
+                    message += String.format("Both mapping reference '%s' and column mappings were defined.%n", mappingReference);
                 }
 
-                if (ingestionMappingKind == null) {
-                    message += "Column mappings were provided, so the IngestionMappingKind must be provided as well.";
-                } else {
+                if (ingestionMappingKind != null) {
                     for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
                         if (!column.isValid(ingestionMappingKind)) {
-                            message += String.format("Column mapping '%s' is invalid", column.columnName);
+                            message += String.format("Column mapping '%s' is invalid.%n", column.columnName);
                         }
                     }
                 }
-            } else if (ingestionMappingKind == null) {
-                message += "A mapping reference was provided, so the IngestionMappingKind must be provided as well.";
             }
         }
 
