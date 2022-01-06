@@ -11,6 +11,8 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
+import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -27,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -43,7 +44,6 @@ import java.util.concurrent.Callable;
 import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
@@ -70,7 +70,6 @@ class E2ETest {
             }
             appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
         }
-
 
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime());
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
@@ -396,6 +395,45 @@ class E2ETest {
     void testCloudInfoWith404() throws DataServiceException {
         String fakeClusterUrl = "https://www.microsoft.com/";
         assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
+    }
+
+    @Test
+    void testParameterizedQuery() throws DataServiceException, DataClientException {
+        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
+
+        TestDataItem item = new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        };
+
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        try {
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+        } catch (Exception ex) {
+            Assertions.fail(ex);
+        }
+        assertRowCount(item.rows, false);
+
+        ClientRequestProperties crp = new ClientRequestProperties();
+        crp.setParameter("xdoubleParam", 2.0002);
+        crp.setParameter("xboolParam", false);
+        crp.setParameter("xint16Param", 2);
+        crp.setParameter("xint64Param", 2L);
+        crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
+        crp.setParameter("xtextParam", "Two");
+        crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
+
+        String query = String.format("declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam", tableName);
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
+        KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
+        mainTableResult.next();
+        String results = mainTableResult.getString(13);
+        assertEquals("Two", results);
     }
 
     @Test
