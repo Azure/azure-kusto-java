@@ -231,14 +231,17 @@ public class IngestionProperties {
     }
 
     /**
-     * Sets the data format. If null is passed, then it does not set it.
+     * Sets the data format.
      *
      * @param dataFormat One of the values in: {@link DataFormat DataFormat}
+     * @throws IllegalArgumentException  if null argument is passed
      */
     public void setDataFormat(@NotNull DataFormat dataFormat) {
-        if (dataFormat != null) {
-            this.dataFormat = dataFormat;
+        if (dataFormat == null) {
+            throw new IllegalArgumentException("DataFormat cannot be set to null");
         }
+
+        this.dataFormat = dataFormat;
     }
 
     /**
