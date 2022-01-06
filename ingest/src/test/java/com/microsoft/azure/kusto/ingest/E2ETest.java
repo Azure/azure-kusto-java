@@ -61,7 +61,7 @@ class E2ETest {
     public static void setUp() throws IOException {
         appKey = System.getenv("APP_KEY");
         if (appKey == null) {
-            String secretPath = System.getProperty("SecretPath");
+            String secretPath = System.getProperty("SecretPath2");
             if (secretPath == null) {
                 throw new IllegalArgumentException("SecretPath is not set");
             }

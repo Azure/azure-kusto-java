@@ -44,8 +44,8 @@ jobs:
         if: always()
         with:
           files: |
-            data/target/surefire-reports/*.xml
-            ingest/target/surefire-reports/*.xml
+            ./data/target/surefire-reports/*.xml
+            ./ingest/target/surefire-reports/*.xml
       - uses: codecov/codecov-action@v2
         with:
           files: |
