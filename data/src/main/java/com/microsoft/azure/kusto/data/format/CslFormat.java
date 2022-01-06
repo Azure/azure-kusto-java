@@ -29,10 +29,6 @@ public abstract class CslFormat {
         String valueWithTypeRegex = String.format("%s\\s*\\(\\s*(.*\\S+)\\s*\\)\\s*", type);
         Pattern valueWithTypePattern = Pattern.compile(valueWithTypeRegex, Pattern.CASE_INSENSITIVE);
         Matcher matcher = valueWithTypePattern.matcher(valueWithType);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        } else {
-            return valueWithType;
-        }
+        return matcher.matches() ? matcher.group(1) : valueWithType;
     }
 }
