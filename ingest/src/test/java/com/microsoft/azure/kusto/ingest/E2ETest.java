@@ -59,7 +59,7 @@ class E2ETest {
 
     @BeforeAll
     public static void setUp() throws IOException {
-        appKey = System.getenv("APP_KEY");
+        appKey = System.getenv("APP_KEY2");
         if (appKey == null) {
             String secretPath = System.getProperty("SecretPath2");
             if (secretPath == null) {
