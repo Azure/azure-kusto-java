@@ -29,7 +29,7 @@ public class ExponentialRetry {
 
     public <T> T execute(KustoCheckedFunction<Integer, T> function) throws IngestionClientException, IngestionServiceException {
         for (int currentAttempt = 0; currentAttempt < maxAttempts; currentAttempt++) {
-            log.info("Attempt {}", currentAttempt);
+            log.info("execute: Attempt {}", currentAttempt);
 
             try {
                 T result = function.apply(currentAttempt);
@@ -38,21 +38,21 @@ public class ExponentialRetry {
                 }
             }
             catch (Exception e) {
-                log.error("Error is permanent, stopping", e);
+                log.error("execute: Error is permanent, stopping", e);
                 throw e;
             }
 
             double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
-
-            log.info("Operation failed, trying again after sleep of %{} +~ %{} seconds", currentSleepSecs, maxJitterSecs);
-
             double jitterSecs = (float) Math.random() * maxJitterSecs;
             double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
+
+            log.info("execute: Attempt {} failed, trying again after sleep of {} seconds", currentAttempt, sleepMs / 1000);
+
             try {
                 Thread.sleep((long) sleepMs);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while sleeping", e);
+                throw new RuntimeException("execute: Interrupted while sleeping", e);
             }
         }
 
