@@ -36,9 +36,7 @@ public class IngestionUtils {
             stream = new ResettableFileInputStream((FileInputStream) stream);
         }
 
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(filePath));
-        return streamSourceInfo;
+        return new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), AzureStorageClient.getCompression(filePath));
     }
 
     @NotNull

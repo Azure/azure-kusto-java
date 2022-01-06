@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -89,6 +90,28 @@ class StreamingIngestClientTest {
          */
         InputStream stream = argumentCaptor.getValue();
         verifyCompressedStreamContent(stream, data);
+    }
+
+    @Test
+    void IngestFromStream_CsvStream_WithClientRequestId() throws Exception {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        String clientRequestId = "clientRequestId";
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties, clientRequestId).getIngestionStatusCollection().get(0).status;
+        assertEquals(OperationStatus.Succeeded, status);
+        ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesArgumentCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                clientRequestPropertiesArgumentCaptor.capture(), any(String.class), isNull(), any(boolean.class));
+
+        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
+         * When the given stream content is already compressed, the user must specify that in the stream source info.
+         * This method verifies if the stream was compressed correctly.
+         */
+        InputStream stream = argumentCaptor.getValue();
+        verifyCompressedStreamContent(stream, data);
+
+        assertEquals(clientRequestId, clientRequestPropertiesArgumentCaptor.getValue().getClientRequestId());
     }
 
     @Test
