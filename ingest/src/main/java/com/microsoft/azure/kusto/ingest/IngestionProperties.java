@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.TextStringBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,16 +231,24 @@ public class IngestionProperties {
         return fullAdditionalProperties;
     }
 
-    public void setDataFormat(DataFormat dataFormat) {
+    /**
+     * Sets the data format.
+     *
+     * @param dataFormat One of the values in: {@link DataFormat DataFormat}
+     * @throws IllegalArgumentException  if null argument is passed
+     */
+    public void setDataFormat(@NotNull DataFormat dataFormat) {
+        Ensure.argIsNotNull(dataFormat, "dataFormat");
+
         this.dataFormat = dataFormat;
     }
 
     /**
-     * Sets the data format by its name. If the name does not exist, then it does not add it.
+     * Sets the data format by its name. If the name does not exist, then it does not set it.
      *
      * @param dataFormatName One of the string values in: {@link DataFormat DataFormat}
      */
-    public void setDataFormat(String dataFormatName) {
+    public void setDataFormat(@NotNull String dataFormatName) {
         try {
             this.dataFormat = DataFormat.valueOf(dataFormatName.toLowerCase());
         } catch (IllegalArgumentException ex) {
@@ -301,40 +310,47 @@ public class IngestionProperties {
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        String message = null;
+        TextStringBuilder message = new TextStringBuilder();
 
-        if (ingestionMapping.getColumnMappings() != null) {
-            if (StringUtils.isNotBlank(mappingReference)) {
-                message += String.format("Both mapping reference '%s' and column mappings were defined.", mappingReference);
+        if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
+            if (dataFormat.isMappingRequired()) {
+                message.appendln("Mapping must be specified for '%s' format.", dataFormat.name());
             }
-            for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
-                if (!column.isValid(ingestionMappingKind)) {
-                    message += String.format("Column mapping '%s' is invalid", column.columnName);
+
+            if (ingestionMappingKind != null) {
+                message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
+            }
+        } else { // a mapping was provided
+            if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+                message.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
+                        dataFormat.name(), dataFormat.getIngestionMappingKind(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
+            }
+
+            if (ingestionMapping.getColumnMappings() != null) {
+                if (StringUtils.isNotBlank(mappingReference)) {
+                    message.appendln("Both mapping reference '%s' and column mappings were defined.", mappingReference);
+                }
+
+                if (ingestionMappingKind != null) {
+                    for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
+                        if (!column.isValid(ingestionMappingKind)) {
+                            message.appendln("Column mapping '%s' is invalid.", column.columnName);
+                        }
+                    }
                 }
             }
-        } else if (StringUtils.isBlank(mappingReference)) {
-            if (dataFormat.isMappingRequired()) {
-                message += String.format("Mapping must be specified for '%s' format.", dataFormat.name());
-            }
-
-            if (ingestionMappingKind != null && ingestionMappingKind != IngestionMapping.IngestionMappingKind.unknown) {
-                message += String.format("If IngestionMappingKind was defined ('%s'), mapping must be specified.", ingestionMappingKind);
-            }
         }
 
-        if (dataFormat.isMappingRequired() && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-            message += String.format("Wrong ingestion mapping for format '%s'; found '%s' mapping kind.", dataFormat.name(), ingestionMappingKind != null ? ingestionMappingKind.name() : "null");
-        }
-
-        if (message != null) {
-            log.error(message);
-            throw new IngestionClientException(message);
+        if (!message.isEmpty()) {
+            String messageStr = message.build();
+            log.error(messageStr);
+            throw new IngestionClientException(messageStr);
         }
     }
 
     public void validateResultSetProperties() throws IngestionClientException {
-        Ensure.isTrue(IngestionProperties.DataFormat.csv.equals(getDataFormat()),
-                String.format("ResultSet translates into csv format but '%s' was given", getDataFormat()));
+        Ensure.isTrue(IngestionProperties.DataFormat.csv.equals(dataFormat),
+                String.format("ResultSet translates into csv format but '%s' was given", dataFormat));
 
         validate();
     }
@@ -345,7 +361,7 @@ public class IngestionProperties {
         scsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
         sohsv(IngestionMapping.IngestionMappingKind.Csv, false, true),
         psv(IngestionMapping.IngestionMappingKind.Csv, false, true),
-        txt(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        txt(IngestionMapping.IngestionMappingKind.Csv, false, true),
         tsve(IngestionMapping.IngestionMappingKind.Csv, false, true),
         json(IngestionMapping.IngestionMappingKind.Json, true, true),
         singlejson(IngestionMapping.IngestionMappingKind.Json, true, true),
@@ -355,7 +371,7 @@ public class IngestionProperties {
         parquet(IngestionMapping.IngestionMappingKind.Parquet, false, false),
         sstream(IngestionMapping.IngestionMappingKind.SStream, false, true),
         orc(IngestionMapping.IngestionMappingKind.Orc, false, false),
-        raw(IngestionMapping.IngestionMappingKind.unknown, false, true),
+        raw(IngestionMapping.IngestionMappingKind.Csv, false, true),
         w3clogfile(IngestionMapping.IngestionMappingKind.W3CLogFile, false, true);
 
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;

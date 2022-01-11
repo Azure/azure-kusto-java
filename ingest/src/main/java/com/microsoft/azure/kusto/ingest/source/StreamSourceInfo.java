@@ -58,6 +58,13 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         setSourceId(sourceId);
     }
 
+    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType) {
+        setLeaveOpen(leaveOpen);
+        setStream(stream);
+        setSourceId(sourceId);
+        setCompressionType(compressionType);
+    }
+
     public void validate() {
         Ensure.argIsNotNull(stream, "stream");
         Ensure.isTrue(compressionType != CompressionType.zip, "streaming ingest is not working with zip compression");

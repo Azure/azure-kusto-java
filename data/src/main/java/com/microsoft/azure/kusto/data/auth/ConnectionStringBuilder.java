@@ -54,6 +54,27 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = null;
     }
 
+    public ConnectionStringBuilder(ConnectionStringBuilder other){
+        this.clusterUrl = other.clusterUrl;
+        this.usernameHint = other.usernameHint;
+        this.applicationClientId = other.applicationClientId;
+        this.applicationKey = other.applicationKey;
+        this.x509Certificate = other.x509Certificate;
+        this.x509CertificateChain = other.x509CertificateChain;
+        this.privateKey = other.privateKey;
+        this.aadAuthorityId = other.aadAuthorityId;
+        this.accessToken = other.accessToken;
+        this.tokenProvider = other.tokenProvider;
+        this.managedIdentityClientId = other.managedIdentityClientId;
+        this.useDeviceCodeAuth = other.useDeviceCodeAuth;
+        this.useManagedIdentityAuth = other.useManagedIdentityAuth;
+        this.useUserPromptAuth = other.useUserPromptAuth;
+        this.userNameForTracing = other.userNameForTracing;
+        this.clientVersionForTracing = other.clientVersionForTracing;
+        this.applicationNameForTracing = other.applicationNameForTracing;
+    }
+
+
     public String getClusterUrl() {
         return clusterUrl;
     }

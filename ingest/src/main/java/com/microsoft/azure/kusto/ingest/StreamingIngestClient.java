@@ -3,7 +3,12 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.*;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -19,12 +24,18 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,10 +43,10 @@ import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final StreamingClient streamingClient;
-    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     public static final String EXPECTED_SERVICE_TYPE = "Engine";
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
+    private final StreamingClient streamingClient;
 
     StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
@@ -46,6 +57,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     StreamingIngestClient(StreamingClient streamingClient) {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = streamingClient;
+    }
+
+    public static String generateEngineUriSuggestion(URIBuilder existingEndpoint) {
+        if (!existingEndpoint.getHost().toLowerCase().startsWith(IngestClientBase.INGEST_PREFIX)) {
+            throw new IllegalArgumentException("The URL is already formatted as the suggested Engine endpoint, so no suggestion can be made");
+        }
+
+        existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
+        return existingEndpoint.toString();
     }
 
     @Override
@@ -109,6 +129,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+        return ingestFromStream(streamSourceInfo, ingestionProperties, null);
+    }
+
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -120,13 +144,19 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionClientException(String.format("Mapping reference must be specified for DataFormat '%s' in streaming ingestion.", dataFormat.name()));
         }
 
+        ClientRequestProperties clientRequestProperties = null;
+        if (StringUtils.isNotBlank(clientRequestId)) {
+            clientRequestProperties = new ClientRequestProperties();
+            clientRequestProperties.setClientRequestId(clientRequestId);
+        }
+
         try {
             InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat) ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen()) : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
             this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
-                    null,
+                    clientRequestProperties,
                     dataFormat.name(),
                     ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
                     !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
@@ -183,18 +213,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionClientException(message);
         }
         InputStream stream = cloudBlockBlob.openInputStream();
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(AzureStorageClient.getCompression(blobPath));
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId(), AzureStorageClient.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 
     @Override
     protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().startsWith(IngestClientBase.INGEST_PREFIX)) {
-            existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
-            return existingEndpoint.toString();
-        }
-        return "";
+        return generateEngineUriSuggestion(existingEndpoint);
     }
 
     @Override

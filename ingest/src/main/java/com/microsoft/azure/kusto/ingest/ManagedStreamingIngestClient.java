@@ -13,14 +13,19 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
+import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.SequenceInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.util.UUID;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
@@ -28,22 +33,54 @@ import java.net.URISyntaxException;
  * This class combines a managed streaming client with a queued streaming client, to create an optimized experience.
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
- * It tries {@value MAX_RETRY_CALLS} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
+ * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
+ * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  * Note that {@code ingestFromBlob} behaves differently from the other methods - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.
  */
 public class ManagedStreamingIngestClient implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    public static final int MAX_RETRY_CALLS = 3;
-    private final QueuedIngestClient queuedIngestClient;
-    private final StreamingIngestClient streamingIngestClient;
+    public static final int ATTEMPT_COUNT = 3;
+    public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
+    final QueuedIngestClient queuedIngestClient;
+    final StreamingIngestClient streamingIngestClient;
+    private final ExponentialRetry exponentialRetryTemplate;
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param dmConnectionString dm connection string
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
+        ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
+        engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
+    }
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * This method infers the DM connection string from the engine connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param engineConnectionString engine connection string
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
+        ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
+        dmConnectionString.setClusterUrl(QueuedIngestClient.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
+    }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
                                         ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
@@ -52,6 +89,17 @@ public class ManagedStreamingIngestClient implements IngestClient {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    ManagedStreamingIngestClient(ResourceManager resourceManager,
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient,
+                                        ExponentialRetry retryTemplate) {
+        log.info("Creating a new ManagedStreamingIngestClient from raw parts");
+        queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
+        streamingIngestClient = new StreamingIngestClient(streamingClient);
+        exponentialRetryTemplate = retryTemplate;
     }
 
     @Override
@@ -112,15 +160,47 @@ public class ManagedStreamingIngestClient implements IngestClient {
         streamSourceInfo.validate();
         ingestionProperties.validate();
 
-        if (streamSourceInfo.isLeaveOpen()) {
-            throw new UnsupportedOperationException("LeaveOpen can't be true in ManagedStreamingIngestClient");
+        UUID sourceId = streamSourceInfo.getSourceId();
+        if (sourceId == null) {
+            sourceId = UUID.randomUUID();
         }
-        streamSourceInfo.setLeaveOpen(true);
 
+        byte[] streamingBytes;
         try {
-            for (int i = 0; i < MAX_RETRY_CALLS; i++) {
+            streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
+        } catch (IOException e) {
+            throw new IngestionClientException("Failed to read from stream.", e);
+        }
+
+        // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
+        ByteArrayInputStream byteArrayStream = new ByteArrayInputStream(streamingBytes);
+
+        if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
+            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", streamingBytes.length);
+            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
+                    streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
+            return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
+        }
+
+        if (!streamSourceInfo.isLeaveOpen()) {
+            // From this point we don't need the original stream anymore, we cached it
+            try {
+                streamSourceInfo.getStream().close();
+            } catch (IOException e) {
+                log.warn("Failed to close stream", e);
+            }
+        }
+
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
+
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+
+        UUID finalSourceId = sourceId;
+        try {
+            IngestionResult result = retry.execute(currentAttempt -> {
                 try {
-                    return streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest;%s;%d", finalSourceId, currentAttempt);
+                    return streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, clientRequestId);
                 } catch (Exception e) {
                     if (e instanceof IngestionServiceException
                             && e.getCause() != null
@@ -131,7 +211,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         try {
                             OneApiError oneApiError = webException.getApiError();
                             if (oneApiError.isPermanent()) {
-                                log.error("Error is permanent, stopping.");
                                 throw e;
                             }
                         } catch (JSONException je) {
@@ -139,21 +218,27 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         }
                     }
 
-                    log.info("Streaming ingestion failed, trying again", e);
+                    log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
+
                     try {
-                        streamSourceInfo.getStream().reset();
+                        managedSourceInfo.getStream().reset();
                     } catch (IOException ioException) {
-                        throw new IngestionClientException("Ingestion failed transiently but the stream isn't resettable therefore ingestion wasn't retried", ioException);
+                        throw new IngestionClientException("Failed to reset stream", ioException);
                     }
                 }
+                return null;
+            });
+
+            if (result != null) {
+                return result;
             }
 
-            return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+            return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         } finally {
             try {
-                streamSourceInfo.getStream().close();
+                managedSourceInfo.getStream().close();
             } catch (IOException e) {
-                log.warn("Failed to close stream", e);
+                log.warn("Failed to close byte stream", e);
             }
         }
     }

@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -92,6 +93,28 @@ class StreamingIngestClientTest {
     }
 
     @Test
+    void IngestFromStream_CsvStream_WithClientRequestId() throws Exception {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        String clientRequestId = "clientRequestId";
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties, clientRequestId).getIngestionStatusCollection().get(0).status;
+        assertEquals(OperationStatus.Succeeded, status);
+        ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesArgumentCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                clientRequestPropertiesArgumentCaptor.capture(), any(String.class), isNull(), any(boolean.class));
+
+        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
+         * When the given stream content is already compressed, the user must specify that in the stream source info.
+         * This method verifies if the stream was compressed correctly.
+         */
+        InputStream stream = argumentCaptor.getValue();
+        verifyCompressedStreamContent(stream, data);
+
+        assertEquals(clientRequestId, clientRequestPropertiesArgumentCaptor.getValue().getClientRequestId());
+    }
+
+    @Test
     void IngestFromStream_CompressedCsvStream() throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
@@ -141,6 +164,7 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         streamSourceInfo.setCompressionType(CompressionType.gz);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
@@ -234,7 +258,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; found 'Csv' mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
     }
 
     @Test
@@ -257,7 +281,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'avro'; found 'Csv' mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."));
     }
 
     @Test
@@ -456,7 +480,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; found 'Csv' mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
     }
 
     @Test

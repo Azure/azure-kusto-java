@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -243,7 +244,7 @@ public class KustoResultSetTable {
         return getDate(columnIndex, Calendar.getInstance());
     }
 
-    public Time getTime(int columnIndex) throws SQLException {
+    public Time getTime(int columnIndex) {
         LocalTime time = getLocalTime(columnIndex);
         if (time == null) {
             return null;
@@ -297,7 +298,7 @@ public class KustoResultSetTable {
     }
 
     public short getShort(String columnName) {
-        return (short) getShort(findColumn(columnName));
+        return getShort(findColumn(columnName));
     }
 
     public Short getShortObject(String columnName) {
@@ -465,9 +466,9 @@ public class KustoResultSetTable {
         String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
         } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
         }
         return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
     }

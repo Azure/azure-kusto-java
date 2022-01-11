@@ -11,6 +11,8 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
+import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -21,11 +23,12 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -42,9 +45,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.jupiter.api.Assertions.*;
 
 class E2ETest {
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
+    private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ClientImpl queryClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
@@ -69,9 +72,7 @@ class E2ETest {
             appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
         }
 
-
-        tableName =
-                "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
         ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
@@ -86,6 +87,7 @@ class E2ETest {
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
+            managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
@@ -256,12 +258,13 @@ class E2ETest {
         return found;
     }
 
-    @Test
-    void testIngestFromFile() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromFile(boolean isManaged) {
         for (TestDataItem item : dataForTests) {
             FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
             try {
-                ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
@@ -269,8 +272,9 @@ class E2ETest {
         }
     }
 
-    @Test
-    void testIngestFromStream() throws FileNotFoundException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
             InputStream stream = new FileInputStream(item.file);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
@@ -278,7 +282,7 @@ class E2ETest {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
-                ingestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
@@ -395,6 +399,45 @@ class E2ETest {
     }
 
     @Test
+    void testParameterizedQuery() throws DataServiceException, DataClientException {
+        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
+
+        TestDataItem item = new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        };
+
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        try {
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+        } catch (Exception ex) {
+            Assertions.fail(ex);
+        }
+        assertRowCount(item.rows, false);
+
+        ClientRequestProperties crp = new ClientRequestProperties();
+        crp.setParameter("xdoubleParam", 2.0002);
+        crp.setParameter("xboolParam", false);
+        crp.setParameter("xint16Param", 2);
+        crp.setParameter("xint64Param", 2L);
+        crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
+        crp.setParameter("xtextParam", "Two");
+        crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
+
+        String query = String.format("declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam", tableName);
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
+        KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
+        mainTableResult.next();
+        String results = mainTableResult.getString(13);
+        assertEquals("Two", results);
+    }
+
+    @Test
     void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
@@ -421,7 +464,7 @@ class E2ETest {
         // Specialized use case - API streams raw json for performance
         stopWatch.reset();
         stopWatch.start();
-        // Note: The InputStream *must* be closed by the caller to prevent memory leaks
+        // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
              BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
