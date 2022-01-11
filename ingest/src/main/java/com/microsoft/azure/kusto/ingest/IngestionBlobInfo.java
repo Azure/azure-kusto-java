@@ -27,8 +27,8 @@ public final class IngestionBlobInfo {
         this.tableName = tableName;
         id = UUID.randomUUID();
         retainBlobOnSuccess = true;
-        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly.getKustoValue();
-        reportMethod = IngestionProperties.IngestionReportMethod.Queue.getKustoValue();
+        reportLevel = IngestionProperties.IngestionReportLevel.FAILURES_ONLY.getKustoValue();
+        reportMethod = IngestionProperties.IngestionReportMethod.QUEUE.getKustoValue();
         flushImmediately = false;
     }
 
@@ -64,19 +64,19 @@ public final class IngestionBlobInfo {
         return retainBlobOnSuccess;
     }
 
-    public IngestionProperties.IngestionReportLevel getReportLevel() {
+    public String getReportLevel() {
         return reportLevel;
     }
 
-    public void setReportLevel(IngestionProperties.IngestionReportLevel reportLevel) {
+    public void setReportLevel(String reportLevel) {
         this.reportLevel = reportLevel;
     }
 
-    public IngestionProperties.IngestionReportMethod getReportMethod() {
+    public String getReportMethod() {
         return reportMethod;
     }
 
-    public void setReportMethod(IngestionProperties.IngestionReportMethod reportMethod) {
+    public void setReportMethod(String reportMethod) {
         this.reportMethod = reportMethod;
     }
 
