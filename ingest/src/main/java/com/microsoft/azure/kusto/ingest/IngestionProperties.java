@@ -334,7 +334,7 @@ public class IngestionProperties {
                 if (ingestionMappingKind != null) {
                     for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
                         if (!column.isValid(ingestionMappingKind)) {
-                            message.appendln("Column mapping '%s' is invalid.", column.columnName);
+                            message.appendln("Column mapping '%s' is invalid.", column.getColumnName());
                         }
                     }
                 }

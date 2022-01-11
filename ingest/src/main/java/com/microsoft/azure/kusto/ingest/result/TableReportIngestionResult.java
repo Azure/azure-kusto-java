@@ -13,8 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TableReportIngestionResult implements IngestionResult {
-
-    private List<IngestionStatusInTableDescription> descriptors;
+    private final List<IngestionStatusInTableDescription> descriptors;
 
     public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
         this.descriptors = descriptors;
@@ -24,8 +23,8 @@ public class TableReportIngestionResult implements IngestionResult {
     public List<IngestionStatus> getIngestionStatusCollection() throws StorageException, URISyntaxException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            CloudTable table = new CloudTable(new URI(descriptor.TableConnectionString));
-            TableOperation operation = TableOperation.retrieve(descriptor.PartitionKey, descriptor.RowKey,
+            CloudTable table = new CloudTable(new URI(descriptor.getTableConnectionString()));
+            TableOperation operation = TableOperation.retrieve(descriptor.getPartitionKey(), descriptor.getRowKey(),
                     IngestionStatus.class);
             results.add(table.execute(operation).getResultAsType());
         }
@@ -37,5 +36,4 @@ public class TableReportIngestionResult implements IngestionResult {
     public int getIngestionStatusesLength() {
         return descriptors.size();
     }
-
 }
