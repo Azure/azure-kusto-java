@@ -6,12 +6,12 @@ package com.microsoft.azure.kusto.data;
 public class HttpClientProperties {
 
     private final Integer maxIdleTime;
-    private final Boolean keepAlive;
+    private final boolean keepAlive;
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
 
-    private HttpClientProperties(Builder builder) {
+    private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
         this.keepAlive = builder.keepAlive;
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
@@ -22,10 +22,10 @@ public class HttpClientProperties {
     /**
      * Instantiates a new builder.
      *
-     * @return a new {@linkplain HttpClientProperties.Builder}
+     * @return a new {@linkplain HttpClientPropertiesBuilder}
      */
-    public static Builder builder() {
-        return new Builder();
+    public static HttpClientPropertiesBuilder builder() {
+        return new HttpClientPropertiesBuilder();
     }
 
     /**
@@ -52,7 +52,7 @@ public class HttpClientProperties {
      * @see #maxKeepAliveTime()
      * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
      */
-    public Boolean isKeepAlive() {
+    public boolean isKeepAlive() {
         return keepAlive;
     }
 
@@ -85,15 +85,15 @@ public class HttpClientProperties {
         return maxConnectionRoute;
     }
 
-    public static class Builder {
+    public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
-        private Boolean keepAlive = false;
+        private boolean keepAlive;
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
 
-        private Builder() {
+        private HttpClientPropertiesBuilder() {
         }
 
         /**
@@ -104,7 +104,7 @@ public class HttpClientProperties {
          * @param maxIdleTime the maximum idle time expressed in seconds
          * @return the builder instance
          */
-        public Builder maxIdleTime(Integer maxIdleTime) {
+        public HttpClientPropertiesBuilder maxIdleTime(Integer maxIdleTime) {
             this.maxIdleTime = maxIdleTime;
             return this;
         }
@@ -125,20 +125,20 @@ public class HttpClientProperties {
          * @see #maxKeepAliveTime(Integer)
          * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
          */
-        public Builder keepAlive(Boolean keepAlive) {
+        public HttpClientPropertiesBuilder keepAlive(boolean keepAlive) {
             this.keepAlive = keepAlive;
             return this;
         }
 
         /**
          * Sets the time a connection can remain idle as part of the keep-alive strategy. This value is only used if
-         * {@linkplain #keepAlive(Boolean)} is set to {@code true}.
+         * {@linkplain #keepAlive(boolean)} is set to {@code true}.
          * Defaults to 120 seconds (2 minutes).
          *
          * @param maxKeepAliveTime the maximum time a connection may remain idle, expressed in seconds
          * @return the builder instance
          */
-        public Builder maxKeepAliveTime(Integer maxKeepAliveTime) {
+        public HttpClientPropertiesBuilder maxKeepAliveTime(Integer maxKeepAliveTime) {
             this.maxKeepAliveTime = maxKeepAliveTime;
             return this;
         }
@@ -149,7 +149,7 @@ public class HttpClientProperties {
          * @param maxConnectionsTotal the total maximum number of connections
          * @return the builder instance
          */
-        public Builder maxConnectionsTotal(Integer maxConnectionsTotal) {
+        public HttpClientPropertiesBuilder maxConnectionsTotal(Integer maxConnectionsTotal) {
             this.maxConnectionsTotal = maxConnectionsTotal;
             return this;
         }
@@ -160,7 +160,7 @@ public class HttpClientProperties {
          * @param maxConnections the maximum number of connections per route
          * @return the builder instance
          */
-        public Builder maxConnectionsPerRoute(Integer maxConnections) {
+        public HttpClientPropertiesBuilder maxConnectionsPerRoute(Integer maxConnections) {
             this.maxConnectionsPerRoute = maxConnections;
             return this;
         }

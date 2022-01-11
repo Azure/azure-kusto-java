@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  */
 class HttpClientFactory {
 
-    private static final Logger logger = LoggerFactory.getLogger(HttpClientFactory.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
 
     private HttpClientFactory() {
     }
@@ -56,7 +56,7 @@ class HttpClientFactory {
                 .evictExpiredConnections()
                 .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
 
-        if (properties.isKeepAlive() != null && properties.isKeepAlive()) {
+        if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy =
                     new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
 
@@ -70,10 +70,10 @@ class HttpClientFactory {
 
     private static void closeClient(CloseableHttpClient client) {
         try {
-            logger.info("Closing HTTP client");
+            LOGGER.info("Closing HTTP client");
             client.close();
         } catch (IOException e) {
-            logger.warn("Couldn't close HTTP client.");
+            LOGGER.warn("Couldn't close HTTP client.");
         }
     }
 

@@ -57,7 +57,7 @@ public class ClientImpl implements Client, StreamingClient {
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
-            null : TokenProviderFactory.createTokenProvider(csb);
+                null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -126,8 +126,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null,
-          timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
     @Override
@@ -167,8 +166,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        String response = Utils.post(httpClient, clusterEndpoint, null, stream,
-          timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -204,8 +202,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload,
-          timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload,timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {

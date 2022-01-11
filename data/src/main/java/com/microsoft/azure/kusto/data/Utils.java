@@ -90,18 +90,23 @@ class Utils {
         return null;
     }
 
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs,
-      Map<String, String> headers) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers) throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs,
-      Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
         String errorFromResponse = null;
-
+        /*
+         *  The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse).
+         *  We use CloseParentResourcesStream so that when the stream is closed, these resources are closed as well. We
+         *  shouldn't need to do that, per https://hc.apache.org/httpcomponents-client-4.5.x/current/tutorial/html/fundamentals.html:
+         *  "In order to ensure proper release of system resources one must close either the content stream associated
+         *  with the entity or the response itself." However, in my testing this wasn't reliably the case.
+         *  We further use EofSensorInputStream to close the stream even if not explicitly closed, once all content is consumed.
+         */
         CloseableHttpResponse httpResponse = null;
         try {
             HttpPost httpPost = setupHttpPostRequest(uri, payload, null, headers);
@@ -114,7 +119,7 @@ class Utils {
             int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
 
             if (responseStatusCode == HttpStatus.SC_OK) {
-                InputStream contentStream = new EofSensorInputStream(httpResponse.getEntity().getContent(), null);
+                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
                 Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING)).findFirst();
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
