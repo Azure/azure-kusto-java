@@ -361,7 +361,8 @@ public class KustoSampleApp {
 
     private static boolean createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName, String mappingValue, IngestionProperties.DataFormat dataFormat) {
         if (!useExistingMapping) {
-            if (dataFormat.isMappingRequired() && StringUtils.isBlank(mappingValue)) {
+            // TODO Deprecated: this restriction is likely to be removed soon
+            if ((dataFormat == IngestionProperties.DataFormat.JSON || dataFormat == IngestionProperties.DataFormat.MULTIJSON || dataFormat == IngestionProperties.DataFormat.SINGLEJSON || dataFormat == IngestionProperties.DataFormat.AVRO) && StringUtils.isBlank(mappingValue)) {
                 System.out.printf("The data format '%s' requires a mapping, but configuration indicates to not use an existing mapping and no mapping was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
                 return false;
             }
@@ -379,7 +380,8 @@ public class KustoSampleApp {
                     return false;
                 }
             }
-        } else if (dataFormat.isMappingRequired() && StringUtils.isBlank(mappingName)) {
+        } else if ((dataFormat == IngestionProperties.DataFormat.JSON || dataFormat == IngestionProperties.DataFormat.MULTIJSON || dataFormat == IngestionProperties.DataFormat.SINGLEJSON || dataFormat == IngestionProperties.DataFormat.AVRO) && StringUtils.isBlank(mappingName)) {
+            // TODO Deprecated: this restriction is likely to be removed soon
             System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
             return false;
         }

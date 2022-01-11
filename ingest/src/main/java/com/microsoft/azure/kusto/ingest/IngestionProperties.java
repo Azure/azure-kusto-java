@@ -313,7 +313,8 @@ public class IngestionProperties {
         TextStringBuilder message = new TextStringBuilder();
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
-            if (dataFormat.isMappingRequired()) {
+            // TODO Deprecated: this restriction is likely to be removed soon
+            if (dataFormat == DataFormat.JSON || dataFormat == DataFormat.MULTIJSON || dataFormat == DataFormat.SINGLEJSON || dataFormat == DataFormat.AVRO) {
                 message.appendln("Mapping must be specified for '%s' format.", dataFormat.getKustoValue());
             }
 
@@ -356,33 +357,31 @@ public class IngestionProperties {
     }
 
     public enum DataFormat {
-        CSV("csv", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        TSV("tsv", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        SCSV("scsv", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        SOHSV("sohsv", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        PSV("psv", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        TXT("txt", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        TSVE("tsve", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        JSON("json", IngestionMapping.IngestionMappingKind.JSON, true, true),
-        SINGLEJSON("singlejson", IngestionMapping.IngestionMappingKind.JSON, true, true),
-        MULTIJSON("multijson", IngestionMapping.IngestionMappingKind.JSON, true, true),
-        AVRO("avro", IngestionMapping.IngestionMappingKind.AVRO, true, false),
-        APACHEAVRO("apacheavro", IngestionMapping.IngestionMappingKind.APACHEAVRO, false, true),
-        PARQUET("parquet", IngestionMapping.IngestionMappingKind.PARQUET, false, false),
-        SSTREAM("sstream", IngestionMapping.IngestionMappingKind.SSTREAM, false, true),
-        ORC("orc", IngestionMapping.IngestionMappingKind.ORC, false, false),
-        RAW("raw", IngestionMapping.IngestionMappingKind.CSV, false, true),
-        W3CLOGFILE("w3clogfile", IngestionMapping.IngestionMappingKind.W3CLOGFILE, false, true);
+        CSV("csv", IngestionMapping.IngestionMappingKind.CSV, true),
+        TSV("tsv", IngestionMapping.IngestionMappingKind.CSV, true),
+        SCSV("scsv", IngestionMapping.IngestionMappingKind.CSV, true),
+        SOHSV("sohsv", IngestionMapping.IngestionMappingKind.CSV, true),
+        PSV("psv", IngestionMapping.IngestionMappingKind.CSV, true),
+        TXT("txt", IngestionMapping.IngestionMappingKind.CSV, true),
+        TSVE("tsve", IngestionMapping.IngestionMappingKind.CSV, true),
+        JSON("json", IngestionMapping.IngestionMappingKind.JSON, true),
+        SINGLEJSON("singlejson", IngestionMapping.IngestionMappingKind.JSON, true),
+        MULTIJSON("multijson", IngestionMapping.IngestionMappingKind.JSON, true),
+        AVRO("avro", IngestionMapping.IngestionMappingKind.AVRO, false),
+        APACHEAVRO("apacheavro", IngestionMapping.IngestionMappingKind.APACHEAVRO, true),
+        PARQUET("parquet", IngestionMapping.IngestionMappingKind.PARQUET, false),
+        SSTREAM("sstream", IngestionMapping.IngestionMappingKind.SSTREAM, true),
+        ORC("orc", IngestionMapping.IngestionMappingKind.ORC, false),
+        RAW("raw", IngestionMapping.IngestionMappingKind.CSV, true),
+        W3CLOGFILE("w3clogfile", IngestionMapping.IngestionMappingKind.W3CLOGFILE, true);
 
         private final String kustoValue;
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
-        private final boolean mappingRequired;
         private final boolean compressible;
 
-        DataFormat(String kustoValue, IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean mappingRequired, boolean compressible) {
+        DataFormat(String kustoValue, IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean compressible) {
             this.kustoValue = kustoValue;
             this.ingestionMappingKind = ingestionMappingKind;
-            this.mappingRequired = mappingRequired;
             this.compressible = compressible;
         }
 
@@ -392,10 +391,6 @@ public class IngestionProperties {
 
         public IngestionMapping.IngestionMappingKind getIngestionMappingKind() {
             return ingestionMappingKind;
-        }
-
-        public boolean isMappingRequired() {
-            return mappingRequired;
         }
 
         public boolean isCompressible() {

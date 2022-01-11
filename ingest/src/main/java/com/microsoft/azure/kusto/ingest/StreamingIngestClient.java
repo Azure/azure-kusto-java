@@ -139,7 +139,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         streamSourceInfo.validate();
         ingestionProperties.validate();
-        if (dataFormat.isMappingRequired() && StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
+        // TODO Deprecated: this restriction is likely to be removed soon
+        if ((dataFormat == IngestionProperties.DataFormat.JSON || dataFormat == IngestionProperties.DataFormat.MULTIJSON || dataFormat == IngestionProperties.DataFormat.SINGLEJSON || dataFormat == IngestionProperties.DataFormat.AVRO) && StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
             throw new IngestionClientException(String.format("Mapping reference must be specified for DataFormat '%s' in streaming ingestion.", dataFormat.getKustoValue()));
         }
 

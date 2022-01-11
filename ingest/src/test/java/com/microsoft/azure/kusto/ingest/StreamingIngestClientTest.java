@@ -11,6 +11,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -251,15 +252,13 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_JsonNoMappingReference_IngestionClientException() {
+    void IngestFromStream_JsonNoMappingReference_IngestionSucceeds() throws IngestionClientException, IngestionServiceException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'json' format."));
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        assertEquals(0, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
@@ -276,14 +275,12 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_AvroNoMappingReference_IngestionClientException() {
+    void IngestFromStream_AvroNoMappingReference_IngestionSucceeds() throws IngestionClientException, IngestionServiceException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'avro' format."));
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        assertEquals(0, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
@@ -473,15 +470,13 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonNoMappingReference_IngestionClientException() {
+    void IngestFromFile_JsonNoMappingReference_IngestionSuccess() throws IngestionClientException, IngestionServiceException {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping must be specified for 'json' format."));
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+        assertEquals(0, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
