@@ -100,8 +100,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
             }
 
-            ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
-            ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
+            ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel().getKustoValue();
+            ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod().getKustoValue();
             ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
             ingestionBlobInfo.additionalProperties = ingestionProperties.getIngestionProperties();
             if (blobSourceInfo.getSourceId() != null) {
@@ -115,8 +115,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             status.updatedOn = Date.from(Instant.now());
             status.ingestionSourceId = ingestionBlobInfo.id;
             status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.NONE
-                    && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
+            boolean reportToTable =     !IngestionProperties.IngestionReportLevel.NONE.equals(ingestionProperties.getReportLevel()) &&
+                                        !IngestionProperties.IngestionReportMethod.QUEUE.equals(ingestionProperties.getReportMethod());
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
                 String tableStatusUri = resourceManager
