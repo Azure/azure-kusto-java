@@ -255,7 +255,7 @@ class StreamingIngestClientTest {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
@@ -279,7 +279,7 @@ class StreamingIngestClientTest {
     void IngestFromStream_AvroNoMappingReference_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.avro);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
@@ -477,7 +477,7 @@ class StreamingIngestClientTest {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");

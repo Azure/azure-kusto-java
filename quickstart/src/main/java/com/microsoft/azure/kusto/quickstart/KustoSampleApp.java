@@ -380,7 +380,7 @@ public class KustoSampleApp {
                 }
             }
         } else if (dataFormat.isMappingRequired() && StringUtils.isBlank(mappingName)) {
-            System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.name());
+            System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
             return false;
         }
         return true;
