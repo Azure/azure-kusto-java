@@ -404,14 +404,34 @@ public class IngestionProperties {
     }
 
     public enum IngestionReportLevel {
-        FAILURES_ONLY,
-        NONE,
-        FAILURES_AND_SUCCESSES
+        FAILURES_ONLY("FailuresOnly"),
+        NONE("None"),
+        FAILURES_AND_SUCCESSES("FailuresAndSuccesses");
+
+        private final String kustoValue;
+
+        IngestionReportLevel(String kustoValue) {
+            this.kustoValue = kustoValue;
+        }
+
+        public String getKustoValue() {
+            return kustoValue;
+        }
     }
 
     public enum IngestionReportMethod {
-        QUEUE,
-        TABLE,
-        QUEUE_AND_TABLE
+        QUEUE("Queue"),
+        TABLE("Table"),
+        QUEUE_AND_TABLE("QueueAndTable");
+
+        private final String kustoValue;
+
+        IngestionReportMethod(String kustoValue) {
+            this.kustoValue = kustoValue;
+        }
+
+        public String getKustoValue() {
+            return kustoValue;
+        }
     }
 }
