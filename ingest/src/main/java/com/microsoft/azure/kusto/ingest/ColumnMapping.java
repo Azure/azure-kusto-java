@@ -91,23 +91,21 @@ public class ColumnMapping implements Serializable {
         return properties.get(MappingConsts.STORAGE_DATA_TYPE.getName());
     }
 
-    public boolean isValid(IngestionMapping.IngestionMappingKind mappingKind)
-    {
-        switch (mappingKind)
-        {
-            case Csv:
-            case SStream:
+    public boolean isValid(IngestionMapping.IngestionMappingKind mappingKind) {
+        switch (mappingKind) {
+            case CSV:
+            case SSTREAM:
                 return !StringUtils.isEmpty(this.columnName);
-            case Json:
-            case Parquet:
-            case Orc:
-            case W3CLogFile:
+            case JSON:
+            case PARQUET:
+            case ORC:
+            case W3CLOGFILE:
                 TransformationMethod transformationMethod = getTransform();
                 return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
                         || transformationMethod == TransformationMethod.SourceLineNumber
                         || transformationMethod == TransformationMethod.SourceLocation);
-            case Avro:
-            case ApacheAvro:
+            case AVRO:
+            case APACHEAVRO:
                 return !StringUtils.isEmpty(this.columnName) &&
                         !StringUtils.isEmpty(getColumns());
             default:

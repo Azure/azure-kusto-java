@@ -10,8 +10,17 @@ import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.result.*;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusResult;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.result.TableReportIngestionResult;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.univocity.parsers.csv.CsvRoutines;
@@ -60,8 +69,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX))
-        {
+        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX)) {
             throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
         }
         existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
@@ -107,8 +115,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             status.updatedOn = Date.from(Instant.now());
             status.ingestionSourceId = ingestionBlobInfo.id;
             status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
-                    && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
+            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.NONE
+                    && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
                 String tableStatusUri = resourceManager
@@ -163,7 +171,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     file.getName(),
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
+                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
@@ -209,7 +217,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.name(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
+                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(

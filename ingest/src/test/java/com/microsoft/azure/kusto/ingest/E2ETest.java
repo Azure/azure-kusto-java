@@ -22,13 +22,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -41,7 +50,11 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class E2ETest {
     private static IngestClient ingestClient;
@@ -135,23 +148,23 @@ class E2ETest {
     private static void createTestData() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
-        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
 
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
-        ingestionPropertiesWithMappingReference.setIngestionMapping(mappingReference, IngestionMappingKind.Json);
-        ingestionPropertiesWithMappingReference.setDataFormat(DataFormat.json);
+        ingestionPropertiesWithMappingReference.setIngestionMapping(mappingReference, IngestionMappingKind.JSON);
+        ingestionPropertiesWithMappingReference.setDataFormat(DataFormat.JSON);
 
         IngestionProperties ingestionPropertiesWithColumnMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithColumnMapping.setFlushImmediately(true);
-        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
         ColumnMapping first = new ColumnMapping("rownumber", "int");
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
         ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
-        ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.Json);
-        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.json);
+        ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
+        ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
         dataForTests = Arrays.asList(new TestDataItem() {
             {
@@ -401,7 +414,7 @@ class E2ETest {
     void testParameterizedQuery() throws DataServiceException, DataClientException {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
-        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.csv);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
 
         TestDataItem item = new TestDataItem() {
             {

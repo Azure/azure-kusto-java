@@ -14,7 +14,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 import java.util.List;
 
-import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QueueAndTable;
+import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE;
 
 public class TableStatus {
     public static void main(String[] args) {
@@ -30,9 +30,9 @@ public class TableStatus {
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
-                ingestionProperties.setReportMethod(QueueAndTable);
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
+                ingestionProperties.setReportMethod(QUEUE_AND_TABLE);
+                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
                 ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             }

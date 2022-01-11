@@ -29,7 +29,7 @@ final public class IngestionBlobInfo {
         id = UUID.randomUUID();
         retainBlobOnSuccess = true;
         flushImmediately = false;
-        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
-        reportMethod = IngestionProperties.IngestionReportMethod.Queue;
+        reportLevel = IngestionProperties.IngestionReportLevel.FAILURES_ONLY;
+        reportMethod = IngestionProperties.IngestionReportMethod.QUEUE;
     }
 }
