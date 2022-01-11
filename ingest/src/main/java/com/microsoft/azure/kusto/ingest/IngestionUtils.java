@@ -56,13 +56,16 @@ public class IngestionUtils {
         return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
     }
 
-    public static byte[] readBytesFromInputStream(InputStream value, int testByteArraySize) throws IOException {
+    public static byte[] readBytesFromInputStream(InputStream inputStream, int bytesToRead) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int numBytesRead;
-        byte[] data = new byte[testByteArraySize];
+        int currOffset = 0;
+        byte[] data = new byte[bytesToRead];
 
-        while ((numBytesRead = value.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, numBytesRead);
+        while (bytesToRead > 0 && (bytesToRead <= data.length - currOffset) && (numBytesRead = inputStream.read(data, currOffset, bytesToRead)) != -1) {
+            buffer.write(data, currOffset, numBytesRead);
+            currOffset += numBytesRead;
+            bytesToRead -= numBytesRead;
         }
 
         return buffer.toByteArray();
