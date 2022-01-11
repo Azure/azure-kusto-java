@@ -27,29 +27,61 @@ public final class IngestionBlobInfo {
         this.tableName = tableName;
         id = UUID.randomUUID();
         retainBlobOnSuccess = true;
-        flushImmediately = false;
         reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
         reportMethod = IngestionProperties.IngestionReportMethod.Queue;
+        flushImmediately = false;
+    }
+
+    public String getBlobPath() {
+        return blobPath;
+    }
+
+    public Long getRawDataSize() {
+        return rawDataSize;
     }
 
     public void setRawDataSize(Long rawDataSize) {
         this.rawDataSize = rawDataSize;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public String getDatabaseName() {
+        return databaseName;
+    }
+
+    public String getTableName() {
+        return tableName;
     }
 
     public UUID getId() {
         return id;
     }
 
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public Boolean getRetainBlobOnSuccess() {
+        return retainBlobOnSuccess;
+    }
+
+    public IngestionProperties.IngestionReportLevel getReportLevel() {
+        return reportLevel;
+    }
+
     public void setReportLevel(IngestionProperties.IngestionReportLevel reportLevel) {
         this.reportLevel = reportLevel;
     }
 
+    public IngestionProperties.IngestionReportMethod getReportMethod() {
+        return reportMethod;
+    }
+
     public void setReportMethod(IngestionProperties.IngestionReportMethod reportMethod) {
         this.reportMethod = reportMethod;
+    }
+
+    public Boolean getFlushImmediately() {
+        return flushImmediately;
     }
 
     public void setFlushImmediately(boolean flushImmediately) {
@@ -62,6 +94,10 @@ public final class IngestionBlobInfo {
 
     public void setIngestionStatusInTable(IngestionStatusInTableDescription ingestionStatusInTable) {
         this.ingestionStatusInTable = ingestionStatusInTable;
+    }
+
+    public Map<String, String> getAdditionalProperties() {
+        return additionalProperties;
     }
 
     public void setAdditionalProperties(Map<String, String> additionalProperties) {
