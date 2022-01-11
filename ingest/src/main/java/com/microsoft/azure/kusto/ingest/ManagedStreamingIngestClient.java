@@ -27,8 +27,6 @@ import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.UUID;
 
-import sun.misc.IOUtils;
-
 /**
  * <p>ManagedStreamingIngestClient</p>
  * <p>
@@ -168,9 +166,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
 
         byte[] streamingBytes;
-
         try {
-            streamingBytes = IOUtils.readNBytes(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
+            streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to read from stream.", e);
         }
