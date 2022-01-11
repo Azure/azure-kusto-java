@@ -24,7 +24,6 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -141,7 +140,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         streamSourceInfo.validate();
         ingestionProperties.validate();
         if (dataFormat.isMappingRequired() && StringUtils.isBlank(ingestionProperties.getIngestionMapping().getIngestionMappingReference())) {
-            throw new IngestionClientException(String.format("Mapping reference must be specified for DataFormat '%s' in streaming ingestion.", dataFormat.name()));
+            throw new IngestionClientException(String.format("Mapping reference must be specified for DataFormat '%s' in streaming ingestion.", dataFormat.getKustoValue()));
         }
 
         ClientRequestProperties clientRequestProperties = null;
@@ -157,10 +156,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.getTableName(),
                     stream,
                     clientRequestProperties,
-                    dataFormat.name(),
+                    dataFormat.getKustoValue(),
                     ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
                     !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
-
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);

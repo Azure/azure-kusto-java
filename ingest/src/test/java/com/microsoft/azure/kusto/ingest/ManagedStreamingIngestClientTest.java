@@ -16,7 +16,6 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,7 +69,7 @@ class ManagedStreamingIngestClientTest {
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static IngestionProperties ingestionProperties;
-    private static final String STORAGE_URI = "https://ms.com/storageUri";
+    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
 
     @Mock
     private static StreamingClient streamingClientMock;
@@ -94,14 +93,14 @@ class ManagedStreamingIngestClientTest {
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URI)));
+                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URL)));
 
-        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class))).thenReturn(STORAGE_URI);
+        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class))).thenReturn(STORAGE_URL);
 
         when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
 
         when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URI)));
+                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URL)));
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
@@ -123,12 +122,12 @@ class ManagedStreamingIngestClientTest {
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
                 retryTemplate);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.JSON);
     }
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsQueue_IngestionStatusHardcoded() throws Exception {
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertEquals(1, result.getIngestionStatusesLength());
@@ -138,8 +137,8 @@ class ManagedStreamingIngestClientTest {
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertNotEquals(0, result.getIngestionStatusesLength());
     }
@@ -162,8 +161,8 @@ class ManagedStreamingIngestClientTest {
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.Table);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ArgumentCaptor<TableServiceEntity> capture = ArgumentCaptor.forClass(TableServiceEntity.class);
 
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -230,7 +229,7 @@ class ManagedStreamingIngestClientTest {
     @ValueSource(booleans = {true, false})
     void IngestFromFile_Csv(boolean useSourceId) throws Exception {
         UUID sourceId = useSourceId ? CustomUUID : null;
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length(), sourceId);
@@ -258,8 +257,8 @@ class ManagedStreamingIngestClientTest {
 
         ArgumentCaptor<InputStream> argumentCaptor = ArgumentCaptor.forClass(InputStream.class);
 
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
-        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.Csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
+        ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.CSV);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet, sourceId);
         OperationStatus status = managedStreamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
@@ -278,8 +277,8 @@ class ManagedStreamingIngestClientTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
 
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -295,8 +294,8 @@ class ManagedStreamingIngestClientTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         AtomicBoolean visited = new AtomicBoolean(false);
 
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status;
         try {
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -318,7 +317,7 @@ class ManagedStreamingIngestClientTest {
     @ParameterizedTest
     @CsvSource({"true,true", "false,true", "true,false", "false,false"})
     void IngestFromStream_Success(boolean leaveOpen, boolean useSourceId) throws Exception {
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new CloseableByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         UUID sourceId = useSourceId ? CustomUUID : null;
@@ -352,8 +351,8 @@ class ManagedStreamingIngestClientTest {
             String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
             String path = resourcesDirectory + "testdata.json.gz";
             FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-            ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+            ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
 
             when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                     any(ClientRequestProperties.class), any(String.class), eq("JsonMapping"), any(boolean.class)))
@@ -387,7 +386,7 @@ class ManagedStreamingIngestClientTest {
                     });
 
             // Should fail 3 times and then succeed with the queued client
-            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
             assertEquals(ManagedStreamingIngestClient.ATTEMPT_COUNT, times[0]);
         } finally {
@@ -416,7 +415,7 @@ class ManagedStreamingIngestClientTest {
                         throw new DataServiceException("some cluster", "Some error", false);
                     }).thenReturn(null);
 
-            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
             assertEquals(OperationStatus.Succeeded, status);
@@ -465,7 +464,7 @@ class ManagedStreamingIngestClientTest {
                         throw new DataServiceException("some cluster", "Some error", ex, false);
                     }).thenReturn(null);
 
-            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
             OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
             assertEquals(OperationStatus.Succeeded, status);
@@ -506,7 +505,7 @@ class ManagedStreamingIngestClientTest {
                     }).thenAnswer((a) -> {
                         throw new DataServiceException("some cluster", "Some error", ex, true);
                     }).thenReturn(null);
-            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+            ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             assertThrows(IngestionServiceException.class, () -> managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties));
         } finally {
@@ -525,7 +524,7 @@ class ManagedStreamingIngestClientTest {
 
         UUID sourceId = useSourceId ? CustomUUID : null;
         InputStream inputStream = new CloseableByteArrayInputStream(bytes);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
 
         ArgumentCaptor<InputStream> capture = ArgumentCaptor.forClass(InputStream.class);
 

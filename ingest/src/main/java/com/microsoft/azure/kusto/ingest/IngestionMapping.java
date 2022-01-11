@@ -94,6 +94,23 @@ public class IngestionMapping {
      Represents an ingestion mapping kind - the format of the source data to map from.
     */
     public enum IngestionMappingKind {
-        Csv, Json, Avro, Parquet, SStream, Orc, ApacheAvro, W3CLogFile
+        CSV("Csv"),
+        JSON("Json"),
+        AVRO("Avro"),
+        PARQUET("Parquet"),
+        SSTREAM("SStream"),
+        ORC("Orc"),
+        APACHEAVRO("ApacheAvro"),
+        W3CLOGFILE("W3CLogFile");
+
+        private final String kustoValue;
+
+        IngestionMappingKind(String kustoValue) {
+            this.kustoValue = kustoValue;
+        }
+
+        public String getKustoValue() {
+            return kustoValue;
+        }
     }
 }

@@ -4,11 +4,20 @@
 package com.microsoft.azure.kusto.quickstart;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.*;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultColumn;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.ingest.*;
+import com.microsoft.azure.kusto.ingest.IngestClient;
+import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.kusto.ingest.IngestionMapping;
+import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
@@ -22,7 +31,11 @@ import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class KustoSampleApp {
@@ -86,7 +99,7 @@ public class KustoSampleApp {
 
             if (shouldIngestData) {
                 for (Map<String, String> file : dataToIngest) {
-                    IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.valueOf(file.get("format").toLowerCase());
+                    IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.valueOf(file.get("format").toUpperCase());
                     String mappingName = file.get("mappingName");
 
                     // Tip: This is generally a one-time configuration.
@@ -349,25 +362,25 @@ public class KustoSampleApp {
     private static boolean createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName, String mappingValue, IngestionProperties.DataFormat dataFormat) {
         if (!useExistingMapping) {
             if (dataFormat.isMappingRequired() && StringUtils.isBlank(mappingValue)) {
-                System.out.printf("The data format '%s' requires a mapping, but configuration indicates to not use an existing mapping and no mapping was provided. Skipping this ingestion.%n", dataFormat.name());
+                System.out.printf("The data format '%s' requires a mapping, but configuration indicates to not use an existing mapping and no mapping was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
                 return false;
             }
 
             if (StringUtils.isNotBlank(mappingValue)) {
                 IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
-                waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind, mappingName));
+                waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
 
                 if (StringUtils.isBlank(mappingName)) {
                     mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
                 }
-                String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName, ingestionMappingKind.name().toLowerCase(), mappingName, mappingValue);
+                String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName, ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
                 if (!executeControlCommand(kustoClient, databaseName, mappingCommand)) {
-                    System.out.printf("Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n", ingestionMappingKind, mappingName);
+                    System.out.printf("Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n", ingestionMappingKind.getKustoValue(), mappingName);
                     return false;
                 }
             }
         } else if (dataFormat.isMappingRequired() && StringUtils.isBlank(mappingName)) {
-            System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.name());
+            System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
             return false;
         }
         return true;
@@ -379,8 +392,8 @@ public class KustoSampleApp {
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType));
         // Tip: When ingesting json files, if each line represents a single-line json, use MULTIJSON format even if the file only contains one line.
         //  If the json contains whitespace formatting, use SINGLEJSON. In this case, only one data row json object is allowed per file.
-        if (dataFormat == IngestionProperties.DataFormat.json) {
-            dataFormat = IngestionProperties.DataFormat.multijson;
+        if (dataFormat == IngestionProperties.DataFormat.JSON) {
+            dataFormat = IngestionProperties.DataFormat.MULTIJSON;
         }
 
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
