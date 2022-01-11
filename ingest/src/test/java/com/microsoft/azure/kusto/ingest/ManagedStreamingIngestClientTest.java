@@ -71,7 +71,7 @@ class ManagedStreamingIngestClientTest {
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static IngestionProperties ingestionProperties;
-    private static final String STORAGE_URL = "https://ms.com/storageUrl";
+    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
 
     @Mock
     private static StreamingClient streamingClientMock;

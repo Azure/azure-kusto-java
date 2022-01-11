@@ -56,7 +56,7 @@ class QueuedIngestClientTest {
     private static QueuedIngestClient queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
-    private static final String STORAGE_URL = "https://ms.com/storageUrl";
+    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
     private static final String ENDPOINT_SERVICE_TYPE_ENGINE = "Engine";
 
     @BeforeAll
