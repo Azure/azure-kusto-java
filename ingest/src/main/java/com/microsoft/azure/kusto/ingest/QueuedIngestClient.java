@@ -87,38 +87,39 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
-                ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes();
+                ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
             } else {
                 log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
             }
 
-            ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
-            ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
-            ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
-            ingestionBlobInfo.additionalProperties = ingestionProperties.getIngestionProperties();
+            ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel());
+            ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod());
+            ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
+            ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
             if (blobSourceInfo.getSourceId() != null) {
-                ingestionBlobInfo.id = blobSourceInfo.getSourceId();
+                ingestionBlobInfo.setId(blobSourceInfo.getSourceId());
             }
 
-            IngestionStatus status = new IngestionStatus(ingestionBlobInfo.id);
+            IngestionStatus status = new IngestionStatus(ingestionBlobInfo.getId());
             status.database = ingestionProperties.getDatabaseName();
             status.table = ingestionProperties.getTableName();
             status.status = OperationStatus.Queued;
             status.updatedOn = Date.from(Instant.now());
-            status.ingestionSourceId = ingestionBlobInfo.id;
+            status.ingestionSourceId = ingestionBlobInfo.getId();
             status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
-                    && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
+            boolean reportToTable =     ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.None &&
+                                        ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
                 String tableStatusUri = resourceManager
                         .getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
-                ingestionBlobInfo.IngestionStatusInTable = new IngestionStatusInTableDescription();
-                ingestionBlobInfo.IngestionStatusInTable.TableConnectionString = tableStatusUri;
-                ingestionBlobInfo.IngestionStatusInTable.RowKey = ingestionBlobInfo.id.toString();
-                ingestionBlobInfo.IngestionStatusInTable.PartitionKey = ingestionBlobInfo.id.toString();
+                IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
+                ingestionStatusInTable.setTableConnectionString(tableStatusUri);
+                ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
+                ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
+                ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);
                 azureStorageClient.azureTableInsertEntity(tableStatusUri, status);
-                tableStatuses.add(ingestionBlobInfo.IngestionStatusInTable);
+                tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
             }
 
             ObjectMapper objectMapper = new ObjectMapper();

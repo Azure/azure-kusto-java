@@ -8,19 +8,18 @@ import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription
 import java.util.Map;
 import java.util.UUID;
 
-final public class IngestionBlobInfo {
-    public String blobPath;
-    public Long rawDataSize;
-    public String databaseName;
-    public String tableName;
-    public UUID id;
-    public Boolean retainBlobOnSuccess;
-    public IngestionProperties.IngestionReportLevel reportLevel;
-    public IngestionProperties.IngestionReportMethod reportMethod;
-    public Boolean flushImmediately;
-    public IngestionStatusInTableDescription IngestionStatusInTable;
-
-    public Map<String, String> additionalProperties;
+public final class IngestionBlobInfo {
+    private final String blobPath;
+    private Long rawDataSize;
+    private final String databaseName;
+    private final String tableName;
+    private UUID id;
+    private final Boolean retainBlobOnSuccess;
+    private IngestionProperties.IngestionReportLevel reportLevel;
+    private IngestionProperties.IngestionReportMethod reportMethod;
+    private Boolean flushImmediately;
+    private IngestionStatusInTableDescription ingestionStatusInTable;
+    private Map<String, String> additionalProperties;
 
     public IngestionBlobInfo(String blobPath, String databaseName, String tableName) {
         this.blobPath = blobPath;
@@ -31,5 +30,41 @@ final public class IngestionBlobInfo {
         flushImmediately = false;
         reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
         reportMethod = IngestionProperties.IngestionReportMethod.Queue;
+    }
+
+    public void setRawDataSize(Long rawDataSize) {
+        this.rawDataSize = rawDataSize;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setReportLevel(IngestionProperties.IngestionReportLevel reportLevel) {
+        this.reportLevel = reportLevel;
+    }
+
+    public void setReportMethod(IngestionProperties.IngestionReportMethod reportMethod) {
+        this.reportMethod = reportMethod;
+    }
+
+    public void setFlushImmediately(boolean flushImmediately) {
+        this.flushImmediately = flushImmediately;
+    }
+
+    public IngestionStatusInTableDescription getIngestionStatusInTable() {
+        return ingestionStatusInTable;
+    }
+
+    public void setIngestionStatusInTable(IngestionStatusInTableDescription ingestionStatusInTable) {
+        this.ingestionStatusInTable = ingestionStatusInTable;
+    }
+
+    public void setAdditionalProperties(Map<String, String> additionalProperties) {
+        this.additionalProperties = additionalProperties;
     }
 }
