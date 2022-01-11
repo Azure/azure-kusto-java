@@ -52,7 +52,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_TempStorage_VerifyRoundRubin()
+    void GetIngestionResource_TempStorage_VerifyRoundRobin()
             throws IngestionServiceException, IngestionClientException {
         List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
@@ -68,7 +68,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
+    void GetIngestionResource_AggregationQueue_VerifyRoundRobin()
             throws IngestionServiceException, IngestionClientException {
         List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
