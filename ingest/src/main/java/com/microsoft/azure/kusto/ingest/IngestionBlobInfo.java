@@ -15,8 +15,8 @@ public final class IngestionBlobInfo {
     private final String tableName;
     private UUID id;
     private final Boolean retainBlobOnSuccess;
-    private IngestionProperties.IngestionReportLevel reportLevel;
-    private IngestionProperties.IngestionReportMethod reportMethod;
+    private String reportLevel;
+    private String reportMethod;
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;
     private Map<String, String> additionalProperties;
@@ -27,8 +27,8 @@ public final class IngestionBlobInfo {
         this.tableName = tableName;
         id = UUID.randomUUID();
         retainBlobOnSuccess = true;
-        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly;
-        reportMethod = IngestionProperties.IngestionReportMethod.Queue;
+        reportLevel = IngestionProperties.IngestionReportLevel.FailuresOnly.getKustoValue();
+        reportMethod = IngestionProperties.IngestionReportMethod.Queue.getKustoValue();
         flushImmediately = false;
     }
 

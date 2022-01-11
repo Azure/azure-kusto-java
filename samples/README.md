@@ -75,7 +75,7 @@ ConnectionStringBuilder csb =
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
 ```
-2. Initialize client and it's properties
+2. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -138,7 +138,7 @@ ConnectionStringBuilder csb =
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
 ```
-2. Initialize client and it's properties
+2. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -228,7 +228,7 @@ ConnectionStringBuilder csb =
                 System.getProperty("appTenant"));
 ```
 
-3. Initialize client and it's properties
+3. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -237,7 +237,7 @@ IngestionProperties ingestionProperties = new IngestionProperties( System.getPro
                     System.getProperty("tableName"));
             ingestionProperties.getIngestionMapping().setIngestionMappingReference(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Csv);
             ingestionProperties.setReportMethod(QueueAndTable);
-            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
 ```
 
 4. Load file and ingest it into table
