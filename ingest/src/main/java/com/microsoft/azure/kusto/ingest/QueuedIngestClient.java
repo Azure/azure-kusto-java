@@ -10,8 +10,17 @@ import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.result.*;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
+import com.microsoft.azure.kusto.ingest.result.IngestionStatusResult;
+import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.result.TableReportIngestionResult;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.univocity.parsers.csv.CsvRoutines;
@@ -21,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
@@ -31,7 +41,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class QueuedIngestClient extends IngestClientBase implements IngestClient {
+public class QueuedIngestClient extends IngestClientBase implements IngestClient, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
@@ -60,8 +70,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
-        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX))
-        {
+        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX)) {
             throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
         }
         existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());

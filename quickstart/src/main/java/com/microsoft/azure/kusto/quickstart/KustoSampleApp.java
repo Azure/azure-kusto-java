@@ -63,8 +63,9 @@ public class KustoSampleApp {
             waitForUserToProceed("You may be prompted more than once for credentials during this script. Please return to the console after authenticating.");
         }
 
-        try (IngestClient ingestClient = IngestClientFactory.createClient(generateConnectionString(ingestUrl, AUTHENTICATION_MODE))) {
+        try {
             // Tip: Avoid creating a new Kusto/ingest client for each use. Instead, create the clients once and reuse them.
+            IngestClient ingestClient = IngestClientFactory.createClient(generateConnectionString(ingestUrl, AUTHENTICATION_MODE));
             Client kustoClient = new ClientImpl(generateConnectionString(kustoUrl, AUTHENTICATION_MODE));
 
             if (useExistingTable) {

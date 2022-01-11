@@ -29,18 +29,17 @@ public class FileIngestionCompletableFuture {
                             System.getProperty("appTenant"));
 
             CompletableFuture<IngestionResult> cf;
-            try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                // Creating the ingestion properties:
-                IngestionProperties ingestionProperties = new IngestionProperties(
-                        System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+            IngestClient client = IngestClientFactory.createClient(csb);
+            // Creating the ingestion properties:
+            IngestionProperties ingestionProperties = new IngestionProperties(
+                    System.getProperty("dbName"),
+                    System.getProperty("tableName"));
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
 
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 
-                // Ingest From File ASYNC returns a CompletableFuture:
-                cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);
-            }
+            // Ingest From File ASYNC returns a CompletableFuture:
+            cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);
 
             // In case of exception during File Ingestion, a CompletionException will be thrown by the
             // CompletableFuture, that contains in its cause the original exception that occurred during the
@@ -95,6 +94,5 @@ public class FileIngestionCompletableFuture {
         } else {
             System.out.println("No IngestionResults available");
         }
-
     }
 }

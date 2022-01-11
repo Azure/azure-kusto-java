@@ -13,13 +13,13 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
 import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.SequenceInputStream;
@@ -40,8 +40,7 @@ import sun.misc.IOUtils;
  * <p>
  * Note that {@code ingestFromBlob} behaves differently from the other methods - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.
  */
-public class ManagedStreamingIngestClient implements IngestClient {
-
+public class ManagedStreamingIngestClient implements IngestClient, Closeable {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
@@ -95,9 +94,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
-                                        AzureStorageClient storageClient,
-                                        StreamingClient streamingClient,
-                                        ExponentialRetry retryTemplate) {
+                                 AzureStorageClient storageClient,
+                                 StreamingClient streamingClient,
+                                 ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -249,6 +248,5 @@ public class ManagedStreamingIngestClient implements IngestClient {
     @Override
     public void close() {
         queuedIngestClient.close();
-        streamingIngestClient.close();
     }
 }

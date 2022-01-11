@@ -24,7 +24,6 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -245,9 +244,5 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     protected void setConnectionDataSource(String connectionDataSource) {
         this.connectionDataSource = connectionDataSource;
-    }
-
-    @Override
-    public void close() {
     }
 }

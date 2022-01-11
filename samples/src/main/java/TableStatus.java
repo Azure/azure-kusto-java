@@ -27,15 +27,14 @@ public class TableStatus {
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
             IngestionResult ingestionResult;
-            try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
-                ingestionProperties.setReportMethod(QueueAndTable);
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
-                ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
-            }
+            IngestClient client = IngestClientFactory.createClient(csb);
+            IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
+                    System.getProperty("tableName"));
+            ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+            ingestionProperties.setReportMethod(QueueAndTable);
+            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+            ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();
 
             // step 3: poll on the result.
