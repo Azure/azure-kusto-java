@@ -104,7 +104,7 @@ public class KustoSampleApp {
 
                     // Tip: This is generally a one-time configuration.
                     // Learn More: For more information about providing inline mappings and mapping references, see: https://docs.microsoft.com/azure/data-explorer/kusto/management/mappings
-                    if (!createIngestionMappings(Boolean.parseBoolean(file.get("useExistingMapping")), kustoClient, databaseName, tableName, mappingName, file.get("mappingValue"), dataFormat)) {
+                    if (!createIngestionMappings(Boolean.parseBoolean(String.valueOf(file.get("useExistingMapping"))), kustoClient, databaseName, tableName, mappingName, file.get("mappingValue"), dataFormat)) {
                         continue;
                     }
                     // Learn More: For more information about ingesting data to Kusto in Java, see: https://docs.microsoft.com/azure/data-explorer/java-ingest-data
@@ -151,19 +151,19 @@ public class KustoSampleApp {
         try {
             configs = new ObjectMapper().readValue(configFile, HashMap.class);
 
-            useExistingTable = Boolean.parseBoolean((String) configs.get("useExistingTable"));
+            useExistingTable = Boolean.parseBoolean(configs.get("useExistingTable").toString());
             databaseName = (String) configs.get("databaseName");
             tableName = (String) configs.get("tableName");
             tableSchema = (String) configs.get("tableSchema");
             kustoUrl = (String) configs.get("kustoUri");
             ingestUrl = (String) configs.get("ingestUri");
             dataToIngest = (List<Map<String, String>>) configs.get("data");
-            shouldAlterTable = Boolean.parseBoolean((String) configs.get("alterTable"));
-            shouldQueryData = Boolean.parseBoolean((String) configs.get("queryData"));
-            shouldIngestData = Boolean.parseBoolean((String) configs.get("ingestData"));
+            shouldAlterTable = Boolean.parseBoolean(configs.get("alterTable").toString());
+            shouldQueryData = Boolean.parseBoolean(configs.get("queryData").toString());
+            shouldIngestData = Boolean.parseBoolean(configs.get("ingestData").toString());
             if (StringUtils.isBlank(databaseName) || StringUtils.isBlank(tableName) || StringUtils.isBlank(tableSchema)
                     || StringUtils.isBlank(kustoUrl) || StringUtils.isBlank(ingestUrl)
-                    || StringUtils.isBlank((String) configs.get("useExistingTable")) || dataToIngest.isEmpty()) {
+                    || StringUtils.isBlank(configs.get("useExistingTable").toString()) || dataToIngest.isEmpty()) {
                 die(String.format("File '%s' is missing required fields", configFileName));
             }
         } catch (IOException e) {

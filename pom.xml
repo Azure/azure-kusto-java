@@ -65,7 +65,6 @@
         <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
-        <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
         <junit.version>5.8.2</junit.version>
         <mockito.version>4.1.0</mockito.version>
