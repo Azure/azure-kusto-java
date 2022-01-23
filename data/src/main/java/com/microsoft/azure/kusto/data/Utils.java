@@ -162,11 +162,13 @@ class Utils {
                     return new DataServiceException(url, message, formattedException,
                             formattedException.getApiError().isPermanent());
                 } catch (Exception ignored) {
+                    // Exception doesn't follow the OneAPI error format
+                    return new DataServiceException(url, errorFromResponse, false);
                 }
             }
             errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
             if (thrownException == null) {
-                thrownException = new DataWebException(errorFromResponse, httpResponse);
+                return new DataServiceException(url, errorFromResponse, false);
             }
             return new DataServiceException(url, errorFromResponse, thrownException, false);
 
