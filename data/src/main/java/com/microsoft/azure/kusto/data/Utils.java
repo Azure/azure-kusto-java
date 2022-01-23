@@ -7,8 +7,16 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
+import com.microsoft.azure.kusto.data.exceptions.WebException;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.*;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -22,13 +30,18 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.*;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
@@ -144,7 +157,7 @@ class Utils {
         throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
     }
 
-    private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
+    static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
             return new DataServiceException(url, "POST failed to send request", thrownException, false);
         } else {
@@ -154,22 +167,33 @@ class Utils {
              *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
              */
             String activityId = determineActivityId(httpResponse);
+            String message = errorFromResponse;
+            WebException formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
+            boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
-                String message;
-                DataWebException formattedException = new DataWebException(errorFromResponse, httpResponse);
                 try {
-                    message = String.format("%s, ActivityId='%s'", formattedException.getApiError().getDescription(), activityId);
-                    return new DataServiceException(url, message, formattedException,
-                            formattedException.getApiError().isPermanent());
-                } catch (Exception ignored) {
+                    JSONObject jsonObject = new JSONObject(errorFromResponse);
+                    if (jsonObject.has("error")) {
+                        formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
+                        OneApiError apiError = ((DataWebException) formattedException).getApiError();
+                        message = apiError.getDescription();
+                        isPermanent = apiError.isPermanent();
+                    } else if (jsonObject.has("message")) {
+                        message = jsonObject.getString("message");
+                    }
                 }
+                catch (JSONException ex) {
+                    // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
+                }
+            } else {
+                message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
             }
-            errorFromResponse = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-            if (thrownException == null) {
-                thrownException = new DataWebException(errorFromResponse, httpResponse);
-            }
-            return new DataServiceException(url, errorFromResponse, thrownException, false);
 
+            return new DataServiceException(
+                    url,
+                    String.format("%s, ActivityId='%s'", message, activityId),
+                    formattedException,
+                    isPermanent);
         }
     }
 

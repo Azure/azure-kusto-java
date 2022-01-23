@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-import org.apache.http.HttpResponse;
+import org.jetbrains.annotations.Nullable;
 
 public class DataServiceException extends KustoDataExceptionBase {
     public DataServiceException(String ingestionSource, String message, boolean isPermanent) {
@@ -15,12 +15,17 @@ public class DataServiceException extends KustoDataExceptionBase {
     }
 
     public boolean is404Error() {
+        Integer code = getStatusCode();
+        return code != null && code == 404;
+    }
+
+    @Nullable
+    public Integer getStatusCode() {
         Throwable cause = getCause();
-        if (!(cause instanceof DataWebException)) {
-            return false;
+        if (!(cause instanceof WebException)) {
+            return null;
         }
 
-        HttpResponse httpResponse = ((DataWebException) cause).getHttpResponse();
-        return httpResponse != null && httpResponse.getStatusLine().getStatusCode() == 404;
+        return ((WebException) cause).getStatusCode();
     }
 }

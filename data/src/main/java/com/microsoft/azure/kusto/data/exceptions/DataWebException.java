@@ -6,41 +6,25 @@ package com.microsoft.azure.kusto.data.exceptions;
 import org.apache.http.HttpResponse;
 import org.json.JSONObject;
 
-public class DataWebException extends Exception{
+public class DataWebException extends WebException {
+    private OneApiError apiError = null;
 
-    private final HttpResponse httpResponse;
-    private OneApiError apiError;
-
-    public HttpResponse getHttpResponse() { return httpResponse; }
+    public DataWebException(String message, HttpResponse httpResponse, Throwable cause) {
+        super(message, httpResponse, cause);
+    }
 
     public DataWebException(String message, HttpResponse httpResponse) {
-        super(message);
-        this.httpResponse = httpResponse;
-        this.apiError = null;
+        this(message, httpResponse, null);
     }
 
     public DataWebException(String message) {
-        this(message, null);
+        this(message, null, null);
     }
 
     public OneApiError getApiError() {
         if (apiError == null) {
-            JSONObject jsonObject = new JSONObject(getMessage()).getJSONObject("error");
-            apiError = new OneApiError(
-                    jsonObject.getString("code"),
-                    jsonObject.getString("message"),
-                    jsonObject.getString("@message"),
-                    jsonObject.getString("@type"),
-                    jsonObject.getJSONObject("@context"),
-                    jsonObject.getBoolean("@permanent")
-            );
+            apiError = OneApiError.fromJsonObject(new JSONObject(getMessage()).getJSONObject("error"));
         }
-
         return apiError;
-    }
-
-    @Override
-    public String toString() {
-        return this.getMessage();
     }
 }
