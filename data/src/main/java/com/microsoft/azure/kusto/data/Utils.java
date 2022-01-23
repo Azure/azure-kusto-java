@@ -157,7 +157,7 @@ class Utils {
         throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
     }
 
-    private static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
+    static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
             return new DataServiceException(url, "POST failed to send request", thrownException, false);
         } else {
