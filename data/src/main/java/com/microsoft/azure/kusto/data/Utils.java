@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.data.exceptions.WebException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -166,35 +167,33 @@ class Utils {
              *   result), or (2) in the KustoOperationResult's QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
              */
             String activityId = determineActivityId(httpResponse);
-            String message;
-            WebException formattedException;
+            String message = errorFromResponse;
+            WebException formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
             boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
                 try {
                     JSONObject jsonObject = new JSONObject(errorFromResponse);
                     if (jsonObject.has("error")) {
                         formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
-                        message = String.format("%s, ActivityId='%s'", ((DataWebException)formattedException).getApiError().getDescription(), activityId);
-                        isPermanent = ((DataWebException)formattedException).getApiError().isPermanent();
+                        OneApiError apiError = ((DataWebException) formattedException).getApiError();
+                        message = apiError.getDescription();
+                        isPermanent = apiError.isPermanent();
                     } else if (jsonObject.has("message")) {
-                        formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
-                        message = String.format("%s, ActivityId='%s'", jsonObject.getString("message"), activityId);
-                    } else {
-                        formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
-                        message = String.format("%s, ActivityId='%s'", errorFromResponse, activityId);
+                        message = jsonObject.getString("message");
                     }
                 }
                 catch (JSONException ex) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
-                    formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
-                    message = String.format("%s, ActivityId='%s'", errorFromResponse, activityId);
                 }
             } else {
-                message = String.format("Http StatusCode='%s', ActivityId='%s'", httpResponse.getStatusLine().toString(), activityId);
-                formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
+                message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
             }
 
-            return new DataServiceException(url, message, formattedException, isPermanent);
+            return new DataServiceException(
+                    url,
+                    String.format("%s, ActivityId='%s'", message, activityId),
+                    formattedException,
+                    isPermanent);
         }
     }
 

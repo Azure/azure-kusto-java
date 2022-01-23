@@ -7,12 +7,10 @@ import org.apache.http.HttpResponse;
 import org.json.JSONObject;
 
 public class DataWebException extends WebException {
-
-    private final OneApiError apiError;
+    private OneApiError apiError = null;
 
     public DataWebException(String message, HttpResponse httpResponse, Throwable cause) {
         super(message, httpResponse, cause);
-        this.apiError = OneApiError.fromJsonObject(new JSONObject(getMessage()).getJSONObject("error"));
     }
 
     public DataWebException(String message, HttpResponse httpResponse) {
@@ -24,6 +22,9 @@ public class DataWebException extends WebException {
     }
 
     public OneApiError getApiError() {
+        if (apiError == null) {
+            apiError = OneApiError.fromJsonObject(new JSONObject(getMessage()).getJSONObject("error"));
+        }
         return apiError;
     }
 }
