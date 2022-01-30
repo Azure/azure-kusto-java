@@ -360,30 +360,18 @@ public class KustoSampleApp {
     }
 
     private static boolean createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName, String mappingValue, IngestionProperties.DataFormat dataFormat) {
-        if (!useExistingMapping) {
-            // TODO Deprecated: this restriction is likely to be removed soon
-            if ((dataFormat == IngestionProperties.DataFormat.JSON || dataFormat == IngestionProperties.DataFormat.MULTIJSON || dataFormat == IngestionProperties.DataFormat.SINGLEJSON || dataFormat == IngestionProperties.DataFormat.AVRO) && StringUtils.isBlank(mappingValue)) {
-                System.out.printf("The data format '%s' requires a mapping, but configuration indicates to not use an existing mapping and no mapping was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
+        if (!useExistingMapping && StringUtils.isNotBlank(mappingValue)) {
+            IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
+            waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
+
+            if (StringUtils.isBlank(mappingName)) {
+                mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
+            }
+            String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName, ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
+            if (!executeControlCommand(kustoClient, databaseName, mappingCommand)) {
+                System.out.printf("Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n", ingestionMappingKind.getKustoValue(), mappingName);
                 return false;
             }
-
-            if (StringUtils.isNotBlank(mappingValue)) {
-                IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
-                waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
-
-                if (StringUtils.isBlank(mappingName)) {
-                    mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
-                }
-                String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName, ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
-                if (!executeControlCommand(kustoClient, databaseName, mappingCommand)) {
-                    System.out.printf("Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n", ingestionMappingKind.getKustoValue(), mappingName);
-                    return false;
-                }
-            }
-        } else if ((dataFormat == IngestionProperties.DataFormat.JSON || dataFormat == IngestionProperties.DataFormat.MULTIJSON || dataFormat == IngestionProperties.DataFormat.SINGLEJSON || dataFormat == IngestionProperties.DataFormat.AVRO) && StringUtils.isBlank(mappingName)) {
-            // TODO Deprecated: this restriction is likely to be removed soon
-            System.out.printf("The data format '%s' requires a mapping and the configuration indicates an existing mapping should be used, but none was provided. Skipping this ingestion.%n", dataFormat.getKustoValue());
-            return false;
         }
         return true;
     }
