@@ -313,11 +313,6 @@ public class IngestionProperties {
         TextStringBuilder message = new TextStringBuilder();
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
-            // TODO Deprecated: this restriction is likely to be removed soon
-            if (dataFormat == DataFormat.JSON || dataFormat == DataFormat.MULTIJSON || dataFormat == DataFormat.SINGLEJSON || dataFormat == DataFormat.AVRO) {
-                message.appendln("Mapping must be specified for '%s' format.", dataFormat.getKustoValue());
-            }
-
             if (ingestionMappingKind != null) {
                 message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
             }

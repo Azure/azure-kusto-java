@@ -61,7 +61,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class StreamingIngestClientTest {
-
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
 
@@ -72,7 +71,7 @@ class StreamingIngestClientTest {
     private static ArgumentCaptor<InputStream> argumentCaptor;
 
     private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
-
+    private String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
 
     @BeforeAll
     static void setUp() {
@@ -339,7 +338,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_Csv() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -357,7 +355,6 @@ class StreamingIngestClientTest {
         when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult("{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}", "v1"));
 
         streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         String expectedMessage =
@@ -368,7 +365,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_Json() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
@@ -385,7 +381,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json.gz";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -423,7 +418,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         assertThrows(IllegalArgumentException.class,
@@ -433,7 +427,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties(null, "table");
@@ -444,7 +437,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithBlankDatabase_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("", "table");
@@ -455,7 +447,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithNullTable_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", null);
@@ -466,7 +457,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithBlankTable_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", "");
@@ -477,7 +467,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -489,7 +478,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonWrongMappingKind_IngestionClientException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -501,8 +489,16 @@ class StreamingIngestClientTest {
     }
 
     @Test
+    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+        String path = resourcesDirectory + "testdata.json";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
+        assertEquals(1, ingestionResult.getIngestionStatusesLength());
+    }
+
+    @Test
     void IngestFromFile_EmptyFile_IngestionClientException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
