@@ -20,6 +20,8 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -56,6 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 
 class E2ETest {
     private static IngestClient ingestClient;
@@ -499,5 +504,21 @@ class E2ETest {
             System.out.printf("Streamed raw json of length '%s' in '%s'ms, using '%s' streamed segments%n", streamedResult.length(), timeStreaming, count);
             assertTrue(count > 0);
         }
+    }
+
+    @Test
+    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
+        ClientImpl clientImpl = new ClientImpl(engineCsb, httpClientSpy);
+
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        String query = tableName + " | take 1000";
+
+        clientImpl.execute(databaseName, query, clientRequestProperties);
+        clientImpl.execute(databaseName, query, clientRequestProperties);
+
+        Mockito.verify(httpClientSpy, times(2)).execute(any());
     }
 }

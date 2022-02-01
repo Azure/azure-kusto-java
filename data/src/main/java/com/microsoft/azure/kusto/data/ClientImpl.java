@@ -43,10 +43,14 @@ public class ClientImpl implements Client, StreamingClient {
     private final CloseableHttpClient httpClient;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-      this(csb, null);
+      this(csb, HttpClientProperties.builder().build());
     }
 
    public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
+        this(csb, HttpClientFactory.getInstance().create(properties));
+    }
+
+    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
@@ -68,7 +72,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
-        httpClient = HttpClientFactory.getInstance().create(properties);
+        this.httpClient = httpClient;
     }
 
     @Override
