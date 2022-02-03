@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,8 +40,17 @@ public class ClientImpl implements Client, StreamingClient {
     private String clientVersionForTracing;
     private final String applicationNameForTracing;
     private final String userNameForTracing;
+    private final CloseableHttpClient httpClient;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+      this(csb, HttpClientProperties.builder().build());
+    }
+
+   public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
+        this(csb, HttpClientFactory.getInstance().create(properties));
+    }
+
+    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
@@ -62,6 +72,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
+        this.httpClient = httpClient;
     }
 
     @Override
@@ -119,7 +130,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.post(clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
     @Override
@@ -159,7 +170,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        String response = Utils.post(clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+        String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -195,7 +206,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.postToStreamingOutput(clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload,timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
