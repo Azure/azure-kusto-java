@@ -37,6 +37,7 @@ import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.WRONG_ENDPOINT
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyString;
@@ -133,12 +134,29 @@ class QueuedIngestClientTest {
     void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
-        ArgumentCaptor<TableServiceEntity> captur = ArgumentCaptor.forClass(TableServiceEntity.class);
+        ArgumentCaptor<TableServiceEntity> captor = ArgumentCaptor.forClass(TableServiceEntity.class);
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captur.capture());
-        assert (((IngestionStatus) captur.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), captor.capture());
+        assert (((IngestionStatus) captor.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+    }
+
+    @Test
+    void IngestFromBlob_IngestionIgnoreFirstRecord_SetsProperty() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
+        ingestionProperties.setIgnoreFirstRecord(true);
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        assertTrue ((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
+
+        ingestionProperties.setIgnoreFirstRecord(false);
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        assertTrue ((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
     @Test

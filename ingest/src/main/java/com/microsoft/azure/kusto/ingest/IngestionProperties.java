@@ -25,6 +25,7 @@ public class IngestionProperties {
     private final String databaseName;
     private final String tableName;
     private boolean flushImmediately;
+    private boolean ignoreFirstRecord;
     private IngestionReportLevel reportLevel;
     private IngestionReportMethod reportMethod;
     private List<String> dropByTags;
@@ -43,6 +44,7 @@ public class IngestionProperties {
      * <p>{@code reportLevel} : {@code IngestionReportLevel.FailuresOnly;}</p>
      * <p>{@code reportMethod} : {@code IngestionReportMethod.Queue;}</p>
      * <p>{@code flushImmediately} : {@code false;}</p>
+     * <p>{@code ignoreFirstRecord} : {@code false;}</p>
      * <p>{@code additionalProperties} : {@code new HashMap();}</p>
      * <p>{@code dataFormat} : {@code DataFormat.csv;}</p>
      * </blockquote>
@@ -56,6 +58,7 @@ public class IngestionProperties {
         this.reportLevel = IngestionReportLevel.FAILURES_ONLY;
         this.reportMethod = IngestionReportMethod.QUEUE;
         this.flushImmediately = false;
+        this.ignoreFirstRecord = false;
         this.additionalProperties = new HashMap<>();
         this.dropByTags = new ArrayList<>();
         this.ingestByTags = new ArrayList<>();
@@ -76,6 +79,7 @@ public class IngestionProperties {
         this.reportLevel = other.reportLevel;
         this.reportMethod = other.reportMethod;
         this.flushImmediately = other.flushImmediately;
+        this.ignoreFirstRecord = other.ignoreFirstRecord;
         this.dataFormat = other.getDataFormat();
         this.additionalProperties = new HashMap<>(other.additionalProperties);
         this.dropByTags = new ArrayList<>(other.dropByTags);
@@ -99,6 +103,14 @@ public class IngestionProperties {
 
     public void setFlushImmediately(boolean flushImmediately) {
         this.flushImmediately = flushImmediately;
+    }
+
+    public boolean getIgnoreFirstRecord() {
+        return ignoreFirstRecord;
+    }
+
+    public void setIgnoreFirstRecord(boolean ignoreFirstRecord) {
+        this.ignoreFirstRecord = ignoreFirstRecord;
     }
 
     public IngestionReportLevel getReportLevel() {
@@ -213,6 +225,7 @@ public class IngestionProperties {
         }
         fullAdditionalProperties.putAll(additionalProperties);
         fullAdditionalProperties.put("format", dataFormat.getKustoValue());
+        fullAdditionalProperties.put("ignoreFirstRecord", Boolean.toString(ignoreFirstRecord));
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         if (StringUtils.isNotBlank(mappingReference)) {

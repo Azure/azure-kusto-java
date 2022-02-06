@@ -9,7 +9,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.data.exceptions.WebException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -57,15 +56,14 @@ class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(CloseableHttpClient httpClient, String url, String payload, InputStream stream, long timeoutMs,
-      Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
-        URI uri = parseUriFromUrlString(url);
+    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+        URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
-            HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
+            HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
             int requestTimeout = timeoutMs > Integer.MAX_VALUE ?
-              Integer.MAX_VALUE :
-              Math.toIntExact(timeoutMs);
+                    Integer.MAX_VALUE :
+                    Math.toIntExact(timeoutMs);
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             request.setConfig(requestConfig);
 
@@ -79,13 +77,13 @@ class Utils {
                 if (statusLine.getStatusCode() == 200) {
                     return responseContent;
                 } else {
-                    throw createExceptionFromResponse(url, response, null, responseContent);
+                    throw createExceptionFromResponse(urlStr, response, null, responseContent);
                 }
             }
         } catch (SocketTimeoutException e) {
-            throw new DataServiceException(url, "Timed out in post request:" + e.getMessage(), false);
+            throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
         } catch (JSONException | IOException e) {
-            throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
+            throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
         }
         return null;
     }
@@ -144,7 +142,7 @@ class Utils {
             if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
                 Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), payload, timeoutMs, headers,redirectCount + 1);
+                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), payload, timeoutMs, headers, redirectCount + 1);
                 }
             }
         } catch (IOException ex) {
@@ -183,8 +181,7 @@ class Utils {
                     } else if (jsonObject.has("message")) {
                         message = jsonObject.getString("message");
                     }
-                }
-                catch (JSONException ex) {
+                } catch (JSONException ex) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
                 }
             } else {
