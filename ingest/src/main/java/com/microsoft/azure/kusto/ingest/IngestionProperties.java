@@ -105,7 +105,7 @@ public class IngestionProperties {
         this.flushImmediately = flushImmediately;
     }
 
-    public boolean getIgnoreFirstRecord() {
+    public boolean isIgnoreFirstRecord() {
         return ignoreFirstRecord;
     }
 
