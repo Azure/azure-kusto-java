@@ -1,9 +1,7 @@
-package com.microsoft.azure.kusto.data;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+package com.microsoft.azure.kusto.data;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -16,6 +14,10 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.TimeZone;
 import java.util.UUID;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class ResultSetTest {
     @Test
@@ -61,16 +63,15 @@ public class ResultSetTest {
         row1.put(s1);
         rows.put(row1);
 
-        String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" }, { \"ColumnName\": \"b\", " +
-                "\"ColumnType\": \"string\" }, { \"ColumnName\": \"c\", \"ColumnType\": \"datetime\" }, { " +
-                "\"ColumnName\": \"d\", \"ColumnType\": \"decimal\" }, { \"ColumnName\": \"e\", " +
-                "\"ColumnType\": \"dynamic\" }, { \"ColumnName\": \"f\", \"ColumnType\": \"guid\" }, { " +
-                "\"ColumnName\": \"g\", \"ColumnType\": \"int\" }, { \"ColumnName\": \"h\", \"ColumnType\": " +
-                "\"long\" }, { \"ColumnName\": \"i\", \"ColumnType\": \"real\" }, { \"ColumnName\": \"j\", " +
-                "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
-        KustoResultSetTable res = new KustoResultSetTable(new JSONObject("{\"TableName\":\"Table_0\"," +
-                "\"Columns\":" + columns + ",\"Rows\":" +
-                rows.toString() + "}"));
+        String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" }, { \"ColumnName\": \"b\", "
+                + "\"ColumnType\": \"string\" }, { \"ColumnName\": \"c\", \"ColumnType\": \"datetime\" }, { "
+                + "\"ColumnName\": \"d\", \"ColumnType\": \"decimal\" }, { \"ColumnName\": \"e\", "
+                + "\"ColumnType\": \"dynamic\" }, { \"ColumnName\": \"f\", \"ColumnType\": \"guid\" }, { "
+                + "\"ColumnName\": \"g\", \"ColumnType\": \"int\" }, { \"ColumnName\": \"h\", \"ColumnType\": "
+                + "\"long\" }, { \"ColumnName\": \"i\", \"ColumnType\": \"real\" }, { \"ColumnName\": \"j\", "
+                + "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
+        KustoResultSetTable res = new KustoResultSetTable(new JSONObject(
+                "{\"TableName\":\"Table_0\"," + "\"Columns\":" + columns + ",\"Rows\":" + rows.toString() + "}"));
         res.next();
         assert res.getBooleanObject(0) == null;
         assert res.getString(1).equals("");
@@ -87,10 +88,14 @@ public class ResultSetTest {
         res.next();
         Assertions.assertTrue(res.getBooleanObject(0));
         Assertions.assertEquals(res.getString(1), str);
-        Assertions.assertEquals(res.getTimestamp(2), Timestamp.valueOf(now.atZone(ZoneId.of("UTC")).toLocalDateTime()));
+        Assertions.assertEquals(
+                res.getTimestamp(2),
+                Timestamp.valueOf(now.atZone(ZoneId.of("UTC")).toLocalDateTime()));
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Assertions.assertEquals(sdf.format(new Date(now.getEpochSecond() * 1000)), res.getDate(2).toString());
+        Assertions.assertEquals(
+                sdf.format(new Date(now.getEpochSecond() * 1000)),
+                res.getDate(2).toString());
 
         Assertions.assertEquals(res.getBigDecimal(3), dec);
         Assertions.assertEquals(res.getJSONObject(4).toString(), new JSONObject().toString());

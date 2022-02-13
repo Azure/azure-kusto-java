@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.format;
 
 import java.util.regex.Matcher;

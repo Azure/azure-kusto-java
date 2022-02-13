@@ -3,11 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Data class that describes the Mapping setting for .ingest command
@@ -113,13 +112,13 @@ public class ColumnMapping implements Serializable {
             case ORC:
             case W3CLOGFILE:
                 TransformationMethod transformationMethod = getTransform();
-                return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
-                        || transformationMethod == TransformationMethod.SourceLineNumber
-                        || transformationMethod == TransformationMethod.SourceLocation);
+                return !StringUtils.isEmpty(this.columnName)
+                        && (!StringUtils.isEmpty(getPath())
+                                || transformationMethod == TransformationMethod.SourceLineNumber
+                                || transformationMethod == TransformationMethod.SourceLocation);
             case AVRO:
             case APACHEAVRO:
-                return !StringUtils.isEmpty(this.columnName) &&
-                        !StringUtils.isEmpty(getColumns());
+                return !StringUtils.isEmpty(this.columnName) && !StringUtils.isEmpty(getColumns());
             default:
                 return false;
         }

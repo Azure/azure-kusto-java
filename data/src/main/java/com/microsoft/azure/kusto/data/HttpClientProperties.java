@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data;
 
 /**
@@ -93,8 +96,7 @@ public class HttpClientProperties {
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
 
-        private HttpClientPropertiesBuilder() {
-        }
+        private HttpClientPropertiesBuilder() {}
 
         /**
          * Set the maximum time persistent connections can stay idle while kept alive in the connection pool.
@@ -169,5 +171,4 @@ public class HttpClientProperties {
             return new HttpClientProperties(this);
         }
     }
-
 }

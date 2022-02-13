@@ -16,5 +16,4 @@ abstract class AbstractSourceInfo implements SourceInfo {
     public void setSourceId(UUID sourceId) {
         this.sourceId = sourceId;
     }
-
 }

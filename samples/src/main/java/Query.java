@@ -7,7 +7,6 @@ import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -43,7 +42,8 @@ public class Query {
             ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
             clientRequestProperties.setTimeoutInMilliSec(TimeUnit.MINUTES.toMillis(1));
 
-            results = client.execute(System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
+            results =
+                    client.execute(System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
         } catch (Exception e) {
             e.printStackTrace();
         }

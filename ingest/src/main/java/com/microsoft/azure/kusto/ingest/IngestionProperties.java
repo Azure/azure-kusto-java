@@ -8,18 +8,17 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.TextStringBuilder;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.TextStringBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IngestionProperties {
     private final String databaseName;
@@ -34,7 +33,8 @@ public class IngestionProperties {
     private IngestionMapping ingestionMapping;
     private Map<String, String> additionalProperties;
     private DataFormat dataFormat;
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log =
+            LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
      * Creates an initialized {@code IngestionProperties} instance with a given {@code databaseName} and {@code tableName}.
@@ -217,7 +217,9 @@ public class IngestionProperties {
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         if (StringUtils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
-            fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().getKustoValue());
+            fullAdditionalProperties.put(
+                    "ingestionMappingType",
+                    ingestionMapping.getIngestionMappingKind().getKustoValue());
         } else if (ingestionMapping.getColumnMappings() != null) {
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
@@ -225,7 +227,9 @@ public class IngestionProperties {
 
             String mapping = objectMapper.writeValueAsString(ingestionMapping.getColumnMappings());
             fullAdditionalProperties.put("ingestionMapping", mapping);
-            fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().getKustoValue());
+            fullAdditionalProperties.put(
+                    "ingestionMappingType",
+                    ingestionMapping.getIngestionMappingKind().getKustoValue());
         }
 
         return fullAdditionalProperties;
@@ -252,7 +256,9 @@ public class IngestionProperties {
         try {
             this.dataFormat = DataFormat.valueOf(dataFormatName.toUpperCase());
         } catch (IllegalArgumentException ex) {
-            log.warn("IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.", dataFormatName);
+            log.warn(
+                    "IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.",
+                    dataFormatName);
         }
     }
 
@@ -273,7 +279,8 @@ public class IngestionProperties {
      *                             describes the mapping between fields of an object and columns of a Kusto table.
      * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setIngestionMapping(String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+    public void setIngestionMapping(
+            String mappingReference, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
         this.ingestionMapping = new IngestionMapping(mappingReference, ingestionMappingKind);
     }
 
@@ -284,7 +291,8 @@ public class IngestionProperties {
      * @param columnMappings       The columnMapping used for this ingestion.
      * @param ingestionMappingKind The data format of the object to map.
      */
-    public void setIngestionMapping(ColumnMapping[] columnMappings, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
+    public void setIngestionMapping(
+            ColumnMapping[] columnMappings, IngestionMapping.IngestionMappingKind ingestionMappingKind) {
         this.ingestionMapping = new IngestionMapping(columnMappings, ingestionMappingKind);
     }
 
@@ -314,12 +322,18 @@ public class IngestionProperties {
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
             if (ingestionMappingKind != null) {
-                message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
+                message.appendln(
+                        "IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.",
+                        ingestionMappingKind);
             }
         } else { // a mapping was provided
-            if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
-                        dataFormat.getKustoValue(), dataFormat.getIngestionMappingKind().getKustoValue(), ingestionMappingKind != null ? ingestionMappingKind.getKustoValue() : "null");
+            if (dataFormat.getIngestionMappingKind() != null
+                    && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
+                message.appendln(
+                        "Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
+                        dataFormat.getKustoValue(),
+                        dataFormat.getIngestionMappingKind().getKustoValue(),
+                        ingestionMappingKind != null ? ingestionMappingKind.getKustoValue() : "null");
             }
 
             if (ingestionMapping.getColumnMappings() != null) {
@@ -345,7 +359,8 @@ public class IngestionProperties {
     }
 
     public void validateResultSetProperties() throws IngestionClientException {
-        Ensure.isTrue(IngestionProperties.DataFormat.CSV.equals(dataFormat),
+        Ensure.isTrue(
+                IngestionProperties.DataFormat.CSV.equals(dataFormat),
                 String.format("ResultSet translates into csv format but '%s' was given", dataFormat));
 
         validate();
@@ -374,7 +389,8 @@ public class IngestionProperties {
         private final IngestionMapping.IngestionMappingKind ingestionMappingKind;
         private final boolean compressible;
 
-        DataFormat(String kustoValue, IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean compressible) {
+        DataFormat(
+                String kustoValue, IngestionMapping.IngestionMappingKind ingestionMappingKind, boolean compressible) {
             this.kustoValue = kustoValue;
             this.ingestionMappingKind = ingestionMappingKind;
             this.compressible = compressible;

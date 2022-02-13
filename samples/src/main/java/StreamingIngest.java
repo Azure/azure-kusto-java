@@ -13,7 +13,6 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,15 +50,23 @@ public class StreamingIngest {
         }
     }
 
-    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException, StorageException {
+    static void ingestFromStream()
+            throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException,
+                    StorageException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Create Stream from string and Ingest
-        String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+        String data =
+                "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream inputStream =
+                new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient
+                .ingestFromStream(streamSourceInfo, ingestionProperties)
+                .getIngestionStatusCollection()
+                .get(0)
+                .status;
         System.out.println(status.toString());
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
@@ -71,7 +78,11 @@ public class StreamingIngest {
          * When the given stream content is already compressed, we should set this property true to avoid double compression.
          */
         streamSourceInfo.setCompressionType(CompressionType.gz);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient
+                .ingestFromStream(streamSourceInfo, ingestionProperties)
+                .getIngestionStatusCollection()
+                .get(0)
+                .status;
         System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
@@ -79,26 +90,39 @@ public class StreamingIngest {
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient
+                .ingestFromStream(streamSourceInfo, ingestionProperties)
+                .getIngestionStatusCollection()
+                .get(0)
+                .status;
         System.out.println(status.toString());
     }
 
-    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+    static void ingestFromFile()
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        //Ingest CSV file
+        // Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient
+                .ingestFromFile(fileSourceInfo, ingestionProperties)
+                .getIngestionStatusCollection()
+                .get(0)
+                .status;
         System.out.println(status.toString());
 
-        //Ingest compressed JSON file
+        // Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient
+                .ingestFromFile(fileSourceInfo, ingestionProperties)
+                .getIngestionStatusCollection()
+                .get(0)
+                .status;
         System.out.println(status.toString());
     }
 }

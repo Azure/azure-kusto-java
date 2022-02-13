@@ -1,7 +1,15 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -10,12 +18,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
 public class CloudInfo {
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -23,15 +25,15 @@ public class CloudInfo {
     public static final String DEFAULT_PUBLIC_LOGIN_URL = "https://login.microsoftonline.com";
     public static final String DEFAULT_REDIRECT_URI = "https://microsoft/kustoclient";
     public static final String DEFAULT_KUSTO_SERVICE_RESOURCE_ID = "https://kusto.kusto.windows.net";
-    public static final String DEFAULT_FIRST_PARTY_AUTHORITY_URL = "https://login.microsoftonline.com/f8cdef31-a31e-4b4a-93e4-5f571e91255a";
+    public static final String DEFAULT_FIRST_PARTY_AUTHORITY_URL =
+            "https://login.microsoftonline.com/f8cdef31-a31e-4b4a-93e4-5f571e91255a";
     public static final CloudInfo DEFAULT_CLOUD = new CloudInfo(
             DEFAULT_LOGIN_MFA_REQUIRED,
             DEFAULT_PUBLIC_LOGIN_URL,
             DEFAULT_KUSTO_CLIENT_APP_ID,
             DEFAULT_REDIRECT_URI,
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
-            DEFAULT_FIRST_PARTY_AUTHORITY_URL
-    );
+            DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
@@ -47,7 +49,13 @@ public class CloudInfo {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
 
-    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId, String firstPartyAuthorityUrl) {
+    public CloudInfo(
+            boolean loginMfaRequired,
+            String loginEndpoint,
+            String kustoClientAppId,
+            String kustoClientRedirectUri,
+            String kustoServiceResourceId,
+            String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;
@@ -85,15 +93,19 @@ public class CloudInfo {
                     if (statusCode == 200) {
                         String content = EntityUtils.toString(response.getEntity());
                         if (content == null || content.equals("") || content.equals("{}")) {
-                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                            throw new DataServiceException(
+                                    clusterUrl, "Error in metadata endpoint, received no data", true);
                         }
                         result = parseCloudInfo(content);
                     } else if (statusCode == 404) {
                         result = DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(clusterUrl,
-                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                        throw new DataServiceException(
+                                clusterUrl,
+                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: "
+                                        + errorFromResponse,
+                                true);
                     }
                 }
             } catch (IOException | URISyntaxException ex) {
@@ -116,8 +128,7 @@ public class CloudInfo {
                 innerObject.getString("KustoClientAppId"),
                 innerObject.getString("KustoClientRedirectUri"),
                 innerObject.getString("KustoServiceResourceId"),
-                innerObject.getString("FirstPartyAuthorityUrl")
-        );
+                innerObject.getString("FirstPartyAuthorityUrl"));
     }
 
     @Override
@@ -140,7 +151,13 @@ public class CloudInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hash(loginMfaRequired, loginEndpoint, kustoClientAppId, kustoClientRedirectUri, kustoServiceResourceId, firstPartyAuthorityUrl);
+        return Objects.hash(
+                loginMfaRequired,
+                loginEndpoint,
+                kustoClientAppId,
+                kustoClientRedirectUri,
+                kustoServiceResourceId,
+                firstPartyAuthorityUrl);
     }
 
     public boolean isLoginMfaRequired() {

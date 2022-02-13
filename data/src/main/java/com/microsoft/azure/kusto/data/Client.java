@@ -11,11 +11,13 @@ public interface Client {
 
     KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException;
 
-    KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+    KustoOperationResult execute(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException;
 
     String executeToJsonResult(String database) throws DataServiceException, DataClientException;
 
     String executeToJsonResult(String database, String command) throws DataServiceException, DataClientException;
 
-    String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+    String executeToJsonResult(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException;
 }

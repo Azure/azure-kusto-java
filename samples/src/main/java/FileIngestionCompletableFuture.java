@@ -10,7 +10,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
@@ -21,20 +20,19 @@ public class FileIngestionCompletableFuture {
     public static void main(String[] args) {
         try {
             // Creating the connection string:
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(
-                            System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
 
             CompletableFuture<IngestionResult> cf;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 // Creating the ingestion properties:
-                IngestionProperties ingestionProperties = new IngestionProperties(
-                        System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
+                IngestionProperties ingestionProperties =
+                        new IngestionProperties(System.getProperty("dbName"), System.getProperty("tableName"));
+                ingestionProperties.setIngestionMapping(
+                        System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
 
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 
@@ -76,14 +74,13 @@ public class FileIngestionCompletableFuture {
      */
     private static CompletableFuture<IngestionResult> ingestFromFileAsync(
             IngestClient client, FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        return CompletableFuture.supplyAsync(
-                () -> {
-                    try {
-                        return client.ingestFromFile(fileSourceInfo, ingestionProperties);
-                    } catch (IngestionClientException | IngestionServiceException e) {
-                        throw new CompletionException(e);
-                    }
-                });
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return client.ingestFromFile(fileSourceInfo, ingestionProperties);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                throw new CompletionException(e);
+            }
+        });
     }
 
     /**
@@ -95,6 +92,5 @@ public class FileIngestionCompletableFuture {
         } else {
             System.out.println("No IngestionResults available");
         }
-
     }
 }

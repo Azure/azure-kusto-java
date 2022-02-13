@@ -15,9 +15,6 @@ import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,9 +25,12 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.GZIPOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class AzureStorageClient {
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log =
+            LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
 
@@ -44,8 +44,8 @@ class AzureStorageClient {
         queue.addMessage(queueMessage);
     }
 
-    void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-            URISyntaxException {
+    void azureTableInsertEntity(String tableUri, TableServiceEntity entity)
+            throws StorageException, URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(tableUri, "tableUri");
         Ensure.argIsNotNull(entity, "entity");
@@ -57,12 +57,14 @@ class AzureStorageClient {
         table.execute(insert);
     }
 
-    CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
+    CloudBlockBlob uploadLocalFileToBlob(
+            String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
             throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
-        return uploadLocalFileToBlob(filePath, blobName, storageUri, IngestClientBase.shouldCompress(sourceCompressionType, dataFormat));
+        return uploadLocalFileToBlob(
+                filePath, blobName, storageUri, IngestClientBase.shouldCompress(sourceCompressionType, dataFormat));
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
@@ -93,7 +95,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
-             GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
             copyStream(fin, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -106,7 +108,8 @@ class AzureStorageClient {
         blob.uploadFromFile(sourceFile.getAbsolutePath());
     }
 
-    CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
+    CloudBlockBlob uploadStreamToBlob(
+            InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
             throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
@@ -157,8 +160,8 @@ class AzureStorageClient {
     String getBlobPathWithSas(CloudBlockBlob blob) {
         Ensure.argIsNotNull(blob, "blob");
 
-        StorageCredentialsSharedAccessSignature signature =
-                (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
+        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature)
+                blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 

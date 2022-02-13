@@ -1,15 +1,17 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-
+import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-
 public class ExponentialRetry {
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log =
+            LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final int maxAttempts;
     double sleepBaseSecs;
@@ -27,7 +29,8 @@ public class ExponentialRetry {
         this.maxJitterSecs = other.maxJitterSecs;
     }
 
-    public <T> T execute(KustoCheckedFunction<Integer, T> function) throws IngestionClientException, IngestionServiceException {
+    public <T> T execute(KustoCheckedFunction<Integer, T> function)
+            throws IngestionClientException, IngestionServiceException {
         for (int currentAttempt = 0; currentAttempt < maxAttempts; currentAttempt++) {
             log.info("execute: Attempt {}", currentAttempt);
 
@@ -36,8 +39,7 @@ public class ExponentialRetry {
                 if (result != null) {
                     return result;
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("execute: Error is permanent, stopping", e);
                 throw e;
             }
@@ -46,7 +48,10 @@ public class ExponentialRetry {
             double jitterSecs = (float) Math.random() * maxJitterSecs;
             double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
 
-            log.info("execute: Attempt {} failed, trying again after sleep of {} seconds", currentAttempt, sleepMs / 1000);
+            log.info(
+                    "execute: Attempt {} failed, trying again after sleep of {} seconds",
+                    currentAttempt,
+                    sleepMs / 1000);
 
             try {
                 Thread.sleep((long) sleepMs);
@@ -58,6 +63,4 @@ public class ExponentialRetry {
 
         return null;
     }
-
-
 }

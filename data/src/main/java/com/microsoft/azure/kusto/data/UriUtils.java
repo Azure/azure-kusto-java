@@ -1,8 +1,10 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data;
 
-import org.apache.http.client.utils.URIBuilder;
-
 import java.net.URISyntaxException;
+import org.apache.http.client.utils.URIBuilder;
 
 public class UriUtils {
     private UriUtils() {
@@ -13,8 +15,7 @@ public class UriUtils {
         if (ensureTrailingSlash && !path.endsWith("/")) {
             path += "/";
         }
-        if (!path.startsWith("/"))
-        {
+        if (!path.startsWith("/")) {
             path = "/" + path;
         }
 
@@ -24,5 +25,4 @@ public class UriUtils {
     public static String setPathForUri(String uri, String path) throws URISyntaxException {
         return setPathForUri(uri, path, false);
     }
-
 }

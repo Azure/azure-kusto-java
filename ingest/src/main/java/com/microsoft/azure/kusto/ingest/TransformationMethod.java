@@ -7,8 +7,7 @@ package com.microsoft.azure.kusto.ingest;
  * Transformation method can be used over all formats configured with Json mapping type (Json, Orc and Parquet)
  * See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/mappings#json-mapping">kusto docs</a>
  */
-public enum TransformationMethod
-{
+public enum TransformationMethod {
     /**
      * Comma-separated value.
      */
@@ -39,24 +38,23 @@ public enum TransformationMethod
      */
     UnknownMethod,
 
-    /** 
+    /**
      * Converts UNIX epoch (seconds) to UTC datetime.
-    */
+     */
     DateTimeFromUnixSeconds,
 
-    /** 
+    /**
      * Converts UNIX epoch (milliseconds) to UTC datetime.
      */
     DateTimeFromUnixMilliseconds,
 
-    /** 
+    /**
      * Converts UNIX epoch (microseconds) to UTC datetime.
      */
     DateTimeFromUnixMicroseconds,
 
-    /** 
+    /**
      * Converts UNIX epoch (nanoseconds) to UTC datetime.
      */
     DateTimeFromUnixNanoseconds,
-
 }

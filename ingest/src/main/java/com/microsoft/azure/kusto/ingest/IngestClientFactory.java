@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
 import java.net.URISyntaxException;
 
 public class IngestClientFactory {
@@ -16,12 +15,14 @@ public class IngestClientFactory {
         return new QueuedIngestClient(csb);
     }
 
-    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb)
+            throws URISyntaxException {
         return new StreamingIngestClient(csb);
     }
 
-    public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClient(
+            ConnectionStringBuilder dmConnectionStringBuilder, ConnectionStringBuilder engineConnectionStringBuilder)
+            throws URISyntaxException {
         return new ManagedStreamingIngestClient(dmConnectionStringBuilder, engineConnectionStringBuilder);
     }
 }

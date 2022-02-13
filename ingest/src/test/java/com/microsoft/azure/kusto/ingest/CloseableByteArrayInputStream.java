@@ -1,8 +1,10 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.ingest;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
+import org.jetbrains.annotations.NotNull;
 
 // ByteArrayInputStream's close method is a no-op, this class makes reading after close into an error, for test purposes
 public class CloseableByteArrayInputStream extends java.io.ByteArrayInputStream {

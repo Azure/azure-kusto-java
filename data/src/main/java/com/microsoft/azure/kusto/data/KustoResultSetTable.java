@@ -5,11 +5,6 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
@@ -17,15 +12,20 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Date;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.FastDateFormat;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-// This class does not keep an open connection with the cluster - the results are evaluated once and can be get by getData()
+// This class does not keep an open connection with the cluster - the results are evaluated once and can be get by
+// getData()
 public class KustoResultSetTable {
     private static final String TABLE_NAME_PROPERTY_NAME = "TableName";
     private static final String TABLE_ID_PROPERTY_NAME = "TableId";
@@ -89,7 +89,8 @@ public class KustoResultSetTable {
                 if (columnType.equals("")) {
                     columnType = jsonCol.optString(COLUMN_TYPE_SECOND_PROPERTY_NAME);
                 }
-                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), columnType, i);
+                KustoResultColumn col =
+                        new KustoResultColumn(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), columnType, i);
                 columnsAsArray[i] = col;
                 columns.put(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), col);
             }
@@ -111,8 +112,8 @@ public class KustoResultSetTable {
                             throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceQueryError(((JSONObject) row).getJSONArray(
-                                "OneApiErrors"), true, EXCEPTIONS_MESSAGE);
+                        throw new KustoServiceQueryError(
+                                ((JSONObject) row).getJSONArray("OneApiErrors"), true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
@@ -260,7 +261,8 @@ public class KustoResultSetTable {
                 if (get(columnIndex) == null) {
                     return null;
                 }
-                return Timestamp.valueOf(StringUtils.chop(getString(columnIndex)).replace("T", " "));
+                return Timestamp.valueOf(
+                        StringUtils.chop(getString(columnIndex)).replace("T", " "));
             case "long":
             case "int":
                 Long l = getLongObject(columnIndex);
@@ -430,17 +432,16 @@ public class KustoResultSetTable {
     }
 
     public boolean first() {
-        if (rows.isEmpty())
-            return false;
+        if (rows.isEmpty()) return false;
         rowIterator = rows.iterator();
         currentRow = rowIterator.next();
         return true;
     }
 
     public boolean last() {
-        if (rows.isEmpty())
-            return false;
-        while (rowIterator.next() != null) ;
+        if (rows.isEmpty()) return false;
+        while (rowIterator.next() != null)
+            ;
         return true;
     }
 
@@ -466,9 +467,15 @@ public class KustoResultSetTable {
         String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder()
+                    .parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS))
+                    .toFormatter();
         } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder()
+                    .parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN))
+                    .toFormatter();
         }
         return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
     }
@@ -504,7 +511,9 @@ public class KustoResultSetTable {
                     } else {
                         dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
                     }
-                    return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
+                    return new java.sql.Date(dateFormat
+                            .parse(dateString.substring(0, Math.min(dateString.length() - 1, 23)))
+                            .getTime());
                 } catch (Exception e) {
                     throw new SQLException("Error parsing Date", e);
                 }

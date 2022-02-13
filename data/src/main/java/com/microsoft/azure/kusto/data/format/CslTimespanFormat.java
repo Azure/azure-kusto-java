@@ -1,15 +1,17 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
-
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 
 public class CslTimespanFormat extends CslFormat {
     public static final String KUSTO_TIMESPAN_PATTERN = "HH:mm:ss.SSSSSSS";
@@ -27,7 +29,8 @@ public class CslTimespanFormat extends CslFormat {
         } else {
             Matcher matcher = ClientRequestProperties.KUSTO_TIMESPAN_REGEX.matcher(value);
             if (!matcher.matches()) {
-                throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", value));
+                throw new ParseException(
+                        String.format("Failed to parse timeout string as a timespan. Value: %s", value));
             }
 
             long nanos = 0;

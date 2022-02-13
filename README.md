@@ -75,3 +75,9 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Formatting
+
+This project uses the [Palantir Java Format](https://github.com/palantir/palantir-java-format) as the standard for code formatting.  
+This is enforced via [spotless](https://github.com/diffplug/spotless) on build.  
+To run formatting on all files, use `mvn spotless:apply`.

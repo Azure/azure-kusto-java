@@ -24,10 +24,6 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.http.client.utils.URIBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -39,10 +35,14 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueuedIngestClient extends IngestClientBase implements IngestClient {
 
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger log =
+            LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
@@ -70,7 +70,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
 
     public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
         if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX)) {
-            throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
+            throw new IllegalArgumentException(
+                    "The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
         }
         existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
         return existingEndpoint.toString();
@@ -91,8 +92,10 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
 
             // Create the ingestion message
-            IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
-                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+            IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(
+                    blobSourceInfo.getBlobPath(),
+                    ingestionProperties.getDatabaseName(),
+                    ingestionProperties.getTableName());
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
                 ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
@@ -100,8 +103,10 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
             }
 
-            ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel().getKustoValue());
-            ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod().getKustoValue());
+            ingestionBlobInfo.setReportLevel(
+                    ingestionProperties.getReportLevel().getKustoValue());
+            ingestionBlobInfo.setReportMethod(
+                    ingestionProperties.getReportMethod().getKustoValue());
             ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
             ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
             if (blobSourceInfo.getSourceId() != null) {
@@ -115,12 +120,13 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             status.updatedOn = Date.from(Instant.now());
             status.ingestionSourceId = ingestionBlobInfo.getId();
             status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable =     ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.NONE &&
-                                        ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
+            boolean reportToTable =
+                    ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.NONE
+                            && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
             if (reportToTable) {
                 status.status = OperationStatus.Pending;
-                String tableStatusUri = resourceManager
-                        .getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
+                String tableStatusUri =
+                        resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE);
                 IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionStatusInTable.setTableConnectionString(tableStatusUri);
                 ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
@@ -134,12 +140,10 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
             azureStorageClient.postMessageToQueue(
-                    resourceManager
-                            .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE)
-                    , serializedIngestionBlobInfo);
-            return reportToTable
-                    ? new TableReportIngestionResult(tableStatuses)
-                    : new IngestionStatusResult(status);
+                    resourceManager.getIngestionResource(
+                            ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE),
+                    serializedIngestionBlobInfo);
+            return reportToTable ? new TableReportIngestionResult(tableStatuses) : new IngestionStatusResult(status);
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
@@ -172,14 +176,19 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     file.getName(),
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
+                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't
+                    // be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
-            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
+            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(
+                    fileSourceInfo.getFilePath(),
+                    blobName,
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
+                    shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
-            long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
-                    estimateFileRawSize(filePath, dataFormat.isCompressible());
+            long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L
+                    ? fileSourceInfo.getRawSizeInBytes()
+                    : estimateFileRawSize(filePath, dataFormat.isCompressible());
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
 
@@ -218,15 +227,15 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
+                    dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't
+                    // be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
             CloudBlockBlob blob = azureStorageClient.uploadStreamToBlob(
                     streamSourceInfo.getStream(),
                     blobName,
                     resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
-                    shouldCompress
-            );
+                    shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                     blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
@@ -248,12 +257,19 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
 
     private long estimateFileRawSize(String filePath, boolean isCompressible) {
         long fileSize = new File(filePath).length();
-        return (AzureStorageClient.getCompression(filePath) != null || !isCompressible) ?
-                fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
+        return (AzureStorageClient.getCompression(filePath) != null || !isCompressible)
+                ? fileSize * COMPRESSED_FILE_MULTIPLIER
+                : fileSize;
     }
 
-    String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
-        return String.format("%s__%s__%s__%s%s%s",
+    String genBlobName(
+            String fileName,
+            String databaseName,
+            String tableName,
+            String dataFormat,
+            CompressionType compressionType) {
+        return String.format(
+                "%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
                 AzureStorageClient.removeExtension(fileName),
@@ -263,7 +279,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromResultSet(
+            ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
@@ -277,7 +294,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             byteArrayOutputStream.flush();
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
 
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
+            StreamSourceInfo streamSourceInfo =
+                    new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (IOException ex) {
             String msg = "Failed to read from ResultSet.";

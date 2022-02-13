@@ -10,14 +10,13 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ResourceManager implements Closeable {
 
@@ -123,7 +122,8 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.readLock().lock();
                 ingestionResource = ingestionResources.get(resourceType);
                 if (ingestionResource == null) {
-                    throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resourceType.getResourceTypeName());
+                    throw new IngestionServiceException(
+                            "Unable to get ingestion resources for this type: " + resourceType.getResourceTypeName());
                 }
             } finally {
                 ingestionResourcesLock.readLock().unlock();
@@ -162,7 +162,8 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                KustoOperationResult ingestionResourcesResults =
+                        client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     KustoResultSetTable table = ingestionResourcesResults.next();
@@ -209,17 +210,26 @@ class ResourceManager implements Closeable {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
             KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
-            if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
+            if (versionResult != null
+                    && versionResult.hasNext()
+                    && !versionResult.getResultTables().isEmpty()) {
                 KustoResultSetTable resultTable = versionResult.next();
                 resultTable.next();
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
             }
         } catch (DataServiceException e) {
-            throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+            throw new IngestionServiceException(
+                    e.getIngestionSource(),
+                    "Couldn't retrieve ServiceType because of a service exception executing '.show version'",
+                    e);
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+            throw new IngestionClientException(
+                    e.getIngestionSource(),
+                    "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
+                    e);
         }
-        throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        throw new IngestionServiceException(
+                "Couldn't retrieve ServiceType because '.show version' didn't return any records");
     }
 
     private static class IngestionResource {

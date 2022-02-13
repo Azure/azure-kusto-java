@@ -1,7 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
-
 import java.util.UUID;
 
 public class CslUuidFormat extends CslFormat {

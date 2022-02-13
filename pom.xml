@@ -69,6 +69,7 @@
         <junit.version>5.8.2</junit.version>
         <mockito.version>4.1.0</mockito.version>
         <jacoco.version>0.8.7</jacoco.version>
+        <spotless.version>2.20.2</spotless.version>
     </properties>
 
     <modules>
@@ -80,6 +81,28 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat>
+                        </palantirJavaFormat>
+                        <licenseHeader>
+                            <file>${maven.multiModuleProjectDirectory}/license-header</file>
+                            <delimiter>(package|import)</delimiter>
+                        </licenseHeader>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>

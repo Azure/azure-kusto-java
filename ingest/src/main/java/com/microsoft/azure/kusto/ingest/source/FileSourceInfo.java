@@ -3,10 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import java.util.UUID;
-
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
+import java.util.UUID;
 
 public class FileSourceInfo extends AbstractSourceInfo {
 

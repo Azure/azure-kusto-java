@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.AccessToken;
@@ -5,16 +8,16 @@ import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import java.net.URISyntaxException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-
-import java.net.URISyntaxException;
 
 public class ManagedIdentityTokenProvider extends TokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
-    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId) throws URISyntaxException {
+    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId)
+            throws URISyntaxException {
         super(clusterUrl);
         ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
         if (StringUtils.isNotBlank(managedIdentityClientId)) {
@@ -31,7 +34,8 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
     public String acquireAccessToken() throws DataServiceException {
         initializeCloudInfo();
         setRequiredMembersBasedOnCloudInfo();
-        AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
+        AccessToken accessToken =
+                managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);
         }

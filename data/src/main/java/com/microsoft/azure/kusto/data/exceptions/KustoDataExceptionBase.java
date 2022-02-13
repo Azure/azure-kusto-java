@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data.exceptions;
 
 public abstract class KustoDataExceptionBase extends Exception {

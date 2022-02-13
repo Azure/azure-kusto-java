@@ -19,8 +19,7 @@ public class IngestionMapping {
     /**
      * Creates a default ingestion mapping with null kind and empty mapping reference.
      */
-    public IngestionMapping() {
-    }
+    public IngestionMapping() {}
 
     /**
      * Creates an ingestion mapping with the given parameters.
@@ -52,7 +51,8 @@ public class IngestionMapping {
     public IngestionMapping(IngestionMapping other) {
         this.ingestionMappingKind = other.ingestionMappingKind;
         this.ingestionMappingReference = other.ingestionMappingReference;
-        this.columnMappings = Arrays.stream(other.columnMappings).map(ColumnMapping::new).toArray(ColumnMapping[]::new);
+        this.columnMappings =
+                Arrays.stream(other.columnMappings).map(ColumnMapping::new).toArray(ColumnMapping[]::new);
     }
 
     /**
@@ -61,7 +61,8 @@ public class IngestionMapping {
      * @param ingestionMappingReference String: the name of the pre-defined ingestion mapping.
      * @param ingestionMappingKind      IngestionMappingKind: the format of the source data to map from.
      */
-    public void setIngestionMappingReference(String ingestionMappingReference, IngestionMappingKind ingestionMappingKind) {
+    public void setIngestionMappingReference(
+            String ingestionMappingReference, IngestionMappingKind ingestionMappingKind) {
         this.ingestionMappingReference = ingestionMappingReference;
         this.ingestionMappingKind = ingestionMappingKind;
     }

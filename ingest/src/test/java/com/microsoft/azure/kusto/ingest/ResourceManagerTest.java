@@ -3,6 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -11,21 +15,16 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.json.JSONException;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.stubbing.Answer;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.json.JSONException;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 class ResourceManagerTest {
     private static ResourceManager resourceManager;
@@ -40,12 +39,12 @@ class ResourceManagerTest {
     private static final String SUCCESS_QUEUE = "successQueue";
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceQueryError, IOException {
+    static void setUp()
+            throws DataClientException, DataServiceException, JSONException, KustoServiceQueryError, IOException {
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenReturn(generateIngestionResourcesResult());
 
-        when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
+        when(clientMock.execute(Commands.IDENTITY_GET_COMMAND)).thenReturn(generateIngestionAuthTokenResult());
 
         resourceManager = new ResourceManager(clientMock);
     }
@@ -76,13 +75,13 @@ class ResourceManagerTest {
             throws IngestionServiceException, IngestionClientException {
         List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
-        String queue = resourceManager
-                .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+        String queue =
+                resourceManager.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
         int lastIndex = availableQueues.indexOf(queue);
 
         for (int i = 0; i < 10; i++) {
-            queue = resourceManager
-                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+            queue = resourceManager.getIngestionResource(
+                    ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
             int currIdx = availableQueues.indexOf(queue);
             assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
             lastIndex = currIdx;
@@ -114,11 +113,12 @@ class ResourceManagerTest {
     }
 
     @Test
-    void TimerTest() throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError, IOException {
+    void TimerTest()
+            throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError,
+                    IOException {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
-        when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
+        when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND)).thenReturn(generateIngestionAuthTokenResult());
         when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             if (refreshTimestamps.size() != 1) {
@@ -138,7 +138,8 @@ class ResourceManagerTest {
         resourceManager.close();
     }
 
-    private static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {
+    private static KustoOperationResult generateIngestionResourcesResult()
+            throws JSONException, KustoServiceQueryError, IOException {
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
@@ -148,21 +149,23 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
-        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
-                "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
-                "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
+        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\","
+                + "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":"
+                + "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 + listAsJson + "}]}";
 
         return new KustoOperationResult(response, "v1");
     }
 
-    private static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceQueryError, IOException {
+    private static KustoOperationResult generateIngestionAuthTokenResult()
+            throws JSONException, KustoServiceQueryError, IOException {
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
 
-        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
-                listAsJson + "}]}";
+        String response =
+                "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
+                        + listAsJson + "}]}";
 
         return new KustoOperationResult(response, "v1");
     }

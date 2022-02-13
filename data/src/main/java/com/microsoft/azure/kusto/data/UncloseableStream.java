@@ -1,9 +1,11 @@
-package com.microsoft.azure.kusto.data;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
-import org.jetbrains.annotations.NotNull;
+package com.microsoft.azure.kusto.data;
 
 import java.io.IOException;
 import java.io.InputStream;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This class exists to handle outside dependencies which close a stream when we don't want to.

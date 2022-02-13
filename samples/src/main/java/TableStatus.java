@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
@@ -11,26 +13,24 @@ import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-
 import java.util.List;
-
-import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE;
 
 public class TableStatus {
     public static void main(String[] args) {
         try {
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
             IngestionResult ingestionResult;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
+                IngestionProperties ingestionProperties =
+                        new IngestionProperties(System.getProperty("dbName"), System.getProperty("tableName"));
+                ingestionProperties.setIngestionMapping(
+                        System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
                 ingestionProperties.setReportMethod(QUEUE_AND_TABLE);
                 ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);

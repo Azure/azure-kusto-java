@@ -10,7 +10,6 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
 import java.io.Closeable;
 
 public interface IngestClient extends Closeable {
@@ -63,7 +62,8 @@ public interface IngestClient extends Closeable {
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromResultSet(
+            ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
     /**
@@ -81,5 +81,4 @@ public interface IngestClient extends Closeable {
      */
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
-
 }

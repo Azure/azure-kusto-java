@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
-
 import java.util.Map;
 import java.util.UUID;
 

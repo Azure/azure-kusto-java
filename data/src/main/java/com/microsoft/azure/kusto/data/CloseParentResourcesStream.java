@@ -3,10 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-
 import java.io.IOException;
 import java.io.InputStream;
+import org.apache.http.client.methods.CloseableHttpResponse;
 
 /**
  * This class allows parent resources (HttpClient and HttpResponse) to be closed when the stream is closed.

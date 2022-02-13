@@ -4,17 +4,18 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.*;
-
 public class KustoOperationResult implements Iterator<KustoResultSetTable> {
-    private static final Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>() {{
-        put("QueryResult", WellKnownDataSet.PrimaryResult);
-        put("QueryProperties", WellKnownDataSet.QueryProperties);
-        put("QueryStatus", WellKnownDataSet.QueryCompletionInformation);
-    }};
+    private static final Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>() {
+        {
+            put("QueryResult", WellKnownDataSet.PrimaryResult);
+            put("QueryProperties", WellKnownDataSet.QueryProperties);
+            put("QueryStatus", WellKnownDataSet.QueryCompletionInformation);
+        }
+    };
     private static final String TABLE_NAME_PROPERTY_NAME = "Name";
     private static final String TABLE_ID_PROPERTY_NAME = "Id";
     private static final String TABLE_KIND_PROPERTY_NAME = "Kind";
@@ -52,7 +53,10 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             return resultTables.get(0);
         }
 
-        return resultTables.stream().filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult)).findFirst().orElse(null);
+        return resultTables.stream()
+                .filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult))
+                .findFirst()
+                .orElse(null);
     }
 
     private void createFromV1Response(String response) throws KustoServiceQueryError {

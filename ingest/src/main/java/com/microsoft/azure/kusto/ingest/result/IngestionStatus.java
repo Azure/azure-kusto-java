@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.microsoft.azure.storage.table.TableServiceEntity;
-
 import java.util.Date;
 import java.util.UUID;
 
@@ -25,7 +24,7 @@ public class IngestionStatus extends TableServiceEntity {
     public String getStatus() {
         return status.toString();
     }
-    
+
     public void setStatus(String s) {
         status = OperationStatus.valueOf(s);
     }
@@ -138,9 +137,9 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setErrorCode(String code) {
         errorCodeString = code;
-        try{
+        try {
             errorCode = code == null ? IngestionErrorCode.Unknown : IngestionErrorCode.valueOf(code);
-        } catch (IllegalArgumentException ex){
+        } catch (IllegalArgumentException ex) {
             errorCode = IngestionErrorCode.Misc;
         }
     }
@@ -185,8 +184,7 @@ public class IngestionStatus extends TableServiceEntity {
         originatesFromUpdatePolicy = fromUpdatePolicy;
     }
 
-    public IngestionStatus() {
-    }
+    public IngestionStatus() {}
 
     public IngestionStatus(UUID uuid) {
         super(uuid.toString(), uuid.toString());

@@ -5,18 +5,17 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
-import org.json.JSONException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.skyscreamer.jsonassert.JSONAssert;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.json.JSONException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 class ClientRequestPropertiesTest {
     @Test
@@ -45,7 +44,8 @@ class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test ClientRequestProperties fromString")
     void stringToProperties() throws JSONException {
-        String properties = "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
+        String properties =
+                "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
         assert crp != null;
         assert crp.toJson().getJSONObject("Options").get("servertimeout").equals("01:25:11.111");

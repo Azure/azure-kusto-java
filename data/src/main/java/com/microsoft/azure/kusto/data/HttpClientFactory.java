@@ -1,5 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data;
 
+import java.io.IOException;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
@@ -12,10 +18,6 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 /**
  * A singleton factory of HTTP clients.
  */
@@ -23,8 +25,7 @@ class HttpClientFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
 
-    private HttpClientFactory() {
-    }
+    private HttpClientFactory() {}
 
     private static class HttpClientFactorySingleton {
 
@@ -98,8 +99,8 @@ class HttpClientFactory {
         @Override
         public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
             // honor 'keep-alive' header
-            HeaderElementIterator it = new BasicHeaderElementIterator
-                    (httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            HeaderElementIterator it =
+                    new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
             while (it.hasNext()) {
                 HeaderElement he = it.nextElement();
                 String param = he.getName();
@@ -112,5 +113,4 @@ class HttpClientFactory {
             return defaultKeepAlive * 1000L;
         }
     }
-
 }

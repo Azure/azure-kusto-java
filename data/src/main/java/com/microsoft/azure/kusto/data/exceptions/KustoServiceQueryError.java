@@ -3,14 +3,14 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.util.ArrayList;
-import java.util.List;
 /*
-  This class represents an error that returned from the query result
- */
+ This class represents an error that returned from the query result
+*/
 public class KustoServiceQueryError extends Exception {
     private final List<Exception> exceptions;
 
@@ -19,7 +19,8 @@ public class KustoServiceQueryError extends Exception {
         this.exceptions = new ArrayList<>();
         for (int j = 0; j < jsonExceptions.length(); j++) {
             if (isOneApi) {
-                this.exceptions.add(new DataWebException(jsonExceptions.getJSONObject(j).toString()));
+                this.exceptions.add(
+                        new DataWebException(jsonExceptions.getJSONObject(j).toString()));
             } else {
                 this.exceptions.add(new Exception(jsonExceptions.getString(j)));
             }

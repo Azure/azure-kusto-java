@@ -6,7 +6,8 @@ package com.microsoft.azure.kusto.data.exceptions;
 import org.json.JSONObject;
 
 public class OneApiError {
-    public OneApiError(String code, String message, String description, String type, JSONObject context, boolean permanent) {
+    public OneApiError(
+            String code, String message, String description, String type, JSONObject context, boolean permanent) {
         this.code = code;
         this.message = message;
         this.description = description;
@@ -22,8 +23,7 @@ public class OneApiError {
                 jsonObject.getString("@message"),
                 jsonObject.getString("@type"),
                 jsonObject.getJSONObject("@context"),
-                jsonObject.getBoolean("@permanent")
-        );
+                jsonObject.getBoolean("@permanent"));
     }
 
     private final String code;

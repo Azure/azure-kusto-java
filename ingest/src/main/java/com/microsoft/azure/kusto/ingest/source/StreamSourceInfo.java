@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.Ensure;
-
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.UUID;
@@ -75,4 +74,3 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 }
-

@@ -1,16 +1,18 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.data;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.invocation.InvocationOnMock;
 
 class UncloseableStreamTest {
     private UncloseableStream stream;
@@ -18,7 +20,9 @@ class UncloseableStreamTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        InputStream mockStream = mock(ByteArrayInputStream.class, withSettings().useConstructor(bytes).defaultAnswer(InvocationOnMock::callRealMethod));
+        InputStream mockStream = mock(
+                ByteArrayInputStream.class,
+                withSettings().useConstructor(bytes).defaultAnswer(InvocationOnMock::callRealMethod));
         doThrow(new IOException("Stream was closed")).when(mockStream).close();
         stream = new UncloseableStream(mockStream);
     }
@@ -55,7 +59,7 @@ class UncloseableStreamTest {
     void WhenSkipThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
 
-        int skipped = (int)stream.skip(amount);
+        int skipped = (int) stream.skip(amount);
         assertEquals(amount, skipped);
 
         stream.close();
@@ -146,7 +150,6 @@ class UncloseableStreamTest {
         verify(stream.getInnerStream(), times(1)).mark(amount);
         verify(stream.getInnerStream(), never()).close();
     }
-
 
     @Test
     void TestMarkSupported_MatchesInnerMarkSupported() throws IOException {
