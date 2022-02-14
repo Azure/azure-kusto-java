@@ -455,6 +455,31 @@ class E2ETest {
         assertEquals("Two", results);
     }
 
+    @Disabled ("I suggest removing this, as it tests the Kusto service and not this SDK")
+    @Test
+    void testIgnoreFirstRecord() {
+        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithoutMapping.setIgnoreFirstRecord(true);
+
+        TestDataItem item = new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 9; // In fact has 10 rows, but 9 with first ignored
+                ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        };
+
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        try {
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+        } catch (Exception ex) {
+            Assertions.fail(ex);
+        }
+        assertRowCount(item.rows, false);
+    }
+
     @Test
     void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
