@@ -9,22 +9,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.data.exceptions.WebException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-import java.util.zip.DeflaterInputStream;
-import java.util.zip.GZIPInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -47,31 +31,40 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
+import java.util.zip.DeflaterInputStream;
+import java.util.zip.GZIPInputStream;
+
 class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private Utils() {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(
-            CloseableHttpClient httpClient,
-            String url,
-            String payload,
-            InputStream stream,
-            long timeoutMs,
-            Map<String, String> headers,
-            boolean leaveOpen)
-            throws DataServiceException, DataClientException {
-        URI uri = parseUriFromUrlString(url);
+    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers, boolean leaveOpen) throws DataServiceException, DataClientException {
+        URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
-            HttpPost request = setupHttpPostRequest(uri, payload, stream, headers);
-            int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
-            RequestConfig requestConfig =
-                    RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
+            int requestTimeout = timeoutMs > Integer.MAX_VALUE ?
+                    Integer.MAX_VALUE :
+                    Math.toIntExact(timeoutMs);
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             request.setConfig(requestConfig);
 
             // Execute and get the response
@@ -84,31 +77,22 @@ class Utils {
                 if (statusLine.getStatusCode() == 200) {
                     return responseContent;
                 } else {
-                    throw createExceptionFromResponse(url, response, null, responseContent);
+                    throw createExceptionFromResponse(urlStr, response, null, responseContent);
                 }
             }
         } catch (SocketTimeoutException e) {
-            throw new DataServiceException(url, "Timed out in post request:" + e.getMessage(), false);
+            throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
         } catch (JSONException | IOException e) {
-            throw new DataClientException(url, "Error in post request:" + e.getMessage(), e);
+            throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
         }
         return null;
     }
 
-    static InputStream postToStreamingOutput(
-            CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers)
-            throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers) throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
-    static InputStream postToStreamingOutput(
-            CloseableHttpClient httpClient,
-            String url,
-            String payload,
-            long timeoutMs,
-            Map<String, String> headers,
-            int redirectCount)
-            throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
@@ -125,8 +109,7 @@ class Utils {
         try {
             HttpPost httpPost = setupHttpPostRequest(uri, payload, null, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
-            RequestConfig requestConfig =
-                    RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             httpPost.setConfig(requestConfig);
 
             httpResponse = httpClient.execute(httpPost);
@@ -134,10 +117,8 @@ class Utils {
             int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
 
             if (responseStatusCode == HttpStatus.SC_OK) {
-                InputStream contentStream =
-                        new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
-                Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING))
-                        .findFirst();
+                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
+                Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING)).findFirst();
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
                         GZIPInputStream gzipInputStream = new GZIPInputStream(contentStream);
@@ -149,34 +130,24 @@ class Utils {
                         return deflaterInputStream;
                     }
                 }
-                // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because
-                // httpclient uses LazyDecompressingStream which handles the above logic
+                // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which handles the above logic
                 returnInputStream = true;
                 return contentStream;
             }
 
             errorFromResponse = EntityUtils.toString(httpResponse.getEntity());
-            // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be
-            // properly thrown and handled
+            // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
             if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
-                Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION))
-                        .findFirst();
-                if (redirectLocation.isPresent()
-                        && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(
-                            httpClient,
-                            redirectLocation.get().getValue(),
-                            payload,
-                            timeoutMs,
-                            headers,
-                            redirectCount + 1);
+                Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
+                if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
+                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), payload, timeoutMs, headers, redirectCount + 1);
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException(
-                    url, "postToStreamingOutput failed to get or decompress response stream", ex, false);
+            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
+                    ex, false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -186,8 +157,7 @@ class Utils {
         throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
     }
 
-    static DataServiceException createExceptionFromResponse(
-            String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
+    static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
         if (httpResponse == null) {
             return new DataServiceException(url, "POST failed to send request", thrownException, false);
         } else {
@@ -212,16 +182,17 @@ class Utils {
                         message = jsonObject.getString("message");
                     }
                 } catch (JSONException ex) {
-                    // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON
-                    // until we try to parse it
+                    // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
                 }
             } else {
-                message = String.format(
-                        "Http StatusCode='%s'", httpResponse.getStatusLine().toString());
+                message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
             }
 
             return new DataServiceException(
-                    url, String.format("%s, ActivityId='%s'", message, activityId), formattedException, isPermanent);
+                    url,
+                    String.format("%s, ActivityId='%s'", message, activityId),
+                    formattedException,
+                    isPermanent);
         }
     }
 
@@ -233,10 +204,8 @@ class Utils {
                     httpResponse.close();
                 }
             } catch (IOException ex) {
-                // There's nothing we can do if the resources can't be closed, and we don't want to add an exception to
-                // the signature
-                LOGGER.error(
-                        "Couldn't close HttpResponse. This won't affect the POST call, but should be investigated.");
+                // There's nothing we can do if the resources can't be closed, and we don't want to add an exception to the signature
+                LOGGER.error("Couldn't close HttpResponse. This won't affect the POST call, but should be investigated.");
             }
         }
     }
@@ -248,21 +217,18 @@ class Utils {
 
     private static String determineActivityId(HttpResponse httpResponse) {
         String activityId = "";
-        Optional<Header> activityIdHeader =
-                Arrays.stream(httpResponse.getHeaders("x-ms-activity-id")).findFirst();
+        Optional<Header> activityIdHeader = Arrays.stream(httpResponse.getHeaders("x-ms-activity-id")).findFirst();
         if (activityIdHeader.isPresent()) {
             activityId = activityIdHeader.get().getValue();
         }
         return activityId;
     }
 
-    private static HttpPost setupHttpPostRequest(
-            URI uri, String payload, InputStream stream, Map<String, String> headers) {
+    private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
         HttpPost request = new HttpPost(uri);
 
         // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
-        HttpEntity requestEntity = (stream == null)
-                ? new StringEntity(payload, ContentType.APPLICATION_JSON)
+        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
                 : new InputStreamEntity(new UncloseableStream(stream));
         request.setEntity(requestEntity);
 
@@ -279,19 +245,11 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol())
-                    || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
-                return new URI(
-                        cleanUrl.getProtocol(),
-                        cleanUrl.getUserInfo(),
-                        cleanUrl.getHost(),
-                        cleanUrl.getPort(),
-                        cleanUrl.getPath(),
-                        cleanUrl.getQuery(),
-                        cleanUrl.getRef());
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
+                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(), cleanUrl.getRef());
             } else {
-                throw new DataClientException(
-                        url, "Cannot forward security token to a remote service over insecure " + "channel (http://)");
+                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
+                        "channel (http://)");
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);
@@ -317,8 +275,15 @@ class Utils {
         long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
         long secs = seconds % TimeUnit.HOURS.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
-        String positive = String.format("%02d.%02d:%02d:%02d.%.3s", days, hours, minutes, secs, nanos);
+        String positive = String.format(
+                "%02d.%02d:%02d:%02d.%.3s",
+                days,
+                hours,
+                minutes,
+                secs,
+                nanos);
 
         return seconds < 0 ? "-" + positive : positive;
     }
 }
+

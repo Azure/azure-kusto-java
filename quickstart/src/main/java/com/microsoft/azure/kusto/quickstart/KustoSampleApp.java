@@ -63,6 +63,7 @@ public class KustoSampleApp {
     private static String kustoUrl;
     private static String ingestUrl;
     private static List<Map<String, String>> dataToIngest;
+    private static boolean ignoreFirstRecord;
     private static boolean shouldAlterTable;
     private static boolean shouldQueryData;
     private static boolean shouldIngestData;
@@ -108,9 +109,15 @@ public class KustoSampleApp {
                         continue;
                     }
                     // Learn More: For more information about ingesting data to Kusto in Java, see: https://docs.microsoft.com/azure/data-explorer/java-ingest-data
-                    ingest(file, dataFormat, ingestClient, databaseName, tableName, mappingName);
+                    ingest(file, dataFormat, ingestClient, databaseName, tableName, mappingName, ignoreFirstRecord);
                 }
 
+                /*
+                 *  Note: We poll here the ingestion's target table because monitoring successful ingestions is expensive and not recommended.
+                 *      Instead, the recommended ingestion monitoring approach is to monitor failures.
+                 *  Learn more: https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-client-status#tracking-ingestion-status-kustoqueuedingestclient
+                 *      and https://docs.microsoft.com/azure/data-explorer/using-diagnostic-logs
+                 */
                 waitForIngestionToComplete();
             }
 
@@ -158,6 +165,7 @@ public class KustoSampleApp {
             kustoUrl = (String) configs.get("kustoUri");
             ingestUrl = (String) configs.get("ingestUri");
             dataToIngest = (List<Map<String, String>>) configs.get("data");
+            ignoreFirstRecord = Boolean.parseBoolean(configs.get("ignoreFirstRecord").toString());
             shouldAlterTable = Boolean.parseBoolean(configs.get("alterTable").toString());
             shouldQueryData = Boolean.parseBoolean(configs.get("queryData").toString());
             shouldIngestData = Boolean.parseBoolean(configs.get("ingestData").toString());
@@ -376,7 +384,7 @@ public class KustoSampleApp {
         return true;
     }
 
-    private static void ingest(Map<String, String> file, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName, String tableName, String mappingName) {
+    private static void ingest(Map<String, String> file, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName, String tableName, String mappingName, boolean ignoreFirstRecord) {
         String sourceType = file.get("sourceType");
         String uri = file.get("dataSourceUri");
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType));
@@ -389,16 +397,16 @@ public class KustoSampleApp {
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
         //  See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
         if (sourceType.equalsIgnoreCase("localfilesource")) {
-            ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+            ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
         } else if (sourceType.equalsIgnoreCase("blobsource")) {
-            ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+            ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
         } else {
             System.out.printf("Unknown source '%s' for file '%s'%n", sourceType, uri);
         }
     }
 
-    private static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath, IngestionProperties.DataFormat dataFormat, String mappingName) {
-        IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
+    private static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath, IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+        IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
         // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length()) instead of the default below of 0.
         //  Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
@@ -415,8 +423,8 @@ public class KustoSampleApp {
         }
     }
 
-    private static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl, IngestionProperties.DataFormat dataFormat, String mappingName) {
-        IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
+    private static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl, IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+        IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
         // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor instead of the default below of 0.
         //  Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
@@ -434,13 +442,14 @@ public class KustoSampleApp {
     }
 
     @NotNull
-    private static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat, String mappingName) {
+    private static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
         IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
         ingestionProperties.setDataFormat(dataFormat);
         // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
         if (StringUtils.isNotBlank(mappingName)) {
             ingestionProperties.setIngestionMapping(mappingName, dataFormat.getIngestionMappingKind());
         }
+        ingestionProperties.setIgnoreFirstRecord(ignoreFirstRecord);
         // TODO (config - optional): Setting the ingestion batching policy takes up to 5 minutes to take effect.
         //  We therefore set Flush-Immediately for the sake of the sample, but it generally shouldn't be used in practice.
         //  Comment out the line below after running the sample the first few times.
