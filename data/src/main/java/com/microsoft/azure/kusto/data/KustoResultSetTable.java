@@ -309,7 +309,7 @@ public class KustoResultSetTable {
         return (int) get(columnName);
     }
 
-    public int getIntegerObject(String columnName) {
+    public Integer getIntegerObject(String columnName) {
         return getIntegerObject(findColumn(columnName));
     }
 
