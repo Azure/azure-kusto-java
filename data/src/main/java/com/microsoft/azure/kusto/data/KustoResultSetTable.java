@@ -59,6 +59,10 @@ public class KustoResultSetTable {
         return tableId;
     }
 
+    public WellKnownDataSet getTableKind() {
+        return tableKind;
+    }
+    
     public KustoResultColumn[] getColumns() {
         return columnsAsArray;
     }
@@ -69,10 +73,6 @@ public class KustoResultSetTable {
 
     void setTableKind(WellKnownDataSet tableKind) {
         this.tableKind = tableKind;
-    }
-
-    WellKnownDataSet getTableKind() {
-        return tableKind;
     }
 
     protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceQueryError {
