@@ -103,6 +103,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel().getKustoValue());
             ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod().getKustoValue());
             ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
+            ingestionBlobInfo.setValidationPolicy(ingestionProperties.getValidationPolicy());
             ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
             if (blobSourceInfo.getSourceId() != null) {
                 ingestionBlobInfo.setId(blobSourceInfo.getSourceId());
