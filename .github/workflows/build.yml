@@ -2,8 +2,11 @@
 
 name: Build Java
 
-on: push
-
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  
 jobs:
   build:
     runs-on: ubuntu-latest
