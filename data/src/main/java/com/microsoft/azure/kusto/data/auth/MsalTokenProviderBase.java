@@ -31,7 +31,6 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         this.authorityId = authorityId;
     }
 
-    @Override
     protected void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
         aadAuthorityUrl = determineAadAuthorityUrl();
         scopes.add(determineScope());
@@ -53,6 +52,7 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
         initializeCloudInfo();
+        setRequiredMembersBasedOnCloudInfo();
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             accessTokenResult = acquireNewAccessToken();

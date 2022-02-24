@@ -219,6 +219,8 @@ class E2ETest {
 
         while (timeoutInSec > 0) {
             try {
+                Thread.sleep(5000);
+                timeoutInSec -= 5;
 
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
@@ -238,10 +240,6 @@ class E2ETest {
                     mainTableResult.next();
                     actualRowsCount = mainTableResult.getInt(0) - currentCount;
                 }
-
-
-                Thread.sleep(3000);
-                timeoutInSec -= 3;
             } catch (Exception ex) {
                 continue;
             }

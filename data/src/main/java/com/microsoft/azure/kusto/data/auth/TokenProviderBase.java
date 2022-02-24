@@ -3,7 +3,6 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.credential.TokenRequestContext;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -25,10 +24,7 @@ public abstract class TokenProviderBase {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
     }
 
-    protected void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
-    }
-
-    protected void initializeCloudInfo() throws DataClientException, DataServiceException {
+    protected void initializeCloudInfo() throws DataServiceException {
         if (cloudInfo != null) {
             return;
         }
@@ -38,7 +34,6 @@ public abstract class TokenProviderBase {
             }
 
             cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
-            setRequiredMembersBasedOnCloudInfo();
         }
     }
 
