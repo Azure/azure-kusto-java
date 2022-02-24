@@ -6,6 +6,7 @@
 master: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
 ![Github Actions Build](https://github.com/Azure/azure-kusto-java/actions/workflows/build.yml/badge.svg)
 
+Mu ha ha ha ha ha
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
