@@ -214,12 +214,11 @@ class E2ETest {
     }
 
     private void assertRowCount(int expectedRowsCount, boolean checkViaJson) {
-        int timeoutInSec = 100;
+        int totalLoops = 30;
         int actualRowsCount = 0;
 
-        while (timeoutInSec > 0) {
+        for (int i = 0; i < totalLoops; i++) {
             try {
-
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
                     JSONArray jsonArray = new JSONArray(result);
@@ -239,9 +238,7 @@ class E2ETest {
                     actualRowsCount = mainTableResult.getInt(0) - currentCount;
                 }
 
-
                 Thread.sleep(3000);
-                timeoutInSec -= 3;
             } catch (Exception ex) {
                 continue;
             }
