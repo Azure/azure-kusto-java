@@ -16,12 +16,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-public abstract class MsalTokenProviderBase extends TokenProviderBase {
+public abstract class MsalTokenProviderBase extends CloudDependantTokenProviderBase {
+    protected static final String ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN = "Error acquiring ApplicationAccessToken";
     protected static final String ORGANIZATION_URI_SUFFIX = "organizations";
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
     protected static final int TIMEOUT_MS = 20 * 1000;
     private static final String PERSONAL_TENANT_IDV2_AAD = "9188040d-6c67-4c5b-b112-36a304b66dad"; // Identifies MSA accounts
-    protected final Set<String> scopes = new HashSet<>();
     private final String authorityId;
     protected String aadAuthorityUrl;
 
@@ -32,10 +32,9 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
     }
 
     @Override
-    protected void setRequiredMembersBasedOnCloudInfo() throws DataClientException, DataServiceException {
+    protected void onCloudInfoInitialized() throws DataClientException, DataServiceException {
+        super.onCloudInfoInitialized();
         aadAuthorityUrl = determineAadAuthorityUrl();
-        scopes.add(determineScope());
-        setClientApplicationBasedOnCloudInfo();
     }
 
     private String determineAadAuthorityUrl() throws DataClientException {
@@ -48,11 +47,9 @@ public abstract class MsalTokenProviderBase extends TokenProviderBase {
         }
     }
 
-    protected abstract void setClientApplicationBasedOnCloudInfo() throws DataClientException;
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
-        initializeCloudInfo();
+    public String acquireAccessTokenAfterCloudInfo() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             accessTokenResult = acquireNewAccessToken();

@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.URISyntaxException;
 
-public class ManagedIdentityTokenProvider extends TokenProviderBase {
+public class ManagedIdentityTokenProvider extends CloudDependantTokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
@@ -25,13 +25,13 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected void setRequiredMembersBasedOnCloudInfo() throws DataServiceException {
-        tokenRequestContext = new TokenRequestContext().addScopes(determineScope());
+    protected void onCloudInfoInitialized() throws DataServiceException, DataClientException {
+        super.onCloudInfoInitialized();
+        tokenRequestContext = new TokenRequestContext().addScopes(scopes.toArray(new String[0]));
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
-        initializeCloudInfo();
+    public String acquireAccessTokenAfterCloudInfo() throws DataServiceException {
         AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);

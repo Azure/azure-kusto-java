@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.MalformedURLException;
@@ -23,8 +24,10 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
         super(clusterUrl, authorityId);
     }
 
+
     @Override
-    protected void setClientApplicationBasedOnCloudInfo() throws DataClientException {
+    protected void onCloudInfoInitialized() throws DataClientException, DataServiceException {
+        super.onCloudInfoInitialized();
         try {
             clientApplication = PublicClientApplication.builder(cloudInfo.getKustoClientAppId()).authority(aadAuthorityUrl).build();
         } catch (MalformedURLException e) {
