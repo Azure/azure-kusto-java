@@ -181,7 +181,7 @@ class QueuedIngestClientTest {
                         .contains(
                                 "\"validationPolicy\":{\"validationOptions\":\"DoNotValidate\",\"validationPolicyType\":\"BestEffort\"}"));
 
-        ingestionProperties.setValidationPolicy(new ValidationPolicy(ValidationPolicy.ValidationOptions.ValidateCsvInputColumnLevelOnly, ValidationPolicy.ValidationImplications.Fail));
+        ingestionProperties.setValidationPolicy(new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
         assertTrue(

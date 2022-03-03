@@ -1,10 +1,11 @@
 package com.microsoft.azure.kusto.ingest.result;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import java.io.Serializable;
 
 public class ValidationPolicy implements Serializable {
-    private ValidationOptions validationOptions = ValidationOptions.DoNotValidate;
-    private ValidationImplications validationPolicyType = ValidationImplications.BestEffort;
+    private ValidationOptions validationOptions = ValidationOptions.DO_NOT_VALIDATE;
+    private ValidationImplications validationPolicyType = ValidationImplications.VALIDATION_IMPLICATIONS;
 
     public ValidationPolicy() {
     }
@@ -36,9 +37,9 @@ public class ValidationPolicy implements Serializable {
     }
 
     public enum ValidationOptions {
-        DoNotValidate("DoNotValidate"),
-        ValidateCsvInputConstantColumns("ValidateCsvInputConstantColumns"),
-        ValidateCsvInputColumnLevelOnly("ValidateCsvInputColumnLevelOnly");
+        DO_NOT_VALIDATE("DoNotValidate"),
+        VALIDATE_CSV_INPUT_CONSTANT_COLUMNS("ValidateCsvInputConstantColumns"),
+        VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY("ValidateCsvInputColumnLevelOnly");
 
         private final String kustoValue;
 
@@ -46,14 +47,15 @@ public class ValidationPolicy implements Serializable {
             this.kustoValue = kustoValue;
         }
 
+        @JsonValue
         public String getKustoValue() {
             return kustoValue;
         }
     }
 
     public enum ValidationImplications {
-        Fail("Fail"),
-        BestEffort("BestEffort");
+        FAIL("Fail"),
+        VALIDATION_IMPLICATIONS("BestEffort");
 
         private final String kustoValue;
 
@@ -61,6 +63,7 @@ public class ValidationPolicy implements Serializable {
             this.kustoValue = kustoValue;
         }
 
+        @JsonValue
         public String getKustoValue() {
             return kustoValue;
         }
