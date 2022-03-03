@@ -9,10 +9,10 @@ import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +35,7 @@ public class AzureStorageClient {
         // Ensure
         Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
+
         byte[] bytesEncoded = Base64.encodeBase64(content.getBytes());
         queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
     }
@@ -42,6 +43,7 @@ public class AzureStorageClient {
     public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException {
         Ensure.argIsNotNull(tableClient, "tableClient");
         Ensure.argIsNotNull(tableEntity, "tableEntity");
+
         tableClient.createEntity(tableEntity);
     }
 
@@ -145,7 +147,7 @@ public class AzureStorageClient {
     public static TableClient TableClientFromUrl(String url) {
         String[] parts = url.split("\\?");
         int tableNameIndex = parts[0].lastIndexOf('/');
-        String tableName = parts[0].substring(tableNameIndex+1);
+        String tableName = parts[0].substring(tableNameIndex + 1);
 
         return new TableClientBuilder()
                 .endpoint(parts[0].substring(0, tableNameIndex))
