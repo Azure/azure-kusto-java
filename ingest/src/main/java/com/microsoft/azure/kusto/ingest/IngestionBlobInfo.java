@@ -3,8 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
-
+import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,6 +18,10 @@ public final class IngestionBlobInfo {
     private final Boolean retainBlobOnSuccess;
     private String reportLevel;
     private String reportMethod;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ValidationPolicy validationPolicy;
+
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;
     private Map<String, String> additionalProperties;
@@ -102,5 +107,13 @@ public final class IngestionBlobInfo {
 
     public void setAdditionalProperties(Map<String, String> additionalProperties) {
         this.additionalProperties = additionalProperties;
+    }
+
+    public ValidationPolicy getValidationPolicy() {
+        return validationPolicy;
+    }
+
+    public void setValidationPolicy(ValidationPolicy validationPolicy) {
+        this.validationPolicy = validationPolicy;
     }
 }
