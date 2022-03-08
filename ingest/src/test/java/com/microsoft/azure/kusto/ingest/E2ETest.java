@@ -219,6 +219,8 @@ class E2ETest {
 
         for (int i = 0; i < totalLoops; i++) {
             try {
+                Thread.sleep(i * 100);
+
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
                     JSONArray jsonArray = new JSONArray(result);
@@ -238,7 +240,6 @@ class E2ETest {
                     actualRowsCount = mainTableResult.getInt(0) - currentCount;
                 }
 
-                Thread.sleep(3000);
             } catch (Exception ex) {
                 continue;
             }
