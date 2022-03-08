@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class IngestionProperties {
     private List<String> additionalTags;
     private List<String> ingestIfNotExists;
     private IngestionMapping ingestionMapping;
+    private ValidationPolicy validationPolicy;
     private Map<String, String> additionalProperties;
     private DataFormat dataFormat;
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -67,7 +69,6 @@ public class IngestionProperties {
         this.ingestionMapping = new IngestionMapping();
         this.dataFormat = DataFormat.CSV;
     }
-
     /**
      * Copy constructor for {@code IngestionProperties}.
      *
@@ -87,6 +88,15 @@ public class IngestionProperties {
         this.ingestIfNotExists = new ArrayList<>(other.ingestIfNotExists);
         this.additionalTags = new ArrayList<>(other.additionalTags);
         this.ingestionMapping = new IngestionMapping(other.ingestionMapping);
+        this.validationPolicy = new ValidationPolicy(other.validationPolicy);
+    }
+
+    public ValidationPolicy getValidationPolicy() {
+        return validationPolicy;
+    }
+
+    public void setValidationPolicy(ValidationPolicy validationPolicy) {
+        this.validationPolicy = validationPolicy;
     }
 
     public String getDatabaseName() {
