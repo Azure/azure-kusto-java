@@ -19,6 +19,7 @@ import java.util.concurrent.TimeoutException;
 
 public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     protected IPublicClientApplication clientApplication;
+    protected String clientAppId;
 
     PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
         super(clusterUrl, authorityId);
@@ -26,10 +27,11 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
 
 
     @Override
-    protected void onCloudInfoInitialized() throws DataClientException, DataServiceException {
-        super.onCloudInfoInitialized();
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo);
         try {
-            clientApplication = PublicClientApplication.builder(cloudInfo.getKustoClientAppId()).authority(aadAuthorityUrl).build();
+            clientAppId = cloudInfo.getKustoClientAppId();
+            clientApplication = PublicClientApplication.builder(clientAppId).authority(aadAuthorityUrl).build();
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         }

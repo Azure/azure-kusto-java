@@ -10,17 +10,26 @@ import java.util.HashSet;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class CloudDependantTokenProviderBase extends TokenProviderBase {
+public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL =
             "Error determining scope due to invalid Kusto Service Resource URL";
     protected final Set<String> scopes = new HashSet<>();
-    protected CloudInfo cloudInfo = null;
+    private boolean initialized = false;
 
-    CloudDependantTokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
+    CloudDependentTokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
         super(clusterUrl);
     }
 
-    protected void onCloudInfoInitialized() throws DataClientException, DataServiceException {
+    synchronized void initialize() throws DataClientException, DataServiceException {
+        if (initialized) {
+            return;
+        }
+
+        initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
+        initialized = true;
+    }
+
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
         try {
             scopes.add(cloudInfo.determineScope());
         } catch (URISyntaxException e) {
@@ -28,23 +37,9 @@ public abstract class CloudDependantTokenProviderBase extends TokenProviderBase 
         }
     }
 
-    protected void initializeCloudInfo() throws DataClientException, DataServiceException {
-        if (cloudInfo != null) {
-            return;
-        }
-        synchronized (this) {
-            if (cloudInfo != null) {
-                return;
-            }
-
-            cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
-            onCloudInfoInitialized();
-        }
-    }
-
     @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
-        initializeCloudInfo();
+        initialize();
         return acquireAccessTokenAfterCloudInfo();
     }
 

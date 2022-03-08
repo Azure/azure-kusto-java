@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.URISyntaxException;
 
-public class ManagedIdentityTokenProvider extends CloudDependantTokenProviderBase {
+public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
@@ -25,8 +25,8 @@ public class ManagedIdentityTokenProvider extends CloudDependantTokenProviderBas
     }
 
     @Override
-    protected void onCloudInfoInitialized() throws DataServiceException, DataClientException {
-        super.onCloudInfoInitialized();
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataServiceException, DataClientException {
+        super.initializeWithCloudInfo(cloudInfo);
         tokenRequestContext = new TokenRequestContext().addScopes(scopes.toArray(new String[0]));
     }
 

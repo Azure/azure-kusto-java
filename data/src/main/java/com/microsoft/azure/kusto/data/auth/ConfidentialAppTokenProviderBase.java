@@ -28,8 +28,8 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
     }
 
     @Override
-    protected void onCloudInfoInitialized() throws DataClientException, DataServiceException {
-        super.onCloudInfoInitialized();
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo);
         try {
             clientApplication = getClientApplication();
         } catch (MalformedURLException e) {
