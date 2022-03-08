@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -35,6 +36,7 @@ import java.util.function.BiFunction;
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.EXPECTED_SERVICE_TYPE;
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -157,6 +159,35 @@ class QueuedIngestClientTest {
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
         assertTrue ((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
+    }
+
+    @Test
+    void IngestFromBlob_ValidationPolicy_SetsProperly() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
+                100);
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        assertFalse(captor.getValue().toLowerCase().contains("validationpolicy"));
+
+        ingestionProperties.setValidationPolicy(new ValidationPolicy());
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        assertTrue(
+                captor.getValue()
+                        .contains(
+                                "\"validationPolicy\":{\"validationOptions\":\"DoNotValidate\",\"validationPolicyType\":\"BestEffort\"}"));
+
+        ingestionProperties.setValidationPolicy(new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        assertTrue(
+                captor.getValue()
+                        .contains(
+                                "\"validationPolicy\":{\"validationOptions\":\"ValidateCsvInputColumnLevelOnly\",\"validationPolicyType\":\"Fail\"}"));
     }
 
     @Test
