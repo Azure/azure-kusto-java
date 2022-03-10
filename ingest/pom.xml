@@ -22,7 +22,7 @@
             <dependency>
                 <groupId>com.azure</groupId>
                 <artifactId>azure-sdk-bom</artifactId>
-                <version>1.0.4</version>
+                <version>${azure-bom-version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -138,6 +138,12 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty-http</artifactId>
+            <version>1.0.9</version>
+        </dependency>
+        <!-- Azure bom libraries -->
+        <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
         </dependency>
@@ -149,6 +155,19 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-http-netty</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>io.netty</groupId>-->
+<!--            <artifactId>netty-all</artifactId>-->
+<!--            <version>4.1.51.Final</version>-->
+<!--        </dependency>-->
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/azure-storage -->
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
@@ -222,24 +241,9 @@
             <version>${httpclient.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core</artifactId>
-            <version>1.8.1</version>
-        </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.azure</groupId>-->
-<!--            <artifactId>azure-core-http-netty</artifactId>-->
-<!--            <version></version>-->
-<!--        </dependency>-->
-        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.15</version>
+            <version>1.11</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.fasterxml.jackson.datatype</groupId>-->
-<!--            <artifactId>jackson-datatype-jsr310</artifactId>-->
-<!--            <version>${fasterxml.jackson.core.version}</version>-->
-<!--        </dependency>-->
     </dependencies>
 </project>

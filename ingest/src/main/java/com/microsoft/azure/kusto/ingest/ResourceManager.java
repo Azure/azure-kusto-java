@@ -149,20 +149,25 @@ class ResourceManager implements Closeable {
         } catch (Exception ignore) {
         }
 
-        if (resource == null) {
+        if (resource == null || resource.resourcesList.size() == 0) {
             refreshIngestionResources();
+
+            // If the write lock is locked, then the read will wait here.
+            // In other words if the refresh is running yet, then wait until it ends
+            ingestionResourcesLock.readLock().lock();
+            try {
+                resource = resourceGetter.call();
+
+            } catch (Exception ignore) {
+            } finally {
+              ingestionResourcesLock.readLock().unlock();
+            }
+            if (resource == null || resource.resourcesList.size() == 0) {
+                throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resource.resourceType);
+            }
         }
 
-        try {
-            resource = resourceGetter.call();
-        } catch (Exception ignore) {
-        }
-
-        T next = resource.nextResource();
-        if (next == null) {
-            throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resource.resourceType.getResourceTypeName());
-        }
-        return next;
+        return resource.nextResource();
     }
 
     public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
@@ -275,7 +280,7 @@ class ResourceManager implements Closeable {
     private static class IngestionResource<T> {
         int roundRobinIdx = 0;
         List<T> resourcesList;
-        private final ResourceType resourceType;
+        final ResourceType resourceType;
 
         IngestionResource(ResourceType resourceType) {
             this.resourceType = resourceType;

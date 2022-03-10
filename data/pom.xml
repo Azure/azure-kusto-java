@@ -121,22 +121,12 @@
             </resource>
         </resources>
     </build>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>com.azure</groupId>
-                <artifactId>azure-sdk-bom</artifactId>
-                <version>1.0.5</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
 	        <artifactId>msal4j</artifactId>
+            <version>${msal4j.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>

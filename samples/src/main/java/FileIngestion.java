@@ -22,7 +22,7 @@ public class FileIngestion {
             ConnectionStringBuilder csb =
                     ConnectionStringBuilder.createWithAadApplicationCredentials("https://ingest-ohadprod.westeurope.kusto.windows.net",
                             "d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66",
-                            "-f90cR6sr-hFC3WBm5ANXtm521_W~ah~Ia",
+                            "d2E7Q~WzIL._3KQqGU9W0vSXNUU4EnNeI4C~r",
                             "microsoft.com");
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties("ohtst",
