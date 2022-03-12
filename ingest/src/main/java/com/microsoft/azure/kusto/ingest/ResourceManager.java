@@ -76,7 +76,8 @@ class ResourceManager implements Closeable {
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
-        httpClient = new NettyAsyncHttpClientBuilder().
+        // Using ctor with client so that the dependency is used
+        httpClient = new NettyAsyncHttpClientBuilder(reactor.netty.http.client.HttpClient.create()).
                 responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build();
         init();
     }
@@ -163,7 +164,8 @@ class ResourceManager implements Closeable {
               ingestionResourcesLock.readLock().unlock();
             }
             if (resource == null || resource.resourcesList.size() == 0) {
-                throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resource.resourceType);
+                throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
+                        (resource == null ? "" : resource.resourceType));
             }
         }
 
