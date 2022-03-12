@@ -142,6 +142,11 @@
             <artifactId>reactor-netty-http</artifactId>
             <version>1.0.9</version>
         </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core-http-netty</artifactId>
+            <version>1.9.0</version>
+        </dependency>
         <!-- Azure bom libraries -->
         <dependency>
             <groupId>com.azure</groupId>
@@ -154,10 +159,6 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-data-tables</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core-http-netty</artifactId>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>

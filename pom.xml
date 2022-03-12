@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>3.0.1</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>3.0.2</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
@@ -45,12 +45,12 @@
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
         <json.version>20201115</json.version>
-        <fasterxml.jackson.core.version>2.12.5</fasterxml.jackson.core.version>
+        <fasterxml.jackson.core.version>2.12.4</fasterxml.jackson.core.version>
         <azure-storage.version>8.6.6</azure-storage.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <!-- Bom 1.0.6 targets azure-core with same fasterxml version as databricks runtime 10
          https://docs.microsoft.com/en-us/azure/databricks/release-notes/runtime/10.3-->
-        <azure-bom-version>1.0.6</azure-bom-version>
+        <azure-bom-version>1.0.5</azure-bom-version>
 
         <!-- Test dependencies -->
         <bouncycastle.version>1.68</bouncycastle.version>
