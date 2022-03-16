@@ -18,10 +18,10 @@ public class FileIngestion {
     public static void main(String[] args) {
         try {
             ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+                                        ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
+                                                System.getProperty("appId"),
+                                                System.getProperty("appKey"),
+                                                System.getProperty("appTenant"));
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));
@@ -42,7 +42,7 @@ public class FileIngestion {
                 ColumnMapping csvColumnMapping2 = new ColumnMapping("ColB", "int");
                 csvColumnMapping2.setOrdinal(1);
                 ingestionProperties2.setDataFormat(IngestionProperties.DataFormat.CSV);
-                ingestionProperties2.setIngestionMapping(new ColumnMapping[]{csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.CSV);
+                ingestionProperties2.setIngestionMapping(new ColumnMapping[] {csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.CSV);
 
                 IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);
             }

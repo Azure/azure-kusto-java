@@ -349,5 +349,12 @@
         <!--Enums constants in a new line each-->
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_enum_constants" value="16"/>
 
+        <!--4 = M_INDENT_BY_ONE - keep throws clause in the same line-->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_constructor_declaration" value="4"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_method_declaration" value="4"/>
+
+        <!--Don't reformat javadoc comments-->
+        <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="false"/>
+
     </profile>
 </profiles>

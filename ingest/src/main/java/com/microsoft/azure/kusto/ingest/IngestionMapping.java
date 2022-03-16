@@ -91,8 +91,8 @@ public class IngestionMapping {
     }
 
     /*
-     Represents an ingestion mapping kind - the format of the source data to map from.
-    */
+     * Represents an ingestion mapping kind - the format of the source data to map from.
+     */
     public enum IngestionMappingKind {
         CSV("Csv"),
         JSON("Json"),

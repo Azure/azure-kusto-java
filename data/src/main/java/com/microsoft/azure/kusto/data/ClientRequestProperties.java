@@ -10,11 +10,6 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -26,6 +21,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /*
  * Kusto supports attaching various properties to client requests (such as queries and control commands).

@@ -22,10 +22,10 @@ public class TableStatus {
             Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
             ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+                                        ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
+                                                System.getProperty("appId"),
+                                                System.getProperty("appKey"),
+                                                System.getProperty("appTenant"));
             IngestionResult ingestionResult;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),

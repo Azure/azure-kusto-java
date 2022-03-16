@@ -30,8 +30,7 @@ public class CloudInfo {
             DEFAULT_KUSTO_CLIENT_APP_ID,
             DEFAULT_REDIRECT_URI,
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
-            DEFAULT_FIRST_PARTY_AUTHORITY_URL
-    );
+            DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
@@ -47,7 +46,12 @@ public class CloudInfo {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
 
-    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId, String firstPartyAuthorityUrl) {
+    public CloudInfo(boolean loginMfaRequired,
+                     String loginEndpoint,
+                     String kustoClientAppId,
+                     String kustoClientRedirectUri,
+                     String kustoServiceResourceId,
+                     String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;
@@ -116,8 +120,7 @@ public class CloudInfo {
                 innerObject.getString("KustoClientAppId"),
                 innerObject.getString("KustoClientRedirectUri"),
                 innerObject.getString("KustoServiceResourceId"),
-                innerObject.getString("FirstPartyAuthorityUrl")
-        );
+                innerObject.getString("FirstPartyAuthorityUrl"));
     }
 
     @Override

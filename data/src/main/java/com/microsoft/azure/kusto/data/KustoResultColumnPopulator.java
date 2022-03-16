@@ -15,60 +15,63 @@ import java.util.function.BiConsumer;
  *            type of ADX column
  */
 class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
-	
-	final static int UNSET_ORDINAL = -1;
-	
-	final BiConsumer<R, C> valueSetter;
-	final String name;
-	final T type;
-	final boolean isNullable;
-	final int presetOrdinal;
-	
-	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable,
-			BiConsumer<R, C> valueSetter) {
-		return new KustoResultColumnPopulator<>(name, ordinal, type, isNullable, valueSetter);
-	}
-	
-	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		return new KustoResultColumnPopulator<>(name, UNSET_ORDINAL, type, isNullable, valueSetter);
-	}
-	
-	static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		return new KustoResultColumnPopulator<>(null, ordinal, type, isNullable, valueSetter);
-	}
-	
-	KustoResultColumnPopulator(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
-		this.name = name;
-		this.presetOrdinal = ordinal;
-		this.type = type;
-		this.isNullable = isNullable;
-		this.valueSetter = valueSetter;
-	}
-	
-	void populateFrom(R objToPopulate, KustoResultSetTable resultSet) {
-		populateFrom(objToPopulate, resultSet, columnIndexInResultSet(resultSet));
-	}
-	
-	void populateFrom(R objToPopulate, KustoResultSetTable resultSet, int ordinal) {
-		Object resultValue = resultSet.getObject(ordinal);
-		if (resultValue == null) {
-			if (!this.isNullable) {
-				throw new NullPointerException(String.format("Column %s (ordinal %d) is not nullable", this.name, ordinal));
-			}
-			this.valueSetter.accept(objToPopulate, null);
-			return;
-		}
-		C typed;
-		try {
-			typed = this.type.type(resultValue);
-		} catch (Exception e) {
-			throw new IllegalArgumentException(String.format("Column %s (ordinal %d) is of type %s but expected type is %s", this.name, ordinal,
-					resultValue.getClass().toString(), this.type.clazz.toString()), e);
-		}
-		this.valueSetter.accept(objToPopulate, typed);
-	}
-	
-	int columnIndexInResultSet(KustoResultSetTable resultSet) {
-		return this.presetOrdinal == UNSET_ORDINAL ? resultSet.findColumn(this.name) : this.presetOrdinal;
-	}
+
+    final static int UNSET_ORDINAL = -1;
+
+    final BiConsumer<R, C> valueSetter;
+    final String name;
+    final T type;
+    final boolean isNullable;
+    final int presetOrdinal;
+
+    static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name,
+                                                                                 int ordinal,
+                                                                                 T type,
+                                                                                 boolean isNullable,
+                                                                                 BiConsumer<R, C> valueSetter) {
+        return new KustoResultColumnPopulator<>(name, ordinal, type, isNullable, valueSetter);
+    }
+
+    static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+        return new KustoResultColumnPopulator<>(name, UNSET_ORDINAL, type, isNullable, valueSetter);
+    }
+
+    static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+        return new KustoResultColumnPopulator<>(null, ordinal, type, isNullable, valueSetter);
+    }
+
+    KustoResultColumnPopulator(String name, int ordinal, T type, boolean isNullable, BiConsumer<R, C> valueSetter) {
+        this.name = name;
+        this.presetOrdinal = ordinal;
+        this.type = type;
+        this.isNullable = isNullable;
+        this.valueSetter = valueSetter;
+    }
+
+    void populateFrom(R objToPopulate, KustoResultSetTable resultSet) {
+        populateFrom(objToPopulate, resultSet, columnIndexInResultSet(resultSet));
+    }
+
+    void populateFrom(R objToPopulate, KustoResultSetTable resultSet, int ordinal) {
+        Object resultValue = resultSet.getObject(ordinal);
+        if (resultValue == null) {
+            if (!this.isNullable) {
+                throw new NullPointerException(String.format("Column %s (ordinal %d) is not nullable", this.name, ordinal));
+            }
+            this.valueSetter.accept(objToPopulate, null);
+            return;
+        }
+        C typed;
+        try {
+            typed = this.type.type(resultValue);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format("Column %s (ordinal %d) is of type %s but expected type is %s", this.name, ordinal,
+                    resultValue.getClass().toString(), this.type.clazz.toString()), e);
+        }
+        this.valueSetter.accept(objToPopulate, typed);
+    }
+
+    int columnIndexInResultSet(KustoResultSetTable resultSet) {
+        return this.presetOrdinal == UNSET_ORDINAL ? resultSet.findColumn(this.name) : this.presetOrdinal;
+    }
 }

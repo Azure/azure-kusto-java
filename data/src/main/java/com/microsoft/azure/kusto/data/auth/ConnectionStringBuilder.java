@@ -54,7 +54,7 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = null;
     }
 
-    public ConnectionStringBuilder(ConnectionStringBuilder other){
+    public ConnectionStringBuilder(ConnectionStringBuilder other) {
         this.clusterUrl = other.clusterUrl;
         this.usernameHint = other.usernameHint;
         this.applicationClientId = other.applicationClientId;
@@ -73,7 +73,6 @@ public class ConnectionStringBuilder {
         this.clientVersionForTracing = other.clientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
     }
-
 
     public String getClusterUrl() {
         return clusterUrl;
@@ -119,7 +118,7 @@ public class ConnectionStringBuilder {
         return tokenProvider;
     }
 
-    public String getManagedIdentityClientId () {
+    public String getManagedIdentityClientId() {
         return managedIdentityClientId;
     }
 
@@ -154,7 +153,6 @@ public class ConnectionStringBuilder {
     public void setApplicationNameForTracing(String applicationNameForTracing) {
         this.applicationNameForTracing = applicationNameForTracing;
     }
-
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
                                                                               String applicationClientId,
