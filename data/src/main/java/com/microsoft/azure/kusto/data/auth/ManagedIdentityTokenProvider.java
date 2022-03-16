@@ -31,7 +31,7 @@ public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBas
     }
 
     @Override
-    public String acquireAccessTokenAfterCloudInfo() throws DataServiceException {
+    public String acquireAccessTokenImpl() throws DataServiceException {
         AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);

@@ -49,7 +49,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
 
 
     @Override
-    public String acquireAccessTokenAfterCloudInfo() throws DataServiceException, DataClientException {
+    public String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             accessTokenResult = acquireNewAccessToken();

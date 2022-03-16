@@ -40,8 +40,8 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     @Override
     public String acquireAccessToken() throws DataServiceException, DataClientException {
         initialize();
-        return acquireAccessTokenAfterCloudInfo();
+        return acquireAccessTokenImpl();
     }
 
-    public abstract String acquireAccessTokenAfterCloudInfo() throws DataServiceException, DataClientException;
+    protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
 }
