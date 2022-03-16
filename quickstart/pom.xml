@@ -99,7 +99,6 @@
                 <configuration>
                     <configFile>${project.basedir}/kusto-style.xml</configFile>
                     <encoding>UTF-8</encoding>
-                    <lineEnding>KEEP</lineEnding>
                 </configuration>
             </plugin>
         </plugins>
