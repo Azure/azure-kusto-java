@@ -3,11 +3,8 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import org.jetbrains.annotations.NotNull;
-
 import java.net.URISyntaxException;
+import org.jetbrains.annotations.NotNull;
 
 public class AccessTokenTokenProvider extends TokenProviderBase {
     private final String accessToken;
@@ -18,7 +15,7 @@ public class AccessTokenTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
+    public String acquireAccessToken() {
         return accessToken;
     }
 }

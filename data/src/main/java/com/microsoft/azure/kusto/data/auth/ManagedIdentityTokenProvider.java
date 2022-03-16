@@ -4,13 +4,14 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.URISyntaxException;
 
-public class ManagedIdentityTokenProvider extends TokenProviderBase {
+public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBase {
     private final ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
@@ -23,14 +24,14 @@ public class ManagedIdentityTokenProvider extends TokenProviderBase {
         this.managedIdentityCredential = builder.build();
     }
 
-    private void setRequiredMembersBasedOnCloudInfo() throws DataServiceException {
-        tokenRequestContext = new TokenRequestContext().addScopes(determineScope());
+    @Override
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataServiceException, DataClientException {
+        super.initializeWithCloudInfo(cloudInfo);
+        tokenRequestContext = new TokenRequestContext().addScopes(scopes.toArray(new String[0]));
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException {
-        initializeCloudInfo();
-        setRequiredMembersBasedOnCloudInfo();
+    public String acquireAccessTokenImpl() throws DataServiceException {
         AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);

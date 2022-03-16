@@ -166,4 +166,13 @@ public class CloudInfo {
     public String getFirstPartyAuthorityUrl() {
         return firstPartyAuthorityUrl;
     }
+
+    public String determineScope() throws URISyntaxException {
+        String resourceUrl = getKustoServiceResourceId();
+        if (isLoginMfaRequired()) {
+            resourceUrl = resourceUrl.replace(".kusto.", ".kustomfa.");
+        }
+
+        return UriUtils.setPathForUri(resourceUrl, ".default");
+    }
 }
