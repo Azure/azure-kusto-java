@@ -33,7 +33,7 @@ jobs:
           java-version: ${{ matrix.java }}
           cache: 'maven'
       - name: Run the Maven verify phase
-        run: mvn --batch-mode --update-snapshots formatter:validate -P && mvn --batch-mode --update-snapshots verify
+        run: mvn --batch-mode --update-snapshots formatter:validate verify
         env:
           DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
