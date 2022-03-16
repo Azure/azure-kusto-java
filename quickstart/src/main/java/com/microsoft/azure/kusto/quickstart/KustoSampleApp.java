@@ -52,8 +52,7 @@ public class KustoSampleApp {
     // If this quickstart app was downloaded from GitHub, edit kusto_sample_config.json and modify the cluster URL and database fields appropriately
     private static final String CONFIG_FILE_NAME = "kusto_sample_config.json";
 
-    private static final String BATCHING_POLICY =
-                                                "{ \"MaximumBatchingTimeSpan\": \"00:00:10\", \"MaximumNumberOfItems\": 500, \"MaximumRawDataSizeMB\": 1024 }";
+    private static final String BATCHING_POLICY = "{ \"MaximumBatchingTimeSpan\": \"00:00:10\", \"MaximumNumberOfItems\": 500, \"MaximumRawDataSizeMB\": 1024 }";
     private static final int WAIT_FOR_INGEST_SECONDS = 20;
 
     private static int step = 1;
@@ -108,8 +107,14 @@ public class KustoSampleApp {
                     // Tip: This is generally a one-time configuration.
                     // Learn More: For more information about providing inline mappings and mapping references, see:
                     // https://docs.microsoft.com/azure/data-explorer/kusto/management/mappings
-                    if (!createIngestionMappings(Boolean.parseBoolean(String.valueOf(file.get("useExistingMapping"))), kustoClient, databaseName, tableName,
-                            mappingName, file.get("mappingValue"), dataFormat)) {
+                    if (!createIngestionMappings(
+                            Boolean.parseBoolean(String.valueOf(file.get("useExistingMapping"))),
+                            kustoClient,
+                            databaseName,
+                            tableName,
+                            mappingName,
+                            file.get("mappingValue"),
+                            dataFormat)) {
                         continue;
                     }
                     // Learn More: For more information about ingesting data to Kusto in Java, see:
@@ -200,10 +205,12 @@ public class KustoSampleApp {
                 // Learn More: For information about how to procure an AAD Application, see:
                 // https://docs.microsoft.com/azure/data-explorer/provision-azure-ad-app
                 // TODO (config - optional): App ID & tenant, and App Key to authenticate with
-                csb = ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl,
-                        System.getenv("APP_ID"),
-                        System.getenv("APP_KEY"),
-                        System.getenv("APP_TENANT"));
+                csb = ConnectionStringBuilder
+                        .createWithAadApplicationCredentials(
+                                clusterUrl,
+                                System.getenv("APP_ID"),
+                                System.getenv("APP_KEY"),
+                                System.getenv("APP_TENANT"));
                 break;
             case "AppCertificate":
                 csb = createApplicationCertificateConnectionString(clusterUrl);
@@ -290,8 +297,12 @@ public class KustoSampleApp {
                 System.out.printf("Record %s%n", rowNum);
                 for (int j = 0; j < currentRow.size(); j++) {
                     Object cell = currentRow.get(j);
-                    System.out.printf("Column: '%s' of type '%s', Value: '%s'%n", columns[j].getColumnName(), columns[j].getColumnType(),
-                            cell == null ? "[null]" : cell);
+                    System.out
+                            .printf(
+                                    "Column: '%s' of type '%s', Value: '%s'%n",
+                                    columns[j].getColumnName(),
+                                    columns[j].getColumnType(),
+                                    cell == null ? "[null]" : cell);
                 }
                 System.out.println();
             }
@@ -322,8 +333,12 @@ public class KustoSampleApp {
                 System.out.printf("Record %s%n", rowNum);
                 for (int j = 0; j < currentRow.size(); j++) {
                     Object cell = currentRow.get(j);
-                    System.out.printf("Column: '%s' of type '%s', Value: '%s'%n", columns[j].getColumnName(), columns[j].getColumnType(),
-                            cell == null ? "[null]" : cell);
+                    System.out
+                            .printf(
+                                    "Column: '%s' of type '%s', Value: '%s'%n",
+                                    columns[j].getColumnName(),
+                                    columns[j].getColumnType(),
+                                    cell == null ? "[null]" : cell);
                 }
                 System.out.println();
             }
@@ -370,18 +385,20 @@ public class KustoSampleApp {
         waitForUserToProceed(String.format("Alter the batching policy for table '%s.%s'", databaseName, tableName));
         String command = String.format(".alter table %s policy ingestionbatching @'%s'", tableName, BATCHING_POLICY);
         if (!executeControlCommand(kustoClient, databaseName, command)) {
-            System.out.println(
-                    "Failed to alter the ingestion policy, which could be the result of insufficient permissions. The sample will still run, though ingestion will be delayed for up to 5 minutes.");
+            System.out
+                    .println(
+                            "Failed to alter the ingestion policy, which could be the result of insufficient permissions. The sample will still run, though ingestion will be delayed for up to 5 minutes.");
         }
     }
 
-    private static boolean createIngestionMappings(boolean useExistingMapping,
-                                                   Client kustoClient,
-                                                   String databaseName,
-                                                   String tableName,
-                                                   String mappingName,
-                                                   String mappingValue,
-                                                   IngestionProperties.DataFormat dataFormat) {
+    private static boolean createIngestionMappings(
+            boolean useExistingMapping,
+            Client kustoClient,
+            String databaseName,
+            String tableName,
+            String mappingName,
+            String mappingValue,
+            IngestionProperties.DataFormat dataFormat) {
         if (!useExistingMapping && StringUtils.isNotBlank(mappingValue)) {
             IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
             waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
@@ -389,24 +406,33 @@ public class KustoSampleApp {
             if (StringUtils.isBlank(mappingName)) {
                 mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
             }
-            String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName,
-                    ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
+            String mappingCommand = String
+                    .format(
+                            ".create-or-alter table %s ingestion %s mapping '%s' '%s'",
+                            tableName,
+                            ingestionMappingKind.getKustoValue().toLowerCase(),
+                            mappingName,
+                            mappingValue);
             if (!executeControlCommand(kustoClient, databaseName, mappingCommand)) {
-                System.out.printf("Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n", ingestionMappingKind.getKustoValue(),
-                        mappingName);
+                System.out
+                        .printf(
+                                "Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n",
+                                ingestionMappingKind.getKustoValue(),
+                                mappingName);
                 return false;
             }
         }
         return true;
     }
 
-    private static void ingest(Map<String, String> file,
-                               IngestionProperties.DataFormat dataFormat,
-                               IngestClient ingestClient,
-                               String databaseName,
-                               String tableName,
-                               String mappingName,
-                               boolean ignoreFirstRecord) {
+    private static void ingest(
+            Map<String, String> file,
+            IngestionProperties.DataFormat dataFormat,
+            IngestClient ingestClient,
+            String databaseName,
+            String tableName,
+            String mappingName,
+            boolean ignoreFirstRecord) {
         String sourceType = file.get("sourceType");
         String uri = file.get("dataSourceUri");
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType));
@@ -427,13 +453,14 @@ public class KustoSampleApp {
         }
     }
 
-    private static void ingestFromFile(IngestClient ingestClient,
-                                       String databaseName,
-                                       String tableName,
-                                       String filePath,
-                                       IngestionProperties.DataFormat dataFormat,
-                                       String mappingName,
-                                       boolean ignoreFirstRecord) {
+    private static void ingestFromFile(
+            IngestClient ingestClient,
+            String databaseName,
+            String tableName,
+            String filePath,
+            IngestionProperties.DataFormat dataFormat,
+            String mappingName,
+            boolean ignoreFirstRecord) {
         IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
         // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length()) instead
@@ -452,13 +479,14 @@ public class KustoSampleApp {
         }
     }
 
-    private static void ingestFromBlob(IngestClient ingestClient,
-                                       String databaseName,
-                                       String tableName,
-                                       String blobUrl,
-                                       IngestionProperties.DataFormat dataFormat,
-                                       String mappingName,
-                                       boolean ignoreFirstRecord) {
+    private static void ingestFromBlob(
+            IngestClient ingestClient,
+            String databaseName,
+            String tableName,
+            String blobUrl,
+            IngestionProperties.DataFormat dataFormat,
+            String mappingName,
+            boolean ignoreFirstRecord) {
         IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
         // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor instead of the default below of 0.
@@ -477,11 +505,12 @@ public class KustoSampleApp {
     }
 
     @NotNull
-    private static IngestionProperties createIngestionProperties(String databaseName,
-                                                                 String tableName,
-                                                                 IngestionProperties.DataFormat dataFormat,
-                                                                 String mappingName,
-                                                                 boolean ignoreFirstRecord) {
+    private static IngestionProperties createIngestionProperties(
+            String databaseName,
+            String tableName,
+            IngestionProperties.DataFormat dataFormat,
+            String mappingName,
+            boolean ignoreFirstRecord) {
         IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
         ingestionProperties.setDataFormat(dataFormat);
         // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
@@ -497,9 +526,10 @@ public class KustoSampleApp {
     }
 
     private static void waitForIngestionToComplete() throws InterruptedException {
-        System.out.printf(
-                "Sleeping %s seconds for queued ingestion to complete. Note: This may take longer depending on the file size and ingestion batching policy.%n",
-                WAIT_FOR_INGEST_SECONDS);
+        System.out
+                .printf(
+                        "Sleeping %s seconds for queued ingestion to complete. Note: This may take longer depending on the file size and ingestion batching policy.%n",
+                        WAIT_FOR_INGEST_SECONDS);
         for (int i = WAIT_FOR_INGEST_SECONDS; i >= 0; i--) {
             System.out.printf("%s.", i);
             try {
