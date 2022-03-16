@@ -1,13 +1,12 @@
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class CslStringFormat extends CslFormat {
     public static final Set<String> KUSTO_LITERAL_PREFIX = Stream.of("H", "h").collect(Collectors.toCollection(HashSet::new));
@@ -18,23 +17,6 @@ public class CslStringFormat extends CslFormat {
 
     public CslStringFormat(String value) {
         this.value = value;
-    }
-
-    @Override
-    public String getType() {
-        return null;
-    }
-
-    @Override
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    String getValueAsString() {
-        Ensure.stringIsNotBlank(value, "value");
-
-        return value;
     }
 
     public static String parseStringLiteral(String value) {
@@ -83,5 +65,22 @@ public class CslStringFormat extends CslFormat {
         }
 
         return escapedString;
+    }
+
+    @Override
+    public String getType() {
+        return null;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    String getValueAsString() {
+        Ensure.stringIsNotBlank(value, "value");
+
+        return value;
     }
 }
