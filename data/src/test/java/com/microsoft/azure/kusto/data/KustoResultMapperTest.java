@@ -54,7 +54,8 @@ public class KustoResultMapperTest {
         }
     }
 
-    static final KustoResultMapper<TestPojo> namedMapper = KustoResultMapper.newBuilder(TestPojo::new)
+    static final KustoResultMapper<TestPojo> namedMapper = KustoResultMapper
+            .newBuilder(TestPojo::new)
             .addColumn(KustoType.INTEGER, "Id", false, TestPojo::setId)
             .addColumn(KustoType.STRING, "Name", true, TestPojo::setName)
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", true, TestPojo::setZonedTime)
@@ -63,7 +64,8 @@ public class KustoResultMapperTest {
             .addColumn(KustoType.DATETIME_INSTANT, "Instant", true, TestPojo::setInstantTime)
             .build();
 
-    static final KustoResultMapper<TestPojo> ordinalMapper = KustoResultMapper.newBuilder(TestPojo::new)
+    static final KustoResultMapper<TestPojo> ordinalMapper = KustoResultMapper
+            .newBuilder(TestPojo::new)
             .addColumn(KustoType.INTEGER, 1, false, TestPojo::setId)
             .addColumn(KustoType.STRING, 2, true, TestPojo::setName)
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, 3, true, TestPojo::setZonedTime)
@@ -72,7 +74,8 @@ public class KustoResultMapperTest {
             .addColumn(KustoType.DATETIME_INSTANT, 6, true, TestPojo::setInstantTime)
             .build();
 
-    static final KustoResultMapper<TestPojo> mixedMapper = KustoResultMapper.newBuilder(TestPojo::new)
+    static final KustoResultMapper<TestPojo> mixedMapper = KustoResultMapper
+            .newBuilder(TestPojo::new)
             .addColumn(KustoType.INTEGER, "Id", 1, false, TestPojo::setId)
             .addColumn(KustoType.STRING, "Name", 2, true, TestPojo::setName)
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", 3, true, TestPojo::setZonedTime)

@@ -68,8 +68,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo,
-                                          IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromFile(
+            FileSourceInfo fileSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -86,8 +87,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
-                                          IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromBlob(
+            BlobSourceInfo blobSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         log.warn("Ingesting from blob using the StreamingIngestClient is not recommended, consider using the IngestClient instead.");
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -110,8 +112,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo,
-                                               IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromResultSet(
+            ResultSetSourceInfo resultSetSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -130,14 +133,16 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo,
-                                            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromStream(
+            StreamSourceInfo streamSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         return ingestFromStream(streamSourceInfo, ingestionProperties, null);
     }
 
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo,
-                                     IngestionProperties ingestionProperties,
-                                     @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
+    IngestionResult ingestFromStream(
+            StreamSourceInfo streamSourceInfo,
+            IngestionProperties ingestionProperties,
+            @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -157,13 +162,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
                     : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
-            this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
-                    ingestionProperties.getTableName(),
-                    stream,
-                    clientRequestProperties,
-                    dataFormat.getKustoValue(),
-                    ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
-                    !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
+            this.streamingClient
+                    .executeStreamingIngest(
+                            ingestionProperties.getDatabaseName(),
+                            ingestionProperties.getTableName(),
+                            stream,
+                            clientRequestProperties,
+                            dataFormat.getKustoValue(),
+                            ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
+                            !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);
@@ -207,9 +214,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return inputStream;
     }
 
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
-                                   IngestionProperties ingestionProperties,
-                                   CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
+    IngestionResult ingestFromBlob(
+            BlobSourceInfo blobSourceInfo,
+            IngestionProperties ingestionProperties,
+            CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
         String blobPath = blobSourceInfo.getBlobPath();
         cloudBlockBlob.downloadAttributes();
         if (cloudBlockBlob.getProperties().getLength() == 0) {

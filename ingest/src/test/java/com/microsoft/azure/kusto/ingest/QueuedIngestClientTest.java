@@ -181,16 +181,20 @@ class QueuedIngestClientTest {
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
         assertTrue(
-                captor.getValue()
+                captor
+                        .getValue()
                         .contains(
                                 "\"validationPolicy\":{\"validationOptions\":\"DoNotValidate\",\"validationPolicyType\":\"BestEffort\"}"));
 
-        ingestionProperties.setValidationPolicy(
-                new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
+        ingestionProperties
+                .setValidationPolicy(
+                        new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY,
+                                ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
         assertTrue(
-                captor.getValue()
+                captor
+                        .getValue()
                         .contains(
                                 "\"validationPolicy\":{\"validationOptions\":\"ValidateCsvInputColumnLevelOnly\",\"validationPolicyType\":\"Fail\"}"));
     }
@@ -350,9 +354,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        String expectedMessage =
-                               String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE,
-                                       "https://ingest-testendpoint.dev.kusto.windows.net");
+        String expectedMessage = String
+                .format(
+                        WRONG_ENDPOINT_MESSAGE + ": '%s'",
+                        EXPECTED_SERVICE_TYPE,
+                        ENDPOINT_SERVICE_TYPE_ENGINE,
+                        "https://ingest-testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
     }
@@ -365,16 +372,16 @@ class QueuedIngestClientTest {
         }
         final Holder holder = new Holder();
         holder.name = "fileName";
-        BiFunction<DataFormat, CompressionType, String> genName =
-                                                                (DataFormat format, CompressionType compression) -> {
-                                                                    boolean shouldCompress = IngestClientBase.shouldCompress(compression, format);
-                                                                    return ingestClient.genBlobName(
-                                                                            holder.name,
-                                                                            "db1",
-                                                                            "t1",
-                                                                            format.getKustoValue(),
-                                                                            shouldCompress ? CompressionType.gz : compression);
-                                                                };
+        BiFunction<DataFormat, CompressionType, String> genName = (DataFormat format, CompressionType compression) -> {
+            boolean shouldCompress = IngestClientBase.shouldCompress(compression, format);
+            return ingestClient
+                    .genBlobName(
+                            holder.name,
+                            "db1",
+                            "t1",
+                            format.getKustoValue(),
+                            shouldCompress ? CompressionType.gz : compression);
+        };
         String csvNoCompression = genName.apply(DataFormat.CSV, null);
         assert (csvNoCompression.endsWith(".csv.gz"));
 

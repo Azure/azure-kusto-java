@@ -41,8 +41,9 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
     protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException {
         IAuthenticationResult result;
         try {
-            CompletableFuture<IAuthenticationResult> future = clientApplication.acquireToken(
-                    ClientCredentialParameters.builder(scopes).build());
+            CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(
+                            ClientCredentialParameters.builder(scopes).build());
             result = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (ExecutionException | TimeoutException e) {
             throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);

@@ -234,8 +234,15 @@ class ManagedStreamingIngestClientTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length(), sourceId);
         OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+        verify(streamingClientMock, atLeastOnce())
+                .executeStreamingIngest(
+                        any(String.class),
+                        any(String.class),
+                        any(InputStream.class),
+                        clientRequestPropertiesCaptor.capture(),
+                        any(String.class),
+                        eq("mappingName"),
+                        any(boolean.class));
         verifyClientRequestId(0, sourceId);
     }
 
@@ -259,12 +266,20 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.CSV);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet, sourceId);
-        OperationStatus status = managedStreamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties)
+        OperationStatus status = managedStreamingIngestClient
+                .ingestFromResultSet(resultSetSourceInfo, ingestionProperties)
                 .getIngestionStatusCollection()
                 .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+        verify(streamingClientMock, atLeastOnce())
+                .executeStreamingIngest(
+                        any(String.class),
+                        any(String.class),
+                        argumentCaptor.capture(),
+                        clientRequestPropertiesCaptor.capture(),
+                        any(String.class),
+                        eq("mappingName"),
+                        any(boolean.class));
 
         InputStream stream = argumentCaptor.getValue();
         verifyCompressedStreamContent(stream, "Name,Age,Weight");
@@ -282,8 +297,15 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                clientRequestPropertiesCaptor.capture(), any(String.class), any(String.class), any(boolean.class));
+        verify(streamingClientMock, atLeastOnce())
+                .executeStreamingIngest(
+                        any(String.class),
+                        any(String.class),
+                        argumentCaptor.capture(),
+                        clientRequestPropertiesCaptor.capture(),
+                        any(String.class),
+                        any(String.class),
+                        any(boolean.class));
         verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
         verifyClientRequestId();
     }
@@ -299,12 +321,20 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status;
         try {
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    clientRequestPropertiesCaptor.capture(), any(String.class), any(String.class), any(boolean.class))).then(a -> {
-                        verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
-                        visited.set(true);
-                        return null;
-                    });
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    clientRequestPropertiesCaptor.capture(),
+                                    any(String.class),
+                                    any(String.class),
+                                    any(boolean.class))).then(a -> {
+                                        verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
+                                        visited.set(true);
+                                        return null;
+                                    });
 
             status = managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         } finally {
@@ -323,12 +353,20 @@ class ManagedStreamingIngestClientTest {
         InputStream inputStream = new CloseableByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         UUID sourceId = useSourceId ? CustomUUID : null;
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
+        OperationStatus status = managedStreamingIngestClient
+                .ingestFromStream(streamSourceInfo, ingestionProperties)
                 .getIngestionStatusCollection()
                 .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+        verify(streamingClientMock, atLeastOnce())
+                .executeStreamingIngest(
+                        any(String.class),
+                        any(String.class),
+                        argumentCaptor.capture(),
+                        clientRequestPropertiesCaptor.capture(),
+                        any(String.class),
+                        eq("mappingName"),
+                        any(boolean.class));
 
         /*
          * In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed. When the given
@@ -358,12 +396,20 @@ class ManagedStreamingIngestClientTest {
             ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
 
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    any(ClientRequestProperties.class), any(String.class), eq("JsonMapping"), any(boolean.class)))
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", false);
-                            });
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    any(ClientRequestProperties.class),
+                                    any(String.class),
+                                    eq("JsonMapping"),
+                                    any(boolean.class)))
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", false);
+                                            });
 
             // Should fail 3 times and then succeed with the queued client
             managedStreamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -382,12 +428,20 @@ class ManagedStreamingIngestClientTest {
             InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    any(ClientRequestProperties.class), any(String.class), eq("mappingName"), any(boolean.class)))
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", false);
-                            });
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    any(ClientRequestProperties.class),
+                                    any(String.class),
+                                    eq("mappingName"),
+                                    any(boolean.class)))
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", false);
+                                            });
 
             // Should fail 3 times and then succeed with the queued client
             ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -409,28 +463,44 @@ class ManagedStreamingIngestClientTest {
         UUID sourceId = useSourceId ? CustomUUID : null;
 
         try {
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    any(ClientRequestProperties.class), any(String.class), eq("mappingName"), any(boolean.class)))
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", false);
-                            })
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", false);
-                            })
-                            .thenReturn(null);
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    any(ClientRequestProperties.class),
+                                    any(String.class),
+                                    eq("mappingName"),
+                                    any(boolean.class)))
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", false);
+                                            })
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", false);
+                                            })
+                                            .thenReturn(null);
 
             ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
-            OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
+            OperationStatus status = managedStreamingIngestClient
+                    .ingestFromStream(streamSourceInfo, ingestionProperties)
                     .getIngestionStatusCollection()
                     .get(0).status;
             assertEquals(OperationStatus.Succeeded, status);
             assertEquals(failCount, times[0]);
 
-            verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+            verify(streamingClientMock, atLeastOnce())
+                    .executeStreamingIngest(
+                            any(String.class),
+                            any(String.class),
+                            argumentCaptor.capture(),
+                            clientRequestPropertiesCaptor.capture(),
+                            any(String.class),
+                            eq("mappingName"),
+                            any(boolean.class));
             InputStream stream = argumentCaptor.getValue();
             verifyCompressedStreamContent(stream, data);
             verifyClientRequestId(2, sourceId);
@@ -462,28 +532,44 @@ class ManagedStreamingIngestClientTest {
                     "} }", null);
             UUID sourceId = useSourceId ? CustomUUID : null;
 
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    any(ClientRequestProperties.class), any(String.class), eq("mappingName"), any(boolean.class)))
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", ex, false);
-                            })
-                            .thenAnswer((a) -> {
-                                times[0]++;
-                                throw new DataServiceException("some cluster", "Some error", ex, false);
-                            })
-                            .thenReturn(null);
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    any(ClientRequestProperties.class),
+                                    any(String.class),
+                                    eq("mappingName"),
+                                    any(boolean.class)))
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", ex, false);
+                                            })
+                                            .thenAnswer((a) -> {
+                                                times[0]++;
+                                                throw new DataServiceException("some cluster", "Some error", ex, false);
+                                            })
+                                            .thenReturn(null);
 
             ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
-            OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
+            OperationStatus status = managedStreamingIngestClient
+                    .ingestFromStream(streamSourceInfo, ingestionProperties)
                     .getIngestionStatusCollection()
                     .get(0).status;
             assertEquals(OperationStatus.Succeeded, status);
             assertEquals(failCount, times[0]);
 
-            verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+            verify(streamingClientMock, atLeastOnce())
+                    .executeStreamingIngest(
+                            any(String.class),
+                            any(String.class),
+                            argumentCaptor.capture(),
+                            clientRequestPropertiesCaptor.capture(),
+                            any(String.class),
+                            eq("mappingName"),
+                            any(boolean.class));
             InputStream stream = argumentCaptor.getValue();
             verifyCompressedStreamContent(stream, data);
             verifyClientRequestId(2, sourceId);
@@ -510,15 +596,23 @@ class ManagedStreamingIngestClientTest {
                     "  \"@permanent\": true\n" +
                     "} }", null);
 
-            when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
-                    any(ClientRequestProperties.class), any(String.class), eq("mappingName"), any(boolean.class)))
-                            .thenAnswer((a) -> {
-                                throw new DataServiceException("some cluster", "Some error", ex, true);
-                            })
-                            .thenAnswer((a) -> {
-                                throw new DataServiceException("some cluster", "Some error", ex, true);
-                            })
-                            .thenReturn(null);
+            when(
+                    streamingClientMock
+                            .executeStreamingIngest(
+                                    any(String.class),
+                                    any(String.class),
+                                    argumentCaptor.capture(),
+                                    any(ClientRequestProperties.class),
+                                    any(String.class),
+                                    eq("mappingName"),
+                                    any(boolean.class)))
+                                            .thenAnswer((a) -> {
+                                                throw new DataServiceException("some cluster", "Some error", ex, true);
+                                            })
+                                            .thenAnswer((a) -> {
+                                                throw new DataServiceException("some cluster", "Some error", ex, true);
+                                            })
+                                            .thenReturn(null);
             ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
             StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             assertThrows(IngestionServiceException.class, () -> managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties));
@@ -545,8 +639,15 @@ class ManagedStreamingIngestClientTest {
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream, leaveOpen, sourceId);
         managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
 
-        verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+        verify(streamingClientMock, never())
+                .executeStreamingIngest(
+                        any(String.class),
+                        any(String.class),
+                        any(InputStream.class),
+                        clientRequestPropertiesCaptor.capture(),
+                        any(String.class),
+                        eq("mappingName"),
+                        any(boolean.class));
 
         verify(azureStorageClientMock, atLeast(1)).uploadStreamToBlob(capture.capture(), anyString(), anyString(), anyBoolean());
 
@@ -562,9 +663,8 @@ class ManagedStreamingIngestClientTest {
 
     @Test
     void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client =
-                                            ManagedStreamingIngestClient.fromDmConnectionString(
-                                                    ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
+        ManagedStreamingIngestClient client = ManagedStreamingIngestClient
+                .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
@@ -573,17 +673,16 @@ class ManagedStreamingIngestClientTest {
     @Test
     void CreateManagedStreamingIngestClient_WithWrongDmUri_Fail() {
         assertThrows(IllegalArgumentException.class, () -> {
-            ManagedStreamingIngestClient client =
-                                                ManagedStreamingIngestClient.fromDmConnectionString(
-                                                        ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
+            ManagedStreamingIngestClient client = ManagedStreamingIngestClient
+                    .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
         });
     }
 
     @Test
     void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client =
-                                            ManagedStreamingIngestClient.fromEngineConnectionString(
-                                                    ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
+        ManagedStreamingIngestClient client = ManagedStreamingIngestClient
+                .fromEngineConnectionString(
+                        ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
@@ -592,9 +691,9 @@ class ManagedStreamingIngestClientTest {
     @Test
     void CreateManagedStreamingIngestClient_WithWrongEngineUri_Fail() {
         assertThrows(IllegalArgumentException.class, () -> {
-            ManagedStreamingIngestClient client =
-                                                ManagedStreamingIngestClient.fromEngineConnectionString(
-                                                        ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
+            ManagedStreamingIngestClient client = ManagedStreamingIngestClient
+                    .fromEngineConnectionString(
+                            ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
         });
     }
 

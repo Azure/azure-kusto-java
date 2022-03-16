@@ -56,13 +56,14 @@ class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(CloseableHttpClient httpClient,
-                       String urlStr,
-                       String payload,
-                       InputStream stream,
-                       long timeoutMs,
-                       Map<String, String> headers,
-                       boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(
+            CloseableHttpClient httpClient,
+            String urlStr,
+            String payload,
+            InputStream stream,
+            long timeoutMs,
+            Map<String, String> headers,
+            boolean leaveOpen) throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
@@ -92,20 +93,22 @@ class Utils {
         return null;
     }
 
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient,
-                                             String url,
-                                             String payload,
-                                             long timeoutMs,
-                                             Map<String, String> headers) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(
+            CloseableHttpClient httpClient,
+            String url,
+            String payload,
+            long timeoutMs,
+            Map<String, String> headers) throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient,
-                                             String url,
-                                             String payload,
-                                             long timeoutMs,
-                                             Map<String, String> headers,
-                                             int redirectCount) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(
+            CloseableHttpClient httpClient,
+            String url,
+            String payload,
+            long timeoutMs,
+            Map<String, String> headers,
+            int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
@@ -289,13 +292,14 @@ class Utils {
         long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
         long secs = seconds % TimeUnit.HOURS.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
-        String positive = String.format(
-                "%02d.%02d:%02d:%02d.%.3s",
-                days,
-                hours,
-                minutes,
-                secs,
-                nanos);
+        String positive = String
+                .format(
+                        "%02d.%02d:%02d:%02d.%.3s",
+                        days,
+                        hours,
+                        minutes,
+                        secs,
+                        nanos);
 
         return seconds < 0 ? "-" + positive : positive;
     }

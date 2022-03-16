@@ -331,13 +331,12 @@
 
         <!--Sadly these options are not well documented. These were chosen with trial-and-error using these constants: https://www.cct.lsu.edu/~rguidry/eclipse-doc36/constant-values.html and this source code: https://www.cct.lsu.edu/~rguidry/eclipse-doc36/src-html/org/eclipse/cdt/core/formatter/DefaultCodeFormatterConstants.html-->
 
-        <!--82 = M_NEXT_PER_LINE_SPLIT | M_INDENT_ON_COLUMN - meaning no line break at the start, and items align-->
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_assignment" value="82"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="82"/>
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="82"/>
-
-        <!--80 = M_NEXT_PER_LINE_SPLIT - meaning no line break at the start, and items are one tab away -->
-        <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="80"/>
+        <!--82 = M_ONE_PER_LINE_SPLIT - meaning items align to one tab over-->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="48"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="48"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_method_invocation" value="48"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_explicit_constructor_call" value="48"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="48"/>
 
         <!--New line in empty body-->
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_in_empty_block" value="insert"/>
@@ -346,6 +345,13 @@
         <!--No new line for first parameter-->
         <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter" value="do not insert"/>
 
+        <!--Throws on the same line-->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_constructor_declaration" value="4"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_method_declaration" value="4"/>
+
+        <!--Don't break after assignment-->
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_assignment" value="2"/>
+
         <!--Enums constants in a new line each-->
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_enum_constants" value="16"/>
 
@@ -353,7 +359,7 @@
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_constructor_declaration" value="4"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_method_declaration" value="4"/>
 
-        <!--Don't reformat javadoc comments-->
+        <!--Don't format javadoc comments (to avoid too many changes)-->
         <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="false"/>
 
     </profile>

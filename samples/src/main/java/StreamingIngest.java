@@ -32,11 +32,12 @@ public class StreamingIngest {
     public static void main(String[] args) {
         try {
             // ingest-
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"), // "https://<cluster>.kusto.windows.net"
-                    System.getProperty("app-id"),
-                    System.getProperty("appKey"),
-                    System.getProperty("tenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder
+                    .createWithAadApplicationCredentials(
+                            System.getProperty("clusterPath"), // "https://<cluster>.kusto.windows.net"
+                            System.getProperty("app-id"),
+                            System.getProperty("appKey"),
+                            System.getProperty("tenant"));
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(csb);
 
             database = System.getProperty("dbName");

@@ -17,11 +17,12 @@ import java.io.ByteArrayOutputStream;
 public class FileIngestion {
     public static void main(String[] args) {
         try {
-            ConnectionStringBuilder csb =
-                                        ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                                                System.getProperty("appId"),
-                                                System.getProperty("appKey"),
-                                                System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder
+                    .createWithAadApplicationCredentials(
+                            System.getProperty("clusterPath"),
+                            System.getProperty("appId"),
+                            System.getProperty("appKey"),
+                            System.getProperty("appTenant"));
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));

@@ -46,12 +46,13 @@ public class CloudInfo {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
 
-    public CloudInfo(boolean loginMfaRequired,
-                     String loginEndpoint,
-                     String kustoClientAppId,
-                     String kustoClientRedirectUri,
-                     String kustoServiceResourceId,
-                     String firstPartyAuthorityUrl) {
+    public CloudInfo(
+            boolean loginMfaRequired,
+            String loginEndpoint,
+            String kustoClientAppId,
+            String kustoClientRedirectUri,
+            String kustoServiceResourceId,
+            String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;

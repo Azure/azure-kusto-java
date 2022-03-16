@@ -28,8 +28,9 @@ public interface IngestClient extends Closeable {
      * @see FileSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo,
-                                   IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromFile(
+            FileSourceInfo fileSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
 
     /**
      * <p>Ingest data from a blob storage into Kusto database.</p>
@@ -44,8 +45,9 @@ public interface IngestClient extends Closeable {
      * @see BlobSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
-                                   IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromBlob(
+            BlobSourceInfo blobSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
 
     /**
      * <p>Ingest data from a Result Set into Kusto database.</p>
@@ -63,8 +65,9 @@ public interface IngestClient extends Closeable {
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo,
-                                        IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromResultSet(
+            ResultSetSourceInfo resultSetSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
 
     /**
      * <p>Ingest data from an input stream, into Kusto database.</p>
@@ -79,7 +82,8 @@ public interface IngestClient extends Closeable {
      * @see StreamSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo,
-                                     IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromStream(
+            StreamSourceInfo streamSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException;
 
 }
