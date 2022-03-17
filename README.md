@@ -75,3 +75,12 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Formatting
+The code in this project is formatted using formatter-maven-plugin.    
+Code that isn't formatted will not be accepted.  
+
+To format your code, run the following command:  
+`mvn formatter:format`
+
+It is also recommended importing the format file `kusto-style.xml` into your editor (the file is in the eclipse xml format).
