@@ -24,8 +24,7 @@ public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBas
 
     @Override
     protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        return ConfidentialClientApplication
-                .builder(applicationClientId, clientSecret)
+        return ConfidentialClientApplication.builder(applicationClientId, clientSecret)
                 .authority(aadAuthorityUrl)
                 .build();
     }

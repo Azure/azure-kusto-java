@@ -24,11 +24,10 @@ public class TableReportIngestionResult implements IngestionResult {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             CloudTable table = new CloudTable(new URI(descriptor.getTableConnectionString()));
-            TableOperation operation = TableOperation
-                    .retrieve(
-                            descriptor.getPartitionKey(),
-                            descriptor.getRowKey(),
-                            IngestionStatus.class);
+            TableOperation operation = TableOperation.retrieve(
+                    descriptor.getPartitionKey(),
+                    descriptor.getRowKey(),
+                    IngestionStatus.class);
             results.add(table.execute(operation).getResultAsType());
         }
 

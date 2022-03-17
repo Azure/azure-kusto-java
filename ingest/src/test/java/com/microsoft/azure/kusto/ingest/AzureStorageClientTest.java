@@ -135,8 +135,7 @@ class AzureStorageClientTest {
     @Test
     void UploadStreamToBlob_CompressMode_CompressAndUploadStreamIsCalled() throws IOException, URISyntaxException, StorageException {
         try (InputStream stream = new FileInputStream(testFilePath)) {
-            doNothing()
-                    .when(azureStorageClientSpy)
+            doNothing().when(azureStorageClientSpy)
                     .compressAndUploadStream(any(InputStream.class), any(CloudBlockBlob.class));
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName", "https://testcontosourl.com/storageUrl", true);
             verify(azureStorageClientSpy).compressAndUploadStream(isA(InputStream.class), isA(CloudBlockBlob.class));

@@ -24,8 +24,7 @@ public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenPro
 
     @Override
     protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        return clientApplication = ConfidentialClientApplication
-                .builder(applicationClientId, clientCertificate)
+        return clientApplication = ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
                 .authority(aadAuthorityUrl)
                 .validateAuthority(false)
                 .build();

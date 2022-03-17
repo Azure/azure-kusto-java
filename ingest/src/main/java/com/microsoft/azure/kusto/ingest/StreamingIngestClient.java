@@ -162,15 +162,14 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
                     : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
-            this.streamingClient
-                    .executeStreamingIngest(
-                            ingestionProperties.getDatabaseName(),
-                            ingestionProperties.getTableName(),
-                            stream,
-                            clientRequestProperties,
-                            dataFormat.getKustoValue(),
-                            ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
-                            !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
+            this.streamingClient.executeStreamingIngest(
+                    ingestionProperties.getDatabaseName(),
+                    ingestionProperties.getTableName(),
+                    stream,
+                    clientRequestProperties,
+                    dataFormat.getKustoValue(),
+                    ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
+                    !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
         } catch (DataClientException | IOException e) {
             log.error(e.getMessage(), e);
             throw new IngestionClientException(e.getMessage(), e);
@@ -247,11 +246,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+                throw new IngestionServiceException(
+                        e.getIngestionSource(),
+                        "Couldn't retrieve ServiceType because of a service exception executing '.show version'",
+                        e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                throw new IngestionClientException(
+                        e.getIngestionSource(),
+                        "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
+                        e);
             }
             throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
         }

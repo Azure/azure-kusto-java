@@ -21,8 +21,7 @@ public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProvider
 
     @Override
     protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        return ConfidentialClientApplication
-                .builder(applicationClientId, clientCertificate)
+        return ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
                 .authority(aadAuthorityUrl)
                 .validateAuthority(false)
                 .sendX5c(true)

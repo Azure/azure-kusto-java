@@ -141,15 +141,13 @@ class E2ETest {
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            queryClient
-                    .executeToJsonResult(
-                            databaseName,
-                            String
-                                    .format(
-                                            ".create table %s ingestion json mapping '%s' '%s'",
-                                            tableName,
-                                            mappingReference,
-                                            mappingAsString));
+            queryClient.executeToJsonResult(
+                    databaseName,
+                    String.format(
+                            ".create table %s ingestion json mapping '%s' '%s'",
+                            tableName,
+                            mappingReference,
+                            mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
@@ -461,10 +459,9 @@ class E2ETest {
         crp.setParameter("xtextParam", "Two");
         crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
 
-        String query = String
-                .format(
-                        "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
-                        tableName);
+        String query = String.format(
+                "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
+                tableName);
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
         KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
         mainTableResult.next();
@@ -483,11 +480,10 @@ class E2ETest {
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
         stopWatch.stop();
         long timeConvertedToJavaObj = stopWatch.getTime();
-        System.out
-                .printf(
-                        "Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n",
-                        resultObj.getPrimaryResults().count(),
-                        timeConvertedToJavaObj);
+        System.out.printf(
+                "Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n",
+                resultObj.getPrimaryResults().count(),
+                timeConvertedToJavaObj);
 
         // Specialized use case - API returns raw json for performance
         stopWatch.reset();

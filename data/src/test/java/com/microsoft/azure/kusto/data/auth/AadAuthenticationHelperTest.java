@@ -66,10 +66,9 @@ public class AadAuthenticationHelperTest {
         aadAuthenticationHelper.initialize();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
-        Assertions
-                .assertThrows(
-                        DataServiceException.class,
-                        aadAuthenticationHelper::acquireNewAccessToken);
+        Assertions.assertThrows(
+                DataServiceException.class,
+                aadAuthenticationHelper::acquireNewAccessToken);
     }
 
     public static KeyCert readPem(String path, String password) throws IOException, CertificateException, OperatorCreationException, PKCSException {
@@ -118,14 +117,29 @@ public class AadAuthenticationHelperTest {
 
         MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
 
-        IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
+        IAuthenticationResult authenticationResult = new MockAuthenticationResult(
+                "firstToken",
+                "firstToken",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
+                "environment",
+                "environment",
+                new Date(),
                 Mockito.mock(ITenantProfile.class));
-        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
+        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult(
+                "fromRefresh",
+                "fromRefresh",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
+                "environment",
+                "environment",
+                new Date(),
                 Mockito.mock(ITenantProfile.class));
-        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
+        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult(
+                "nullRefreshResult",
+                "nullRefreshResult",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
+                "environment",
+                "environment",
+                new Date(),
                 Mockito.mock(ITenantProfile.class));
 
         // doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
@@ -153,18 +167,17 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
 
         PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
-        CloudInfo
-                .manuallyAddToCache(
-                        "https://weird.resource.uri",
-                        new CloudInfo(
-                                true,
-                                "https://nostandard-login-input",
-                                "non_standard_client_id",
-                                "",
-                                "https://aaaa.kusto.bbbb.com",
-                                "first_party_url"
+        CloudInfo.manuallyAddToCache(
+                "https://weird.resource.uri",
+                new CloudInfo(
+                        true,
+                        "https://nostandard-login-input",
+                        "non_standard_client_id",
+                        "",
+                        "https://aaaa.kusto.bbbb.com",
+                        "first_party_url"
 
-                        ));
+                ));
 
         aadAuthenticationHelper.initialize();
         assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
@@ -174,17 +187,15 @@ public class AadAuthenticationHelperTest {
         HashSet<String> scopes = new HashSet<>(Collections.singletonList("https://aaaa.kustomfa.bbbb.com/.default"));
         assertEquals(scopes, aadAuthenticationHelper.scopes);
 
-        SilentParameters silentParametersNormalUser = aadAuthenticationHelper
-                .getSilentParameters(
-                        new HashSet<>(Collections
-                                .singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
+        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(
+                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
         assertEquals(scopes, silentParametersNormalUser.scopes());
         assertEquals("https://nostandard-login-input/weird_auth_id/", silentParametersNormalUser.authorityUrl());
 
-        SilentParameters silentParametersMsaUser = aadAuthenticationHelper
-                .getSilentParameters(
-                        new HashSet<>(Collections
-                                .singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
+        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(
+                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
         assertEquals("first_party_url", silentParametersMsaUser.authorityUrl());
     }
@@ -207,17 +218,15 @@ public class AadAuthenticationHelperTest {
         HashSet<String> scopes = new HashSet<>(Collections.singletonList(CloudInfo.DEFAULT_KUSTO_SERVICE_RESOURCE_ID + "/.default"));
         assertEquals(scopes, aadAuthenticationHelper.scopes);
 
-        SilentParameters silentParametersNormalUser = aadAuthenticationHelper
-                .getSilentParameters(
-                        new HashSet<>(Collections
-                                .singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
+        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(
+                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
         assertEquals(scopes, silentParametersNormalUser.scopes());
         assertEquals(authorityUrl, silentParametersNormalUser.authorityUrl());
 
-        SilentParameters silentParametersMsaUser = aadAuthenticationHelper
-                .getSilentParameters(
-                        new HashSet<>(Collections
-                                .singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
+        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
+                new HashSet<>(
+                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
         assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL, silentParametersMsaUser.authorityUrl());
     }

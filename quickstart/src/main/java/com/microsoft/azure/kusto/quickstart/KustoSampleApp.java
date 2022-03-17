@@ -205,12 +205,11 @@ public class KustoSampleApp {
                 // Learn More: For information about how to procure an AAD Application, see:
                 // https://docs.microsoft.com/azure/data-explorer/provision-azure-ad-app
                 // TODO (config - optional): App ID & tenant, and App Key to authenticate with
-                csb = ConnectionStringBuilder
-                        .createWithAadApplicationCredentials(
-                                clusterUrl,
-                                System.getenv("APP_ID"),
-                                System.getenv("APP_KEY"),
-                                System.getenv("APP_TENANT"));
+                csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                        clusterUrl,
+                        System.getenv("APP_ID"),
+                        System.getenv("APP_KEY"),
+                        System.getenv("APP_TENANT"));
                 break;
             case "AppCertificate":
                 csb = createApplicationCertificateConnectionString(clusterUrl);
@@ -297,12 +296,11 @@ public class KustoSampleApp {
                 System.out.printf("Record %s%n", rowNum);
                 for (int j = 0; j < currentRow.size(); j++) {
                     Object cell = currentRow.get(j);
-                    System.out
-                            .printf(
-                                    "Column: '%s' of type '%s', Value: '%s'%n",
-                                    columns[j].getColumnName(),
-                                    columns[j].getColumnType(),
-                                    cell == null ? "[null]" : cell);
+                    System.out.printf(
+                            "Column: '%s' of type '%s', Value: '%s'%n",
+                            columns[j].getColumnName(),
+                            columns[j].getColumnType(),
+                            cell == null ? "[null]" : cell);
                 }
                 System.out.println();
             }
@@ -333,12 +331,11 @@ public class KustoSampleApp {
                 System.out.printf("Record %s%n", rowNum);
                 for (int j = 0; j < currentRow.size(); j++) {
                     Object cell = currentRow.get(j);
-                    System.out
-                            .printf(
-                                    "Column: '%s' of type '%s', Value: '%s'%n",
-                                    columns[j].getColumnName(),
-                                    columns[j].getColumnType(),
-                                    cell == null ? "[null]" : cell);
+                    System.out.printf(
+                            "Column: '%s' of type '%s', Value: '%s'%n",
+                            columns[j].getColumnName(),
+                            columns[j].getColumnType(),
+                            cell == null ? "[null]" : cell);
                 }
                 System.out.println();
             }
@@ -385,9 +382,8 @@ public class KustoSampleApp {
         waitForUserToProceed(String.format("Alter the batching policy for table '%s.%s'", databaseName, tableName));
         String command = String.format(".alter table %s policy ingestionbatching @'%s'", tableName, BATCHING_POLICY);
         if (!executeControlCommand(kustoClient, databaseName, command)) {
-            System.out
-                    .println(
-                            "Failed to alter the ingestion policy, which could be the result of insufficient permissions. The sample will still run, though ingestion will be delayed for up to 5 minutes.");
+            System.out.println(
+                    "Failed to alter the ingestion policy, which could be the result of insufficient permissions. The sample will still run, though ingestion will be delayed for up to 5 minutes.");
         }
     }
 
@@ -406,19 +402,17 @@ public class KustoSampleApp {
             if (StringUtils.isBlank(mappingName)) {
                 mappingName = "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
             }
-            String mappingCommand = String
-                    .format(
-                            ".create-or-alter table %s ingestion %s mapping '%s' '%s'",
-                            tableName,
-                            ingestionMappingKind.getKustoValue().toLowerCase(),
-                            mappingName,
-                            mappingValue);
+            String mappingCommand = String.format(
+                    ".create-or-alter table %s ingestion %s mapping '%s' '%s'",
+                    tableName,
+                    ingestionMappingKind.getKustoValue().toLowerCase(),
+                    mappingName,
+                    mappingValue);
             if (!executeControlCommand(kustoClient, databaseName, mappingCommand)) {
-                System.out
-                        .printf(
-                                "Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n",
-                                ingestionMappingKind.getKustoValue(),
-                                mappingName);
+                System.out.printf(
+                        "Failed to create a '%s' mapping reference named '%s'. Skipping this ingestion.%n",
+                        ingestionMappingKind.getKustoValue(),
+                        mappingName);
                 return false;
             }
         }
@@ -526,10 +520,9 @@ public class KustoSampleApp {
     }
 
     private static void waitForIngestionToComplete() throws InterruptedException {
-        System.out
-                .printf(
-                        "Sleeping %s seconds for queued ingestion to complete. Note: This may take longer depending on the file size and ingestion batching policy.%n",
-                        WAIT_FOR_INGEST_SECONDS);
+        System.out.printf(
+                "Sleeping %s seconds for queued ingestion to complete. Note: This may take longer depending on the file size and ingestion batching policy.%n",
+                WAIT_FOR_INGEST_SECONDS);
         for (int i = WAIT_FOR_INGEST_SECONDS; i >= 0; i--) {
             System.out.printf("%s.", i);
             try {

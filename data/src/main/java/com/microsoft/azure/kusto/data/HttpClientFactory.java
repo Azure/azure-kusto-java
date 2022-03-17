@@ -47,11 +47,9 @@ class HttpClientFactory {
      * @return a new Apache HTTP client
      */
     CloseableHttpClient create(HttpClientProperties providedProperties) {
-        final HttpClientProperties properties = Optional
-                .ofNullable(providedProperties)
+        final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
-        final HttpClientBuilder httpClientBuilder = HttpClientBuilder
-                .create()
+        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
                 .useSystemProperties()
                 .setMaxConnTotal(properties.maxConnectionTotal())
                 .setMaxConnPerRoute(properties.maxConnectionRoute())

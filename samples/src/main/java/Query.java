@@ -15,15 +15,13 @@ public class Query {
     public static void main(String[] args) {
 
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder
-                    .createWithAadApplicationCredentials(
-                            System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
 
-            HttpClientProperties properties = HttpClientProperties
-                    .builder()
+            HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
                     .maxConnectionsPerRoute(40)

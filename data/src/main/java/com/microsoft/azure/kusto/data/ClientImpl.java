@@ -56,12 +56,10 @@ public class ClientImpl implements Client, StreamingClient {
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
-            csb
-                    .setClusterUrl(
-                            new URIBuilder()
-                                    .setScheme(clusterUrlForParsing.getScheme())
-                                    .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX)))
-                                    .toString());
+            csb.setClusterUrl(
+                    new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
+                            .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX)))
+                            .toString());
         }
 
         clusterUrl = csb.getClusterUrl();
@@ -98,8 +96,11 @@ public class ClientImpl implements Client, StreamingClient {
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
-            throw new DataServiceException(clusterEndpoint,
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+            throw new DataServiceException(
+                    clusterEndpoint,
+                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(),
+                    e,
+                    e.isPermanent());
         } catch (Exception e) {
             throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
@@ -272,15 +273,14 @@ public class ClientImpl implements Client, StreamingClient {
         headers.put("x-ms-client-request-id", clientRequestId);
 
         UUID activityId = UUID.randomUUID();
-        String activityContext = String
-                .format(
-                        "%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s",
-                        JAVA_INGEST_ACTIVITY_TYPE_PREFIX,
-                        activityTypeSuffix,
-                        activityId,
-                        activityId,
-                        activityId,
-                        clientRequestId);
+        String activityContext = String.format(
+                "%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s",
+                JAVA_INGEST_ACTIVITY_TYPE_PREFIX,
+                activityTypeSuffix,
+                activityId,
+                activityId,
+                activityId,
+                clientRequestId);
         headers.put("x-ms-activitycontext", activityContext);
 
         return headers;
@@ -303,8 +303,10 @@ public class ClientImpl implements Client, StreamingClient {
 
             jsonPayload = json.toString();
         } catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint,
-                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
+            throw new DataClientException(
+                    clusterEndpoint,
+                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database),
+                    e);
         }
 
         return jsonPayload;

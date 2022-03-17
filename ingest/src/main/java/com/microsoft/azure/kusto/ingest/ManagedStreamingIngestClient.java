@@ -188,8 +188,11 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
         if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
             log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", streamingBytes.length);
-            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                    streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
+            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(
+                    new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
+                    streamSourceInfo.isLeaveOpen(),
+                    sourceId,
+                    streamSourceInfo.getCompressionType());
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         }
 

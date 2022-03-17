@@ -66,8 +66,8 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
         try {
             typed = this.type.type(resultValue);
         } catch (Exception e) {
-            throw new IllegalArgumentException(String
-                    .format(
+            throw new IllegalArgumentException(
+                    String.format(
                             "Column %s (ordinal %d) is of type %s but expected type is %s",
                             this.name,
                             ordinal,

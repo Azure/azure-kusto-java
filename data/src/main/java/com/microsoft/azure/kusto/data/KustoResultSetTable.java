@@ -111,10 +111,11 @@ public class KustoResultSetTable {
                             throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceQueryError(((JSONObject) row)
-                                .getJSONArray(
+                        throw new KustoServiceQueryError(
+                                ((JSONObject) row).getJSONArray(
                                         "OneApiErrors"),
-                                true, EXCEPTIONS_MESSAGE);
+                                true,
+                                EXCEPTIONS_MESSAGE);
                     }
                 }
                 JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
@@ -469,13 +470,11 @@ public class KustoResultSetTable {
         String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder()
-                    .parseCaseInsensitive()
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                     .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS))
                     .toFormatter();
         } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder()
-                    .parseCaseInsensitive()
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                     .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN))
                     .toFormatter();
         }

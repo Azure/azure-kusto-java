@@ -162,8 +162,11 @@ class Utils {
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
-                    ex, false);
+            throw new DataServiceException(
+                    url,
+                    "postToStreamingOutput failed to get or decompress response stream",
+                    ex,
+                    false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -262,11 +265,19 @@ class Utils {
         try {
             URL cleanUrl = new URL(url);
             if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
-                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(),
+                return new URI(
+                        cleanUrl.getProtocol(),
+                        cleanUrl.getUserInfo(),
+                        cleanUrl.getHost(),
+                        cleanUrl.getPort(),
+                        cleanUrl.getPath(),
+                        cleanUrl.getQuery(),
                         cleanUrl.getRef());
             } else {
-                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
-                        "channel (http://)");
+                throw new DataClientException(
+                        url,
+                        "Cannot forward security token to a remote service over insecure " +
+                                "channel (http://)");
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);
@@ -292,14 +303,13 @@ class Utils {
         long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
         long secs = seconds % TimeUnit.HOURS.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
-        String positive = String
-                .format(
-                        "%02d.%02d:%02d:%02d.%.3s",
-                        days,
-                        hours,
-                        minutes,
-                        secs,
-                        nanos);
+        String positive = String.format(
+                "%02d.%02d:%02d:%02d.%.3s",
+                days,
+                hours,
+                minutes,
+                secs,
+                nanos);
 
         return seconds < 0 ? "-" + positive : positive;
     }

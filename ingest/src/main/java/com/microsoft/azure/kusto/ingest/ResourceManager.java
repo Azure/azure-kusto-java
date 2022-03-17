@@ -215,10 +215,14 @@ class ResourceManager implements Closeable {
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
             }
         } catch (DataServiceException e) {
-            throw new IngestionServiceException(e.getIngestionSource(),
-                    "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+            throw new IngestionServiceException(
+                    e.getIngestionSource(),
+                    "Couldn't retrieve ServiceType because of a service exception executing '.show version'",
+                    e);
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
+            throw new IngestionClientException(
+                    e.getIngestionSource(),
+                    "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
                     e);
         }
         throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");

@@ -97,8 +97,10 @@ public class CloudInfo {
                         result = DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(clusterUrl,
-                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                        throw new DataServiceException(
+                                clusterUrl,
+                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse,
+                                true);
                     }
                 }
             } catch (IOException | URISyntaxException ex) {
