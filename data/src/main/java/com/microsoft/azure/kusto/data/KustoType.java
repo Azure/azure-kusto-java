@@ -7,10 +7,10 @@ import java.util.function.Function;
 
 /**
  * Represents various ADX data types and their bindings to Java classes.
- * 
+ *
  * See https://docs.microsoft.com/azure/data-explorer/kusto/query/scalar-data-types/
  *
- * @param <C> The column Java data type 
+ * @param <C> The column Java data type
  */
 public class KustoType<C> {
 

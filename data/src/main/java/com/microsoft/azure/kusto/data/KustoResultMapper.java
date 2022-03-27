@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 /**
  * A class for mapping Kusto results to a list of pojos
- * 
+ *
  * @param <R>
  *            pojo type returned by the mapping
  */
@@ -24,7 +24,7 @@ public class KustoResultMapper<R> {
         /**
          * Add a column by name. Using this function will cause the KustoResultMapper to lookup the column by name once per column per call to
          * {@link KustoResultMapper#extractList(KustoResultSetTable)} or {@link KustoResultMapper#extractSingle(KustoResultSetTable)}
-         * 
+         *
          * @param <C>
          *            Java type returned by the column (based on the KustoType parameter)
          * @param type
@@ -45,7 +45,7 @@ public class KustoResultMapper<R> {
         /**
          * Add a column by name and ordinal (column index). The ordinal value will be preferred for extracting values from the
          * {@link KustoResultSetTable}.
-         * 
+         *
          * @param <C>
          *            Java type returned by the column (based on the KustoType parameter)
          * @param type
@@ -67,7 +67,7 @@ public class KustoResultMapper<R> {
 
         /**
          * Add a column by ordinal (column index).
-         * 
+         *
          * @param <C>
          *            Java type returned by the column (based on the KustoType parameter)
          * @param type

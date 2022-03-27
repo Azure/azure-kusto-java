@@ -5,10 +5,9 @@ import java.util.function.BiConsumer;
 /**
  * Represents a single Kusto result column and its mapping to a java object. Used to extract the column from a {@link KustoResultSetTable} and set the
  * value in a pojo. The column is defined by either its name or its ordinal (or both, in which case the ordinal is used).
- * 
+ *
  * @param <R>
  *            the pojo this column needs to set its value to
- * 			
  * @param <C>
  *            the Java class returned by the ADX column type
  * @param <T>
