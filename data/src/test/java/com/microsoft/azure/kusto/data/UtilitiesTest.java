@@ -33,13 +33,13 @@ class UtilitiesTest {
 
         // If set to over MAX_TIMEOUT_MS - value should be MAX_TIMEOUT_MS
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "1.01:40:02.1");
-        Assertions.assertEquals(ClientRequestProperties.MAX_TIMEOUT_MS,
+        Assertions.assertEquals(
+                ClientRequestProperties.MAX_TIMEOUT_MS,
                 clientRequestProperties.getTimeoutInMilliSec());
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "15:00");
         Assertions.assertEquals(TimeUnit.HOURS.toMillis(15), clientRequestProperties.getTimeoutInMilliSec());
     }
-
 
     @Test
     @DisplayName("Test exception creation when the web response is null")
@@ -77,7 +77,8 @@ class UtilitiesTest {
                 "                    \"subActivityId\": \"a57ec272-8846-49e6-b458-460b841ed47d\",\n" +
                 "                    \"activityType\": \"PO-OWIN-CallContext\",\n" +
                 "                    \"parentActivityId\": \"a57ec272-8846-49e6-b458-460b841ed47d\",\n" +
-                "                    \"activityStack\": \"(Activity stack: CRID=KPC.execute;d3a43e37-0d7f-47a9-b6cd-a889b2aee3d3 ARID=a57ec272-8846-49e6-b458-460b841ed47d > PO-OWIN-CallContext/a57ec272-8846-49e6-b458-460b841ed47d)\"\n" +
+                "                    \"activityStack\": \"(Activity stack: CRID=KPC.execute;d3a43e37-0d7f-47a9-b6cd-a889b2aee3d3 ARID=a57ec272-8846-49e6-b458-460b841ed47d > PO-OWIN-CallContext/a57ec272-8846-49e6-b458-460b841ed47d)\"\n"
+                +
                 "                },\n" +
                 "                \"@permanent\": true\n" +
                 "            }}";

@@ -68,7 +68,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromFile(
+            FileSourceInfo fileSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -85,7 +87,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromBlob(
+            BlobSourceInfo blobSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         log.warn("Ingesting from blob using the StreamingIngestClient is not recommended, consider using the IngestClient instead.");
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -108,7 +112,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromResultSet(
+            ResultSetSourceInfo resultSetSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -127,11 +133,16 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromStream(
+            StreamSourceInfo streamSourceInfo,
+            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
         return ingestFromStream(streamSourceInfo, ingestionProperties, null);
     }
 
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
+    IngestionResult ingestFromStream(
+            StreamSourceInfo streamSourceInfo,
+            IngestionProperties ingestionProperties,
+            @Nullable String clientRequestId) throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -147,9 +158,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         }
 
         try {
-            InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat) ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen()) : streamSourceInfo.getStream();
+            InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)
+                    ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
+                    : streamSourceInfo.getStream();
             log.debug("Executing streaming ingest");
-            this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
+            this.streamingClient.executeStreamingIngest(
+                    ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
                     stream,
                     clientRequestProperties,
@@ -199,7 +213,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return inputStream;
     }
 
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
+    IngestionResult ingestFromBlob(
+            BlobSourceInfo blobSourceInfo,
+            IngestionProperties ingestionProperties,
+            CloudBlockBlob cloudBlockBlob) throws IngestionClientException, IngestionServiceException, StorageException {
         String blobPath = blobSourceInfo.getBlobPath();
         cloudBlockBlob.downloadAttributes();
         if (cloudBlockBlob.getProperties().getLength() == 0) {
@@ -229,9 +246,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+                throw new IngestionServiceException(
+                        e.getIngestionSource(),
+                        "Couldn't retrieve ServiceType because of a service exception executing '.show version'",
+                        e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                throw new IngestionClientException(
+                        e.getIngestionSource(),
+                        "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
+                        e);
             }
             throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
         }

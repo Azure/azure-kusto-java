@@ -52,8 +52,8 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
         try {
             // This is the only auth method that allows the same application to be used for multiple distinct accounts, so reset account cache between sign-ins
             clientApplication = PublicClientApplication.builder(clientAppId).authority(aadAuthorityUrl).build();
-            CompletableFuture<IAuthenticationResult> future =
-                    clientApplication.acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(usernameHint).build());
+            CompletableFuture<IAuthenticationResult> future = clientApplication
+                    .acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(usernameHint).build());
             result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
@@ -64,7 +64,9 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
             throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
         if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
+            throw new DataServiceException(
+                    clusterUrl,
+                    "acquireWithUserPrompt got 'null' authentication result",
                     false);
         }
         return result;

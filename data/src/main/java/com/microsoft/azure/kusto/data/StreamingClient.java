@@ -26,7 +26,14 @@ public interface StreamingClient {
      * @throws DataClientException  An exception originating from a client activity
      * @throws DataServiceException An exception returned from the service
      */
-    KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
+    KustoOperationResult executeStreamingIngest(
+            String database,
+            String table,
+            InputStream stream,
+            ClientRequestProperties properties,
+            String streamFormat,
+            String mappingName,
+            boolean leaveOpen) throws DataServiceException, DataClientException;
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>

@@ -134,7 +134,9 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
+                100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ArgumentCaptor<TableServiceEntity> captor = ArgumentCaptor.forClass(TableServiceEntity.class);
 
@@ -146,19 +148,21 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromBlob_IngestionIgnoreFirstRecord_SetsProperty() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
+                100);
         ingestionProperties.setIgnoreFirstRecord(true);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
-        assertTrue ((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
+        assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
 
         ingestionProperties.setIgnoreFirstRecord(false);
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
-        assertTrue ((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
+        assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
     @Test
@@ -181,7 +185,8 @@ class QueuedIngestClientTest {
                         .contains(
                                 "\"validationPolicy\":{\"validationOptions\":\"DoNotValidate\",\"validationPolicyType\":\"BestEffort\"}"));
 
-        ingestionProperties.setValidationPolicy(new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
+        ingestionProperties.setValidationPolicy(
+                new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
         assertTrue(
@@ -345,8 +350,11 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        String expectedMessage =
-                String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE, "https://ingest-testendpoint.dev.kusto.windows.net");
+        String expectedMessage = String.format(
+                WRONG_ENDPOINT_MESSAGE + ": '%s'",
+                EXPECTED_SERVICE_TYPE,
+                ENDPOINT_SERVICE_TYPE_ENGINE,
+                "https://ingest-testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
     }
@@ -359,16 +367,15 @@ class QueuedIngestClientTest {
         }
         final Holder holder = new Holder();
         holder.name = "fileName";
-        BiFunction<DataFormat, CompressionType, String> genName =
-                (DataFormat format, CompressionType compression) -> {
-                    boolean shouldCompress = IngestClientBase.shouldCompress(compression, format);
-                    return ingestClient.genBlobName(
-                            holder.name,
-                            "db1",
-                            "t1",
-                            format.getKustoValue(),
-                            shouldCompress ? CompressionType.gz : compression);
-                };
+        BiFunction<DataFormat, CompressionType, String> genName = (DataFormat format, CompressionType compression) -> {
+            boolean shouldCompress = IngestClientBase.shouldCompress(compression, format);
+            return ingestClient.genBlobName(
+                    holder.name,
+                    "db1",
+                    "t1",
+                    format.getKustoValue(),
+                    shouldCompress ? CompressionType.gz : compression);
+        };
         String csvNoCompression = genName.apply(DataFormat.CSV, null);
         assert (csvNoCompression.endsWith(".csv.gz"));
 
@@ -396,7 +403,7 @@ class QueuedIngestClientTest {
         Connection connection = DriverManager.getConnection("jdbc:sqlite:");
 
         Statement statement = connection.createStatement();
-        statement.setQueryTimeout(5);  // set timeout to 5 sec.
+        statement.setQueryTimeout(5); // set timeout to 5 sec.
 
         statement.executeUpdate("drop table if exists person");
         statement.executeUpdate("create table person (id integer, name string)");
@@ -407,8 +414,6 @@ class QueuedIngestClientTest {
     }
 
     private String getSampleResultSetDump() {
-        return System.getProperty("line.separator").equals("\n") ?
-                "1,leo\n2,yui\n" :
-                "1,leo\r\n2,yui\r\n";
+        return System.getProperty("line.separator").equals("\n") ? "1,leo\n2,yui\n" : "1,leo\r\n2,yui\r\n";
     }
 }

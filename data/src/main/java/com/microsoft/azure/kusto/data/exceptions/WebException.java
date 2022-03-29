@@ -4,8 +4,7 @@ import org.apache.http.HttpResponse;
 import org.jetbrains.annotations.Nullable;
 
 public class WebException extends Exception {
-    @Nullable
-    protected final HttpResponse httpResponse;
+    @Nullable protected final HttpResponse httpResponse;
 
     public WebException(String message, @Nullable HttpResponse httpResponse, Throwable cause) {
         super(message, cause);

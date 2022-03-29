@@ -90,10 +90,12 @@ class E2ETest {
             appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
         }
 
-        tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_" + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
+                + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder
+                .createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
@@ -101,7 +103,8 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
@@ -138,8 +141,13 @@ class E2ETest {
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
-                    tableName, mappingReference, mappingAsString));
+            queryClient.executeToJsonResult(
+                    databaseName,
+                    String.format(
+                            ".create table %s ingestion json mapping '%s' '%s'",
+                            tableName,
+                            mappingReference,
+                            mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
@@ -168,7 +176,7 @@ class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
+        ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
@@ -263,7 +271,7 @@ class E2ETest {
         boolean found = false;
         try {
             result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
-            //result = localQueryClient.execute(databaseName, String.format(".show version"));
+            // result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principals command", ex);
         }
@@ -358,7 +366,8 @@ class E2ETest {
     @Test
     void testCreateWithUserPrompt() {
         Assumptions.assumeTrue(IsManualExecution());
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -375,13 +384,15 @@ class E2ETest {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -397,7 +408,8 @@ class E2ETest {
     void testCreateWithAadTokenProviderAuthentication() {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -447,7 +459,9 @@ class E2ETest {
         crp.setParameter("xtextParam", "Two");
         crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
 
-        String query = String.format("declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam", tableName);
+        String query = String.format(
+                "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
+                tableName);
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
         KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
         mainTableResult.next();
@@ -466,7 +480,10 @@ class E2ETest {
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
         stopWatch.stop();
         long timeConvertedToJavaObj = stopWatch.getTime();
-        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(), timeConvertedToJavaObj);
+        System.out.printf(
+                "Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n",
+                resultObj.getPrimaryResults().count(),
+                timeConvertedToJavaObj);
 
         // Specialized use case - API returns raw json for performance
         stopWatch.reset();
@@ -477,14 +494,14 @@ class E2ETest {
         System.out.printf("Raw json result size='%s' returned in '%s'ms%n", jsonResult.length(), timeRawJson);
 
         // Depends on many transient factors, but is ~15% cheaper when there are many records
-        //assertTrue(timeRawJson < timeConvertedToJavaObj);
+        // assertTrue(timeRawJson < timeConvertedToJavaObj);
 
         // Specialized use case - API streams raw json for performance
         stopWatch.reset();
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
-             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
             String streamedLine;
@@ -508,7 +525,8 @@ class E2ETest {
 
     @Test
     void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
+                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
         ClientImpl clientImpl = new ClientImpl(engineCsb, httpClientSpy);
