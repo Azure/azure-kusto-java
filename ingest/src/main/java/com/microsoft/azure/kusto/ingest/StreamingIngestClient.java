@@ -26,6 +26,7 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,7 +169,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
-            if (e.is404Error()) {
+            if (e.getStatusCode() != null && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
                 validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             }
             throw new IngestionServiceException(e.getMessage(), e);

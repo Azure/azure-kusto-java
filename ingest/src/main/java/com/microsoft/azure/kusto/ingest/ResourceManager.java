@@ -8,8 +8,13 @@ import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.Retry;
+import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,15 +62,20 @@ class ResourceManager implements Closeable {
     private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
+    private static final int MAX_RETRY_ATTEMPTS = 4;
+    private static final long MAX_RETRY_INTERVAL = 1000L * 30;
+    private static final long BASE_INTERVAL = 1000L * 2;
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
+    private final RetryConfig retryConfig;
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
+        retryConfig = buildRetryConfig();
         init();
     }
 
@@ -77,6 +87,18 @@ class ResourceManager implements Closeable {
     public void close() {
         timer.cancel();
         timer.purge();
+    }
+
+    private RetryConfig buildRetryConfig() {
+        IntervalFunction sleepConfig = IntervalFunction.ofExponentialRandomBackoff(BASE_INTERVAL,
+                IntervalFunction.DEFAULT_MULTIPLIER,
+                IntervalFunction.DEFAULT_RANDOMIZATION_FACTOR,
+                MAX_RETRY_INTERVAL);
+        return RetryConfig.custom()
+                .maxAttempts(MAX_RETRY_ATTEMPTS)
+                .intervalFunction(sleepConfig)
+                .retryExceptions(ThrottleException.class)
+                .build();
     }
 
     private void init() {
@@ -162,7 +184,10 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+                Retry retry = Retry.of("get ingestion resources", this.retryConfig);
+                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
+                        () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                 ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     KustoResultSetTable table = ingestionResourcesResults.next();
@@ -177,6 +202,8 @@ class ResourceManager implements Closeable {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } catch (DataClientException e) {
                 throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
+            } catch (Throwable e) {
+                throw new IngestionClientException(e.getMessage());
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -187,7 +214,9 @@ class ResourceManager implements Closeable {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");
-                KustoOperationResult identityTokenResult = client.execute(Commands.IDENTITY_GET_COMMAND);
+                Retry retry = Retry.of("get Ingestion Auth Token resources", this.retryConfig);
+                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry, () -> client.execute(Commands.IDENTITY_GET_COMMAND));
+                KustoOperationResult identityTokenResult = retryExecute.apply();
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
                         && !identityTokenResult.getResultTables().isEmpty()) {
@@ -199,6 +228,8 @@ class ResourceManager implements Closeable {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
             } catch (DataClientException e) {
                 throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
+            } catch (Throwable e) {
+                throw new IngestionClientException(e.getMessage());
             } finally {
                 authTokenLock.writeLock().unlock();
             }
