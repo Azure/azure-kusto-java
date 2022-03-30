@@ -13,7 +13,8 @@ public class UriUtils {
         if (ensureTrailingSlash && !path.endsWith("/")) {
             path += "/";
         }
-        if (!path.startsWith("/")) {
+        if (!path.startsWith("/"))
+        {
             path = "/" + path;
         }
 

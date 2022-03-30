@@ -13,11 +13,7 @@ import org.jetbrains.annotations.NotNull;
 public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientSecret clientSecret;
 
-    ApplicationKeyTokenProvider(
-            @NotNull String clusterUrl,
-            @NotNull String applicationClientId,
-            @NotNull IClientSecret clientSecret,
-            String authorityId) throws URISyntaxException {
+    ApplicationKeyTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientSecret clientSecret, String authorityId) throws URISyntaxException {
         super(clusterUrl, applicationClientId, authorityId);
         this.clientSecret = clientSecret;
     }

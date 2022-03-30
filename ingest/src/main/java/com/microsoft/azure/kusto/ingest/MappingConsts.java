@@ -26,3 +26,4 @@ public enum MappingConsts {
         return name;
     }
 }
+

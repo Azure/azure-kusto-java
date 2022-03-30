@@ -23,11 +23,7 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
     final boolean isNullable;
     final int presetOrdinal;
 
-    static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(
-            String name,
-            int ordinal,
-            T type,
-            boolean isNullable,
+    static <R, C, T extends KustoType<C>> KustoResultColumnPopulator<R, C, T> of(String name, int ordinal, T type, boolean isNullable,
             BiConsumer<R, C> valueSetter) {
         return new KustoResultColumnPopulator<>(name, ordinal, type, isNullable, valueSetter);
     }
@@ -65,14 +61,8 @@ class KustoResultColumnPopulator<R, C, T extends KustoType<C>> {
         try {
             typed = this.type.type(resultValue);
         } catch (Exception e) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "Column %s (ordinal %d) is of type %s but expected type is %s",
-                            this.name,
-                            ordinal,
-                            resultValue.getClass().toString(),
-                            this.type.clazz.toString()),
-                    e);
+            throw new IllegalArgumentException(String.format("Column %s (ordinal %d) is of type %s but expected type is %s", this.name, ordinal,
+                    resultValue.getClass().toString(), this.type.clazz.toString()), e);
         }
         this.valueSetter.accept(objToPopulate, typed);
     }

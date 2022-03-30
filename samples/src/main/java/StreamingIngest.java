@@ -67,9 +67,8 @@ public class StreamingIngest {
         // Open compressed CSV File Stream and Ingest
         FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
         streamSourceInfo.setStream(fileInputStream);
-        /*
-         * In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed. When the given
-         * stream content is already compressed, we should set this property true to avoid double compression.
+        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
+         * When the given stream content is already compressed, we should set this property true to avoid double compression.
          */
         streamSourceInfo.setCompressionType(CompressionType.gz);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -87,14 +86,14 @@ public class StreamingIngest {
     static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        // Ingest CSV file
+        //Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
-        // Ingest compressed JSON file
+        //Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);

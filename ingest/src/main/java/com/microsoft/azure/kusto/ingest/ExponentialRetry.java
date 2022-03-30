@@ -36,7 +36,8 @@ public class ExponentialRetry {
                 if (result != null) {
                     return result;
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 log.error("execute: Error is permanent, stopping", e);
                 throw e;
             }
@@ -57,5 +58,6 @@ public class ExponentialRetry {
 
         return null;
     }
+
 
 }

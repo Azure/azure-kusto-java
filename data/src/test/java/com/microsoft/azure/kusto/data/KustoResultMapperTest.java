@@ -60,8 +60,7 @@ public class KustoResultMapperTest {
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", true, TestPojo::setZonedTime)
             .addColumn(KustoType.GUID_UUID, "Guid", true, TestPojo::setUuid)
             .addColumn(KustoType.STRING, "Enum", true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-            .addColumn(KustoType.DATETIME_INSTANT, "Instant", true, TestPojo::setInstantTime)
-            .build();
+            .addColumn(KustoType.DATETIME_INSTANT, "Instant", true, TestPojo::setInstantTime).build();
 
     static final KustoResultMapper<TestPojo> ordinalMapper = KustoResultMapper.newBuilder(TestPojo::new)
             .addColumn(KustoType.INTEGER, 1, false, TestPojo::setId)
@@ -69,8 +68,7 @@ public class KustoResultMapperTest {
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, 3, true, TestPojo::setZonedTime)
             .addColumn(KustoType.GUID_UUID, 4, true, TestPojo::setUuid)
             .addColumn(KustoType.STRING, "Enum", true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-            .addColumn(KustoType.DATETIME_INSTANT, 6, true, TestPojo::setInstantTime)
-            .build();
+            .addColumn(KustoType.DATETIME_INSTANT, 6, true, TestPojo::setInstantTime).build();
 
     static final KustoResultMapper<TestPojo> mixedMapper = KustoResultMapper.newBuilder(TestPojo::new)
             .addColumn(KustoType.INTEGER, "Id", 1, false, TestPojo::setId)
@@ -78,8 +76,7 @@ public class KustoResultMapperTest {
             .addColumn(KustoType.DATETIME_ZONED_DATE_TIME, "TimeColumn", 3, true, TestPojo::setZonedTime)
             .addColumn(KustoType.GUID_UUID, "Guid", 4, true, TestPojo::setUuid)
             .addColumn(KustoType.STRING, "Enum", 5, true, (r, t) -> r.setTestEnum(t != null ? TestEnum.valueOf(t) : null))
-            .addColumn(KustoType.DATETIME_INSTANT, "Instant", 6, true, TestPojo::setInstantTime)
-            .build();
+            .addColumn(KustoType.DATETIME_INSTANT, "Instant", 6, true, TestPojo::setInstantTime).build();
 
     KustoResultSetTable resultSet = mock(KustoResultSetTable.class);
 

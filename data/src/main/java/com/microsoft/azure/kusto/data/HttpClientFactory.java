@@ -57,7 +57,8 @@ class HttpClientFactory {
                 .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
 
         if (properties.isKeepAlive()) {
-            final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
+            final ConnectionKeepAliveStrategy keepAliveStrategy =
+                    new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
 
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
@@ -97,7 +98,8 @@ class HttpClientFactory {
         @Override
         public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
             // honor 'keep-alive' header
-            HeaderElementIterator it = new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            HeaderElementIterator it = new BasicHeaderElementIterator
+                    (httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
             while (it.hasNext()) {
                 HeaderElement he = it.nextElement();
                 String param = he.getName();

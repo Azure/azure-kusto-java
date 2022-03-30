@@ -25,6 +25,7 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
         super(clusterUrl, authorityId);
     }
 
+
     @Override
     protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
         super.initializeWithCloudInfo(cloudInfo);

@@ -22,7 +22,8 @@ public class OneApiError {
                 jsonObject.getString("@message"),
                 jsonObject.getString("@type"),
                 jsonObject.getJSONObject("@context"),
-                jsonObject.getBoolean("@permanent"));
+                jsonObject.getBoolean("@permanent")
+        );
     }
 
     private final String code;

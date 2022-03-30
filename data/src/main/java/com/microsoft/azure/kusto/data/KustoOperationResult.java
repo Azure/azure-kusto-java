@@ -10,13 +10,11 @@ import org.json.JSONObject;
 import java.util.*;
 
 public class KustoOperationResult implements Iterator<KustoResultSetTable> {
-    private static final Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>() {
-        {
-            put("QueryResult", WellKnownDataSet.PrimaryResult);
-            put("QueryProperties", WellKnownDataSet.QueryProperties);
-            put("QueryStatus", WellKnownDataSet.QueryCompletionInformation);
-        }
-    };
+    private static final Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>() {{
+        put("QueryResult", WellKnownDataSet.PrimaryResult);
+        put("QueryProperties", WellKnownDataSet.QueryProperties);
+        put("QueryStatus", WellKnownDataSet.QueryCompletionInformation);
+    }};
     private static final String TABLE_NAME_PROPERTY_NAME = "Name";
     private static final String TABLE_ID_PROPERTY_NAME = "Id";
     private static final String TABLE_KIND_PROPERTY_NAME = "Kind";

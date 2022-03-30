@@ -19,7 +19,8 @@ public final class IngestionBlobInfo {
     private String reportLevel;
     private String reportMethod;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL) private ValidationPolicy validationPolicy;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ValidationPolicy validationPolicy;
 
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;

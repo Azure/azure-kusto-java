@@ -75,3 +75,4 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 }
+

@@ -59,6 +59,6 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        // nothing to validate as of now.
+        //nothing to validate as of now.
     }
 }

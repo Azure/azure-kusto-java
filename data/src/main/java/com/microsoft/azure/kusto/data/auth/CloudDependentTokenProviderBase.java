@@ -11,7 +11,8 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
-    private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
+    private static final String ERROR_INVALID_SERVICE_RESOURCE_URL =
+            "Error determining scope due to invalid Kusto Service Resource URL";
     protected final Set<String> scopes = new HashSet<>();
     private boolean initialized = false;
 

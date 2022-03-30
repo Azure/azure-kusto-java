@@ -8,7 +8,6 @@ import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.List;
-
 /*
   This class represents an error that returned from the query result
  */
