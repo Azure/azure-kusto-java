@@ -45,7 +45,7 @@ class AzureStorageClient {
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-            URISyntaxException {
+        URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(tableUri, "tableUri");
         Ensure.argIsNotNull(entity, "entity");
@@ -58,7 +58,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-            throws URISyntaxException, StorageException, IOException {
+        throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
@@ -66,7 +66,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
-            throws URISyntaxException, StorageException, IOException {
+        throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
@@ -93,7 +93,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
-             GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
             copyStream(fin, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -107,7 +107,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
-            throws IOException, URISyntaxException, StorageException {
+        throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure
@@ -157,8 +157,7 @@ class AzureStorageClient {
     String getBlobPathWithSas(CloudBlockBlob blob) {
         Ensure.argIsNotNull(blob, "blob");
 
-        StorageCredentialsSharedAccessSignature signature =
-                (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
+        StorageCredentialsSharedAccessSignature signature = (StorageCredentialsSharedAccessSignature) blob.getServiceClient().getCredentials();
         return blob.getStorageUri().getPrimaryUri().toString() + "?" + signature.getToken();
     }
 

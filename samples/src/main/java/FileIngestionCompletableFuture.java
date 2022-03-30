@@ -21,12 +21,11 @@ public class FileIngestionCompletableFuture {
     public static void main(String[] args) {
         try {
             // Creating the connection string:
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(
-                            System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
 
             CompletableFuture<IngestionResult> cf;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {

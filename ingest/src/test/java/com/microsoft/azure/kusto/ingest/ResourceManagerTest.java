@@ -57,7 +57,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_TempStorage_VerifyRoundRobin()
-            throws IngestionServiceException, IngestionClientException {
+        throws IngestionServiceException, IngestionClientException {
         List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
         String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
@@ -73,7 +73,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_AggregationQueue_VerifyRoundRobin()
-            throws IngestionServiceException, IngestionClientException {
+        throws IngestionServiceException, IngestionClientException {
         List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
         String queue = resourceManager
@@ -91,7 +91,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_StatusTable_ReturnCorrectTable()
-            throws IngestionServiceException, IngestionClientException {
+        throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 STATUS_TABLE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
@@ -99,7 +99,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
-            throws IngestionServiceException, IngestionClientException {
+        throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 FAILED_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
@@ -107,7 +107,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
-            throws IngestionServiceException, IngestionClientException {
+        throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 SUCCESS_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
@@ -161,7 +161,8 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
 
-        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":" +
+        String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
+                +
                 listAsJson + "}]}";
 
         return new KustoOperationResult(response, "v1");

@@ -62,7 +62,7 @@ public class KustoResultSetTable {
     public WellKnownDataSet getTableKind() {
         return tableKind;
     }
-    
+
     public KustoResultColumn[] getColumns() {
         return columnsAsArray;
     }
@@ -440,7 +440,8 @@ public class KustoResultSetTable {
     public boolean last() {
         if (rows.isEmpty())
             return false;
-        while (rowIterator.next() != null) ;
+        while (rowIterator.next() != null)
+            ;
         return true;
     }
 
@@ -466,9 +467,11 @@ public class KustoResultSetTable {
         String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
         } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
         }
         return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
     }

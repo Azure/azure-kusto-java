@@ -21,7 +21,8 @@ public class IngestClientFactory {
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
+            ConnectionStringBuilder engineConnectionStringBuilder)
+        throws URISyntaxException {
         return new ManagedStreamingIngestClient(dmConnectionStringBuilder, engineConnectionStringBuilder);
     }
 }

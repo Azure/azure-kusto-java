@@ -47,7 +47,6 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         }
     }
 
-
     @Override
     public String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
@@ -70,7 +69,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         }
     }
 
-    protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal() throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
+    protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal()
+        throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
     protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
 

@@ -55,7 +55,7 @@ class UncloseableStreamTest {
     void WhenSkipThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
 
-        int skipped = (int)stream.skip(amount);
+        int skipped = (int) stream.skip(amount);
         assertEquals(amount, skipped);
 
         stream.close();
@@ -146,7 +146,6 @@ class UncloseableStreamTest {
         verify(stream.getInnerStream(), times(1)).mark(amount);
         verify(stream.getInnerStream(), never()).close();
     }
-
 
     @Test
     void TestMarkSupported_MatchesInnerMarkSupported() throws IOException {

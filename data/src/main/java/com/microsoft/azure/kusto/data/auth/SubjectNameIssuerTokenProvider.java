@@ -10,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientCertificate clientCertificate;
 
-    SubjectNameIssuerTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, String authorityId) throws URISyntaxException {
+    SubjectNameIssuerTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,
+            String authorityId) throws URISyntaxException {
         super(clusterUrl, applicationClientId, authorityId);
         this.clientCertificate = clientCertificate;
     }

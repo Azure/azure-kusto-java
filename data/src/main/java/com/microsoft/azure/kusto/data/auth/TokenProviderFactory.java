@@ -42,7 +42,7 @@ public class TokenProviderFactory {
         } else if (csb.getTokenProvider() != null) {
             Callable<String> tokenProvider = csb.getTokenProvider();
             return new CallbackTokenProvider(clusterUrl, tokenProvider);
-        } else if(csb.isUseDeviceCodeAuth()) {
+        } else if (csb.isUseDeviceCodeAuth()) {
             return new DeviceAuthTokenProvider(clusterUrl, authorityId);
         } else if (csb.isUseManagedIdentityAuth()) {
             return new ManagedIdentityTokenProvider(clusterUrl, csb.getManagedIdentityClientId());

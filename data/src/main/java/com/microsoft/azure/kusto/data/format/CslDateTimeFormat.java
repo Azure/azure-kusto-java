@@ -20,20 +20,20 @@ public class CslDateTimeFormat extends CslFormat {
     public static final String KUSTO_DATETIME_PATTERN_NO_FRACTIONS = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN).withZone(ZoneId.of("UTC"));
     Map<Integer, String> KUSTO_DATETIME_FORMATS = Stream.of(new Object[][] {
-            { 4, "yyyy" },
-            { 6, "yyyyMM" },
-            { 8, "yyyyMMdd" },
-            { 10, "yyyyMMddHH" },
-            { 12, "yyyyMMddHHmm" },
-            { 14, "yyyyMMddHHmmss" },
-            { 17, "yyyyMMdd HH:mm:ss" },
-            { 19, "yyyyMMdd HH:mm:ss.f" },
-            { 20, "yyyyMMdd HH:mm:ss.ff" },
-            { 21, "yyyyMMdd HH:mm:ss.fff" },
-            { 22, "yyyyMMdd HH:mm:ss.ffff" },
-            { 23, "yyyyMMdd HH:mm:ss.fffff" },
-            { 24, "yyyyMMdd HH:mm:ss.ffffff" },
-            { 25, "yyyyMMdd HH:mm:ss.fffffff" }
+            {4, "yyyy"},
+            {6, "yyyyMM"},
+            {8, "yyyyMMdd"},
+            {10, "yyyyMMddHH"},
+            {12, "yyyyMMddHHmm"},
+            {14, "yyyyMMddHHmmss"},
+            {17, "yyyyMMdd HH:mm:ss"},
+            {19, "yyyyMMdd HH:mm:ss.f"},
+            {20, "yyyyMMdd HH:mm:ss.ff"},
+            {21, "yyyyMMdd HH:mm:ss.fff"},
+            {22, "yyyyMMdd HH:mm:ss.ffff"},
+            {23, "yyyyMMdd HH:mm:ss.fffff"},
+            {24, "yyyyMMdd HH:mm:ss.ffffff"},
+            {25, "yyyyMMdd HH:mm:ss.fffffff"}
     }).collect(Collectors.toMap(data -> (Integer) data[0], data -> (String) data[1]));
 
     private final LocalDateTime value;
@@ -122,9 +122,11 @@ public class CslDateTimeFormat extends CslFormat {
         // Old Java SDK approach to parsing, using particular mask
         try {
             if (localDateTimeString.length() < 21) {
-                dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
+                dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                        .append(DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
             } else {
-                dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN)).toFormatter();
+                dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern(KUSTO_DATETIME_PATTERN))
+                        .toFormatter();
             }
             return LocalDateTime.parse(localDateTimeString, dateTimeFormatter);
         } catch (Exception e) {

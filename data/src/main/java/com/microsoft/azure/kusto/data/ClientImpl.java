@@ -43,10 +43,10 @@ public class ClientImpl implements Client, StreamingClient {
     private final CloseableHttpClient httpClient;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-      this(csb, HttpClientProperties.builder().build());
+        this(csb, HttpClientProperties.builder().build());
     }
 
-   public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
+    public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
         this(csb, HttpClientFactory.getInstance().create(properties));
     }
 
@@ -56,12 +56,12 @@ public class ClientImpl implements Client, StreamingClient {
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
-            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme()).setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
+            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
+                    .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
         }
 
         clusterUrl = csb.getClusterUrl();
-        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ?
-                null : TokenProviderFactory.createTokenProvider(csb);
+        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -96,7 +96,7 @@ public class ClientImpl implements Client, StreamingClient {
         } catch (KustoServiceQueryError e) {
             throw new DataServiceException(clusterEndpoint,
                     "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
     }
@@ -134,7 +134,9 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
+            String streamFormat, String mappingName, boolean leaveOpen)
+        throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -189,7 +191,8 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
+        throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -206,7 +209,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload,timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
@@ -229,9 +232,9 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
-                                                                String clientRequestIdPrefix,
-                                                                String activityTypeSuffix)
-            throws DataServiceException, DataClientException {
+            String clientRequestIdPrefix,
+            String activityTypeSuffix)
+        throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
@@ -252,13 +255,15 @@ public class ClientImpl implements Client, StreamingClient {
         headers.put("x-ms-client-request-id", clientRequestId);
 
         UUID activityId = UUID.randomUUID();
-        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix, activityId, activityId, activityId, clientRequestId);
+        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
+                activityId, activityId, activityId, clientRequestId);
         headers.put("x-ms-activitycontext", activityContext);
 
         return headers;
     }
 
-    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint) throws DataClientException {
+    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
+        throws DataClientException {
         String jsonPayload;
         try {
             JSONObject json = new JSONObject()
@@ -271,7 +276,8 @@ public class ClientImpl implements Client, StreamingClient {
 
             jsonPayload = json.toString();
         } catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
+            throw new DataClientException(clusterEndpoint,
+                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
         }
 
         return jsonPayload;

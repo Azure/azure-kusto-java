@@ -13,7 +13,8 @@ import org.jetbrains.annotations.NotNull;
 public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientCertificate clientCertificate;
 
-    ApplicationCertificateTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate, String authorityId) throws URISyntaxException {
+    ApplicationCertificateTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,
+            String authorityId) throws URISyntaxException {
         super(clusterUrl, applicationClientId, authorityId);
         this.clientCertificate = clientCertificate;
     }
