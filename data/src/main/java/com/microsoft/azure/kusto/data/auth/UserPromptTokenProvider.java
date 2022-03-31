@@ -64,9 +64,7 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
             throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
         }
         if (result == null) {
-            throw new DataServiceException(
-                    clusterUrl,
-                    "acquireWithUserPrompt got 'null' authentication result",
+            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
                     false);
         }
         return result;

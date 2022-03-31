@@ -51,7 +51,8 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
-    void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException, PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
+    void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
+        PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -66,12 +67,12 @@ public class AadAuthenticationHelperTest {
         aadAuthenticationHelper.initialize();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
-        Assertions.assertThrows(
-                DataServiceException.class,
+        Assertions.assertThrows(DataServiceException.class,
                 aadAuthenticationHelper::acquireNewAccessToken);
     }
 
-    public static KeyCert readPem(String path, String password) throws IOException, CertificateException, OperatorCreationException, PKCSException {
+    public static KeyCert readPem(String path, String password)
+        throws IOException, CertificateException, OperatorCreationException, PKCSException {
 
         Security.addProvider(new BouncyCastleProvider());
         PEMParser pemParser = new PEMParser(new FileReader(path));
@@ -105,7 +106,8 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
-    void useCachedTokenAndRefreshWhenNeeded() throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
+    void useCachedTokenAndRefreshWhenNeeded()
+        throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -117,29 +119,14 @@ public class AadAuthenticationHelperTest {
 
         MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
 
-        IAuthenticationResult authenticationResult = new MockAuthenticationResult(
-                "firstToken",
-                "firstToken",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
-                "environment",
-                "environment",
-                new Date(),
+        IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
                 Mockito.mock(ITenantProfile.class));
-        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult(
-                "fromRefresh",
-                "fromRefresh",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
-                "environment",
-                "environment",
-                new Date(),
+        IAuthenticationResult authenticationResultFromRefresh = new MockAuthenticationResult("fromRefresh", "fromRefresh",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
                 Mockito.mock(ITenantProfile.class));
-        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult(
-                "nullRefreshResult",
-                "nullRefreshResult",
-                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()),
-                "environment",
-                "environment",
-                new Date(),
+        IAuthenticationResult authenticationResultNullRefreshTokenResult = new MockAuthenticationResult("nullRefreshResult", "nullRefreshResult",
+                new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
                 Mockito.mock(ITenantProfile.class));
 
         // doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
@@ -167,17 +154,15 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
 
         PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
-        CloudInfo.manuallyAddToCache(
-                "https://weird.resource.uri",
-                new CloudInfo(
-                        true,
-                        "https://nostandard-login-input",
-                        "non_standard_client_id",
-                        "",
-                        "https://aaaa.kusto.bbbb.com",
-                        "first_party_url"
+        CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
+                true,
+                "https://nostandard-login-input",
+                "non_standard_client_id",
+                "",
+                "https://aaaa.kusto.bbbb.com",
+                "first_party_url"
 
-                ));
+        ));
 
         aadAuthenticationHelper.initialize();
         assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
@@ -274,13 +259,7 @@ public class AadAuthenticationHelperTest {
         private final Date expiresOnDate;
         private final ITenantProfile tenantProfile;
 
-        public MockAuthenticationResult(
-                String accessToken,
-                String idToken,
-                MockAccount account,
-                String environment,
-                String scopes,
-                Date expiresOnDate,
+        public MockAuthenticationResult(String accessToken, String idToken, MockAccount account, String environment, String scopes, Date expiresOnDate,
                 ITenantProfile tenantProfile) {
             this.accessToken = accessToken;
             this.idToken = idToken;

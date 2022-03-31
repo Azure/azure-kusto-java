@@ -77,9 +77,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    public IngestionResult ingestFromBlob(
-            BlobSourceInfo blobSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -92,10 +91,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
 
             // Create the ingestion message
-            IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(
-                    blobSourceInfo.getBlobPath(),
-                    ingestionProperties.getDatabaseName(),
-                    ingestionProperties.getTableName());
+            IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
+                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
                 ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
@@ -155,9 +152,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    public IngestionResult ingestFromFile(
-            FileSourceInfo fileSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -180,11 +176,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
-            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(
-                    fileSourceInfo.getFilePath(),
-                    blobName,
-                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE),
-                    shouldCompress);
+            CloudBlockBlob blob = azureStorageClient.uploadLocalFileToBlob(fileSourceInfo.getFilePath(), blobName,
+                    resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE), shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, dataFormat.isCompressible());
@@ -203,9 +196,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    public IngestionResult ingestFromStream(
-            StreamSourceInfo streamSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -237,8 +229,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     shouldCompress);
             String blobPath = azureStorageClient.getBlobPathWithSas(blob);
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                    blobPath,
-                    0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
+                    blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -261,8 +252,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
-        return String.format(
-                "%s__%s__%s__%s%s%s",
+        return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
                 AzureStorageClient.removeExtension(fileName),
@@ -272,9 +262,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(
-            ResultSetSourceInfo resultSetSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");

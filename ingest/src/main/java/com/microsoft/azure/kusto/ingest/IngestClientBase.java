@@ -19,9 +19,8 @@ public abstract class IngestClientBase {
     public static final String INGEST_PREFIX = "ingest-";
     protected static final String WRONG_ENDPOINT_MESSAGE = "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
 
-    protected void validateEndpointServiceType(
-            String connectionDataSource,
-            String expectedServiceType) throws IngestionServiceException, IngestionClientException {
+    protected void validateEndpointServiceType(String connectionDataSource, String expectedServiceType)
+        throws IngestionServiceException, IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
         }

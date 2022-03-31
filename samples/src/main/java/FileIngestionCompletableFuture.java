@@ -74,9 +74,7 @@ public class FileIngestionCompletableFuture {
      * @return a {@link CompletableFuture}
      */
     private static CompletableFuture<IngestionResult> ingestFromFileAsync(
-            IngestClient client,
-            FileSourceInfo fileSourceInfo,
-            IngestionProperties ingestionProperties) {
+            IngestClient client, FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {

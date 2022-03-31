@@ -56,10 +56,8 @@ public class ClientImpl implements Client, StreamingClient {
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
-            csb.setClusterUrl(
-                    new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
-                            .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX)))
-                            .toString());
+            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
+                    .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
         }
 
         clusterUrl = csb.getClusterUrl();
@@ -96,11 +94,8 @@ public class ClientImpl implements Client, StreamingClient {
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
-            throw new DataServiceException(
-                    clusterEndpoint,
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(),
-                    e,
-                    e.isPermanent());
+            throw new DataServiceException(clusterEndpoint,
+                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
         } catch (Exception e) {
             throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
@@ -130,9 +125,7 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(
-                properties,
-                "KJC.execute",
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
                 commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
@@ -141,14 +134,9 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeStreamingIngest(
-            String database,
-            String table,
-            InputStream stream,
-            ClientRequestProperties properties,
-            String streamFormat,
-            String mappingName,
-            boolean leaveOpen) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
+            String streamFormat, String mappingName, boolean leaveOpen)
+        throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -166,9 +154,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = generateIngestAndCommandHeaders(
-                properties,
-                "KJC.executeStreamingIngest",
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
                 CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
         Long timeoutMs = null;
@@ -205,10 +191,8 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public InputStream executeStreamingQuery(
-            String database,
-            String command,
-            ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
+        throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -220,9 +204,7 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(
-                properties,
-                "KJC.executeStreaming",
+        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
                 commandType.getActivityTypeSuffix());
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
@@ -249,10 +231,10 @@ public class ClientImpl implements Client, StreamingClient {
         return CommandType.QUERY;
     }
 
-    private Map<String, String> generateIngestAndCommandHeaders(
-            ClientRequestProperties properties,
+    private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
             String clientRequestIdPrefix,
-            String activityTypeSuffix) throws DataServiceException, DataClientException {
+            String activityTypeSuffix)
+        throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
@@ -273,24 +255,15 @@ public class ClientImpl implements Client, StreamingClient {
         headers.put("x-ms-client-request-id", clientRequestId);
 
         UUID activityId = UUID.randomUUID();
-        String activityContext = String.format(
-                "%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s",
-                JAVA_INGEST_ACTIVITY_TYPE_PREFIX,
-                activityTypeSuffix,
-                activityId,
-                activityId,
-                activityId,
-                clientRequestId);
+        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
+                activityId, activityId, activityId, clientRequestId);
         headers.put("x-ms-activitycontext", activityContext);
 
         return headers;
     }
 
-    private String generateCommandPayload(
-            String database,
-            String command,
-            ClientRequestProperties properties,
-            String clusterEndpoint) throws DataClientException {
+    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
+        throws DataClientException {
         String jsonPayload;
         try {
             JSONObject json = new JSONObject()
@@ -303,10 +276,8 @@ public class ClientImpl implements Client, StreamingClient {
 
             jsonPayload = json.toString();
         } catch (JSONException e) {
-            throw new DataClientException(
-                    clusterEndpoint,
-                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database),
-                    e);
+            throw new DataClientException(clusterEndpoint,
+                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
         }
 
         return jsonPayload;

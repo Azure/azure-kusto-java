@@ -276,8 +276,7 @@ public class IngestionProperties {
         try {
             this.dataFormat = DataFormat.valueOf(dataFormatName.toUpperCase());
         } catch (IllegalArgumentException ex) {
-            log.warn(
-                    "IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.",
+            log.warn("IngestionProperties.setDataFormat(): Invalid dataFormatName of {}. Per the API's specification, DataFormat property value wasn't set.",
                     dataFormatName);
         }
     }
@@ -344,10 +343,8 @@ public class IngestionProperties {
             }
         } else { // a mapping was provided
             if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message.appendln(
-                        "Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
-                        dataFormat.getKustoValue(),
-                        dataFormat.getIngestionMappingKind().getKustoValue(),
+                message.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
+                        dataFormat.getKustoValue(), dataFormat.getIngestionMappingKind().getKustoValue(),
                         ingestionMappingKind != null ? ingestionMappingKind.getKustoValue() : "null");
             }
 
@@ -374,8 +371,7 @@ public class IngestionProperties {
     }
 
     public void validateResultSetProperties() throws IngestionClientException {
-        Ensure.isTrue(
-                IngestionProperties.DataFormat.CSV.equals(dataFormat),
+        Ensure.isTrue(IngestionProperties.DataFormat.CSV.equals(dataFormat),
                 String.format("ResultSet translates into csv format but '%s' was given", dataFormat));
 
         validate();

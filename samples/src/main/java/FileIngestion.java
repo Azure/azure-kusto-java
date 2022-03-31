@@ -17,14 +17,12 @@ import java.io.ByteArrayOutputStream;
 public class FileIngestion {
     public static void main(String[] args) {
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
                     System.getProperty("appId"),
                     System.getProperty("appKey"),
                     System.getProperty("appTenant"));
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties(
-                        System.getProperty("dbName"),
+                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));
                 ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
 
@@ -36,8 +34,7 @@ public class FileIngestion {
                 StreamSourceInfo info = new StreamSourceInfo(byteArrayInputStream);
 
                 // Ingest with inline ingestion mapping - less recommended
-                IngestionProperties ingestionProperties2 = new IngestionProperties(
-                        System.getProperty("dbName"),
+                IngestionProperties ingestionProperties2 = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));
                 ColumnMapping csvColumnMapping = new ColumnMapping("ColA", "string");
                 csvColumnMapping.setOrdinal(0);

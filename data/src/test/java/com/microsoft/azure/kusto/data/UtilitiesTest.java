@@ -33,8 +33,7 @@ class UtilitiesTest {
 
         // If set to over MAX_TIMEOUT_MS - value should be MAX_TIMEOUT_MS
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "1.01:40:02.1");
-        Assertions.assertEquals(
-                ClientRequestProperties.MAX_TIMEOUT_MS,
+        Assertions.assertEquals(ClientRequestProperties.MAX_TIMEOUT_MS,
                 clientRequestProperties.getTimeoutInMilliSec());
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "15:00");

@@ -56,14 +56,9 @@ class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(
-            CloseableHttpClient httpClient,
-            String urlStr,
-            String payload,
-            InputStream stream,
-            long timeoutMs,
-            Map<String, String> headers,
-            boolean leaveOpen) throws DataServiceException, DataClientException {
+    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
+            boolean leaveOpen)
+        throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
@@ -93,22 +88,14 @@ class Utils {
         return null;
     }
 
-    static InputStream postToStreamingOutput(
-            CloseableHttpClient httpClient,
-            String url,
-            String payload,
-            long timeoutMs,
-            Map<String, String> headers) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers)
+        throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
-    static InputStream postToStreamingOutput(
-            CloseableHttpClient httpClient,
-            String url,
-            String payload,
-            long timeoutMs,
-            Map<String, String> headers,
-            int redirectCount) throws DataServiceException, DataClientException {
+    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers,
+            int redirectCount)
+        throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         boolean returnInputStream = false;
@@ -162,11 +149,8 @@ class Utils {
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException(
-                    url,
-                    "postToStreamingOutput failed to get or decompress response stream",
-                    ex,
-                    false);
+            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
+                    ex, false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -265,19 +249,11 @@ class Utils {
         try {
             URL cleanUrl = new URL(url);
             if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
-                return new URI(
-                        cleanUrl.getProtocol(),
-                        cleanUrl.getUserInfo(),
-                        cleanUrl.getHost(),
-                        cleanUrl.getPort(),
-                        cleanUrl.getPath(),
-                        cleanUrl.getQuery(),
+                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(),
                         cleanUrl.getRef());
             } else {
-                throw new DataClientException(
-                        url,
-                        "Cannot forward security token to a remote service over insecure " +
-                                "channel (http://)");
+                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
+                        "channel (http://)");
             }
         } catch (URISyntaxException | MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);

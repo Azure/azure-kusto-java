@@ -46,12 +46,7 @@ public class CloudInfo {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
 
-    public CloudInfo(
-            boolean loginMfaRequired,
-            String loginEndpoint,
-            String kustoClientAppId,
-            String kustoClientRedirectUri,
-            String kustoServiceResourceId,
+    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
@@ -97,10 +92,8 @@ public class CloudInfo {
                         result = DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(
-                                clusterUrl,
-                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse,
-                                true);
+                        throw new DataServiceException(clusterUrl,
+                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                     }
                 }
             } catch (IOException | URISyntaxException ex) {

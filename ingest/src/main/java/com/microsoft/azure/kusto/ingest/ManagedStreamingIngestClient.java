@@ -75,8 +75,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
     }
 
-    public ManagedStreamingIngestClient(
-            ConnectionStringBuilder dmConnectionStringBuilder,
+    public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
             ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
@@ -84,8 +83,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    public ManagedStreamingIngestClient(
-            ResourceManager resourceManager,
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,
             StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
@@ -94,8 +92,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(
-            ResourceManager resourceManager,
+    ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,
             StreamingClient streamingClient,
             ExponentialRetry retryTemplate) {
@@ -106,9 +103,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     @Override
-    public IngestionResult ingestFromFile(
-            FileSourceInfo fileSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -129,9 +125,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * This method behaves differently from the rest for {@link ManagedStreamingIngestClient} - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.</p>
      */
     @Override
-    public IngestionResult ingestFromBlob(
-            BlobSourceInfo blobSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -143,9 +138,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(
-            ResultSetSourceInfo resultSetSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -162,9 +156,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     @Override
-    public IngestionResult ingestFromStream(
-            StreamSourceInfo streamSourceInfo,
-            IngestionProperties ingestionProperties) throws IngestionClientException, IngestionServiceException {
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+        throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -188,11 +181,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
         if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
             log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", streamingBytes.length);
-            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(
-                    new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                    streamSourceInfo.isLeaveOpen(),
-                    sourceId,
-                    streamSourceInfo.getCompressionType());
+            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
+                    streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
         }
 

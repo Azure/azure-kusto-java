@@ -68,11 +68,9 @@ public class ResultSetTest {
                 "\"ColumnName\": \"g\", \"ColumnType\": \"int\" }, { \"ColumnName\": \"h\", \"ColumnType\": " +
                 "\"long\" }, { \"ColumnName\": \"i\", \"ColumnType\": \"real\" }, { \"ColumnName\": \"j\", " +
                 "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
-        KustoResultSetTable res = new KustoResultSetTable(
-                new JSONObject(
-                        "{\"TableName\":\"Table_0\"," +
-                                "\"Columns\":" + columns + ",\"Rows\":" +
-                                rows.toString() + "}"));
+        KustoResultSetTable res = new KustoResultSetTable(new JSONObject("{\"TableName\":\"Table_0\"," +
+                "\"Columns\":" + columns + ",\"Rows\":" +
+                rows.toString() + "}"));
         res.next();
         assert res.getBooleanObject(0) == null;
         assert res.getString(1).equals("");

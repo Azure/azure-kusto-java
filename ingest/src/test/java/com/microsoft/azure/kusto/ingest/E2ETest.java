@@ -94,8 +94,8 @@ class E2ETest {
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey,
+                tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb);
@@ -103,8 +103,8 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = new ClientImpl(engineCsb);
@@ -141,13 +141,8 @@ class E2ETest {
         resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
-            queryClient.executeToJsonResult(
-                    databaseName,
-                    String.format(
-                            ".create table %s ingestion json mapping '%s' '%s'",
-                            tableName,
-                            mappingReference,
-                            mappingAsString));
+            queryClient.executeToJsonResult(databaseName, String.format(".create table %s ingestion json mapping '%s' '%s'",
+                    tableName, mappingReference, mappingAsString));
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
@@ -366,8 +361,8 @@ class E2ETest {
     @Test
     void testCreateWithUserPrompt() {
         Assumptions.assumeTrue(IsManualExecution());
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null, System.getenv("USERNAME_HINT"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null,
+                System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -384,15 +379,15 @@ class E2ETest {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
         PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer, privateKey, "microsoft.onmicrosoft.com");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer,
+                privateKey, "microsoft.onmicrosoft.com");
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -408,8 +403,8 @@ class E2ETest {
     void testCreateWithAadTokenProviderAuthentication() {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), tokenProviderCallable);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"),
+                tokenProviderCallable);
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -480,9 +475,7 @@ class E2ETest {
         KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
         stopWatch.stop();
         long timeConvertedToJavaObj = stopWatch.getTime();
-        System.out.printf(
-                "Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n",
-                resultObj.getPrimaryResults().count(),
+        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(),
                 timeConvertedToJavaObj);
 
         // Specialized use case - API returns raw json for performance
@@ -525,8 +518,8 @@ class E2ETest {
 
     @Test
     void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId, appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
         ClientImpl clientImpl = new ClientImpl(engineCsb, httpClientSpy);
