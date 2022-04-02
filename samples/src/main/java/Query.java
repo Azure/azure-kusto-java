@@ -14,14 +14,14 @@ public class Query {
     public static void main(String[] args) {
 
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
+            ConnectionStringBuilder csb =
+                    ConnectionStringBuilder.createWithAadApplicationCredentials("https://ingest-ohadprod.westeurope.kusto.windows.net",
+                            "d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66",
+                            "d2E7Q~WzIL._3KQqGU9W0vSXNUU4EnNeI4C~r",
+                            "microsoft.com");
             ClientImpl client = new ClientImpl(csb);
 
-            KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
+            KustoOperationResult results = client.execute("ohtst","d");
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 
