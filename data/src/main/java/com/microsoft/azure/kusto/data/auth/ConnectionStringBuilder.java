@@ -154,6 +154,10 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
+    }
+
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
             String applicationClientId,
             String applicationKey) {
