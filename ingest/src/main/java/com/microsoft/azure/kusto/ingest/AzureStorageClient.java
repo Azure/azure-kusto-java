@@ -28,8 +28,8 @@ import java.util.zip.GZIPOutputStream;
 
 public class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    public static final int GZIP_BUFFER_SIZE = 16384;
-    public static final int STREAM_BUFFER_SIZE = 16384;
+    static final int GZIP_BUFFER_SIZE = 16384;
+    static final int STREAM_BUFFER_SIZE = 16384;
 
     void postMessageToQueue(QueueClient queueClient, String content) throws URISyntaxException {
         // Ensure
