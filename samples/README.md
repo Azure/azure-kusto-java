@@ -32,6 +32,26 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
 ClientImpl client = new ClientImpl(csb);
 ```
 
+If you'd like to tweak the underlying HTTP client used to make the requests, build an HTTP client properties object
+and use that along the Connection string to initialise the client:
+
+```java
+ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+        System.getProperty("clusterPath"),
+        System.getProperty("appId"),
+        System.getProperty("appKey"),
+        System.getProperty("appTenant"));
+
+HttpClientProperties properties = HttpClientProperties.builder()
+        .keepAlive(true)
+        .maxKeepAliveTime(120)
+        .maxConnectionsPerRoute(40)
+        .maxConnectionsTotal(40)
+        .build();
+
+ClientImpl client = new ClientImpl(csb, properties);
+```
+
 2. Execute query
 
 ```java
@@ -75,7 +95,7 @@ ConnectionStringBuilder csb =
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
 ```
-2. Initialize client and it's properties
+2. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -138,7 +158,7 @@ ConnectionStringBuilder csb =
                             System.getProperty("appKey"),
                             System.getProperty("appTenant"));
 ```
-2. Initialize client and it's properties
+2. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -228,7 +248,7 @@ ConnectionStringBuilder csb =
                 System.getProperty("appTenant"));
 ```
 
-3. Initialize client and it's properties
+3. Initialize client and its properties
 
 ```java
 IngestClient client = IngestClientFactory.createClient(csb);
@@ -237,7 +257,7 @@ IngestionProperties ingestionProperties = new IngestionProperties( System.getPro
                     System.getProperty("tableName"));
             ingestionProperties.getIngestionMapping().setIngestionMappingReference(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Csv);
             ingestionProperties.setReportMethod(QueueAndTable);
-            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
+            ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
 ```
 
 4. Load file and ingest it into table

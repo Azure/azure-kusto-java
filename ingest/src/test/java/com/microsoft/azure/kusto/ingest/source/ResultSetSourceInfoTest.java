@@ -21,10 +21,10 @@ class ResultSetSourceInfoTest {
         ResultSet mockResultSet = Mockito.mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mockResultSet);
 
-        //this also tests that the constructor worked as expected
+        // this also tests that the constructor worked as expected
         Assertions.assertEquals(mockResultSet, resultSetSourceInfo.getResultSet());
 
-        //use the setter to replace the resultset
+        // use the setter to replace the resultset
         ResultSet mockResultSet1 = Mockito.mock(ResultSet.class);
         resultSetSourceInfo.setResultSet(mockResultSet1);
         Assertions.assertEquals(mockResultSet1, resultSetSourceInfo.getResultSet());
@@ -46,6 +46,5 @@ class ResultSetSourceInfoTest {
 
         Assertions.assertTrue(resultSetSourceInfo.toString().contains(uuid.toString()));
     }
-
 
 }

@@ -21,12 +21,11 @@ public class FileIngestionCompletableFuture {
     public static void main(String[] args) {
         try {
             // Creating the connection string:
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials(
-                            System.getProperty("clusterPath"),
-                            System.getProperty("appId"),
-                            System.getProperty("appKey"),
-                            System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
 
             CompletableFuture<IngestionResult> cf;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
@@ -34,7 +33,7 @@ public class FileIngestionCompletableFuture {
                 IngestionProperties ingestionProperties = new IngestionProperties(
                         System.getProperty("dbName"),
                         System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
 
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
 

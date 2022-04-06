@@ -13,7 +13,7 @@ public class Results {
     private String exceptionsMessages;
 
     public Results(HashMap<String, Integer> columnNameToIndex, HashMap<String, String> columnNameToType,
-                   ArrayList<ArrayList<String>> values, String exceptionsMessages) {
+            ArrayList<ArrayList<String>> values, String exceptionsMessages) {
         this.columnNameToIndex = columnNameToIndex;
         this.columnNameToType = columnNameToType;
         this.values = values;

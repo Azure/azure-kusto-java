@@ -13,7 +13,11 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -54,7 +58,7 @@ public class StreamingIngest {
         String data = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
@@ -63,16 +67,17 @@ public class StreamingIngest {
         // Open compressed CSV File Stream and Ingest
         FileInputStream fileInputStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
         streamSourceInfo.setStream(fileInputStream);
-        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
-         * When the given stream content is already compressed, we should set this property true to avoid double compression.
+        /*
+         * In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed. When the given
+         * stream content is already compressed, we should set this property true to avoid double compression.
          */
         streamSourceInfo.setCompressionType(CompressionType.gz);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
         status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -82,18 +87,18 @@ public class StreamingIngest {
     static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        //Ingest CSV file
+        // Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
-        //Ingest compressed JSON file
+        // Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
     }

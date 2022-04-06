@@ -24,7 +24,7 @@ public class FileIngestion {
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
                         System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.Json);
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
 
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
                 IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -40,8 +40,8 @@ public class FileIngestion {
                 csvColumnMapping.setOrdinal(0);
                 ColumnMapping csvColumnMapping2 = new ColumnMapping("ColB", "int");
                 csvColumnMapping2.setOrdinal(1);
-                ingestionProperties2.setDataFormat(IngestionProperties.DataFormat.csv);
-                ingestionProperties2.setIngestionMapping(new ColumnMapping[] {csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.Csv);
+                ingestionProperties2.setDataFormat(IngestionProperties.DataFormat.CSV);
+                ingestionProperties2.setIngestionMapping(new ColumnMapping[] {csvColumnMapping, csvColumnMapping2}, IngestionMapping.IngestionMappingKind.CSV);
 
                 IngestionResult ingestionResult2 = client.ingestFromStream(info, ingestionProperties2);
             }

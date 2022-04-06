@@ -15,6 +15,16 @@ public class OneApiError {
         this.permanent = permanent;
     }
 
+    public static OneApiError fromJsonObject(JSONObject jsonObject) {
+        return new OneApiError(
+                jsonObject.getString("code"),
+                jsonObject.getString("message"),
+                jsonObject.getString("@message"),
+                jsonObject.getString("@type"),
+                jsonObject.getJSONObject("@context"),
+                jsonObject.getBoolean("@permanent"));
+    }
+
     private final String code;
     private final String message;
     private final String description;

@@ -24,21 +24,21 @@ class ConnectionStringBuilderTest {
     @DisplayName("validate createWithAadApplicationCredentials throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadApplicationCredentials() {
 
-        //nullOrEmpty appId
+        // nullOrEmpty appId
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCredentials("resource.uri", null, "appKey"));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCredentials("resource.uri", "", "appKey"));
-        //nullOrEmpty appKey
+        // nullOrEmpty appKey
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCredentials("resource.uri", "appId", null));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCredentials("resource.uri", "appId", ""));
-        //nullOrEmpty resourceUri
+        // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCredentials(null, "appId", "appKey"));
@@ -50,7 +50,7 @@ class ConnectionStringBuilderTest {
     @Test
     @DisplayName("validate createWithUserPrompt throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithUserPrompt() {
-        //nullOrEmpty resourceUri
+        // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithUserPrompt(null, null));
@@ -62,7 +62,7 @@ class ConnectionStringBuilderTest {
     @Test
     @DisplayName("validate createWithAadApplicationCertificate throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadApplicationCertificate() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException {
+        PKCSException, IOException {
 
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
@@ -70,7 +70,7 @@ class ConnectionStringBuilderTest {
         X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
 
-        //nullOrEmpty resourceUri
+        // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate(null, "appId", x509Certificate, privateKey));
@@ -78,18 +78,18 @@ class ConnectionStringBuilderTest {
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("", "appId", x509Certificate, privateKey));
 
-        //nullOrEmpty appId
+        // nullOrEmpty appId
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("resource.uri", null, x509Certificate, privateKey));
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("resource.uri", "", x509Certificate, privateKey));
-        //null certificate
+        // null certificate
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("resource.uri", "appID", null, privateKey));
-        //null privateKey
+        // null privateKey
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithAadApplicationCertificate("resource.uri", "appID", x509Certificate, null));
@@ -151,7 +151,7 @@ class ConnectionStringBuilderTest {
     @Test
     @DisplayName("validate createWithDeviceAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithDeviceAuthentication() {
-        //nullOrEmpty resourceUri
+        // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> ConnectionStringBuilder
                         .createWithDeviceCode(null, null));

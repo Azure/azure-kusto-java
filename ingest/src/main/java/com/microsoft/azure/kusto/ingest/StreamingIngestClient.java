@@ -30,7 +30,7 @@ import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
-
+//TODO WTF ALL CHANGED
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());

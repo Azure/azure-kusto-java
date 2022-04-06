@@ -7,8 +7,7 @@ package com.microsoft.azure.kusto.ingest;
  * Transformation method can be used over all formats configured with Json mapping type (Json, Orc and Parquet)
  * See <a href="https://docs.microsoft.com/en-us/azure/kusto/management/mappings#json-mapping">kusto docs</a>
  */
-public enum TransformationMethod
-{
+public enum TransformationMethod {
     /**
      * Comma-separated value.
      */

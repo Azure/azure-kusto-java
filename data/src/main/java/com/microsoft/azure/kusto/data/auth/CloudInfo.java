@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -31,11 +30,11 @@ public class CloudInfo {
             DEFAULT_KUSTO_CLIENT_APP_ID,
             DEFAULT_REDIRECT_URI,
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
-            DEFAULT_FIRST_PARTY_AUTHORITY_URL
-    );
+            DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
+
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
     }
@@ -47,7 +46,8 @@ public class CloudInfo {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
 
-    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId, String firstPartyAuthorityUrl) {
+    public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
+            String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;
@@ -56,15 +56,20 @@ public class CloudInfo {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) {
+    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) throws URISyntaxException {
         synchronized (cache) {
-            cache.put(clusterUrl, cloudInfo);
+            cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfo);
         }
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
         synchronized (cache) {
-            CloudInfo cloudInfo = cache.get(clusterUrl);
+            CloudInfo cloudInfo;
+            try {
+                cloudInfo = cache.get(UriUtils.setPathForUri(clusterUrl, ""));
+            } catch (URISyntaxException ex) {
+                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true);
+            }
             if (cloudInfo != null) {
                 return cloudInfo;
             }
@@ -111,8 +116,7 @@ public class CloudInfo {
                 innerObject.getString("KustoClientAppId"),
                 innerObject.getString("KustoClientRedirectUri"),
                 innerObject.getString("KustoServiceResourceId"),
-                innerObject.getString("FirstPartyAuthorityUrl")
-        );
+                innerObject.getString("FirstPartyAuthorityUrl"));
     }
 
     @Override
@@ -160,5 +164,14 @@ public class CloudInfo {
 
     public String getFirstPartyAuthorityUrl() {
         return firstPartyAuthorityUrl;
+    }
+
+    public String determineScope() throws URISyntaxException {
+        String resourceUrl = getKustoServiceResourceId();
+        if (isLoginMfaRequired()) {
+            resourceUrl = resourceUrl.replace(".kusto.", ".kustomfa.");
+        }
+
+        return UriUtils.setPathForUri(resourceUrl, ".default");
     }
 }

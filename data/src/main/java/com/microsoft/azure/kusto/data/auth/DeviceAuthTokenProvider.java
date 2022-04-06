@@ -18,7 +18,7 @@ public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
             System.out.println(deviceCode.message());
         };
 
-        DeviceCodeFlowParameters deviceCodeFlowParams = DeviceCodeFlowParameters.builder(scopes,deviceCodeConsumer).build();
+        DeviceCodeFlowParameters deviceCodeFlowParams = DeviceCodeFlowParameters.builder(scopes, deviceCodeConsumer).build();
         return clientApplication.acquireToken(deviceCodeFlowParams).join();
     }
 }

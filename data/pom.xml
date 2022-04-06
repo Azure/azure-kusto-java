@@ -98,6 +98,7 @@
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
                     <failOnWarning>true</failOnWarning>
+                    <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
                     <execution>
@@ -113,6 +114,26 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         <resources>
             <resource>
@@ -125,8 +146,8 @@
         <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
             <groupId>com.microsoft.azure</groupId>
-            <artifactId>msal4j</artifactId>
-            <version>${msal4j.version}</version>
+        <artifactId>msal4j</artifactId>
+        <version>${msal4j.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -169,9 +190,16 @@
             <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>${commons-text.version}</version>
+        </dependency>
+<!--        TODO where-->
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>

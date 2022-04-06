@@ -13,9 +13,9 @@ import java.util.Map;
  * Data class that describes the Mapping setting for .ingest command
  */
 public class ColumnMapping implements Serializable {
-    public String columnName;
-    public String columnType;
-    public Map<String, String> properties;
+    private final String columnName;
+    private final String columnType;
+    private final Map<String, String> properties;
 
     public ColumnMapping(String columnName, String cslDataType) {
         this(columnName, cslDataType, new HashMap<>());
@@ -31,6 +31,18 @@ public class ColumnMapping implements Serializable {
         columnName = other.columnName;
         columnType = other.columnType;
         properties = new HashMap<>(other.properties);
+    }
+
+    public String getColumnName() {
+        return columnName;
+    }
+
+    public String getColumnType() {
+        return columnType;
+    }
+
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
     public void setPath(String path) {
@@ -91,21 +103,21 @@ public class ColumnMapping implements Serializable {
         return properties.get(MappingConsts.STORAGE_DATA_TYPE.getName());
     }
 
-    public boolean isValid(IngestionMapping.IngestionMappingKind mappingKind)
-    {
-        switch (mappingKind)
-        {
-            case Csv:
+    public boolean isValid(IngestionMapping.IngestionMappingKind mappingKind) {
+        switch (mappingKind) {
+            case CSV:
+            case SSTREAM:
                 return !StringUtils.isEmpty(this.columnName);
-            case Json:
-            case Parquet:
-            case Orc:
+            case JSON:
+            case PARQUET:
+            case ORC:
+            case W3CLOGFILE:
                 TransformationMethod transformationMethod = getTransform();
                 return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
                         || transformationMethod == TransformationMethod.SourceLineNumber
                         || transformationMethod == TransformationMethod.SourceLocation);
-            case Avro:
-            case ApacheAvro:
+            case AVRO:
+            case APACHEAVRO:
                 return !StringUtils.isEmpty(this.columnName) &&
                         !StringUtils.isEmpty(getColumns());
             default:

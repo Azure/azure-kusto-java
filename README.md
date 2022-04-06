@@ -4,14 +4,15 @@
 
 
 master: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
-dev: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=dev)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
+![Github Actions Build](https://github.com/Azure/azure-kusto-java/actions/workflows/build.yml/badge.svg)
 
 
 This is the Microsoft Azure Kusto client library which allows communication with Kusto to bring data in (ingest) and query information already stored in the database.
 This library contains 3 different modules:
-- data: the main client that allows interaction with Kusto. It's able to create a connection, issue (control) commands and query data.
-- ingest: this provides an easy way to bring data into Kusto
-- samples 
+- data: The main client that allows interaction with Kusto, including creating a connection, issuing (control) commands and querying data
+- ingest: Provides an easy way to bring data into Kusto
+- quickstart: Self-contained, configurable and runnable sample app for easily getting started with the SDK
+- samples: Sample code implementing various scenarios
 
 # Install
 
@@ -47,6 +48,9 @@ mvn install
 - [Ingest a file](samples/README.md#file-ingestion-sample)
 - [Check status of an ingest operation](samples/README.md#query-table-status-sample)
 
+## Best Practices
+See the SDK [best practices guide](https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-best-practices), which though written for the .NET SDK, applies similarly here.
+
 # Need Support?
 - **Have a feature request for SDKs?** Please post it on [User Voice](https://feedback.azure.com/forums/915733-azure-data-explorer) to help us prioritize
 - **Have a technical question?** Ask on [Stack Overflow with tag "azure-data-explorer"](https://stackoverflow.com/questions/tagged/azure-data-explorer)
@@ -71,3 +75,12 @@ provided by the bot. You will only need to do this once across all repos using o
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Formatting
+The code in this project is formatted using formatter-maven-plugin.    
+Code that isn't formatted will not be accepted.  
+
+To format your code, run the following command:  
+`mvn formatter:format`
+
+It is also recommended importing the format file `kusto-style.xml` into your editor (the file is in the eclipse xml format).

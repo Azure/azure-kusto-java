@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -58,6 +59,10 @@ public class KustoResultSetTable {
         return tableId;
     }
 
+    public WellKnownDataSet getTableKind() {
+        return tableKind;
+    }
+
     public KustoResultColumn[] getColumns() {
         return columnsAsArray;
     }
@@ -68,10 +73,6 @@ public class KustoResultSetTable {
 
     void setTableKind(WellKnownDataSet tableKind) {
         this.tableKind = tableKind;
-    }
-
-    WellKnownDataSet getTableKind() {
-        return tableKind;
     }
 
     protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceQueryError {
@@ -243,7 +244,7 @@ public class KustoResultSetTable {
         return getDate(columnIndex, Calendar.getInstance());
     }
 
-    public Time getTime(int columnIndex) throws SQLException {
+    public Time getTime(int columnIndex) {
         LocalTime time = getLocalTime(columnIndex);
         if (time == null) {
             return null;
@@ -297,7 +298,7 @@ public class KustoResultSetTable {
     }
 
     public short getShort(String columnName) {
-        return (short) getShort(findColumn(columnName));
+        return getShort(findColumn(columnName));
     }
 
     public Short getShortObject(String columnName) {
@@ -308,7 +309,7 @@ public class KustoResultSetTable {
         return (int) get(columnName);
     }
 
-    public int getIntegerObject(String columnName) {
+    public Integer getIntegerObject(String columnName) {
         return getIntegerObject(findColumn(columnName));
     }
 
@@ -439,7 +440,8 @@ public class KustoResultSetTable {
     public boolean last() {
         if (rows.isEmpty())
             return false;
-        while (rowIterator.next() != null) ;
+        while (rowIterator.next() != null)
+            ;
         return true;
     }
 
@@ -465,9 +467,11 @@ public class KustoResultSetTable {
         String dateString = getString(columnIndex);
         DateTimeFormatter dateTimeFormatter;
         if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
         } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive().append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'")).toFormatter();
+            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
         }
         return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
     }
@@ -478,6 +482,11 @@ public class KustoResultSetTable {
 
     /**
      * This will cut the date up to yyyy-MM-dd'T'HH:mm:ss.SSS
+     *
+     * @param columnIndex         Column index that contains the date
+     * @param calendar            Calendar container appropriate timezone
+     * @throws SQLException       Throws SQLException if date can't be parsed
+     * @return Date
      */
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {
         if (calendar == null) {

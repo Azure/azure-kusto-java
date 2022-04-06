@@ -27,8 +27,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -55,6 +53,14 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         this.azureStorageClient = azureStorageClient;
     }
 
+    public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX)) {
+            throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
+        }
+        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
+        return existingEndpoint.toString();
+    }
+
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
@@ -74,17 +80,18 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
-                ingestionBlobInfo.rawDataSize = blobSourceInfo.getRawSizeInBytes();
+                ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
             } else {
                 log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
             }
 
-            ingestionBlobInfo.reportLevel = ingestionProperties.getReportLevel();
-            ingestionBlobInfo.reportMethod = ingestionProperties.getReportMethod();
-            ingestionBlobInfo.flushImmediately = ingestionProperties.getFlushImmediately();
-            ingestionBlobInfo.additionalProperties = ingestionProperties.getIngestionProperties();
+            ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel().getKustoValue());
+            ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod().getKustoValue());
+            ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
+            ingestionBlobInfo.setValidationPolicy(ingestionProperties.getValidationPolicy());
+            ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
             if (blobSourceInfo.getSourceId() != null) {
-                ingestionBlobInfo.id = blobSourceInfo.getSourceId();
+                ingestionBlobInfo.setId(blobSourceInfo.getSourceId());
             }
 
             String id = ingestionBlobInfo.id.toString();
@@ -95,8 +102,8 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
             status.setUpdatedOn(Instant.now());
             status.setIngestionSourceId(ingestionBlobInfo.id);
             status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable = ingestionBlobInfo.reportLevel != IngestionProperties.IngestionReportLevel.None
-                && ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.Queue;
+            boolean reportToTable = ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.NONE &&
+                    ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
             if (reportToTable) {
                 status.setStatus(OperationStatus.Pending);
                 TableWithSas statusTable = resourceManager
@@ -147,7 +154,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     file.getName(),
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    ingestionProperties.getDataFormat(),
+                    ingestionProperties.getDataFormat().getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
             String blobPath;
@@ -193,7 +200,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     "StreamUpload",
                     ingestionProperties.getDatabaseName(),
                     ingestionProperties.getTableName(),
-                    ingestionProperties.getDataFormat(),
+                    ingestionProperties.getDataFormat().getKustoValue(),
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
 
@@ -222,20 +229,21 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
         }
     }
 
-    private long estimateFileRawSize(String filePath, IngestionProperties.DataFormat format) {
+    private long estimateFileRawSize(String filePath, boolean isCompressible) {
         long fileSize = new File(filePath).length();
         return (IngestionUtils.getCompression(filePath) != null
                 || format == IngestionProperties.DataFormat.parquet
                 || format == IngestionProperties.DataFormat.orc) ?
                 fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
+        return (AzureStorageClient.getCompression(filePath) != null || !isCompressible) ? fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
     String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
-                UUID.randomUUID().toString(),
-                fileName,
+                AzureStorageClient.removeExtension(fileName),
+                UUID.randomUUID(),
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);
     }
@@ -266,8 +274,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
 
     @Override
     protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
-        return existingEndpoint.toString();
+        return generateDmUriSuggestion(existingEndpoint);
     }
 
     @Override

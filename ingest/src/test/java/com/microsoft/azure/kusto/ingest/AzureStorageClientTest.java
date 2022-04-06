@@ -18,11 +18,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.isA;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 class AzureStorageClientTest {
     static private final AzureStorageClient azureStorageClient = new AzureStorageClient();
@@ -37,10 +43,8 @@ class AzureStorageClientTest {
     static void setUp() {
         testFilePath = Paths.get("src", "test", "resources", "testdata.json").toString();
         testFile = new File(testFilePath);
-        String testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
-        testFileCompressed = new File(testFilePathCompressed);
-        blob = new BlobClientBuilder().endpoint("https://ms.com/storageUri/blobName")
-                .buildClient();
+        testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
+        blob = new CloudBlockBlob(new URI("https://ms.com/storageUrl"));
     }
 
     @BeforeEach

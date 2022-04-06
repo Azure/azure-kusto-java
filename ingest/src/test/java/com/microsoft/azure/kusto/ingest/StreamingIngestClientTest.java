@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.specialized.BlobInputStream;
@@ -13,7 +14,16 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.http.ProtocolVersion;
+import org.apache.http.message.BasicHttpResponse;
+import org.apache.http.message.BasicStatusLine;
 import com.microsoft.azure.kusto.ingest.source.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +36,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -36,22 +47,29 @@ import java.util.zip.GZIPOutputStream;
 
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.WRONG_ENDPOINT_MESSAGE;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClient.EXPECTED_SERVICE_TYPE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class StreamingIngestClientTest {
-
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
 
-    @Mock
-    private static StreamingClient streamingClientMock;
+    @Mock private static StreamingClient streamingClientMock;
 
-    @Captor
-    private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
 
     private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
-
+    private String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
 
     @BeforeAll
     static void setUp() {
@@ -63,7 +81,6 @@ class StreamingIngestClientTest {
     @BeforeEach
     void setUpEach() throws Exception {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
         when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
 
@@ -81,12 +98,37 @@ class StreamingIngestClientTest {
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
-        /* In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed.
-         * When the given stream content is already compressed, the user must specify that in the stream source info.
-         * This method verifies if the stream was compressed correctly.
+        /*
+         * In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed. When the given
+         * stream content is already compressed, the user must specify that in the stream source info. This method verifies if the stream was compressed
+         * correctly.
          */
         InputStream stream = argumentCaptor.getValue();
         verifyCompressedStreamContent(stream, data);
+    }
+
+    @Test
+    void IngestFromStream_CsvStream_WithClientRequestId() throws Exception {
+        String data = "Name, Age, Weight, Height";
+        InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        String clientRequestId = "clientRequestId";
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties, clientRequestId).getIngestionStatusCollection()
+                .get(0).status;
+        assertEquals(OperationStatus.Succeeded, status);
+        ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesArgumentCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+                clientRequestPropertiesArgumentCaptor.capture(), any(String.class), isNull(), any(boolean.class));
+
+        /*
+         * In order to make efficient ingestion requests, the streaming ingest client compress the given stream unless it is already compressed. When the given
+         * stream content is already compressed, the user must specify that in the stream source info. This method verifies if the stream was compressed
+         * correctly.
+         */
+        InputStream stream = argumentCaptor.getValue();
+        verifyCompressedStreamContent(stream, data);
+
+        assertEquals(clientRequestId, clientRequestPropertiesArgumentCaptor.getValue().getClientRequestId());
     }
 
     @Test
@@ -116,8 +158,8 @@ class StreamingIngestClientTest {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -139,7 +181,8 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         streamSourceInfo.setCompressionType(CompressionType.gz);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -211,15 +254,16 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_JsonNoMappingReference_IngestionClientException() {
+    void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
+        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
+        assertEquals(1, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
@@ -227,35 +271,36 @@ class StreamingIngestClientTest {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.Csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
     }
 
     @Test
-    void IngestFromStream_AvroNoMappingReference_IngestionClientException() {
+    void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
+        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.avro);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for avro format."));
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
+        ingestionProperties.setIngestionMapping("AvroMapping", IngestionMapping.IngestionMappingKind.AVRO);
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
+        assertEquals(1, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
     void IngestFromStream_AvroWrongMappingKind_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.avro);
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.Csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format avro, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."));
     }
 
     @Test
@@ -296,7 +341,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_Csv() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -307,30 +351,32 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
-        DataServiceException dataServiceException = new DataServiceException("some cluster", "Error in post request",
-                new DataWebException("Error in post request", null), true);
-        doThrow(dataServiceException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()), eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
-        when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult("{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}", "v1"));
+        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404",
+                new DataWebException("Error in post request", new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), 404, "Not found"))),
+                true);
+        doThrow(dataClientException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()),
+                eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
+        when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult(
+                "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}",
+                "v1"));
 
         streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String expectedMessage =
-                String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM, "https://testendpoint.dev.kusto.windows.net");
+        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM,
+                "https://testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
     }
 
     @Test
     void IngestFromFile_Json() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
 
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -341,11 +387,10 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_CompressedJson() throws Exception {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json.gz";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.Json);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
@@ -379,7 +424,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         assertThrows(IllegalArgumentException.class,
@@ -389,7 +433,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithNullDatabase_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties(null, "table");
@@ -400,7 +443,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithBlankDatabase_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("", "table");
@@ -411,7 +453,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithNullTable_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", null);
@@ -422,7 +463,6 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_IngestionPropertiesWithBlankTable_IllegalArgumentException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties = new IngestionProperties("database", "");
@@ -432,33 +472,40 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonNoMappingReference_IngestionClientException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+    void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
+        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Mapping reference must be specified for json format."));
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
+        assertEquals(1, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
     void IngestFromFile_JsonWrongMappingKind_IngestionClientException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.json);
-        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.Csv);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+        ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format json, found Csv mapping kind."));
+        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
+    }
+
+    @Test
+    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+        String path = resourcesDirectory + "testdata.json";
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
+        assertEquals(1, ingestionResult.getIngestionStatusesLength());
     }
 
     @Test
     void IngestFromFile_EmptyFile_IngestionClientException() {
-        String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
@@ -481,7 +528,8 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob).getIngestionStatusCollection()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class));
@@ -614,7 +662,8 @@ class StreamingIngestClientTest {
         ArgumentCaptor<InputStream> argumentCaptor = ArgumentCaptor.forClass(InputStream.class);
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
-        OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));

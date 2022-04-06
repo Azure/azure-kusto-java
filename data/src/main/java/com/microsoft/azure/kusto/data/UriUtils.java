@@ -5,12 +5,15 @@ import org.apache.http.client.utils.URIBuilder;
 import java.net.URISyntaxException;
 
 public class UriUtils {
+    private UriUtils() {
+        // Providing hidden constructor to hide default public constructor in utils class
+    }
+
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         if (ensureTrailingSlash && !path.endsWith("/")) {
             path += "/";
         }
-        if (!path.startsWith("/"))
-        {
+        if (!path.startsWith("/")) {
             path = "/" + path;
         }
 

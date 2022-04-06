@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
-
 public class FileSourceInfo extends AbstractSourceInfo {
 
     private String filePath;

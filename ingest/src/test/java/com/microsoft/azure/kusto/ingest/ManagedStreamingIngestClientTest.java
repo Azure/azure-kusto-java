@@ -36,7 +36,7 @@ import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyC
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
+//TODO wtf all changed
 class ManagedStreamingIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);

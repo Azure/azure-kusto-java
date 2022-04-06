@@ -12,7 +12,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TableReportIngestionResult implements IngestionResult {
-
     private final List<IngestionStatusInTableDescription> descriptors;
 
     public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors) {

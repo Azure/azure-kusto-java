@@ -15,27 +15,25 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 import java.util.List;
 
-import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QueueAndTable;
+import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE;
 
 public class TableStatus {
     public static void main(String[] args) {
         try {
-            Integer timeoutInSec = 60000;
+            Integer timeoutInSec = Integer.getInteger("timeoutInSec");
 
-            ConnectionStringBuilder csb =
-                    ConnectionStringBuilder.createWithAadApplicationCredentials("https://ingest-ohadprod.westeurope.kusto.windows.net",
-                            "d5e0a24c-3a09-40ce-a1d6-dc5ab58dae66",
-                            "d2E7Q~WzIL._3KQqGU9W0vSXNUU4EnNeI4C~r",
-                            "microsoft.com");
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
+                    System.getProperty("appId"),
+                    System.getProperty("appKey"),
+                    System.getProperty("appTenant"));
             IngestionResult ingestionResult;
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties("ohtst",
-                        "ddd");
-                ingestionProperties.setDataFormat(IngestionProperties.DataFormat.csv);
-
-                ingestionProperties.setReportMethod(QueueAndTable);
-                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FailuresAndSuccesses);
-                FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\big_dataset.csv", 0);
+                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
+                        System.getProperty("tableName"));
+                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
+                ingestionProperties.setReportMethod(QUEUE_AND_TABLE);
+                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
                 ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             }
             List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();

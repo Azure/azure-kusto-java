@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
@@ -12,14 +13,14 @@ import java.net.URISyntaxException;
 
 public abstract class IngestClientBase {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    protected String connectionDataSource;
+    String connectionDataSource;
     private String endpointServiceType;
     private String suggestedEndpointUri;
     public static final String INGEST_PREFIX = "ingest-";
-    protected static final String WRONG_ENDPOINT_MESSAGE =
-            "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
+    protected static final String WRONG_ENDPOINT_MESSAGE = "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
 
-    protected void validateEndpointServiceType(String connectionDataSource, String expectedServiceType) throws IngestionServiceException, IngestionClientException {
+    protected void validateEndpointServiceType(String connectionDataSource, String expectedServiceType)
+        throws IngestionServiceException, IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
         }
@@ -48,6 +49,8 @@ public abstract class IngestClientBase {
                 endpointUriToSuggestStr = emendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
                 log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
+            } catch (IllegalArgumentException e) {
+                log.error("URL is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
             }
         }
 
@@ -57,4 +60,8 @@ public abstract class IngestClientBase {
     protected abstract String retrieveServiceType() throws IngestionServiceException, IngestionClientException;
 
     protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
+
+    static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
+        return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
+    }
 }

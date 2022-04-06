@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Represents the Resultset source information used for ingestion.
+ * Represents the ResultSet source information used for ingestion.
  */
 public class ResultSetSourceInfo extends AbstractSourceInfo {
 
@@ -59,6 +59,6 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
     }
 
     public void validate() {
-        //nothing to validate as of now.
+        // nothing to validate as of now.
     }
 }
