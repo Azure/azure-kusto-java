@@ -43,7 +43,7 @@
         <commons-text.version>1.9</commons-text.version>
         <msal4j.version>1.11.0</msal4j.version>
         <httpclient.version>4.5.13</httpclient.version>
-        <httpcore.version>4.4.13</httpcore.version>
+        <httpcore.version>4.4.15</httpcore.version>
         <json.version>20201115</json.version>
         <fasterxml.jackson.core.version>[2.11.0,2.13.0]</fasterxml.jackson.core.version>
         <azure-storage.version>8.6.6</azure-storage.version>
@@ -51,7 +51,8 @@
         <azure-core.version>1.21.0</azure-core.version>
         <reactor-core.version>3.4.10</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
-
+        <resilience4j.version>1.7.1</resilience4j.version>
+        <io.vavr.version>0.10.2</io.vavr.version>
         <!-- Test dependencies -->
         <bouncycastle.version>1.68</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>

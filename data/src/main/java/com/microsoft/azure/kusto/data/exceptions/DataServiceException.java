@@ -14,11 +14,6 @@ public class DataServiceException extends KustoDataExceptionBase {
         super(ingestionSource, message, exception, isPermanent);
     }
 
-    public boolean is404Error() {
-        Integer code = getStatusCode();
-        return code != null && code == 404;
-    }
-
     @Nullable
     public Integer getStatusCode() {
         Throwable cause = getCause();

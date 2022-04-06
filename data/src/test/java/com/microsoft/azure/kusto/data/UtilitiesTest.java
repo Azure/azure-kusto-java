@@ -6,6 +6,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
+import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +54,7 @@ class UtilitiesTest {
     void createExceptionFromResponse404Error() {
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(404);
         DataServiceException error = Utils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), "error");
-        Assertions.assertTrue(error.is404Error());
+        Assertions.assertTrue(error.getStatusCode() != null && error.getStatusCode() == HttpStatus.SC_NOT_FOUND);
     }
 
     @Test
