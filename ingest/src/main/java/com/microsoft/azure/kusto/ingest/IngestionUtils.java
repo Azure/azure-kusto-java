@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
@@ -83,5 +84,23 @@ public class IngestionUtils {
         }
 
         return null;
+    }
+
+    static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf('\\');
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
+    }
+
+    static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
+        return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
     }
 }

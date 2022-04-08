@@ -79,7 +79,7 @@ public class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-             GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+            GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
             copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
         }
     }
@@ -133,14 +133,6 @@ public class AzureStorageClient {
 
     String getBlobPathWithSas(String blobSas, String blobName) {
         return blobSas.concat(blobName);
-    }
-
-    // We don't support compression of Parquet and Orc files
-    static boolean shouldCompress(CompressionType sourceCompressionType, String dataFormat) {
-        return sourceCompressionType == null
-                && (dataFormat == null ||
-                (!dataFormat.equals(IngestionProperties.DataFormat.parquet.name())
-                        && !dataFormat.equals(IngestionProperties.DataFormat.orc.name())));
     }
 
     public static TableClient TableClientFromUrl(String url) {
