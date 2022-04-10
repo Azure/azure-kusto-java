@@ -77,7 +77,7 @@ class ResourceManager implements Closeable {
         this.client = client;
         timer = new Timer(true);
         // Using ctor with client so that the dependency is used
-        httpClient = new NettyAsyncHttpClientBuilder(reactor.netty.http.client.HttpClient.create()).
+        httpClient = new NettyAsyncHttpClientBuilder().
                 responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build();
         init();
     }

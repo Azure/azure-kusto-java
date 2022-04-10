@@ -50,7 +50,6 @@ public class TableStatus {
             JavaTimeModule module = new JavaTimeModule();
             module.addSerializer(Instant.class, new InstantSerializerWithMilliSecondPrecision());
             objectMapper.registerModule(module);
-            objectMapper.registerModule(new JavaTimeModule());
             String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
 
             System.out.println(resultAsJson);

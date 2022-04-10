@@ -22,8 +22,8 @@ public class TableReportIngestionResult implements IngestionResult {
     public List<IngestionStatus> getIngestionStatusCollection() throws ParseException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            TableClient table = AzureStorageClient.TableClientFromUrl(descriptor.TableConnectionString);
-            TableEntity entity = table.getEntity(descriptor.PartitionKey, descriptor.RowKey);
+            TableClient table = AzureStorageClient.TableClientFromUrl(descriptor.getTableConnectionString());
+            TableEntity entity = table.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey());
             results.add(IngestionStatus.fromEntity(entity));
         }
 

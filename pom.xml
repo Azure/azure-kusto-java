@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>3.0.2</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>3.2.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
@@ -41,13 +41,13 @@
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <commons-lang3.version>3.11</commons-lang3.version>
         <commons-text.version>1.9</commons-text.version>
-        <!--TODO Aligns with bom 1.0.6 https://search.maven.org/artifact/com.azure/azure-sdk-bom/1.0.6/jar-->
+        <!--Align msal4j with bom version https://search.maven.org/artifact/com.azure/azure-sdk-bom/1.0.6/jar-->
         <msal4j.version>1.11.0</msal4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.13</httpcore.version>
         <json.version>20201115</json.version>
         <fasterxml.jackson.core.version>2.13.1</fasterxml.jackson.core.version>
-        <azure-storage.version>8.6.6</azure-storage.version>
+        <reactor-core.version>3.4.10</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <!-- Bom 1.0.6 targets azure-core with same fasterxml version as databricks runtime 10
          https://docs.microsoft.com/en-us/azure/databricks/release-notes/runtime/10.3-->
