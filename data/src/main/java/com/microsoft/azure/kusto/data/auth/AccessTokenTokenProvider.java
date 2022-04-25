@@ -4,7 +4,10 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import java.net.URISyntaxException;
+
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class AccessTokenTokenProvider extends TokenProviderBase {
     private final String accessToken;
@@ -15,7 +18,7 @@ public class AccessTokenTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    public String acquireAccessToken() {
+    public String acquireAccessToken(@Nullable HttpClient httpClient) {
         return accessToken;
     }
 }

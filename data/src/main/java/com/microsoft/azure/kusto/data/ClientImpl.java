@@ -244,7 +244,7 @@ public class ClientImpl implements Client, StreamingClient {
             headers.put("x-ms-user-id", userNameForTracing);
         }
         if (aadAuthenticationHelper != null) {
-            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken(httpClient)));
         }
         String clientRequestId;
         if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {

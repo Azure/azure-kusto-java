@@ -5,7 +5,10 @@ import com.microsoft.aad.msal4j.IClientCertificate;
 import com.microsoft.aad.msal4j.IConfidentialClientApplication;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientCertificate clientCertificate;
@@ -17,11 +20,15 @@ public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProvider
     }
 
     @Override
-    protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        return ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
+    protected IConfidentialClientApplication getClientApplication(@Nullable HttpClient httpClient) throws MalformedURLException {
+        ConfidentialClientApplication.Builder builder = ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
                 .authority(aadAuthorityUrl)
                 .validateAuthority(false)
-                .sendX5c(true)
+                .sendX5c(true);
+        if (httpClient != null) {
+            builder.httpClient(new HttpClientWrapper(httpClient));
+        }
+        return builder
                 .build();
     }
 }

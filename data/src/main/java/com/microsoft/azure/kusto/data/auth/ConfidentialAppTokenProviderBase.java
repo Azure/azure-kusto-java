@@ -16,7 +16,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProviderBase {
     final String applicationClientId;
@@ -28,10 +31,10 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
-        super.initializeWithCloudInfo(cloudInfo);
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo, httpClient);
         try {
-            clientApplication = getClientApplication();
+            clientApplication = getClientApplication(httpClient);
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         }
@@ -66,5 +69,5 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
                 .get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
 
-    protected abstract IConfidentialClientApplication getClientApplication() throws MalformedURLException;
+    protected abstract IConfidentialClientApplication getClientApplication(@Nullable HttpClient httpClient) throws MalformedURLException;
 }

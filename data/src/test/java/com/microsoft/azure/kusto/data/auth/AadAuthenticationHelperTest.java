@@ -64,7 +64,7 @@ public class AadAuthenticationHelperTest {
 
         MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
 
-        aadAuthenticationHelper.initialize();
+        aadAuthenticationHelper.initialize(null);
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
         Assertions.assertThrows(DataServiceException.class,
@@ -132,19 +132,19 @@ public class AadAuthenticationHelperTest {
         // doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
-        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken(null));
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelperSpy.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
         // Token is still valid - expected to return the same
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
 
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
     }
 
     @Test
@@ -164,7 +164,7 @@ public class AadAuthenticationHelperTest {
 
         ));
 
-        aadAuthenticationHelper.initialize();
+        aadAuthenticationHelper.initialize(null);
         assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
         assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.clientApplication.authority());
 
@@ -194,7 +194,7 @@ public class AadAuthenticationHelperTest {
         PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
         CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
 
-        aadAuthenticationHelper.initialize();
+        aadAuthenticationHelper.initialize(null);
         String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/auth_id/";
         assertEquals(CloudInfo.DEFAULT_KUSTO_CLIENT_APP_ID, aadAuthenticationHelper.clientApplication.clientId());
         assertEquals(authorityUrl, aadAuthenticationHelper.clientApplication.authority());
