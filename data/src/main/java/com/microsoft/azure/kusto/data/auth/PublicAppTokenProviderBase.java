@@ -35,7 +35,7 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
             clientAppId = cloudInfo.getKustoClientAppId();
             PublicClientApplication.Builder authority = PublicClientApplication.builder(clientAppId).authority(aadAuthorityUrl);
             if (httpClient != null) {
-                //authority.httpClient(new HttpClientWrapper(httpClient));
+                authority.httpClient(new HttpClientWrapper(httpClient));
             }
             clientApplication = authority.build();
         } catch (MalformedURLException e) {
