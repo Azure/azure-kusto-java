@@ -11,7 +11,7 @@ public class UriUtils {
 
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         if (ensureTrailingSlash) {
-            ensureTrailingSlash(path);
+            path = ensureTrailingSlash(path);
         }
         if (!path.startsWith("/")) {
             path = "/" + path;
