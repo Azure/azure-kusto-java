@@ -27,7 +27,8 @@ public class IngestClientFactory {
         return createStreamingIngestClient(csb, null);
     }
 
-    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties)
+        throws URISyntaxException {
         return new StreamingIngestClient(csb, properties);
     }
 
@@ -39,29 +40,29 @@ public class IngestClientFactory {
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
             ConnectionStringBuilder engineConnectionStringBuilder, @Nullable HttpClientProperties properties)
-            throws URISyntaxException {
+        throws URISyntaxException {
         return new ManagedStreamingIngestClient(dmConnectionStringBuilder, engineConnectionStringBuilder, properties);
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromEngineCsb(ConnectionStringBuilder engineConnectionStringBuilder)
-            throws URISyntaxException {
+        throws URISyntaxException {
         return createManagedStreamingIngestClientFromEngineCsb(engineConnectionStringBuilder, null);
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromEngineCsb(ConnectionStringBuilder engineConnectionStringBuilder,
             @Nullable HttpClientProperties properties)
-            throws URISyntaxException {
+        throws URISyntaxException {
         return ManagedStreamingIngestClient.fromEngineConnectionString(engineConnectionStringBuilder, properties);
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder)
-            throws URISyntaxException {
+        throws URISyntaxException {
         return createManagedStreamingIngestClientFromDmCsb(dmConnectionStringBuilder, null);
     }
 
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder,
             @Nullable HttpClientProperties properties)
-            throws URISyntaxException {
+        throws URISyntaxException {
         return ManagedStreamingIngestClient.fromDmConnectionString(dmConnectionStringBuilder, properties);
     }
 }

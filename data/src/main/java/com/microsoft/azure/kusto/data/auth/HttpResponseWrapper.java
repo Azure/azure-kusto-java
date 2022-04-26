@@ -34,22 +34,24 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
         this(null, response);
     }
 
-    @Override public int getStatusCode() {
+    @Override
+    public int getStatusCode() {
         return response.getStatusLine().getStatusCode();
     }
 
-    @Override public String getHeaderValue(String s) {
+    @Override
+    public String getHeaderValue(String s) {
         return response.getFirstHeader(s).getValue();
     }
 
-    @Override public HttpHeaders getHeaders() {
+    @Override
+    public HttpHeaders getHeaders() {
         Map<String, List<String>> newHeaders = new HashMap<>();
         Header[] allHeaders = response.getAllHeaders();
         for (Header header : allHeaders) {
             if (newHeaders.containsKey(header.getName())) {
                 newHeaders.get(header.getName()).add(header.getValue());
-            }
-            else {
+            } else {
                 List<String> values = new ArrayList<>();
                 values.add(header.getValue());
                 newHeaders.put(header.getName(), values);
@@ -58,11 +60,13 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
         return new HttpHeaders(newHeaders.entrySet().stream().map(e -> new HttpHeader(e.getKey(), e.getValue())).collect(Collectors.toList()));
     }
 
-    @Override public Flux<ByteBuffer> getBody() {
+    @Override
+    public Flux<ByteBuffer> getBody() {
         return getBodyAsByteArray().map(ByteBuffer::wrap).flux();
     }
 
-    @Override public Mono<byte[]> getBodyAsByteArray() {
+    @Override
+    public Mono<byte[]> getBodyAsByteArray() {
         if (body == null) {
             try {
                 body = EntityUtils.toByteArray(response.getEntity());
@@ -74,23 +78,28 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
         return Mono.just(body);
     }
 
-    @Override public Mono<String> getBodyAsString() {
+    @Override
+    public Mono<String> getBodyAsString() {
         return getBodyAsByteArray().map(String::new);
     }
 
-    @Override public Mono<String> getBodyAsString(Charset charset) {
+    @Override
+    public Mono<String> getBodyAsString(Charset charset) {
         return getBodyAsByteArray().map(bytes -> new String(bytes, charset));
     }
 
-    @Override public int statusCode() {
+    @Override
+    public int statusCode() {
         return getStatusCode();
     }
 
-    @Override public Map<String, List<String>> headers() {
+    @Override
+    public Map<String, List<String>> headers() {
         return getHeaders().stream().collect(Collectors.toMap(com.azure.core.util.Header::getName, com.azure.core.util.Header::getValuesList));
     }
 
-    @Override public String body() {
+    @Override
+    public String body() {
         String block = getBodyAsString().block();
         return block;
     }

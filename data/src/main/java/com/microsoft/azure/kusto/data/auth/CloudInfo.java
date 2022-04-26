@@ -71,7 +71,8 @@ public class CloudInfo {
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
-            @Nullable HttpClient givenHttpClient) throws DataServiceException {
+            @Nullable HttpClient givenHttpClient)
+        throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {

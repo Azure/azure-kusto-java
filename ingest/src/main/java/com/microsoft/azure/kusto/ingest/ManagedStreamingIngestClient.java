@@ -71,7 +71,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+            @Nullable HttpClientProperties properties)
+        throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
@@ -99,7 +100,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+            @Nullable HttpClientProperties properties)
+        throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(QueuedIngestClient.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);

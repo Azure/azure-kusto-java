@@ -40,7 +40,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         this.httpClient = httpClient;
     }
 
-    @Override public Mono<HttpResponse> send(HttpRequest httpRequest) {
+    @Override
+    public Mono<HttpResponse> send(HttpRequest httpRequest) {
         HttpUriRequest request;
         String uri = httpRequest.getUrl().toString();
         switch (httpRequest.getHttpMethod()) {
@@ -102,7 +103,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         }));
     }
 
-    @Override public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) throws Exception {
+    @Override
+    public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) throws Exception {
         HttpUriRequest request;
         String uri = httpRequest.url().toString();
         switch (httpRequest.httpMethod()) {
