@@ -182,7 +182,7 @@ public class AadAuthenticationHelperTest {
                 new HashSet<>(
                         Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals("first_party_url", silentParametersMsaUser.authorityUrl());
+        assertEquals("first_party_url/", silentParametersMsaUser.authorityUrl());
     }
 
     @Test
@@ -213,7 +213,7 @@ public class AadAuthenticationHelperTest {
                 new HashSet<>(
                         Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL, silentParametersMsaUser.authorityUrl());
+        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL + "/", silentParametersMsaUser.authorityUrl());
     }
 
     static class MockAccount implements IAccount {
