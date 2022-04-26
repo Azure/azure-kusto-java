@@ -50,7 +50,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final ExponentialRetry exponentialRetryTemplate;
 
     /**
-     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * Creates a new ManagedStreamingIngestClient from a DM connection string, with default http client properties.
      * This method infers the engine connection string from the DM connection string.
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param dmConnectionString dm connection string
@@ -79,7 +79,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     /**
-     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * Creates a new ManagedStreamingIngestClient from an engine connection string, with default http client properties.
      * This method infers the DM connection string from the engine connection string.
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param engineConnectionString engine connection string

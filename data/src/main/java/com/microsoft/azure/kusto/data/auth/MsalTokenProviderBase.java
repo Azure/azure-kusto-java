@@ -37,9 +37,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         super.initializeWithCloudInfo(cloudInfo, httpClient);
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
-        if (firstPartyAuthorityUrl != null && !firstPartyAuthorityUrl.isEmpty() && !firstPartyAuthorityUrl.endsWith("/")) {
-            firstPartyAuthorityUrl += "/";
-        }
+        // Some apis (e.g. device authentication) require the url to always end in backslash.
+        firstPartyAuthorityUrl = UriUtils.ensureTrailingSlash(firstPartyAuthorityUrl);
     }
 
     private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
