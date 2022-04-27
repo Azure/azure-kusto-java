@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.net.URISyntaxException;
@@ -10,14 +11,16 @@ public class UriUtils {
     }
 
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
-        if (ensureTrailingSlash && !path.endsWith("/")) {
-            path += "/";
+        if (ensureTrailingSlash) {
+            path = StringUtils.appendIfMissing(path, "/");
         }
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
+        path = StringUtils.prependIfMissing(path, "/");
 
-        return new URIBuilder(uri).setPath(path).build().toString();
+        String pathString = new URIBuilder(uri).setPath(path).build().toString();
+        if (ensureTrailingSlash) {
+            pathString = StringUtils.appendIfMissing(pathString, "/");
+        }
+        return pathString;
     }
 
     public static String setPathForUri(String uri, String path) throws URISyntaxException {
