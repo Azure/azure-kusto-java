@@ -55,7 +55,7 @@ ClientImpl client = new ClientImpl(csb, properties);
 2. Execute query
 
 ```java
-Results results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
+KustoOperationResult results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
 ```
 
 ### How to run this sample
