@@ -465,15 +465,9 @@ public class KustoResultSetTable {
             return null;
         }
         String dateString = getString(columnIndex);
-        DateTimeFormatter dateTimeFormatter;
-        if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
-                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
-        } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
-                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
-        }
-        return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
+        DateTimeFormatter dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
+        return LocalDateTime.parse(dateString, dateTimeFormatter);
     }
 
     public LocalDateTime getKustoDateTime(String columnName) {
