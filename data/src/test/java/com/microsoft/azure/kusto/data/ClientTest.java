@@ -30,21 +30,25 @@ public class ClientTest {
         tests.put("https://kusto.test.com:4242/;fed=true", "https://kusto.test.com:4242");
         tests.put("https://kusto.test.com:4242/test;fed=true", "https://kusto.test.com:4242/test");
         tests.put("https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace", "https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace");
+                ".operationalinsights/workspaces/some_workspace",
+                "https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
+                        ".operationalinsights/workspaces/some_workspace");
         tests.put("https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace/", "https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65" +
-                "/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace");
+                ".operationalinsights/workspaces/some_workspace/",
+                "https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65" +
+                        "/resourcegroups/some_resource_group/providers/microsoft" +
+                        ".operationalinsights/workspaces/some_workspace");
         tests.put("https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace/", "https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65" +
-                "/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace");
+                ".operationalinsights/workspaces/some_workspace/",
+                "https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65" +
+                        "/resourcegroups/some_resource_group/providers/microsoft" +
+                        ".operationalinsights/workspaces/some_workspace");
         tests.put("https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace/;fed=true", "https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66" +
-                "-3b6810eb4f65" +
-                "/resourcegroups/some_resource_group/providers/microsoft" +
-                ".operationalinsights/workspaces/some_workspace");
+                ".operationalinsights/workspaces/some_workspace/;fed=true",
+                "https://ade.loganalytics.io:4242/subscriptions/da45f7ac-97c0-4fff-ac66" +
+                        "-3b6810eb4f65" +
+                        "/resourcegroups/some_resource_group/providers/microsoft" +
+                        ".operationalinsights/workspaces/some_workspace");
         tests.put("https://kusto.aria.microsoft.com", "https://kusto.aria.microsoft.com");
         tests.put("https://kusto.aria.microsoft.com/", "https://kusto.aria.microsoft.com");
         tests.put("https://kusto.aria.microsoft.com/;fed=true", "https://kusto.aria.microsoft.com");
