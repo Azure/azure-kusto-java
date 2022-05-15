@@ -61,7 +61,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
 
         clusterUrl = csb.getClusterUrl();
-        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb);
+        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
@@ -244,7 +244,7 @@ public class ClientImpl implements Client, StreamingClient {
             headers.put("x-ms-user-id", userNameForTracing);
         }
         if (aadAuthenticationHelper != null) {
-            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken(httpClient)));
+            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
         }
         String clientRequestId;
         if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {

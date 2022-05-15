@@ -17,13 +17,13 @@ public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBas
     private final IClientSecret clientSecret;
 
     ApplicationKeyTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientSecret clientSecret,
-            String authorityId) throws URISyntaxException {
-        super(clusterUrl, applicationClientId, authorityId);
+            String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, applicationClientId, authorityId, httpClient);
         this.clientSecret = clientSecret;
     }
 
     @Override
-    protected IConfidentialClientApplication getClientApplication(@Nullable HttpClient httpClient) throws MalformedURLException {
+    protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
         ConfidentialClientApplication.Builder authority = ConfidentialClientApplication.builder(applicationClientId, clientSecret)
                 .authority(aadAuthorityUrl);
         if (httpClient != null) {

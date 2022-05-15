@@ -25,16 +25,17 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
     final String applicationClientId;
     IConfidentialClientApplication clientApplication;
 
-    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, @NotNull String applicationClientId, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, @NotNull String applicationClientId, String authorityId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, authorityId, httpClient);
         this.applicationClientId = applicationClientId;
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
-        super.initializeWithCloudInfo(cloudInfo, httpClient);
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo);
         try {
-            clientApplication = getClientApplication(httpClient);
+            clientApplication = getClientApplication();
         } catch (MalformedURLException e) {
             throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
         }
@@ -69,5 +70,5 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
                 .get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
 
-    protected abstract IConfidentialClientApplication getClientApplication(@Nullable HttpClient httpClient) throws MalformedURLException;
+    protected abstract IConfidentialClientApplication getClientApplication() throws MalformedURLException;
 }

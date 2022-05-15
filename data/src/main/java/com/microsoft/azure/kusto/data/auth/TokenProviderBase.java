@@ -14,10 +14,12 @@ import org.slf4j.LoggerFactory;
 public abstract class TokenProviderBase {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final String clusterUrl;
+    protected final HttpClient httpClient;
 
-    public TokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
+    public TokenProviderBase(@NotNull String clusterUrl, @Nullable HttpClient httpClient) throws URISyntaxException {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
+        this.httpClient = httpClient;
     }
 
-    public abstract String acquireAccessToken(@Nullable HttpClient httpClient) throws DataServiceException, DataClientException;
+    public abstract String acquireAccessToken() throws DataServiceException, DataClientException;
 }

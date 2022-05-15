@@ -17,13 +17,13 @@ public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenPro
     private final IClientCertificate clientCertificate;
 
     ApplicationCertificateTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,
-            String authorityId) throws URISyntaxException {
-        super(clusterUrl, applicationClientId, authorityId);
+            String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, applicationClientId, authorityId, httpClient);
         this.clientCertificate = clientCertificate;
     }
 
     @Override
-    protected IConfidentialClientApplication getClientApplication(@Nullable HttpClient httpClient) throws MalformedURLException {
+    protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
         ConfidentialClientApplication.Builder builder = ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
                 .authority(aadAuthorityUrl)
                 .validateAuthority(false);

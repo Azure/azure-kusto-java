@@ -19,14 +19,14 @@ public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBas
     private ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
-    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId) throws URISyntaxException {
-        super(clusterUrl);
+    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, httpClient);
         this.managedIdentityClientId = managedIdentityClientId;
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataServiceException, DataClientException {
-        super.initializeWithCloudInfo(cloudInfo, httpClient);
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataServiceException, DataClientException {
+        super.initializeWithCloudInfo(cloudInfo);
         ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
         if (StringUtils.isNotBlank(managedIdentityClientId)) {
             builder = builder.clientId(managedIdentityClientId); // only required for user assigned

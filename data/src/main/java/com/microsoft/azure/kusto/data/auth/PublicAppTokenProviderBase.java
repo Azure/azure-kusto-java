@@ -24,13 +24,13 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     protected IPublicClientApplication clientApplication;
     protected String clientAppId;
 
-    PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, authorityId, httpClient);
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
-        super.initializeWithCloudInfo(cloudInfo, httpClient);
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo);
         try {
             clientAppId = cloudInfo.getKustoClientAppId();
             PublicClientApplication.Builder authority = PublicClientApplication.builder(clientAppId).authority(aadAuthorityUrl);

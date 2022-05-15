@@ -18,20 +18,20 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     protected final Set<String> scopes = new HashSet<>();
     private boolean initialized = false;
 
-    CloudDependentTokenProviderBase(@NotNull String clusterUrl) throws URISyntaxException {
-        super(clusterUrl);
+    CloudDependentTokenProviderBase(@NotNull String clusterUrl, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, httpClient);
     }
 
-    synchronized void initialize(@Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
+    synchronized void initialize() throws DataClientException, DataServiceException {
         if (initialized) {
             return;
         }
 
-        initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient), httpClient);
+        initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
         initialized = true;
     }
 
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
         try {
             scopes.add(cloudInfo.determineScope());
         } catch (URISyntaxException e) {
@@ -40,8 +40,8 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken(@Nullable HttpClient httpClient) throws DataServiceException, DataClientException {
-        initialize(httpClient);
+    public String acquireAccessToken() throws DataServiceException, DataClientException {
+        initialize();
         return acquireAccessTokenImpl();
     }
 

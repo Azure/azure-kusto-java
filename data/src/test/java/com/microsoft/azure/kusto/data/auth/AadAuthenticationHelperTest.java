@@ -62,9 +62,9 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
-        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
 
-        aadAuthenticationHelper.initialize(null);
+        aadAuthenticationHelper.initialize();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
         Assertions.assertThrows(DataServiceException.class,
@@ -117,7 +117,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
-        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
+        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb, null));
 
         IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken",
                 new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
@@ -132,19 +132,19 @@ public class AadAuthenticationHelperTest {
         // doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
-        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken(null));
+        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelperSpy.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
         // Token is still valid - expected to return the same
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
 
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken(null));
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
     }
 
     @Test
@@ -153,7 +153,7 @@ public class AadAuthenticationHelperTest {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
                 true,
                 "https://nostandard-login-input",
@@ -164,7 +164,7 @@ public class AadAuthenticationHelperTest {
 
         ));
 
-        aadAuthenticationHelper.initialize(null);
+        aadAuthenticationHelper.initialize();
         assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
         assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.clientApplication.authority());
 
@@ -191,10 +191,10 @@ public class AadAuthenticationHelperTest {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "auth_id", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
 
-        aadAuthenticationHelper.initialize(null);
+        aadAuthenticationHelper.initialize();
         String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/auth_id/";
         assertEquals(CloudInfo.DEFAULT_KUSTO_CLIENT_APP_ID, aadAuthenticationHelper.clientApplication.clientId());
         assertEquals(authorityUrl, aadAuthenticationHelper.clientApplication.authority());

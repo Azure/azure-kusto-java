@@ -27,14 +27,14 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     protected String aadAuthorityUrl;
     private String firstPartyAuthorityUrl;
 
-    MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl);
+    MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, httpClient);
         this.authorityId = authorityId;
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo, @Nullable HttpClient httpClient) throws DataClientException, DataServiceException {
-        super.initializeWithCloudInfo(cloudInfo, httpClient);
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+        super.initializeWithCloudInfo(cloudInfo);
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
         // Some apis (e.g. device authentication) require the url to always end in backslash.
