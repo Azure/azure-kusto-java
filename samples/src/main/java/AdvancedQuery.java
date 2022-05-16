@@ -54,7 +54,7 @@ public class AdvancedQuery {
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 
-            // iterate values
+            // Iterate values
             List<Event> events = new ArrayList<>();
             while (mainTableResult.next()) {
                 events.add(new Event(mainTableResult.getKustoDateTime("timestamp"), mainTableResult.getString("eventName")));

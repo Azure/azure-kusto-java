@@ -79,12 +79,12 @@ This sample shows some more advanced options available when querying data, like 
 
 ### Prerequisites
 
-- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
-- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later). Permissions must include the ability to create tables in the database.
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later). Principal's permission must be at least 'Database user'.
 
 ### Notable Features
 
-1. Creating a table with initial data using the [.set-or-replace](https://docs.microsoft.com/en-us/azure/data-explorer/kusto/management/data-ingestion/ingest-from-query) command
+1. Creating a table with initial data using the [.set-or-replace](https://docs.microsoft.com/azure/data-explorer/kusto/management/data-ingestion/ingest-from-query) command
 
 ```java
 String tableCommand = String.join(newLine,
@@ -130,13 +130,13 @@ mvn clean compile exec:java -Dexec.mainClass="AdvancedQuery" \
                             -DclusterPath="cluster/path" \
                             -DappId="app-id" \
                             -DappKey="appKey" \
-                            -DappTenant="subscription-id" \
+                            -DappTenant="tenant-id" \
                             -DdbName="dbName" 
 ```
 
 ## File Ingestion Sample
 
-This sample will demonstrate how to ingest data from file into table.  
+This sample will demonstrate how to ingest data from a file into table.  
 [Sample Code](src/main/java/FileIngestion.java)
 
 ### Prerequisites
