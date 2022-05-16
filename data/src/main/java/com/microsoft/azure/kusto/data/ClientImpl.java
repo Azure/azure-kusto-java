@@ -55,10 +55,23 @@ public class ClientImpl implements Client, StreamingClient {
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
-        if (host == null && auth.endsWith(FEDERATED_SECURITY_SUFFIX)) {
-            csb.setClusterUrl(new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
-                    .setHost(auth.substring(0, clusterUrlForParsing.getAuthority().indexOf(FEDERATED_SECURITY_SUFFIX))).toString());
+        if (host == null) {
+            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
         }
+        URIBuilder uriBuilder = new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
+                .setHost(host);
+        String path = clusterUrlForParsing.getPath();
+        if (path != null && !path.isEmpty()) {
+            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
+            path = StringUtils.removeEndIgnoreCase(path, "/");
+
+            uriBuilder.setPath(path);
+        }
+
+        if (clusterUrlForParsing.getPort() != -1) {
+            uriBuilder.setPort(clusterUrlForParsing.getPort());
+        }
+        csb.setClusterUrl(uriBuilder.build().toString());
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
@@ -286,5 +299,9 @@ public class ClientImpl implements Client, StreamingClient {
     private void addCommandHeaders(Map<String, String> headers) {
         headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
         headers.put("Fed", "True");
+    }
+
+    public String getClusterUrl() {
+        return clusterUrl;
     }
 }
