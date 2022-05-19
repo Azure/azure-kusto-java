@@ -87,7 +87,7 @@ public class CloudInfo {
             CloudInfo result;
 
             try {
-                HttpClient localHttpClient = givenHttpClient == null ? HttpClients.createDefault() : givenHttpClient;
+                HttpClient localHttpClient = givenHttpClient == null ? HttpClients.createSystem() : givenHttpClient;
                 try {
                     HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
                     request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
