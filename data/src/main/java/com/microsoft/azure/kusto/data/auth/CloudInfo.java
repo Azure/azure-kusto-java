@@ -76,7 +76,7 @@ public class CloudInfo {
 
             CloudInfo result;
 
-            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            try (CloseableHttpClient httpClient = HttpClients.createSystem()) {
                 HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
                 request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                 request.addHeader(HttpHeaders.ACCEPT, "application/json");
