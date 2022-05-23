@@ -4,7 +4,9 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobOutputStream;
@@ -15,6 +17,11 @@ import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
+
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,16 +30,60 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.invoke.MethodHandles;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
+    @Nullable
+    private final HttpClientProperties httpClientProperties;
+    @Nullable
+    private final OperationContext operationContext;
+
+    public AzureStorageClient() {
+        this(null);
+    }
+
+    public AzureStorageClient(@Nullable HttpClientProperties httpClientProperties) {
+        this.httpClientProperties = httpClientProperties;
+
+        if (this.httpClientProperties != null) {
+            this.operationContext = new OperationContext();
+            initializeProxy();
+        }
+        else {
+            this.operationContext = null;
+        }
+    }
+
+    private void initializeProxy() {
+        Objects.requireNonNull(this.httpClientProperties);
+        Objects.requireNonNull(this.operationContext);
+        HttpHost proxyHost = this.httpClientProperties.getProxy();
+        if (proxyHost == null) {
+            return;
+        }
+
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new java.net.InetSocketAddress(proxyHost.getHostName(), proxyHost.getPort()));
+        this.operationContext.setProxy(proxy);
+
+        if (this.httpClientProperties.getCredentialsProvider() == null) {
+            return;
+        }
+
+        Credentials credentials = this.httpClientProperties.getCredentialsProvider().getCredentials(AuthScope.ANY);
+        if (credentials != null) {
+            this.operationContext.setProxyUsername(credentials.getUserPrincipal().getName());
+            this.operationContext.setProxyPassword(credentials.getPassword());
+        }
+    }
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Ensure
@@ -93,7 +144,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
-                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream(null, null, this.operationContext))) {
             copyStream(fin, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -103,7 +154,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
 
-        blob.uploadFromFile(sourceFile.getAbsolutePath());
+        blob.uploadFromFile(sourceFile.getAbsolutePath(), null, null, this.operationContext);
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
@@ -131,7 +182,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        BlobOutputStream bos = blob.openOutputStream();
+        BlobOutputStream bos = blob.openOutputStream(null, null, this.operationContext);
         copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
         bos.close();
     }
@@ -141,7 +192,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream(null, null, this.operationContext))) {
             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }

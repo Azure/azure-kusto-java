@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -62,6 +63,19 @@ class HttpClientFactory {
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
+        if (properties.getProxy() != null) {
+            httpClientBuilder.setProxy(properties.getProxy());
+        }
+
+        if (properties.getDefaultRequestConfig() != null) {
+            httpClientBuilder.setDefaultRequestConfig(properties.getDefaultRequestConfig());
+        }
+
+        if (properties.getCredentialsProvider() != null) {
+            httpClientBuilder.setDefaultCredentialsProvider(properties.getCredentialsProvider());
+        }
+
+        HttpClientContext context = HttpClientContext.create();
         final CloseableHttpClient httpClient = httpClientBuilder.build();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> closeClient(httpClient)));
         return httpClient;

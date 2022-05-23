@@ -1,5 +1,10 @@
 package com.microsoft.azure.kusto.data;
 
+import org.apache.http.HttpHost;
+import org.apache.http.client.AuthCache;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+
 /**
  * HTTP client properties.
  */
@@ -10,6 +15,10 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
+    private final HttpHost proxy;
+    private final RequestConfig defaultRequestConfig;
+
+    private final CredentialsProvider credentialsProvider;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -17,6 +26,9 @@ public class HttpClientProperties {
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
+        this.proxy = builder.proxy;
+        this.defaultRequestConfig = builder.defaultRequestConfig;
+        this.credentialsProvider = builder.credentialsProvider;
     }
 
     /**
@@ -85,6 +97,33 @@ public class HttpClientProperties {
         return maxConnectionRoute;
     }
 
+    /**
+     * The proxy to use when connecting to the remote server.
+     *
+     * @return the proxy
+     */
+    public HttpHost getProxy() {
+        return proxy;
+    }
+
+    /**
+     * The default request configuration to use when creating new connections.
+     *
+     * @return the default request configuration
+     */
+    public RequestConfig getDefaultRequestConfig() {
+        return defaultRequestConfig;
+    }
+
+    /**
+     * The credentials provider to use when creating new connections.
+     *
+     * @return the credentials provider
+     */
+    public CredentialsProvider getCredentialsProvider() {
+        return credentialsProvider;
+    }
+
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -92,6 +131,10 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
+        private HttpHost proxy = null;
+        private RequestConfig defaultRequestConfig = null;
+
+        private CredentialsProvider credentialsProvider;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -162,6 +205,38 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder maxConnectionsPerRoute(Integer maxConnections) {
             this.maxConnectionsPerRoute = maxConnections;
+            return this;
+        }
+
+        /**
+         * Sets a proxy server to use for the client.
+         *
+         * @param proxy the proxy server
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder proxy(HttpHost proxy) {
+            this.proxy = proxy;
+            return this;
+        }
+
+        /**
+         * Sets the default request configuration for the client.
+         *
+         * @param defaultRequestConfig the default request configuration
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder defaultRequestConfig(RequestConfig defaultRequestConfig) {
+            this.defaultRequestConfig = defaultRequestConfig;
+            return this;
+        }
+
+        /**
+         * Sets the credentials provider to use for the client.
+         * @param credentialsProvider the credentials provider
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder credentialsProvider(CredentialsProvider credentialsProvider) {
+            this.credentialsProvider = credentialsProvider;
             return this;
         }
 
