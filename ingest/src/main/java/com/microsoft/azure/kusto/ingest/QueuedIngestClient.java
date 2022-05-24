@@ -49,6 +49,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
+    private @Nullable HttpClientProperties httpClientProperties;
 
     QueuedIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, null);
@@ -56,9 +57,10 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
 
     QueuedIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new IngestClient");
-        Client client = ClientFactory.createClient(csb, properties);
+        httpClientProperties = properties;
+        Client client = ClientFactory.createClient(csb, httpClientProperties);
         this.resourceManager = new ResourceManager(client);
-        this.azureStorageClient = new AzureStorageClient();
+        this.azureStorageClient = new AzureStorageClient(httpClientProperties);
         this.connectionDataSource = csb.getClusterUrl();
     }
 
@@ -145,7 +147,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                             .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE),
                     serializedIngestionBlobInfo);
             return reportToTable
-                    ? new TableReportIngestionResult(tableStatuses)
+                    ? new TableReportIngestionResult(tableStatuses, httpClientProperties)
                     : new IngestionStatusResult(status);
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from blob", e);

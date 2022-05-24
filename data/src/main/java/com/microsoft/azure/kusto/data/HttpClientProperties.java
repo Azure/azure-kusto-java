@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.http.HttpHost;
-import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 

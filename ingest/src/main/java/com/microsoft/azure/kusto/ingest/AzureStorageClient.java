@@ -18,9 +18,6 @@ import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
 
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,20 +27,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
-    @Nullable
-    private final HttpClientProperties httpClientProperties;
     @Nullable
     private final OperationContext operationContext;
 
@@ -52,38 +45,9 @@ class AzureStorageClient {
     }
 
     public AzureStorageClient(@Nullable HttpClientProperties httpClientProperties) {
-        this.httpClientProperties = httpClientProperties;
-
-        if (this.httpClientProperties != null) {
-            this.operationContext = new OperationContext();
-            initializeProxy();
-        }
-        else {
-            this.operationContext = null;
-        }
+        this.operationContext = IngestionUtils.httpClientPropertiesToOperationContext(httpClientProperties);
     }
 
-    private void initializeProxy() {
-        Objects.requireNonNull(this.httpClientProperties);
-        Objects.requireNonNull(this.operationContext);
-        HttpHost proxyHost = this.httpClientProperties.getProxy();
-        if (proxyHost == null) {
-            return;
-        }
-
-        Proxy proxy = new Proxy(Proxy.Type.HTTP, new java.net.InetSocketAddress(proxyHost.getHostName(), proxyHost.getPort()));
-        this.operationContext.setProxy(proxy);
-
-        if (this.httpClientProperties.getCredentialsProvider() == null) {
-            return;
-        }
-
-        Credentials credentials = this.httpClientProperties.getCredentialsProvider().getCredentials(AuthScope.ANY);
-        if (credentials != null) {
-            this.operationContext.setProxyUsername(credentials.getUserPrincipal().getName());
-            this.operationContext.setProxyPassword(credentials.getPassword());
-        }
-    }
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Ensure
@@ -92,7 +56,7 @@ class AzureStorageClient {
 
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
-        queue.addMessage(queueMessage);
+        queue.addMessage(queueMessage, 0, 0, null, this.operationContext);
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
@@ -105,7 +69,7 @@ class AzureStorageClient {
         // Create an operation to add the new customer to the table basics table.
         TableOperation insert = TableOperation.insert(entity);
         // Submit the operation to the table service.
-        table.execute(insert);
+        table.execute(insert, null, this.operationContext);
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
@@ -216,7 +180,7 @@ class AzureStorageClient {
         Ensure.stringIsNotBlank(blobPath, "blobPath");
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-        blockBlob.downloadAttributes();
+        blockBlob.downloadAttributes(null, null, this.operationContext);
         return blockBlob.getProperties().getLength();
     }
 
