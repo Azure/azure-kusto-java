@@ -37,8 +37,7 @@ class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
-    @Nullable
-    private final OperationContext operationContext;
+    @Nullable private final OperationContext operationContext;
 
     public AzureStorageClient() {
         this(null);
@@ -47,7 +46,6 @@ class AzureStorageClient {
     public AzureStorageClient(@Nullable HttpClientProperties httpClientProperties) {
         this.operationContext = IngestionUtils.httpClientPropertiesToOperationContext(httpClientProperties);
     }
-
 
     void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
         // Ensure
