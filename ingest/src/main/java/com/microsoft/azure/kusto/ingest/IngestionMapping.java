@@ -52,7 +52,9 @@ public class IngestionMapping {
     public IngestionMapping(IngestionMapping other) {
         this.ingestionMappingKind = other.ingestionMappingKind;
         this.ingestionMappingReference = other.ingestionMappingReference;
-        this.columnMappings = Arrays.stream(other.columnMappings).map(ColumnMapping::new).toArray(ColumnMapping[]::new);
+        if (other.columnMappings != null) {
+            this.columnMappings = Arrays.stream(other.columnMappings).map(ColumnMapping::new).toArray(ColumnMapping[]::new);
+        }
     }
 
     /**
