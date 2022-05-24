@@ -100,16 +100,6 @@ public class IngestionUtils {
         Proxy proxy = new Proxy(Proxy.Type.HTTP, new java.net.InetSocketAddress(proxyHost.getHostName(), proxyHost.getPort()));
         context.setProxy(proxy);
 
-        if (httpProperties.getCredentialsProvider() == null) {
-            return context;
-        }
-
-        Credentials credentials = httpProperties.getCredentialsProvider().getCredentials(AuthScope.ANY);
-        if (credentials != null) {
-            context.setProxyUsername(credentials.getUserPrincipal().getName());
-            context.setProxyPassword(credentials.getPassword());
-        }
-
         return context;
     }
 }

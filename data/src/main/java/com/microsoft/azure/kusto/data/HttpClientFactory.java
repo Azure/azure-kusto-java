@@ -67,15 +67,6 @@ class HttpClientFactory {
             httpClientBuilder.setProxy(properties.getProxy());
         }
 
-        if (properties.getDefaultRequestConfig() != null) {
-            httpClientBuilder.setDefaultRequestConfig(properties.getDefaultRequestConfig());
-        }
-
-        if (properties.getCredentialsProvider() != null) {
-            httpClientBuilder.setDefaultCredentialsProvider(properties.getCredentialsProvider());
-        }
-
-        HttpClientContext context = HttpClientContext.create();
         final CloseableHttpClient httpClient = httpClientBuilder.build();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> closeClient(httpClient)));
         return httpClient;
