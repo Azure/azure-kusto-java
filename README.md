@@ -48,6 +48,12 @@ mvn install
 - [Ingest a file](samples/README.md#file-ingestion-sample)
 - [Check status of an ingest operation](samples/README.md#query-table-status-sample)
 
+## Using A Proxy
+The SDK includes support for the built-in proxy system properties in java.
+For example, when the address of your proxy server is 1.2.3.4:8989, you can run:
+`java -ea -Dhttp.proxyHost=1.2.34 -Dhttp.proxyPort=8989 -Dhttps.proxyHost=1.2.3.4 -Dhttps.proxyPort=8989`
+And the SDK will know to use these values automatically.
+
 ## Best Practices
 See the SDK [best practices guide](https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-best-practices), which though written for the .NET SDK, applies similarly here.
 
