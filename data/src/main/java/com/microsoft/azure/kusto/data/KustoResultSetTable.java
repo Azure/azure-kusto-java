@@ -37,7 +37,7 @@ public class KustoResultSetTable {
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
     private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
     private static DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
-    .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
+            .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
 
     private final List<List<Object>> rows;
     private String tableName;
