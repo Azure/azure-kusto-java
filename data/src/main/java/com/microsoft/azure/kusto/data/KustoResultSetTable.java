@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
@@ -37,6 +36,8 @@ public class KustoResultSetTable {
     private static final String ROWS_PROPERTY_NAME = "Rows";
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
     private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
+    private static DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
 
     private final List<List<Object>> rows;
     private String tableName;
@@ -465,15 +466,7 @@ public class KustoResultSetTable {
             return null;
         }
         String dateString = getString(columnIndex);
-        DateTimeFormatter dateTimeFormatter;
-        if (dateString.length() < 21) {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
-                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN_NO_FRACTIONS)).toFormatter();
-        } else {
-            dateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
-                    .append(DateTimeFormatter.ofPattern(CslDateTimeFormat.KUSTO_DATETIME_PATTERN)).toFormatter();
-        }
-        return LocalDateTime.parse(getString(columnIndex), dateTimeFormatter);
+        return LocalDateTime.parse(dateString, kustoDateTimeFormatter);
     }
 
     public LocalDateTime getKustoDateTime(String columnName) {
