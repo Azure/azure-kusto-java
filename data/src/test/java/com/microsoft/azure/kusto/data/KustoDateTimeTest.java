@@ -49,12 +49,11 @@ public class KustoDateTimeTest {
                 "\"Columns\":" + columns + ",\"Rows\":" +
                 rows.toString() + "}"));
 
-        Integer rowNum = 0;                
-        while (res.next())
-        {
+        Integer rowNum = 0;
+        while (res.next()) {
             Assertions.assertEquals(
-                LocalDateTime.ofInstant((Instant)((JSONArray)rows.get(rowNum)).get(0), ZoneOffset.UTC), 
-                res.getKustoDateTime(0));
+                    LocalDateTime.ofInstant((Instant) ((JSONArray) rows.get(rowNum)).get(0), ZoneOffset.UTC),
+                    res.getKustoDateTime(0));
             rowNum++;
         }
     }
