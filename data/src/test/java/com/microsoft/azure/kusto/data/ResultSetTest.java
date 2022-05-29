@@ -12,8 +12,10 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -75,6 +77,7 @@ public class ResultSetTest {
         assert res.getBooleanObject(0) == null;
         assert res.getString(1).equals("");
         assert res.getTimestamp(2) == null;
+        assert res.getKustoDateTime(2) == null;
         assert res.getBigDecimal(3) == null;
         assert res.getJSONObject(4) == null;
         assert res.getUUID(5) == null;
@@ -88,6 +91,7 @@ public class ResultSetTest {
         Assertions.assertTrue(res.getBooleanObject(0));
         Assertions.assertEquals(res.getString(1), str);
         Assertions.assertEquals(res.getTimestamp(2), Timestamp.valueOf(now.atZone(ZoneId.of("UTC")).toLocalDateTime()));
+        Assertions.assertEquals(LocalDateTime.ofInstant(now, ZoneOffset.UTC), res.getKustoDateTime(2));
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         Assertions.assertEquals(sdf.format(new Date(now.getEpochSecond() * 1000)), res.getDate(2).toString());
