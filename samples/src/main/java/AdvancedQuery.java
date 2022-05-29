@@ -70,8 +70,7 @@ public class AdvancedQuery {
         LocalDateTime _timestamp;
         String _eventName;
 
-        public Event(LocalDateTime timestamp, String eventName)
-        {
+        public Event(LocalDateTime timestamp, String eventName) {
             _timestamp = timestamp;
             _eventName = eventName;
         }
