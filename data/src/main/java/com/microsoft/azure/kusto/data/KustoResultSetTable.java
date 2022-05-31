@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 import org.json.JSONArray;
