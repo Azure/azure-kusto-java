@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,7 +39,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
         // Some apis (e.g. device authentication) require the url to always end in backslash.
-        firstPartyAuthorityUrl = UriUtils.ensureTrailingSlash(firstPartyAuthorityUrl);
+        firstPartyAuthorityUrl = StringUtils.appendIfMissing(firstPartyAuthorityUrl, "/");
     }
 
     private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
