@@ -23,5 +23,4 @@ public class UriUtils {
     public static String setPathForUri(String uri, String path) throws URISyntaxException {
         return setPathForUri(uri, path, false);
     }
-
 }

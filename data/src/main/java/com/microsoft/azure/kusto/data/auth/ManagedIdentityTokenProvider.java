@@ -6,27 +6,35 @@ import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
 
 public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBase {
-    private final ManagedIdentityCredential managedIdentityCredential;
+    private final String managedIdentityClientId;
+    private ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
 
-    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId) throws URISyntaxException {
-        super(clusterUrl);
-        ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
-        if (StringUtils.isNotBlank(managedIdentityClientId)) {
-            builder = builder.clientId(managedIdentityClientId); // only required for user assigned
-        }
-        this.managedIdentityCredential = builder.build();
+    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, String managedIdentityClientId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, httpClient);
+        this.managedIdentityClientId = managedIdentityClientId;
     }
 
     @Override
     protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataServiceException, DataClientException {
         super.initializeWithCloudInfo(cloudInfo);
+        ManagedIdentityCredentialBuilder builder = new ManagedIdentityCredentialBuilder();
+        if (StringUtils.isNotBlank(managedIdentityClientId)) {
+            builder = builder.clientId(managedIdentityClientId); // only required for user assigned
+        }
+        if (httpClient != null) {
+            builder = builder.httpClient(new HttpClientWrapper(httpClient));
+        }
+        this.managedIdentityCredential = builder.build();
         tokenRequestContext = new TokenRequestContext().addScopes(scopes.toArray(new String[0]));
     }
 

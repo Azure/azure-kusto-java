@@ -74,7 +74,7 @@ public class ClientImpl implements Client, StreamingClient {
         csb.setClusterUrl(uriBuilder.build().toString());
 
         clusterUrl = csb.getClusterUrl();
-        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb);
+        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientVersionForTracing = "Kusto.Java.Client";
         String version = Utils.getPackageVersion();
         if (StringUtils.isNotBlank(version)) {
