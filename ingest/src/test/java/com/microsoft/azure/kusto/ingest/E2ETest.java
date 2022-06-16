@@ -20,15 +20,15 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.ParseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -424,7 +424,7 @@ class E2ETest {
     }
 
     @Test
-    void testParameterizedQuery() throws DataServiceException, DataClientException {
+    void testParameterizedQuery() throws DataServiceException, DataClientException, ParseException {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);

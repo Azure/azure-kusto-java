@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.data.format;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
+import org.apache.hc.core5.http.ParseException;
 
 import java.time.Duration;
 import java.time.LocalTime;
@@ -21,7 +21,7 @@ public class CslTimespanFormat extends CslFormat {
         this.value = value;
     }
 
-    public CslTimespanFormat(String value) {
+    public CslTimespanFormat(String value) throws ParseException {
         if (StringUtils.isBlank(value)) {
             this.value = null;
         } else {

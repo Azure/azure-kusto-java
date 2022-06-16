@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.HttpResponse;
 import org.json.JSONObject;
 
 public class DataWebException extends WebException {

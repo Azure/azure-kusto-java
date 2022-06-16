@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
+import org.apache.hc.core5.http.ParseException;
 import org.json.JSONException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test set/get timeout")
-    void timeoutSetGet() {
+    void timeoutSetGet() throws ParseException {
         ClientRequestProperties props = new ClientRequestProperties();
         Long expected = TimeUnit.MINUTES.toMillis(100);
 
@@ -44,7 +45,7 @@ class ClientRequestPropertiesTest {
 
     @Test
     @DisplayName("test ClientRequestProperties fromString")
-    void stringToProperties() throws JSONException {
+    void stringToProperties() throws JSONException, ParseException {
         String properties = "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
         assert crp != null;
@@ -195,7 +196,7 @@ class ClientRequestPropertiesTest {
     }
 
     @Test
-    void testCreateCslTimespanFormatFromString() {
+    void testCreateCslTimespanFormatFromString() throws ParseException {
         String timeString = "23:59:35.9853375";
         String result = new CslTimespanFormat(timeString).toString();
         Assertions.assertEquals("time(" + timeString + ")", result);

@@ -11,9 +11,10 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.net.URIBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -134,9 +135,7 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-            String streamFormat, String mappingName, boolean leaveOpen)
-        throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -159,7 +158,7 @@ public class ClientImpl implements Client, StreamingClient {
 
         Long timeoutMs = null;
         if (properties != null) {
-            timeoutMs = properties.getTimeoutInMilliSec();
+            timeoutMs = getClientTimeout(properties);
             Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
                 Map.Entry<String, Object> pair = iterator.next();
@@ -192,7 +191,7 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -212,8 +211,16 @@ public class ClientImpl implements Client, StreamingClient {
         return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
+    private Long getClientTimeout(ClientRequestProperties properties){
+        Long timeoutMs = null;
+        try {
+            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        } catch (ParseException ignored){}
+        return timeoutMs;
+    }
+
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
-        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        Long timeoutMs = getClientTimeout(properties);
         if (timeoutMs == null) {
             if (commandType == CommandType.ADMIN_COMMAND) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;

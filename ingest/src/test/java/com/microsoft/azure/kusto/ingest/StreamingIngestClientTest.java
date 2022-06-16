@@ -22,9 +22,9 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobInputStream;
 import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
+
+import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -351,9 +351,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
-        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404",
-                new DataWebException("Error in post request", new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), 404, "Not found"))),
-                true);
+        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404", new DataWebException("Error in post request", new BasicHttpResponse(404, "Not found")), true);
         doThrow(dataClientException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()),
                 eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
         when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult(

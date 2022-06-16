@@ -6,21 +6,15 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.EofSensorInputStream;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.EofSensorInputStream;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -53,30 +47,26 @@ class Utils {
     }
 
     static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
-            boolean leaveOpen)
+                       boolean leaveOpen)
         throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
-            int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            RequestConfig requestConfig = RequestConfig.custom().setResponseTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
             request.setConfig(requestConfig);
 
             // Execute and get the response
-            HttpResponse response = httpClient.execute(request);
+            CloseableHttpResponse response = httpClient.execute(request);
 
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                StatusLine statusLine = response.getStatusLine();
-                String responseContent = EntityUtils.toString(entity);
-                switch (statusLine.getStatusCode()) {
+            if (response != null) {
+                switch (response.getCode()) {
                     case HttpStatus.SC_OK:
-                        return responseContent;
+                        return response.toString();
                     case HttpStatus.SC_TOO_MANY_REQUESTS:
                         throw new ThrottleException(urlStr);
                     default:
-                        throw createExceptionFromResponse(urlStr, response, null, responseContent);
+                        throw createExceptionFromResponse(urlStr, response, null, response.toString());
                 }
             }
         } catch (SocketTimeoutException e) {
@@ -110,12 +100,12 @@ class Utils {
         try {
             HttpPost httpPost = setupHttpPostRequest(uri, payload, null, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
+            RequestConfig requestConfig = RequestConfig.custom().setResponseTimeout(requestTimeout, TimeUnit.MILLISECONDS).build();
             httpPost.setConfig(requestConfig);
 
             httpResponse = httpClient.execute(httpPost);
 
-            int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
+            int responseStatusCode = httpResponse.getCode();
 
             if (responseStatusCode == HttpStatus.SC_OK) {
                 InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
@@ -187,7 +177,7 @@ class Utils {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
                 }
             } else {
-                message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
+                message = String.format("Http StatusCode='%s'", httpResponse.getCode());
             }
 
             return new DataServiceException(
@@ -230,8 +220,7 @@ class Utils {
         HttpPost request = new HttpPost(uri);
 
         // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
-        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                : new InputStreamEntity(new UncloseableStream(stream));
+        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON) : new InputStreamEntity(new UncloseableStream(stream), ContentType.APPLICATION_OCTET_STREAM);
         request.setEntity(requestEntity);
 
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");

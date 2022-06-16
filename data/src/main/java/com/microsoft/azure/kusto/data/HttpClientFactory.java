@@ -1,20 +1,19 @@
 package com.microsoft.azure.kusto.data;
 
-import org.apache.http.HeaderElement;
-import org.apache.http.HeaderElementIterator;
-import org.apache.http.HttpResponse;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicHeaderElementIterator;
-import org.apache.http.protocol.HTTP;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.client5.http.ConnectionKeepAliveStrategy;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.HeaderElement;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
+import org.apache.hc.core5.http.protocol.HttpContext;
+
+import org.apache.hc.core5.util.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A singleton factory of HTTP clients.
@@ -49,16 +48,14 @@ class HttpClientFactory {
     CloseableHttpClient create(HttpClientProperties providedProperties) {
         final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
+        //TODO: Determine if maxConnections/maxConnectionsPerRoute still exists in V5 of Apache HTTP Components and if configurable
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
                 .useSystemProperties()
-                .setMaxConnTotal(properties.maxConnectionTotal())
-                .setMaxConnPerRoute(properties.maxConnectionRoute())
                 .evictExpiredConnections()
-                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
+                .evictIdleConnections(TimeValue.ofSeconds(properties.maxIdleTime()));
 
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
-
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
@@ -95,19 +92,18 @@ class HttpClientFactory {
         }
 
         @Override
-        public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
+        public TimeValue getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
+
             // honor 'keep-alive' header
-            HeaderElementIterator it = new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            BasicHeaderElementIterator it = new BasicHeaderElementIterator(httpResponse.headerIterator("keep-alive"));
             while (it.hasNext()) {
-                HeaderElement he = it.nextElement();
-                String param = he.getName();
-                String value = he.getValue();
-                if (value != null && param.equalsIgnoreCase("timeout")) {
-                    return Long.parseLong(value) * 1000;
+                HeaderElement he = it.next();
+                if (he.getValue() != null && he.getName().equalsIgnoreCase("timeout")) {
+                    return TimeValue.ofMilliseconds(Long.parseLong(he.getValue()) * 1000L);
                 }
             }
             // otherwise keep alive for default seconds
-            return defaultKeepAlive * 1000L;
+            return TimeValue.ofMilliseconds(defaultKeepAlive * 1000L);
         }
     }
 

@@ -3,10 +3,13 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
-import org.apache.http.HttpStatus;
+import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.ProtocolVersion;
+import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
+import org.apache.hc.core5.http.message.BasicHttpResponse;
+import org.apache.hc.core5.http.message.StatusLine;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 class UtilitiesTest {
     @Test
     @DisplayName("Convert millis to .Net timespan")
-    void convertMillisToTimespan() {
+    void convertMillisToTimespan() throws ParseException {
         Long timeout = TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2); // 40 minutes 2 seconds
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         clientRequestProperties.setTimeoutInMilliSec(timeout);
@@ -136,7 +139,8 @@ class UtilitiesTest {
 
     @NotNull
     private BasicHttpResponse getBasicHttpResponse(int statusCode) {
-        BasicHttpResponse basicHttpResponse = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), statusCode, "Some Error"));
+        BasicHttpResponse basicHttpResponse = new BasicClassicHttpResponse( statusCode, "Some Error");
+        basicHttpResponse.setVersion(new ProtocolVersion("http", 1, 1));
         basicHttpResponse.addHeader("x-ms-activity-id", "1234");
         return basicHttpResponse;
     }

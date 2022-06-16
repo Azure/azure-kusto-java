@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
-import org.apache.http.HttpResponse;
+import org.apache.hc.core5.http.HttpResponse;
 import org.jetbrains.annotations.Nullable;
 
 public class WebException extends Exception {
@@ -22,6 +22,6 @@ public class WebException extends Exception {
 
     @Nullable
     public Integer getStatusCode() {
-        return httpResponse != null ? httpResponse.getStatusLine().getStatusCode() : null;
+        return httpResponse != null ? httpResponse.getCode() : null;
     }
 }

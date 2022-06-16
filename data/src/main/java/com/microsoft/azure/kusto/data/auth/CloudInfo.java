@@ -2,12 +2,13 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -81,7 +82,7 @@ public class CloudInfo {
                 request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                 request.addHeader(HttpHeaders.ACCEPT, "application/json");
                 try (CloseableHttpResponse response = httpClient.execute(request)) {
-                    int statusCode = response.getStatusLine().getStatusCode();
+                    int statusCode = response.getCode();
                     if (statusCode == 200) {
                         String content = EntityUtils.toString(response.getEntity());
                         if (content == null || content.equals("") || content.equals("{}")) {
@@ -92,9 +93,10 @@ public class CloudInfo {
                         result = DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(clusterUrl,
-                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                     }
+                } catch (ParseException ex) {
+                    throw new DataServiceException(clusterUrl, "Error parsing entity from received CloudInfo", ex, true);
                 }
             } catch (IOException | URISyntaxException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
