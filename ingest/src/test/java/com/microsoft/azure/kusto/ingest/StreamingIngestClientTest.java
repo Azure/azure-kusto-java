@@ -363,7 +363,7 @@ class StreamingIngestClientTest {
         streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM,
+        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_DM + "'", EXPECTED_SERVICE_TYPE,
                 "https://testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());

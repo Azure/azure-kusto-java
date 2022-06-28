@@ -26,8 +26,8 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,7 +228,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    protected String retrieveServiceType() {
         if (streamingClient != null) {
             log.info("Getting version to determine endpoint's ServiceType");
             try {
@@ -239,13 +239,14 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+                log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
+                return null;
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
+                return null;
             }
-            throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+            log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+            return null;
         }
         return null;
     }
