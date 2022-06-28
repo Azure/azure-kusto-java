@@ -62,11 +62,11 @@ class Utils {
             if (response != null) {
                 switch (response.getCode()) {
                     case HttpStatus.SC_OK:
-                        return response.toString();
+                        return response.getEntity().toString();
                     case HttpStatus.SC_TOO_MANY_REQUESTS:
                         throw new ThrottleException(urlStr);
                     default:
-                        throw createExceptionFromResponse(urlStr, response, null, response.toString());
+                        throw createExceptionFromResponse(urlStr, response, null, response.getEntity().toString());
                 }
             }
         } catch (SocketTimeoutException e) {
