@@ -6,6 +6,10 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatusInTableDescription;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,8 +22,10 @@ public final class IngestionBlobInfo {
     private final Boolean retainBlobOnSuccess;
     private String reportLevel;
     private String reportMethod;
+    private String sourceMessageCreationTime;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL) private ValidationPolicy validationPolicy;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ValidationPolicy validationPolicy;
 
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;
@@ -34,6 +40,7 @@ public final class IngestionBlobInfo {
         reportLevel = IngestionProperties.IngestionReportLevel.FAILURES_ONLY.getKustoValue();
         reportMethod = IngestionProperties.IngestionReportMethod.QUEUE.getKustoValue();
         flushImmediately = false;
+        sourceMessageCreationTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).toString();
     }
 
     public String getBlobPath() {
@@ -82,6 +89,14 @@ public final class IngestionBlobInfo {
 
     public void setReportMethod(String reportMethod) {
         this.reportMethod = reportMethod;
+    }
+
+    public String getSourceMessageCreationTime() {
+        return sourceMessageCreationTime;
+    }
+
+    public void setSourceMessageCreationTime(String sourceMessageCreationTime) {
+        this.sourceMessageCreationTime = sourceMessageCreationTime;
     }
 
     public Boolean getFlushImmediately() {
