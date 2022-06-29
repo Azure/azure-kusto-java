@@ -5,7 +5,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 
-import org.apache.http.client.HttpClient;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
