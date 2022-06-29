@@ -4,7 +4,13 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
+import com.microsoft.azure.kusto.data.exceptions.WebException;
+import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.config.RequestConfig;
@@ -56,18 +62,21 @@ class Utils {
             RequestConfig requestConfig = RequestConfig.custom().setResponseTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
             request.setConfig(requestConfig);
 
-            // Execute and get the response
-            CloseableHttpResponse response = httpClient.execute(request);
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response != null) {
+                    String responseContent = EntityUtils.toString(response.getEntity());
 
-            if (response != null) {
-                switch (response.getCode()) {
-                    case HttpStatus.SC_OK:
-                        return response.getEntity().toString();
-                    case HttpStatus.SC_TOO_MANY_REQUESTS:
-                        throw new ThrottleException(urlStr);
-                    default:
-                        throw createExceptionFromResponse(urlStr, response, null, response.getEntity().toString());
+                    switch (response.getCode()) {
+                        case HttpStatus.SC_OK:
+                            return responseContent;
+                        case HttpStatus.SC_TOO_MANY_REQUESTS:
+                            throw new ThrottleException(urlStr);
+                        default:
+                            throw createExceptionFromResponse(urlStr, response, null, responseContent);
+                    }
                 }
+            } catch (ParseException e) {
+                throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
             }
         } catch (SocketTimeoutException e) {
             throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
@@ -236,7 +245,7 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.toLowerCase().startsWith(CloudInfo.LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(),
                         cleanUrl.getRef());
             } else {

@@ -55,7 +55,7 @@ ClientImpl client = new ClientImpl(csb, properties);
 2. Execute query
 
 ```java
-Results results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
+KustoOperationResult results = client.execute( System.getProperty("dbName"), System.getProperty("query"));
 ```
 
 ### How to run this sample
@@ -72,9 +72,71 @@ mvn clean compile exec:java -Dexec.mainClass="Query" \
 
 ```
 
+## Advanced Query Sample
+
+This sample shows some more advanced options available when querying data, like using query parameters to guard against injection attacks and extracting individual values from the query results.   
+[Sample Code](src/main/java/Query.java)
+
+### Prerequisites
+
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later). Principal's permission must be at least 'Database user'.
+
+### Notable Features
+
+1. Creating a table with initial data using the [.set-or-replace](https://docs.microsoft.com/azure/data-explorer/kusto/management/data-ingestion/ingest-from-query) command
+
+```java
+String tableCommand = String.join(newLine,
+        ".set-or-replace Events <|",
+        "range x from 1 to 100 step 1",
+        "| extend ts = totimespan(strcat(x,'.00:00:00'))",
+        "| project timestamp = now(ts), eventName = strcat('event ', x)");
+client.execute(database, tableCommand);
+```
+
+2. Using query parameters to guard against injection attacks
+
+```java
+ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+clientRequestProperties.setParameter("eventNameFilter", "event 1");
+String query = String.join(newLine,
+        "declare query_parameters(eventNameFilter:string);",
+        "Events",
+        "| where eventName == eventNameFilter");
+KustoOperationResult results = client.execute(database, query, clientRequestProperties);
+```
+
+3. Extracting individual values from the query results
+
+```java
+KustoResultSetTable mainTableResult = results.getPrimaryResults();
+System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
+
+// iterate values
+List<Event> events = new ArrayList<>();
+while (mainTableResult.next()) {
+    events.add(new Event(
+        mainTableResult.getKustoDateTime("timestamp"), 
+        mainTableResult.getString("eventName")));
+}
+```
+
+### How to run this sample
+Note: Running this sample will create a table named `Events` in the given database.
+```sh
+cd samples
+mvn clean compile exec:java -Dexec.mainClass="AdvancedQuery" \
+                            -DclusterPath="cluster/path" \
+                            -DappId="app-id" \
+                            -DappKey="appKey" \
+                            -DappTenant="tenant-id" \
+                            -DdbName="dbName" 
+```
+
 ## File Ingestion Sample
 
-This sample will demonstrate how to ingest data from file into table.  
+This sample will demonstrate how to ingest data from a file into table.  
 [Sample Code](src/main/java/FileIngestion.java)
 
 ### Prerequisites
