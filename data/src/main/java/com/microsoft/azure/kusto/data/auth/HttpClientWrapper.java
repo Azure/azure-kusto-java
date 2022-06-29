@@ -5,27 +5,19 @@ import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpTrace;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.message.BasicHeader;
+import org.apache.hc.client5.http.classic.HttpClient;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.hc.client5.http.classic.methods.*;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntityContainer;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
+import org.apache.hc.core5.http.message.BasicHeader;
 import reactor.core.publisher.Mono;
 
 /**
@@ -84,8 +76,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
         // This empty operation
         Mono before = Mono.empty();
-        if (request instanceof HttpEntityEnclosingRequest) {
-            HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
+        if (request instanceof HttpEntityContainer) {
+            HttpEntityContainer entityEnclosingRequest = (HttpEntityContainer) request;
             PipedOutputStream osPipe = new PipedOutputStream();
             PipedInputStream isPipe = null;
             try {
@@ -105,13 +97,14 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
                 return buf;
             }));
 
-            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe));
+            // FIXME
+            //entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe));
         }
 
         // The types of the Monos are different, but we ignore the results anyway (since we only care about the input stream) so this is fine.
         return before.flatMap(a -> Mono.create(monoSink -> {
             try {
-                org.apache.http.HttpResponse response = httpClient.execute(request);
+                org.apache.hc.core5.http.HttpResponse response = httpClient.execute(request);
                 monoSink.success(new HttpResponseWrapper(httpRequest, response));
             } catch (IOException e) {
                 monoSink.error(e);
@@ -142,10 +135,11 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         request.setHeaders(httpRequest.headers().entrySet().stream().map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
 
         // Setting the request's body/entity
-        if (request instanceof HttpEntityEnclosingRequest) {
-            HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
+        if (request instanceof HttpEntityContainer) {
+            HttpEntityContainer container = request;
             String body = httpRequest.body();
-            entityEnclosingRequest.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8)));
+            // FIXME
+            //container.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8)));
         }
 
         return new HttpResponseWrapper(httpClient.execute(request));

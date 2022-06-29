@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.*;
 
-import org.apache.http.client.HttpClient;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

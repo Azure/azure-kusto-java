@@ -6,9 +6,6 @@ import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
-import org.apache.http.Header;
-import org.apache.http.util.EntityUtils;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -18,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,15 +27,15 @@ import reactor.core.publisher.Mono;
  * client.
  */
 public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
-    org.apache.http.HttpResponse response;
+    org.apache.hc.core5.http.HttpResponse response;
     private byte[] body = null;
 
-    protected HttpResponseWrapper(HttpRequest request, org.apache.http.HttpResponse response) {
+    protected HttpResponseWrapper(HttpRequest request, org.apache.hc.core5.http.HttpResponse response) {
         super(request);
         this.response = response;
     }
 
-    protected HttpResponseWrapper(org.apache.http.HttpResponse response) {
+    protected HttpResponseWrapper(org.apache.hc.core5.http.HttpResponse response) {
         this(null, response);
     }
 
@@ -44,7 +43,7 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
 
     @Override
     public int getStatusCode() {
-        return response.getStatusLine().getStatusCode();
+        return response.getCode();
     }
 
     @Override
@@ -55,7 +54,7 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
     @Override
     public HttpHeaders getHeaders() {
         Map<String, List<String>> newHeaders = new HashMap<>();
-        Header[] allHeaders = response.getAllHeaders();
+        Header[] allHeaders = response.getHeaders();
 
         // This is required since one header can have multiple values.
         for (Header header : allHeaders) {
@@ -80,11 +79,13 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
         // We read the body only once, and then wrap it in a Mono.
 
         if (body == null) {
-            try {
-                body = EntityUtils.toByteArray(response.getEntity());
-            } catch (IOException ignored) {
-                body = new byte[0];
-            }
+            //FIXME
+//            try {
+//                body = EntityUtils.toByteArray(response.getEntity());
+//            }
+//            catch (IOException ignored) {
+//                body = new byte[0];
+//            }
         }
 
         return Mono.just(body);

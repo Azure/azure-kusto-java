@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
-import org.apache.http.HttpHost;
+
+import org.apache.hc.core5.http.HttpHost;
 
 /**
  * HTTP client properties.
