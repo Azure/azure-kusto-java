@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -15,6 +16,7 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import org.apache.hc.core5.net.URIBuilder;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +50,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final ExponentialRetry exponentialRetryTemplate;
 
     /**
-     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * Creates a new ManagedStreamingIngestClient from a DM connection string, with default http client properties.
      * This method infers the engine connection string from the DM connection string.
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param dmConnectionString dm connection string
@@ -56,13 +58,28 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
-        ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
-        engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
+        return fromDmConnectionString(dmConnectionString, null);
     }
 
     /**
-     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param dmConnectionString dm connection string
+     * @param properties additional properties to configure the http client
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
+            @Nullable HttpClientProperties properties)
+        throws URISyntaxException {
+        ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
+        engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
+    }
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from an engine connection string, with default http client properties.
      * This method infers the DM connection string from the engine connection string.
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * @param engineConnectionString engine connection string
@@ -70,16 +87,37 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
+        return fromEngineConnectionString(engineConnectionString, null);
+    }
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * This method infers the DM connection string from the engine connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param engineConnectionString engine connection string
+     * @param properties additional properties to configure the http client
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
+            @Nullable HttpClientProperties properties)
+        throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(QueuedIngestClient.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString);
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
             ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
+        this(dmConnectionStringBuilder, engineConnectionStringBuilder, null);
+    }
+
+    public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
+            ConnectionStringBuilder engineConnectionStringBuilder,
+            @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder);
-        streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder);
+        queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder, properties);
+        streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder, properties);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 

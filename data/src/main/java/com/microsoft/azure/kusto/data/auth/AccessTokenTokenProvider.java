@@ -4,13 +4,14 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import java.net.URISyntaxException;
+
 import org.jetbrains.annotations.NotNull;
 
 public class AccessTokenTokenProvider extends TokenProviderBase {
     private final String accessToken;
 
     AccessTokenTokenProvider(@NotNull String clusterUrl, @NotNull String accessToken) throws URISyntaxException {
-        super(clusterUrl);
+        super(clusterUrl, null);
         this.accessToken = accessToken;
     }
 

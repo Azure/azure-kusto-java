@@ -1,11 +1,18 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.storage.OperationContext;
 import com.univocity.parsers.csv.CsvRoutines;
+
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.net.Proxy;
 
 public class IngestionUtils {
     private IngestionUtils() {
@@ -69,5 +77,29 @@ public class IngestionUtils {
         }
 
         return buffer.toByteArray();
+    }
+
+    /**
+     * Transforms our http client properties to a {@link OperationContext} which is compatible with the Azure Storage SDK.
+     * @param httpProperties the properties to transform
+     * @return the transformed {@link OperationContext}
+     */
+    @Nullable
+    public static OperationContext httpClientPropertiesToOperationContext(@Nullable HttpClientProperties httpProperties) {
+        if (httpProperties == null) {
+            return null;
+        }
+
+        OperationContext context = new OperationContext();
+
+        HttpHost proxyHost = httpProperties.getProxy();
+        if (proxyHost == null) {
+            return null;
+        }
+
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new java.net.InetSocketAddress(proxyHost.getHostName(), proxyHost.getPort()));
+        context.setProxy(proxy);
+
+        return context;
     }
 }

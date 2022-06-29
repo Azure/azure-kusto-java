@@ -62,7 +62,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
-        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
 
         aadAuthenticationHelper.initialize();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
@@ -117,7 +117,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
-        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb));
+        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb, null));
 
         IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken",
                 new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),
@@ -153,7 +153,7 @@ public class AadAuthenticationHelperTest {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
                 true,
                 "https://nostandard-login-input",
@@ -182,7 +182,7 @@ public class AadAuthenticationHelperTest {
                 new HashSet<>(
                         Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals("first_party_url", silentParametersMsaUser.authorityUrl());
+        assertEquals("first_party_url/", silentParametersMsaUser.authorityUrl());
     }
 
     @Test
@@ -191,7 +191,7 @@ public class AadAuthenticationHelperTest {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "auth_id", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb);
+        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
 
         aadAuthenticationHelper.initialize();
@@ -213,7 +213,7 @@ public class AadAuthenticationHelperTest {
                 new HashSet<>(
                         Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
         assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL, silentParametersMsaUser.authorityUrl());
+        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL + "/", silentParametersMsaUser.authorityUrl());
     }
 
     static class MockAccount implements IAccount {
