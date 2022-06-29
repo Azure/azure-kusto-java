@@ -56,18 +56,21 @@ class Utils {
             RequestConfig requestConfig = RequestConfig.custom().setResponseTimeout(timeoutMs, TimeUnit.MILLISECONDS).build();
             request.setConfig(requestConfig);
 
-            // Execute and get the response
-            CloseableHttpResponse response = httpClient.execute(request);
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                if (response != null) {
+                    String responseContent = EntityUtils.toString(response.getEntity());
 
-            if (response != null) {
-                switch (response.getCode()) {
-                    case HttpStatus.SC_OK:
-                        return response.getEntity().toString();
-                    case HttpStatus.SC_TOO_MANY_REQUESTS:
-                        throw new ThrottleException(urlStr);
-                    default:
-                        throw createExceptionFromResponse(urlStr, response, null, response.getEntity().toString());
+                    switch (response.getCode()) {
+                        case HttpStatus.SC_OK:
+                            return responseContent;
+                        case HttpStatus.SC_TOO_MANY_REQUESTS:
+                            throw new ThrottleException(urlStr);
+                        default:
+                            throw createExceptionFromResponse(urlStr, response, null, responseContent);
+                    }
                 }
+            } catch (ParseException e) {
+                throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
             }
         } catch (SocketTimeoutException e) {
             throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
