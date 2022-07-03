@@ -351,7 +351,8 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
-        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404", new DataWebException("Error in post request", new BasicHttpResponse(404, "Not found")), true);
+        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404",
+                new DataWebException("Error in post request", new BasicHttpResponse(404, "Not found")), true);
         doThrow(dataClientException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()),
                 eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
         when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult(

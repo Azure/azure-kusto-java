@@ -138,7 +138,7 @@ class UtilitiesTest {
 
     @NotNull
     private BasicHttpResponse getBasicHttpResponse(int statusCode) {
-        BasicHttpResponse basicHttpResponse = new BasicClassicHttpResponse( statusCode, "Some Error");
+        BasicHttpResponse basicHttpResponse = new BasicClassicHttpResponse(statusCode, "Some Error");
         basicHttpResponse.setVersion(new ProtocolVersion("http", 1, 1));
         basicHttpResponse.addHeader("x-ms-activity-id", "1234");
         return basicHttpResponse;

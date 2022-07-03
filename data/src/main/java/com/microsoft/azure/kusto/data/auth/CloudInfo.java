@@ -115,7 +115,7 @@ public class CloudInfo {
                     throw new DataServiceException(clusterUrl, "Error parsing entity from received CloudInfo", ex, true);
                 } finally {
                     if (givenHttpClient == null && localHttpClient != null && localHttpClient instanceof Closeable) {
-                        ((Closeable)localHttpClient).close();
+                        ((Closeable) localHttpClient).close();
                     }
                 }
             } catch (IOException | URISyntaxException ex) {

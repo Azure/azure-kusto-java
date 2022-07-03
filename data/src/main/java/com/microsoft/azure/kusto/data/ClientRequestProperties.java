@@ -43,7 +43,8 @@ public class ClientRequestProperties implements Serializable {
      * followed by up to 59 minutes (required), followed by up to 59 seconds (required), followed by optional subseconds prepended by a period. For example:
      * 3.20:40:22 representing 3 days, 30 hours, 40 minutes and 22 seconds or -33:21.4551 representing -33 minutes, 21 seconds, and 4551 1/10000ths of a second
      */
-    public static final Pattern KUSTO_TIMESPAN_REGEX = Pattern.compile("(-?)(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?([0-5]?\\d)(:)([0-5]?\\d)(?:(\\.)(\\d+))?", Pattern.CASE_INSENSITIVE);
+    public static final Pattern KUSTO_TIMESPAN_REGEX = Pattern.compile("(-?)(?:(\\d+)(\\.))?(?:([0-2]?\\d)(:))?([0-5]?\\d)(:)([0-5]?\\d)(?:(\\.)(\\d+))?",
+            Pattern.CASE_INSENSITIVE);
     private static final String OPTIONS_KEY = "Options";
     private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;

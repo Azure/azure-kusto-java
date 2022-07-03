@@ -54,7 +54,7 @@ class HttpClientFactory {
                         PoolingHttpClientConnectionManagerBuilder.create()
                                 .setMaxConnTotal(properties.maxConnectionTotal())
                                 .setMaxConnPerRoute(properties.maxConnectionRoute())
-                        .build())
+                                .build())
                 .evictExpiredConnections()
                 .evictIdleConnections(TimeValue.ofSeconds(properties.maxIdleTime()));
 

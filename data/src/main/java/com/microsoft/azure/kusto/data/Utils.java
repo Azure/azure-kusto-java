@@ -53,7 +53,7 @@ class Utils {
     }
 
     static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
-                       boolean leaveOpen)
+            boolean leaveOpen)
         throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
@@ -229,7 +229,8 @@ class Utils {
         HttpPost request = new HttpPost(uri);
 
         // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
-        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON) : new InputStreamEntity(new UncloseableStream(stream), ContentType.APPLICATION_OCTET_STREAM);
+        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
+                : new InputStreamEntity(new UncloseableStream(stream), ContentType.APPLICATION_OCTET_STREAM);
         request.setEntity(requestEntity);
 
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");

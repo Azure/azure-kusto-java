@@ -148,7 +148,9 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
+            String streamFormat, String mappingName, boolean leaveOpen)
+        throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -204,7 +206,7 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
-            throws DataServiceException, DataClientException {
+        throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -224,11 +226,12 @@ public class ClientImpl implements Client, StreamingClient {
         return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
-    private Long getClientTimeout(ClientRequestProperties properties){
+    private Long getClientTimeout(ClientRequestProperties properties) {
         Long timeoutMs = null;
         try {
             timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
-        } catch (ParseException ignored){}
+        } catch (ParseException ignored) {
+        }
         return timeoutMs;
     }
 
