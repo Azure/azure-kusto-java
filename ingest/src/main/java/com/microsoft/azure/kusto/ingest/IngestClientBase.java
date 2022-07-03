@@ -55,9 +55,13 @@ public abstract class IngestClientBase {
                 existingEndpoint = new URIBuilder(dataSource);
                 endpointUriToSuggestStr = emendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
-                log.warn("Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, we couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
+                log.warn(
+                        "Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, we couldn't parse dataSource '{}', so no suggestion can be made.",
+                        dataSource, e);
             } catch (IllegalArgumentException e) {
-                log.warn("Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, the URL is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
+                log.warn(
+                        "Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, the URL is already in the correct format '{}', so no suggestion can be made.",
+                        dataSource, e);
             }
         }
 
