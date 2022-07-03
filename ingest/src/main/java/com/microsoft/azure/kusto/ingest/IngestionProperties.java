@@ -88,8 +88,12 @@ public class IngestionProperties {
         this.ingestByTags = new ArrayList<>(other.ingestByTags);
         this.ingestIfNotExists = new ArrayList<>(other.ingestIfNotExists);
         this.additionalTags = new ArrayList<>(other.additionalTags);
-        this.ingestionMapping = new IngestionMapping(other.ingestionMapping);
-        this.validationPolicy = new ValidationPolicy(other.validationPolicy);
+        if (other.ingestionMapping != null) {
+            this.ingestionMapping = new IngestionMapping(other.ingestionMapping);
+        }
+        if (other.validationPolicy != null) {
+            this.validationPolicy = new ValidationPolicy(other.validationPolicy);
+        }
     }
 
     public ValidationPolicy getValidationPolicy() {

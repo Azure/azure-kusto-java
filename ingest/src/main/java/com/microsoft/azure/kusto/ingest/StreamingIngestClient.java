@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.StreamingClient;
@@ -48,9 +49,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private final StreamingClient streamingClient;
 
-    StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingClient = ClientFactory.createStreamingClient(csb);
+        this.streamingClient = ClientFactory.createStreamingClient(csb, properties);
         this.connectionDataSource = csb.getClusterUrl();
     }
 

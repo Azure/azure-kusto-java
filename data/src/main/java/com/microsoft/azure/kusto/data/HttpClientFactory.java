@@ -59,6 +59,10 @@ class HttpClientFactory {
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
+        if (properties.getProxy() != null) {
+            httpClientBuilder.setProxy(properties.getProxy());
+        }
+
         final CloseableHttpClient httpClient = httpClientBuilder.build();
         Runtime.getRuntime().addShutdownHook(new Thread(() -> closeClient(httpClient)));
         return httpClient;

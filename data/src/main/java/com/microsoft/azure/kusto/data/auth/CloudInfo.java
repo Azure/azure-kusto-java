@@ -7,10 +7,12 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -64,6 +66,12 @@ public class CloudInfo {
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
+        return retrieveCloudInfoForCluster(clusterUrl, null);
+    }
+
+    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
+            @Nullable CloseableHttpClient givenHttpClient)
+        throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {
@@ -77,12 +85,15 @@ public class CloudInfo {
 
             CloudInfo result;
 
-            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-                HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
-                request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
-                request.addHeader(HttpHeaders.ACCEPT, "application/json");
-                try (CloseableHttpResponse response = httpClient.execute(request)) {
-                    int statusCode = response.getCode();
+            try {
+                CloseableHttpClient localHttpClient = givenHttpClient == null ? HttpClients.createSystem() : givenHttpClient;
+                try {
+                    HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
+                    request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
+                    request.addHeader(HttpHeaders.ACCEPT, "application/json");
+                    CloseableHttpResponse response = localHttpClient.execute(request);
+                    try {
+                        int statusCode = response.getCode();
                     if (statusCode == 200) {
                         String content = EntityUtils.toString(response.getEntity());
                         if (content == null || content.equals("") || content.equals("{}")) {
@@ -93,10 +104,18 @@ public class CloudInfo {
                         result = DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);}
+                    } finally {
+                        if (response instanceof Closeable) {
+                            ((Closeable) response).close();
+                        }
                     }
                 } catch (ParseException ex) {
                     throw new DataServiceException(clusterUrl, "Error parsing entity from received CloudInfo", ex, true);
+                } finally {
+                    if (givenHttpClient == null && localHttpClient != null) {
+                        ((Closeable) localHttpClient).close();
+                    }
                 }
             } catch (IOException | URISyntaxException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
