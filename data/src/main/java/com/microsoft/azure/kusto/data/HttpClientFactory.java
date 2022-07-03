@@ -3,11 +3,11 @@ package com.microsoft.azure.kusto.data;
 import org.apache.hc.client5.http.ConnectionKeepAliveStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.HeaderElement;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.message.BasicHeaderElementIterator;
 import org.apache.hc.core5.http.protocol.HttpContext;
-
 import org.apache.hc.core5.util.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,9 +48,13 @@ class HttpClientFactory {
     CloseableHttpClient create(HttpClientProperties providedProperties) {
         final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
-        //TODO: Determine if maxConnections/maxConnectionsPerRoute still exists in V5 of Apache HTTP Components and if configurable
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
                 .useSystemProperties()
+                .setConnectionManager(
+                        PoolingHttpClientConnectionManagerBuilder.create()
+                                .setMaxConnTotal(properties.maxConnectionTotal())
+                                .setMaxConnPerRoute(properties.maxConnectionRoute())
+                        .build())
                 .evictExpiredConnections()
                 .evictIdleConnections(TimeValue.ofSeconds(properties.maxIdleTime()));
 

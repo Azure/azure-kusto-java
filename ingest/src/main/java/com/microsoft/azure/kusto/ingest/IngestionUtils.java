@@ -8,9 +8,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.storage.OperationContext;
 import com.univocity.parsers.csv.CsvRoutines;
 
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
+import org.apache.hc.core5.http.HttpHost;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

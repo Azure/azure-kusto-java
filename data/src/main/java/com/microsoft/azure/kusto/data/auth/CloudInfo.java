@@ -2,12 +2,16 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpResponse;
+import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
@@ -70,7 +74,7 @@ public class CloudInfo {
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
-            @Nullable CloseableHttpClient givenHttpClient)
+            @Nullable HttpClient givenHttpClient)
         throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
@@ -86,35 +90,32 @@ public class CloudInfo {
             CloudInfo result;
 
             try {
-                CloseableHttpClient localHttpClient = givenHttpClient == null ? HttpClients.createSystem() : givenHttpClient;
+                HttpClient localHttpClient = givenHttpClient == null ? HttpClients.createSystem() : givenHttpClient;
                 try {
                     HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
                     request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
-                    CloseableHttpResponse response = localHttpClient.execute(request);
-                    try {
+                    try (ClassicHttpResponse response = (ClassicHttpResponse) localHttpClient.execute(request)) {
                         int statusCode = response.getCode();
-                    if (statusCode == 200) {
-                        String content = EntityUtils.toString(response.getEntity());
-                        if (content == null || content.equals("") || content.equals("{}")) {
-                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
-                        }
-                        result = parseCloudInfo(content);
-                    } else if (statusCode == 404) {
-                        result = DEFAULT_CLOUD;
-                    } else {
-                        String errorFromResponse = EntityUtils.toString(response.getEntity());
-                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);}
-                    } finally {
-                        if (response instanceof Closeable) {
-                            ((Closeable) response).close();
+                        if (statusCode == 200) {
+                            String content = EntityUtils.toString((response).getEntity());
+                            if (content == null || content.equals("") || content.equals("{}")) {
+                                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                            }
+                            result = parseCloudInfo(content);
+                        } else if (statusCode == 404) {
+                            result = DEFAULT_CLOUD;
+                        } else {
+                            String errorFromResponse = EntityUtils.toString(response.getEntity());
+                            throw new DataServiceException(clusterUrl,
+                                    "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                         }
                     }
                 } catch (ParseException ex) {
                     throw new DataServiceException(clusterUrl, "Error parsing entity from received CloudInfo", ex, true);
                 } finally {
-                    if (givenHttpClient == null && localHttpClient != null) {
-                        ((Closeable) localHttpClient).close();
+                    if (givenHttpClient == null && localHttpClient != null && localHttpClient instanceof Closeable) {
+                        ((Closeable)localHttpClient).close();
                     }
                 }
             } catch (IOException | URISyntaxException ex) {

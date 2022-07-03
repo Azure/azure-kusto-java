@@ -5,27 +5,32 @@ import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
-import org.apache.http.Header;
-import org.apache.http.HttpEntityEnclosingRequest;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpTrace;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.entity.ByteArrayEntity;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.message.BasicHeader;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpHead;
+import org.apache.hc.client5.http.classic.methods.HttpOptions;
+import org.apache.hc.client5.http.classic.methods.HttpPatch;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.classic.methods.HttpTrace;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequest;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.http.io.entity.InputStreamEntity;
+import org.apache.hc.core5.http.message.BasicHeader;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -84,8 +89,10 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
         // This empty operation
         Mono before = Mono.empty();
-        if (request instanceof HttpEntityEnclosingRequest) {
-            HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
+
+        // This creates the Mono (similar to a future) that will be used to write the body, we will have
+        Flux<ByteBuffer> body = httpRequest.getBody();
+        if (body != null) {
             PipedOutputStream osPipe = new PipedOutputStream();
             PipedInputStream isPipe = null;
             try {
@@ -94,8 +101,7 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
                 // This should never happen
             }
 
-            // This creates the Mono (similar to a future) that will be used to write the body, we will have
-            before = Mono.from(httpRequest.getBody().map(buf -> {
+            before = Mono.from(body.map(buf -> {
                 try {
                     // Ignore the warning saying it's a blocking operation - since we are controlling both pipes, it shouldn't be
                     osPipe.write(buf.array());
@@ -105,14 +111,21 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
                 return buf;
             }));
 
-            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe));
+            ContentType contentType;
+            String header = httpRequest.getHeaders().getValue(HttpHeaders.CONTENT_TYPE);
+            contentType = header != null ? ContentType.parse(header) : ContentType.APPLICATION_OCTET_STREAM;
+
+            String contentLengthStr = httpRequest.getHeaders().getValue(HttpHeaders.CONTENT_LENGTH);
+            long contentLength = contentLengthStr != null ? Long.parseLong(contentLengthStr) : -1;
+
+            request.setEntity(new InputStreamEntity(isPipe, contentLength, contentType));
         }
 
         // The types of the Monos are different, but we ignore the results anyway (since we only care about the input stream) so this is fine.
         return before.flatMap(a -> Mono.create(monoSink -> {
             try {
-                org.apache.http.HttpResponse response = httpClient.execute(request);
-                monoSink.success(new HttpResponseWrapper(httpRequest, response));
+                org.apache.hc.core5.http.HttpResponse response = httpClient.execute(request);
+                monoSink.success(new HttpResponseWrapper(httpRequest, (ClassicHttpResponse) response));
             } catch (IOException e) {
                 monoSink.error(e);
             }
@@ -141,13 +154,16 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
         request.setHeaders(httpRequest.headers().entrySet().stream().map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
 
+        ContentType contentType;
+        String header = httpRequest.headerValue(HttpHeaders.CONTENT_TYPE);
+        contentType = header != null ? ContentType.parse(header) : ContentType.APPLICATION_OCTET_STREAM;
+
         // Setting the request's body/entity
-        if (request instanceof HttpEntityEnclosingRequest) {
-            HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
-            String body = httpRequest.body();
-            entityEnclosingRequest.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8)));
+        String body = httpRequest.body();
+        if (body != null) {
+            request.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8), contentType));
         }
 
-        return new HttpResponseWrapper(httpClient.execute(request));
+        return new HttpResponseWrapper((ClassicHttpResponse) httpClient.execute(request));
     }
 }

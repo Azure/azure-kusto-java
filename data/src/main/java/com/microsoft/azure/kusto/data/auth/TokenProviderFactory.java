@@ -7,7 +7,7 @@ import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.IClientCertificate;
 import com.microsoft.aad.msal4j.IClientSecret;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

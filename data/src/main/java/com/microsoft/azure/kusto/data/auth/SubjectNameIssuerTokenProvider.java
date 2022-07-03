@@ -6,7 +6,7 @@ import com.microsoft.aad.msal4j.IConfidentialClientApplication;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
-import org.apache.http.client.HttpClient;
+import org.apache.hc.client5.http.classic.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

@@ -3,11 +3,12 @@ package com.microsoft.azure.kusto.data.auth;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpRequest;
+
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+
 import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpResponse;
-
-import org.apache.http.Header;
-import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,15 +29,15 @@ import reactor.core.publisher.Mono;
  * client.
  */
 public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
-    org.apache.http.HttpResponse response;
+    org.apache.hc.core5.http.ClassicHttpResponse response;
     private byte[] body = null;
 
-    protected HttpResponseWrapper(HttpRequest request, org.apache.http.HttpResponse response) {
+    protected HttpResponseWrapper(HttpRequest request, org.apache.hc.core5.http.ClassicHttpResponse response) {
         super(request);
         this.response = response;
     }
 
-    protected HttpResponseWrapper(org.apache.http.HttpResponse response) {
+    protected HttpResponseWrapper(org.apache.hc.core5.http.ClassicHttpResponse response) {
         this(null, response);
     }
 
@@ -44,7 +45,7 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
 
     @Override
     public int getStatusCode() {
-        return response.getStatusLine().getStatusCode();
+        return response.getCode();
     }
 
     @Override
@@ -55,7 +56,7 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
     @Override
     public HttpHeaders getHeaders() {
         Map<String, List<String>> newHeaders = new HashMap<>();
-        Header[] allHeaders = response.getAllHeaders();
+        Header[] allHeaders = response.getHeaders();
 
         // This is required since one header can have multiple values.
         for (Header header : allHeaders) {
