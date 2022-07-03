@@ -20,7 +20,7 @@ public abstract class IngestClientBase {
     protected static final String CONFIGURED_ENDPOINT_MESSAGE = "is '%s'";
     protected static final String INDETERMINATE_CONFIGURED_ENDPOINT_MESSAGE = "couldn't be determined";
 
-    protected void validateEndpointServiceType(String connectionDataSource, String expectedServiceType)
+    protected void validateEndpointServiceType(String endpoint, String expectedServiceType)
         throws IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
@@ -33,7 +33,7 @@ public abstract class IngestClientBase {
             } else {
                 message = String.format(WRONG_ENDPOINT_MESSAGE, INDETERMINATE_CONFIGURED_ENDPOINT_MESSAGE, expectedServiceType);
             }
-            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, connectionDataSource);
+            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, endpoint);
             if (StringUtils.isNotBlank(suggestedEndpointUri)) {
                 message = String.format("%s, which is likely '%s'.", message, suggestedEndpointUri);
             } else {
