@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.net.URIBuilder;
 import org.json.JSONException;
@@ -59,8 +60,9 @@ public class ClientImpl implements Client, StreamingClient {
         if (host == null) {
             host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
         }
+        HttpHost httpHost = HttpHost.create(host);
         URIBuilder uriBuilder = new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
+                .setHost(httpHost.getHostName()).setPort(httpHost.getPort());
         String path = clusterUrlForParsing.getPath();
         if (path != null && !path.isEmpty()) {
             path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
