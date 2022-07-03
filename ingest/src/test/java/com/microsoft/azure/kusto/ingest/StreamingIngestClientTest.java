@@ -64,9 +64,11 @@ class StreamingIngestClientTest {
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
 
-    @Mock private static StreamingClient streamingClientMock;
+    @Mock
+    private static StreamingClient streamingClientMock;
 
-    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor
+    private static ArgumentCaptor<InputStream> argumentCaptor;
 
     private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
     private String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
