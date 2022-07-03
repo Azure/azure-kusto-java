@@ -24,7 +24,8 @@ public final class IngestionBlobInfo {
     private String reportMethod;
     private String sourceMessageCreationTime;
 
-    @JsonInclude(JsonInclude.Include.NON_NULL) private ValidationPolicy validationPolicy;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private ValidationPolicy validationPolicy;
 
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;
