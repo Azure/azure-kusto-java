@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -17,18 +16,26 @@ public abstract class IngestClientBase {
     private String endpointServiceType;
     private String suggestedEndpointUri;
     public static final String INGEST_PREFIX = "ingest-";
-    protected static final String WRONG_ENDPOINT_MESSAGE = "You are using '%s' client type, but the provided endpoint is of ServiceType '%s'. Initialize the client with the appropriate endpoint URI";
+    protected static final String WRONG_ENDPOINT_MESSAGE = "Ingestion failed likely because the wrong endpoint, whose ServiceType %s, was configured, which isn't compatible with the client of type '%s' being used. Initialize the client with the appropriate endpoint URL";
+    protected static final String CONFIGURED_ENDPOINT_MESSAGE = "is '%s'";
+    protected static final String INDETERMINATE_CONFIGURED_ENDPOINT_MESSAGE = "couldn't be determined";
 
-    protected void validateEndpointServiceType(String connectionDataSource, String expectedServiceType)
-        throws IngestionServiceException, IngestionClientException {
+    protected void validateEndpointServiceType(String endpoint, String expectedServiceType)
+        throws IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
         }
         if (!expectedServiceType.equals(endpointServiceType)) {
-            String message = String.format(WRONG_ENDPOINT_MESSAGE, expectedServiceType, endpointServiceType);
-            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, connectionDataSource);
+            String message;
+            if (StringUtils.isNotBlank(endpointServiceType)) {
+                String configuredEndpointMessage = String.format(CONFIGURED_ENDPOINT_MESSAGE, endpointServiceType);
+                message = String.format(WRONG_ENDPOINT_MESSAGE, configuredEndpointMessage, expectedServiceType);
+            } else {
+                message = String.format(WRONG_ENDPOINT_MESSAGE, INDETERMINATE_CONFIGURED_ENDPOINT_MESSAGE, expectedServiceType);
+            }
+            suggestedEndpointUri = generateEndpointSuggestion(suggestedEndpointUri, endpoint);
             if (StringUtils.isNotBlank(suggestedEndpointUri)) {
-                message = String.format("%s: '%s'", message, suggestedEndpointUri);
+                message = String.format("%s, which is likely '%s'.", message, suggestedEndpointUri);
             } else {
                 message += ".";
             }
@@ -48,16 +55,20 @@ public abstract class IngestClientBase {
                 existingEndpoint = new URIBuilder(dataSource);
                 endpointUriToSuggestStr = emendEndpointUri(existingEndpoint);
             } catch (URISyntaxException e) {
-                log.error("Couldn't parse dataSource '{}', so no suggestion can be made.", dataSource, e);
+                log.warn(
+                        "Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, we couldn't parse dataSource '{}', so no suggestion can be made.",
+                        dataSource, e);
             } catch (IllegalArgumentException e) {
-                log.error("URL is already in the correct format '{}', so no suggestion can be made.", dataSource, e);
+                log.warn(
+                        "Since the wrong endpoint was used, we attempted to suggest the correct endpoint. However, the URL is already in the correct format '{}', so no suggestion can be made.",
+                        dataSource, e);
             }
         }
 
         return endpointUriToSuggestStr;
     }
 
-    protected abstract String retrieveServiceType() throws IngestionServiceException, IngestionClientException;
+    protected abstract String retrieveServiceType();
 
     protected abstract String emendEndpointUri(URIBuilder existingEndpoint);
 
