@@ -299,7 +299,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
     }
 
     @Override
-    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    protected String retrieveServiceType() {
         if (resourceManager != null) {
             return resourceManager.retrieveServiceType();
         }
