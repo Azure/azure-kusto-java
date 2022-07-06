@@ -21,7 +21,7 @@ public class IngestClientFactory {
      * @return a new queued ingest client
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static IngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    public static QueuedIngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return createClient(csb, null);
     }
 
@@ -32,8 +32,8 @@ public class IngestClientFactory {
      * @return a new queued ingest client
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static IngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
-        return new QueuedIngestClient(csb, properties);
+    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+        return new QueuedIngestClientImpl(csb, properties);
     }
 
     /**

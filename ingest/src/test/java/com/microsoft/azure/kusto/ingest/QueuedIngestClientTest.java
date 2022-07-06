@@ -33,8 +33,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.function.BiFunction;
 
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.EXPECTED_SERVICE_TYPE;
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClient.WRONG_ENDPOINT_MESSAGE;
+import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.EXPECTED_SERVICE_TYPE;
+import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -56,7 +56,7 @@ import static org.mockito.Mockito.when;
 class QueuedIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
-    private static QueuedIngestClient queuedIngestClient;
+    private static QueuedIngestClientImpl queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
     private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
@@ -87,14 +87,14 @@ class QueuedIngestClientTest {
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), null);
     }
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
         doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
 
-        queuedIngestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
+        queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.CSV);
         ingestionProperties.setDataFormat(DataFormat.CSV);
@@ -156,12 +156,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
 
         ingestionProperties.setIgnoreFirstRecord(false);
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
@@ -174,12 +174,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
         assertFalse(captor.getValue().toLowerCase().contains("validationpolicy"));
 
         ingestionProperties.setValidationPolicy(new ValidationPolicy());
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -188,7 +188,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setValidationPolicy(
                 new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture());
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -274,7 +274,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -292,7 +292,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -310,7 +310,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
+        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
 
@@ -358,7 +358,7 @@ class QueuedIngestClientTest {
 
     @Test
     void generateName() {
-        QueuedIngestClient ingestClient = new QueuedIngestClient(resourceManagerMock, azureStorageClientMock);
+        QueuedIngestClientImpl ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         class Holder {
             private String name;
         }

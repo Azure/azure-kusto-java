@@ -52,14 +52,14 @@ class AzureStorageClientTest {
     void PostMessageToQueue_NullQueuePath_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.postMessageToQueue(null, "content"));
+                () -> azureStorageClient.postMessageToQueue(null, "content", null));
     }
 
     @Test
     void PostMessageToQueue_NullContent_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.postMessageToQueue("queuePath", null));
+                () -> azureStorageClient.postMessageToQueue("queuePath", null, null));
     }
 
     @Test
