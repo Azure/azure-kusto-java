@@ -87,7 +87,7 @@ class QueuedIngestClientTest {
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), null);
+        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), any());
     }
 
     @BeforeEach

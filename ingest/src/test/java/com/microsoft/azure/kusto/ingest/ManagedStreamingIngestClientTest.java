@@ -104,7 +104,7 @@ class ManagedStreamingIngestClientTest {
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), null);
+        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), any());
 
         streamingClientMock = mock(StreamingClient.class);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));
