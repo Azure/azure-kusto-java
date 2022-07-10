@@ -156,12 +156,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), any());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
 
         ingestionProperties.setIgnoreFirstRecord(false);
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), any());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
@@ -174,12 +174,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), any());
         assertFalse(captor.getValue().toLowerCase().contains("validationpolicy"));
 
         ingestionProperties.setValidationPolicy(new ValidationPolicy());
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), any());
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -188,7 +188,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setValidationPolicy(
                 new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), null);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(anyString(), captor.capture(), any());
         assertTrue(
                 captor.getValue()
                         .contains(
