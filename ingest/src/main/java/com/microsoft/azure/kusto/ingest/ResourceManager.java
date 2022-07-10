@@ -12,8 +12,8 @@ import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -237,7 +237,7 @@ class ResourceManager implements Closeable {
         }
     }
 
-    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    protected String retrieveServiceType() {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
             KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
@@ -247,13 +247,14 @@ class ResourceManager implements Closeable {
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
             }
         } catch (DataServiceException e) {
-            throw new IngestionServiceException(e.getIngestionSource(),
-                    "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+            log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
+            return null;
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
-                    e);
+            log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
+            return null;
         }
-        throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        return null;
     }
 
     private static class IngestionResource {

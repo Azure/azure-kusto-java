@@ -253,7 +253,7 @@ class Utils {
     private static URI parseUriFromUrlString(String url) throws DataClientException {
         try {
             URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || cleanUrl.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST)) {
+            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.toLowerCase().startsWith(CloudInfo.LOCALHOST)) {
                 return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(),
                         cleanUrl.getRef());
             } else {

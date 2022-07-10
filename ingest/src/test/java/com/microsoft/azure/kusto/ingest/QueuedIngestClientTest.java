@@ -350,7 +350,8 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
         FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_ENGINE,
+        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_ENGINE + "'",
+                EXPECTED_SERVICE_TYPE,
                 "https://ingest-testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
