@@ -92,7 +92,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -167,7 +167,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -211,7 +211,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -277,7 +277,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
+        throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
