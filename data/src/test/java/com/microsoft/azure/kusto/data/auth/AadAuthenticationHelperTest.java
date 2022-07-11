@@ -50,9 +50,9 @@ public class AadAuthenticationHelperTest {
     }
 
     @Test
-    @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
+    @DisplayName("validate auth with certificate  throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-        PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
+            PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -72,7 +72,7 @@ public class AadAuthenticationHelperTest {
     }
 
     public static KeyCert readPem(String path, String password)
-        throws IOException, CertificateException, OperatorCreationException, PKCSException {
+            throws IOException, CertificateException, OperatorCreationException, PKCSException {
 
         Security.addProvider(new BouncyCastleProvider());
         PEMParser pemParser = new PEMParser(new FileReader(path));
@@ -107,7 +107,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
     void useCachedTokenAndRefreshWhenNeeded()
-        throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
+            throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 

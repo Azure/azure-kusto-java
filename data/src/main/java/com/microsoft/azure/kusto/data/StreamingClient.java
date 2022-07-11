@@ -28,7 +28,7 @@ public interface StreamingClient {
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
             String mappingName, boolean leaveOpen)
-        throws DataServiceException, DataClientException;
+            throws DataServiceException, DataClientException;
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>

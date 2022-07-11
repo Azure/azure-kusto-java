@@ -21,7 +21,7 @@ import static com.microsoft.azure.kusto.data.auth.AadAuthenticationHelperTest.re
 
 class ConnectionStringBuilderTest {
     @Test
-    @DisplayName("validate createWithAadApplicationCredentials throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithAadApplicationCredentials  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadApplicationCredentials() {
 
         // nullOrEmpty appId
@@ -48,7 +48,7 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithUserPrompt throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithUserPrompt  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithUserPrompt() {
         // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
@@ -60,9 +60,9 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithAadApplicationCertificate throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithAadApplicationCertificate  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadApplicationCertificate() throws CertificateException, OperatorCreationException,
-        PKCSException, IOException {
+            PKCSException, IOException {
 
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
@@ -96,7 +96,7 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithAadAccessTokenAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithAadAccessTokenAuthentication  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadAccessTokenAuthentication() {
 
         Assertions.assertThrows(IllegalArgumentException.class,
@@ -116,7 +116,7 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithAadTokenProviderAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithAadTokenProviderAuthentication  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithAadTokenProviderAuthentication() {
 
         Assertions.assertThrows(IllegalArgumentException.class,
@@ -149,7 +149,7 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithDeviceAuthentication throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithDeviceAuthentication  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithDeviceAuthentication() {
         // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,

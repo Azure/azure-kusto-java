@@ -72,7 +72,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
             @Nullable HttpClientProperties properties)
-        throws URISyntaxException {
+            throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
@@ -101,7 +101,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
             @Nullable HttpClientProperties properties)
-        throws URISyntaxException {
+            throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(QueuedIngestClientImpl.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
@@ -142,7 +142,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -164,7 +164,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -177,7 +177,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -195,7 +195,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 

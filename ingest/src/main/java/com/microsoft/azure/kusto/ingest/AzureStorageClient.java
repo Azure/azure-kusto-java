@@ -60,7 +60,7 @@ class AzureStorageClient {
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-        URISyntaxException {
+            URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(tableUri, "tableUri");
         Ensure.argIsNotNull(entity, "entity");
@@ -73,7 +73,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
@@ -81,7 +81,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
@@ -122,7 +122,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
-        throws IOException, URISyntaxException, StorageException {
+            throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure

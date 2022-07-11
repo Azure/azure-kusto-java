@@ -21,7 +21,7 @@ public abstract class IngestClientBase {
     protected static final String INDETERMINATE_CONFIGURED_ENDPOINT_MESSAGE = "couldn't be determined";
 
     protected void validateEndpointServiceType(String endpoint, String expectedServiceType)
-        throws IngestionClientException {
+            throws IngestionClientException {
         if (StringUtils.isBlank(endpointServiceType)) {
             endpointServiceType = retrieveServiceType();
         }
