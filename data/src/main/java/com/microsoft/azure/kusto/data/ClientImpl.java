@@ -149,7 +149,7 @@ public class ClientImpl implements Client, StreamingClient {
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat, String mappingName, boolean leaveOpen)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -205,7 +205,7 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -247,7 +247,7 @@ public class ClientImpl implements Client, StreamingClient {
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
             String clientRequestIdPrefix,
             String activityTypeSuffix)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {
@@ -276,7 +276,7 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-        throws DataClientException {
+            throws DataClientException {
         String jsonPayload;
         try {
             JSONObject json = new JSONObject()

@@ -63,7 +63,7 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
 
     @Override
     protected IAuthenticationResult acquireAccessTokenSilentlyMsal()
-        throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException {
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<Set<IAccount>> accounts = clientApplication.getAccounts();
         return clientApplication
                 .acquireTokenSilently(getSilentParameters(accounts.join()))

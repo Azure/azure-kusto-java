@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -72,7 +73,7 @@ public class CloudInfo {
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
             @Nullable HttpClient givenHttpClient)
-        throws DataServiceException {
+            throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {

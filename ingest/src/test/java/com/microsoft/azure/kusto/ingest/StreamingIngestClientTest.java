@@ -257,7 +257,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -283,7 +283,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
@@ -476,7 +476,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
