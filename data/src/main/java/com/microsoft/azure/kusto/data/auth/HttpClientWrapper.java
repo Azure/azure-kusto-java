@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
+import com.microsoft.aad.msal4j.HttpMethod;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
@@ -113,7 +114,11 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
             ContentType contentType;
             String header = httpRequest.getHeaders().getValue(HttpHeaders.CONTENT_TYPE);
-            contentType = header != null ? ContentType.parse(header) : ContentType.APPLICATION_OCTET_STREAM;
+            boolean isRequest =
+                    httpRequest.getHttpMethod() == com.azure.core.http.HttpMethod.POST || httpRequest.getHttpMethod() == com.azure.core.http.HttpMethod.PUT || httpRequest.getHttpMethod() == com.azure.core.http.HttpMethod.PATCH || httpRequest.getHttpMethod() == com.azure.core.http.HttpMethod.DELETE;
+            contentType = header != null ? ContentType.parse(header) : (isRequest ?
+                    ContentType.APPLICATION_FORM_URLENCODED :
+                    ContentType.APPLICATION_OCTET_STREAM);
 
             String contentLengthStr = httpRequest.getHeaders().getValue(HttpHeaders.CONTENT_LENGTH);
             long contentLength = contentLengthStr != null ? Long.parseLong(contentLengthStr) : -1;
@@ -156,7 +161,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
         ContentType contentType;
         String header = httpRequest.headerValue(HttpHeaders.CONTENT_TYPE);
-        contentType = header != null ? ContentType.parse(header) : ContentType.APPLICATION_OCTET_STREAM;
+        contentType = header != null ? ContentType.parse(header) : (httpRequest.httpMethod() == HttpMethod.GET ? ContentType.APPLICATION_OCTET_STREAM :
+                ContentType.APPLICATION_FORM_URLENCODED);
 
         // Setting the request's body/entity
         String body = httpRequest.body();
