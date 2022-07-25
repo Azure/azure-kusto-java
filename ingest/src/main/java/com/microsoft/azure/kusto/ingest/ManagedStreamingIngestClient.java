@@ -45,7 +45,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
-    final QueuedIngestClient queuedIngestClient;
+    final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
 
@@ -72,7 +72,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
             @Nullable HttpClientProperties properties)
-        throws URISyntaxException {
+            throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
@@ -101,9 +101,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
             @Nullable HttpClientProperties properties)
-        throws URISyntaxException {
+            throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
-        dmConnectionString.setClusterUrl(QueuedIngestClient.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
+        dmConnectionString.setClusterUrl(QueuedIngestClientImpl.generateDmUriSuggestion(new URIBuilder(engineConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
     }
 
@@ -116,7 +116,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
             ConnectionStringBuilder engineConnectionStringBuilder,
             @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClient(dmConnectionStringBuilder, properties);
+        queuedIngestClient = new QueuedIngestClientImpl(dmConnectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder, properties);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
@@ -125,7 +125,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
             AzureStorageClient storageClient,
             StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
-        queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
+        queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
@@ -135,14 +135,14 @@ public class ManagedStreamingIngestClient implements IngestClient {
             StreamingClient streamingClient,
             ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
-        queuedIngestClient = new QueuedIngestClient(resourceManager, storageClient);
+        queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
         exponentialRetryTemplate = retryTemplate;
     }
 
     @Override
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -164,7 +164,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     @Override
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -177,7 +177,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -195,7 +195,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     @Override
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-        throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 

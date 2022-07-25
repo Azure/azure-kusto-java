@@ -479,7 +479,7 @@ public class KustoResultSetTable {
      *
      * @param columnIndex         Column index that contains the date
      * @param calendar            Calendar container appropriate timezone
-     * @throws SQLException       Throws SQLException if date can't be parsed
+     * @throws SQLException        throws SQLException if date can't be parsed
      * @return Date
      */
     public Date getDate(int columnIndex, Calendar calendar) throws SQLException {

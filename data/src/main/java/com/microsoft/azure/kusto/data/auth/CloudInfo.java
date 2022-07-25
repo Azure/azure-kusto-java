@@ -5,12 +5,9 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.jetbrains.annotations.Nullable;
@@ -75,7 +72,7 @@ public class CloudInfo {
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
             @Nullable HttpClient givenHttpClient)
-        throws DataServiceException {
+            throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {

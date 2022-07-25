@@ -75,7 +75,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal()
-        throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
     protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
 

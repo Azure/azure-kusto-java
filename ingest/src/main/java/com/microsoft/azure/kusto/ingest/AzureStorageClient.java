@@ -14,6 +14,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
+import com.microsoft.azure.storage.queue.QueueRequestOptions;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
@@ -48,18 +49,18 @@ class AzureStorageClient {
         this.operationContext = IngestionUtils.httpClientPropertiesToOperationContext(httpClientProperties);
     }
 
-    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+    void postMessageToQueue(String queuePath, String content, QueueRequestOptions options) throws StorageException, URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(queuePath, "queuePath");
         Ensure.stringIsNotBlank(content, "content");
 
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
-        queue.addMessage(queueMessage, 0, 0, null, this.operationContext);
+        queue.addMessage(queueMessage, 0, 0, options, this.operationContext);
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-        URISyntaxException {
+            URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(tableUri, "tableUri");
         Ensure.argIsNotNull(entity, "entity");
@@ -72,7 +73,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
@@ -80,7 +81,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
@@ -121,7 +122,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
-        throws IOException, URISyntaxException, StorageException {
+            throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure
