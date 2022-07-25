@@ -3,12 +3,20 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.Kernel32;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ConnectionStringBuilder {
     private String clusterUrl;
@@ -33,6 +41,7 @@ public class ConnectionStringBuilder {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
+    private String processNameForTracing = null;
 
     private ConnectionStringBuilder(String clusterUrl) {
         this.clusterUrl = clusterUrl;
@@ -52,6 +61,40 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.clientVersionForTracing = null;
         this.applicationNameForTracing = null;
+        this.initProcessNameForTracing();
+    }
+
+    private void initProcessNameForTracing() {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            ExecutorService service = Executors.newSingleThreadExecutor();
+            service.submit(()-> {
+                try {
+                    int pid = Kernel32.INSTANCE.GetCurrentProcessId();
+                    processNameForTracing = getProcessNameFromPID(Integer.toString(pid));
+                } catch (Exception ignore) {
+                }
+            });
+        }
+    }
+
+    private static String getProcessNameFromPID(String pid) throws IOException, InterruptedException {
+        Process p = null;
+        p = Runtime.getRuntime().exec("tasklist");
+
+        StringBuffer sbInput = new StringBuffer();
+        BufferedReader brInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        String line;
+        String foundLine = "UNKNOWN";
+            while ((line = brInput.readLine()) != null) {
+                if (line.contains(pid)){
+                    foundLine = line;
+                }
+                sbInput.append(line + "\n");
+            }
+
+        p.waitFor();
+        p.destroy();
+        return foundLine.substring(0, foundLine.indexOf(" "));
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -72,6 +115,7 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = other.userNameForTracing;
         this.clientVersionForTracing = other.clientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
+        this.processNameForTracing = other.processNameForTracing;
     }
 
     public String getClusterUrl() {
@@ -147,7 +191,7 @@ public class ConnectionStringBuilder {
     }
 
     public String getApplicationNameForTracing() {
-        return applicationNameForTracing;
+        return applicationNameForTracing == null ? this.processNameForTracing : applicationNameForTracing;
     }
 
     public void setApplicationNameForTracing(String applicationNameForTracing) {
