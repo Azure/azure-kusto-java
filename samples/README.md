@@ -1,7 +1,7 @@
 # Getting Started with Kusto Java SDK
 
 ### Prerequisites
-  - A Java Developer Kit (JDK), version 1.8 or later
+  - A Java Developer Kit (JDK), version 11 or later
   - Maven
   - Clone the project and enter the samples directory: 
 ```sh

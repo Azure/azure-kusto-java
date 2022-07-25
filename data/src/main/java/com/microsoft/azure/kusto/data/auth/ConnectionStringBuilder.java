@@ -11,6 +11,7 @@ import org.apache.commons.lang3.SystemUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -65,18 +66,20 @@ public class ConnectionStringBuilder {
     }
 
     private void initProcessNameForTracing() {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            ExecutorService service = Executors.newSingleThreadExecutor();
-            service.submit(()-> {
-                try {
-                    int pid = Kernel32.INSTANCE.GetCurrentProcessId();
-                    processNameForTracing = getProcessNameFromPID(Integer.toString(pid));
-                } catch (Exception ignore) {
-                }
-            });
+        long pid = ProcessHandle.current().pid();
+        try {
+            String processNameFromPID = getProcessNameFromPID(Long.toString(pid));
+            ProcessHandle.Info info = ProcessHandle.current().info();
+            Path fileName = Path.of(info.command().orElse("")).getFileName();
+            String userId = info.user().orElse(null);
+            this.processNameForTracing = fileName.toString();
+            this.userNameForTracing = userId;
+        } catch (IOException | InterruptedException ignore) {
         }
     }
 
+    // TODO delete
+    // This is for java 8 - in java 11 we get the running command and take file name
     private static String getProcessNameFromPID(String pid) throws IOException, InterruptedException {
         Process p = null;
         p = Runtime.getRuntime().exec("tasklist");
