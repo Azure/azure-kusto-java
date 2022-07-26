@@ -64,11 +64,9 @@ public class Utils {
                     return createApplicationCertificateConnectionString(clusterUrl);
 
                 default:
-                    ErrorHandler(String.format("Authentication mode '%s' is not supported", authenticationMode));
+                    errorHandler(String.format("Authentication mode '%s' is not supported", authenticationMode));
                     return null;
             }
-
-            // csb.setApplicationNameForTracing("KustoJavaSdkQuickStart"); // TODO: come back to this, put it at the summonings
         }
 
         /**
@@ -105,7 +103,7 @@ public class Utils {
                 return ConnectionStringBuilder.createWithAadApplicationCertificate(clusterUrl, appId, x509Certificate, privateKey, appTenant);
 
             } catch (IOException | GeneralSecurityException e) {
-                ErrorHandler("Couldn't create ConnectionStringBuilder for application certificate authentication", e);
+                errorHandler("Couldn't create ConnectionStringBuilder for application certificate authentication", e);
                 return null;
             }
         }
@@ -151,9 +149,8 @@ public class Utils {
          * @param kustoClient  Premade client to run Commands.
          * @param databaseName DB name
          * @param command      The Command to execute
-         * @return True on success, false otherwise
          */
-        protected static boolean executeCommand(Client kustoClient, String databaseName, String command) {
+        protected static void executeCommand(Client kustoClient, String databaseName, String command) {
             ClientRequestProperties clientRequestProperties = command.startsWith(MgmtPrefix) ?
                     createClientRequestProperties("Java_SampleApp_ControlCommand") : createClientRequestProperties("Java_SampleApp_Query");
             KustoOperationResult result;
@@ -176,17 +173,14 @@ public class Utils {
 
                     System.out.println();
                 }
-                return true;
 
             } catch (DataServiceException e) {
-                ErrorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
+                errorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (DataClientException e) {
-                ErrorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
+                errorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (Exception e) {
-                ErrorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
+                errorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             }
-
-            return false;
         }
     }
 
@@ -300,7 +294,7 @@ public class Utils {
                 try {
                     Thread.sleep(TimeUnit.SECONDS.toMillis(1));
                 } catch (InterruptedException e) {
-                    ErrorHandler("Exception while sleeping waiting for ingestion, with stack trace:", e);
+                    errorHandler("Exception while sleeping waiting for ingestion, with stack trace:", e);
                 }
             }
             System.out.println();
@@ -313,8 +307,8 @@ public class Utils {
      *
      * @param error Appropriate error message received from calling function
      */
-    protected static void ErrorHandler(String error) {
-        ErrorHandler(error, null);
+    protected static void errorHandler(String error) {
+        errorHandler(error, null);
     }
 
     /**
@@ -323,7 +317,7 @@ public class Utils {
      * @param error Appropriate error message received from calling function
      * @param e     Thrown exception
      */
-    protected static void ErrorHandler(String error, Exception e) {
+    protected static void errorHandler(String error, Exception e) {
         System.out.println("Script failed with error: " + error);
         if (e != null) {
             System.out.println("Exception:");
