@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
 
-
 /**
  * SourceType - represents the type of files used for ingestion
  */
@@ -306,7 +305,6 @@ public class SampleApp {
     private static int step = 1;
     private static boolean waitForUser;
 
-
     public static void main(String[] args) {
         System.out.println("Kusto sample app is starting...");
 
@@ -319,7 +317,8 @@ public class SampleApp {
         try {
             IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
                     config.getAuthenticationMode()));
-            Client kustoClient = ClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
+            Client kustoClient = ClientFactory
+                    .createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
 
             preIngestionQuerying(config, kustoClient);
 
@@ -329,7 +328,6 @@ public class SampleApp {
             if (config.isQueryData()) {
                 postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
             }
-
 
         } catch (URISyntaxException e) {
             Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
@@ -354,7 +352,7 @@ public class SampleApp {
         } catch (Exception e) {
             Utils.errorHandler(String.format("Couldn't read config file from file '%s'", SampleApp.configFileName), e);
         }
-        return new ConfigJson(); //TODO: will never reach here. what should i replace with?
+        return new ConfigJson(); // Note: will never reach here.
     }
 
     /**
@@ -400,10 +398,10 @@ public class SampleApp {
         }
 
         // Learn More: Kusto batches data for ingestion efficiency. The default batching policy ingests data when one of the following conditions are met:
-        //   1) More than 1,000 files were queued for ingestion for the same table by the same user
-        //   2) More than 1GB of data was queued for ingestion for the same table by the same user
-        //   3) More than 5 minutes have passed since the first File was queued for ingestion for the same table by the same user
-        //  For more information about customizing the ingestion batching policy, see:
+        // 1) More than 1,000 files were queued for ingestion for the same table by the same user
+        // 2) More than 1GB of data was queued for ingestion for the same table by the same user
+        // 3) More than 5 minutes have passed since the first File was queued for ingestion for the same table by the same user
+        // For more information about customizing the ingestion batching policy, see:
         // https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
         // TODO: Change if needed. Disabled to prevent an existing batching policy from being unintentionally changed
         if (false && config.getBatchingPolicy() != null) {
@@ -473,10 +471,8 @@ public class SampleApp {
     private static void alterBatchingPolicy(Client kustoClient, String databaseName, String tableName, String batchingPolicy) {
         /*
          * Tip 1: Though most users should be fine with the defaults, to speed up ingestion, such as during development and in this sample app, we opt to modify
-         * the default ingestion policy to ingest data after at most 10 seconds.
-         * Tip 2: This is generally a one-time configuration.
-         * Tip 3: You can also skip the batching for some files using the Flush-Immediately property, though this option should be used with care as it
-         * is inefficient.
+         * the default ingestion policy to ingest data after at most 10 seconds. Tip 2: This is generally a one-time configuration. Tip 3: You can also skip the
+         * batching for some files using the Flush-Immediately property, though this option should be used with care as it is inefficient.
          */
         String command = String.format(".alter table %s policy ingestionbatching @'%s'", tableName, batchingPolicy);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
@@ -505,10 +501,10 @@ public class SampleApp {
         }
 
         /*
-         * Note: We poll here the ingestion's target table because monitoring successful ingestions is expensive and not recommended. Instead, the
-         * recommended ingestion monitoring approach is to monitor failures. Learn more:
-         * https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-client-status#tracking-ingestion-status-kustoqueuedingestclient
-         * and https://docs.microsoft.com/azure/data-explorer/using-diagnostic-logs
+         * Note: We poll here the ingestion's target table because monitoring successful ingestions is expensive and not recommended. Instead, the recommended
+         * ingestion monitoring approach is to monitor failures. Learn more:
+         * https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-client-status#tracking-ingestion-status-kustoqueuedingestclient and
+         * https://docs.microsoft.com/azure/data-explorer/using-diagnostic-logs
          */
         Utils.Ingestion.waitForIngestionToComplete(config.getWaitForIngestSeconds());
     }
@@ -525,7 +521,7 @@ public class SampleApp {
      * @param dataFormat         Given data format
      */
     private static void createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName,
-                                                String mappingValue, IngestionProperties.DataFormat dataFormat) {
+            String mappingValue, IngestionProperties.DataFormat dataFormat) {
         if (useExistingMapping || StringUtils.isBlank(mappingValue)) {
             return;
         }
@@ -549,7 +545,7 @@ public class SampleApp {
      * @param mappingName  Desired mapping name
      */
     private static void ingest_data(ConfigData data_source, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
-                                    String tableName, String mappingName) {
+            String tableName, String mappingName) {
         SourceType sourceType = data_source.getSourceType();
         String uri = data_source.getDataSourceUri();
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType.toString()));
@@ -572,7 +568,6 @@ public class SampleApp {
                 Utils.errorHandler(String.format("Unknown source '%s' for file '%s'%n", sourceType, uri));
         }
     }
-
 
     /**
      * Third and final phase - simple queries to validate the hopefully successful run of the script

@@ -53,7 +53,7 @@ public class Utils {
                 case appKey:
                     // Learn More: For information about how to procure an AAD Application,
                     // see: https://docs.microsoft.com/azure/data-explorer/provision-azure-ad-app
-                    // TODO (config - optional): App ID & tenant, and App Key to authenticate with
+                    // TODO (config - optional): App ID and tenant, and App Key to authenticate with
                     return ConnectionStringBuilder.createWithAadApplicationCredentials(clusterUrl,
                             System.getenv("APP_ID"),
                             System.getenv("APP_KEY"),
@@ -80,8 +80,8 @@ public class Utils {
             // Connect using the system- or user-assigned managed identity (Azure service only)
             // TODO (config - optional): Managed identity client ID if you are using a user-assigned managed identity
             String clientId = System.getenv("MANAGED_IDENTITY_CLIENT_ID");
-            return StringUtils.isBlank(clientId) ? ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl) :
-                    ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
+            return StringUtils.isBlank(clientId) ? ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl)
+                    : ConnectionStringBuilder.createWithAadManagedIdentity(clusterUrl, clientId);
         }
 
         /**
@@ -91,7 +91,7 @@ public class Utils {
          * @return AppCertificate Kusto Connection String
          */
         private static ConnectionStringBuilder createApplicationCertificateConnectionString(String clusterUrl) {
-            // TODO (config - optional): App ID & tenant, path to public certificate and path to private certificate pem file to authenticate with
+            // TODO (config - optional): App ID and tenant, path to public certificate and path to private certificate pem file to authenticate with
             String appId = System.getenv("APP_ID");
             String appTenant = System.getenv("APP_TENANT");
             String privateKeyPemFilePath = System.getenv("PRIVATE_KEY_PEM_FILE_PATH");
@@ -151,8 +151,8 @@ public class Utils {
          * @param command      The Command to execute
          */
         protected static void executeCommand(Client kustoClient, String databaseName, String command) {
-            ClientRequestProperties clientRequestProperties = command.startsWith(MgmtPrefix) ?
-                    createClientRequestProperties("Java_SampleApp_ControlCommand") : createClientRequestProperties("Java_SampleApp_Query");
+            ClientRequestProperties clientRequestProperties = command.startsWith(MgmtPrefix) ? createClientRequestProperties("Java_SampleApp_ControlCommand")
+                    : createClientRequestProperties("Java_SampleApp_Query");
             KustoOperationResult result;
 
             try {
@@ -200,7 +200,7 @@ public class Utils {
          */
         @NotNull
         protected static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat,
-                                                                       String mappingName) {
+                String mappingName) {
             IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
             ingestionProperties.setDataFormat(dataFormat);
             // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
@@ -227,7 +227,7 @@ public class Utils {
          * @param mappingName  Desired mapping name
          */
         protected static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath,
-                                             IngestionProperties.DataFormat dataFormat, String mappingName) {
+                IngestionProperties.DataFormat dataFormat, String mappingName) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
 
             // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length())
@@ -258,7 +258,7 @@ public class Utils {
          * @param mappingName  Desired mapping name
          */
         protected static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl,
-                                             IngestionProperties.DataFormat dataFormat, String mappingName) {
+                IngestionProperties.DataFormat dataFormat, String mappingName) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
 
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0
