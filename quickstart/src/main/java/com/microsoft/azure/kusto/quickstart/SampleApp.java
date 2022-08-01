@@ -5,13 +5,16 @@ import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
+import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 
 /**
@@ -111,7 +114,7 @@ class ConfigData {
         return "\nConfigData{" +
                 "\nsourceType=" + sourceType +
                 ", \ndataSourceUri='" + dataSourceUri + '\'' +
-                ", \nformat=" + format +
+                ", \ndataFormat=" + format +
                 ", \nuseExistingMapping=" + useExistingMapping +
                 ", \nmappingName='" + mappingName + '\'' +
                 ", \nmappingValue='" + mappingValue + '\'' +
@@ -320,6 +323,13 @@ public class SampleApp {
 
             preIngestionQuerying(config, kustoClient);
 
+            if (config.isIngestData()) {
+                ingestion(config, kustoClient, ingestClient);
+            }
+            if (config.isQueryData()) {
+//                postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
+            }
+
 
         } catch (URISyntaxException e) {
             Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
@@ -462,4 +472,92 @@ public class SampleApp {
         // though ingestion will be delayed for up to 5 minutes.
     }
 
+    /**
+     * Second phase - The ingestion process
+     *
+     * @param config       ConfigJson object containing the SampleApp configuration
+     * @param kustoClient  Client to run commands
+     * @param ingestClient Client to ingest data
+     */
+    private static void ingestion(ConfigJson config, Client kustoClient, IngestClient ingestClient) {
+        for (ConfigData data_source : config.getData()) {
+            // Tip: This is generally a one-time configuration.
+            // Learn More: For more information about providing inline mappings and mapping references, see:
+            // https://docs.microsoft.com/azure/data-explorer/kusto/management/mappings
+            createIngestionMappings(data_source.isUseExistingMapping(), kustoClient, config.getDatabaseName(), config.getTableName(),
+                    data_source.getMappingName(), data_source.getMappingValue(), data_source.getFormat());
+
+            // Learn More: For more information about ingesting data to Kusto in Java, see:
+            // https://docs.microsoft.com/azure/data-explorer/java-ingest-data
+            ingest_data(data_source, data_source.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), data_source.getMappingName());
+        }
+
+        /*
+         * Note: We poll here the ingestion's target table because monitoring successful ingestions is expensive and not recommended. Instead, the
+         * recommended ingestion monitoring approach is to monitor failures. Learn more:
+         * https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/kusto-ingest-client-status#tracking-ingestion-status-kustoqueuedingestclient
+         * and https://docs.microsoft.com/azure/data-explorer/using-diagnostic-logs
+         */
+        Utils.Ingestion.waitForIngestionToComplete(config.getWaitForIngestSeconds());
+    }
+
+    /**
+     * Creates Ingestion Mappings (if required) based on given values
+     *
+     * @param useExistingMapping Flag noting if we should the existing mapping or create a new one
+     * @param kustoClient        Client to run commands
+     * @param databaseName       DB name
+     * @param tableName          Table name
+     * @param mappingName        Desired mapping name
+     * @param mappingValue       Values of the new mappings to create
+     * @param dataFormat         Given data format
+     */
+    private static void createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName,
+                                                String mappingValue, IngestionProperties.DataFormat dataFormat) {
+        if (useExistingMapping || StringUtils.isBlank(mappingValue)) {
+            return;
+        }
+        IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
+        waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
+        mappingName = StringUtils.isNotBlank(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
+
+        String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName,
+                ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
+        Utils.Queries.executeCommand(kustoClient, databaseName, mappingCommand);
+    }
+
+    /**
+     * Ingest data from given source
+     *
+     * @param data_source  Given data source
+     * @param dataFormat   Given data format
+     * @param ingestClient Client to ingest data
+     * @param databaseName DB name
+     * @param tableName    Table name
+     * @param mappingName  Desired mapping name
+     */
+    private static void ingest_data(ConfigData data_source, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
+                                    String tableName, String mappingName) {
+        SourceType sourceType = data_source.getSourceType();
+        String uri = data_source.getDataSourceUri();
+        waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType.toString()));
+        // Tip: When ingesting json files, if each line represents a single-line json, use MULTIJSON format even if the file only contains one line.
+        // If the json contains whitespace formatting, use SINGLEJSON. In this case, only one data row json object is allowed per file.
+        if (dataFormat == IngestionProperties.DataFormat.JSON) {
+            dataFormat = IngestionProperties.DataFormat.MULTIJSON;
+        }
+
+        // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
+        // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
+        switch (sourceType) {
+            case localFileSource:
+                Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                break;
+            case blobSource:
+                Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                break;
+            default:
+                Utils.errorHandler(String.format("Unknown source '%s' for file '%s'%n", sourceType, uri));
+        }
+    }
 }
