@@ -30,7 +30,7 @@ enum SourceType {
 enum AuthenticationModeOptions {
     userPrompt("UserPrompt"), managedIdentity("ManagedIdentity"), appKey("AppKey"), appCertificate("AppCertificate");
 
-    private String mode;
+    private final String mode;
 
     AuthenticationModeOptions(String mode) {
         this.mode = mode;
@@ -327,7 +327,7 @@ public class SampleApp {
                 ingestion(config, kustoClient, ingestClient);
             }
             if (config.isQueryData()) {
-//                postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
+                postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
             }
 
 
@@ -434,6 +434,18 @@ public class SampleApp {
      */
     private static void queryExistingNumberOfRows(Client kustoClient, String databaseName, String tableName) {
         String command = String.format("%s | count", tableName);
+        Utils.Queries.executeCommand(kustoClient, databaseName, command);
+    }
+
+    /**
+     * Queries the first two rows of the table
+     *
+     * @param kustoClient  Client to run commands
+     * @param databaseName DB name
+     * @param tableName    Table name
+     */
+    private static void queryFirstTwoRows(Client kustoClient, String databaseName, String tableName) {
+        String command = String.format("%s | take 2", tableName);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -559,5 +571,24 @@ public class SampleApp {
             default:
                 Utils.errorHandler(String.format("Unknown source '%s' for file '%s'%n", sourceType, uri));
         }
+    }
+
+
+    /**
+     * Third and final phase - simple queries to validate the hopefully successful run of the script
+     *
+     * @param kustoClient  Client to run queries
+     * @param databaseName DB Name
+     * @param tableName    Table Name
+     * @param ingestData   Flag noting whether any data was ingested by the script
+     */
+    private static void postIngestionQuerying(Client kustoClient, String databaseName, String tableName, boolean ingestData) {
+        String optionalPostIngestionPrompt = ingestData ? "post-ingestion " : "";
+
+        waitForUserToProceed(String.format("Get %srow count for '%s.%s':", optionalPostIngestionPrompt, databaseName, tableName));
+        queryExistingNumberOfRows(kustoClient, databaseName, tableName);
+
+        waitForUserToProceed(String.format("Get sample (2 records) of %sdata:", optionalPostIngestionPrompt));
+        queryFirstTwoRows(kustoClient, databaseName, tableName);
     }
 }
