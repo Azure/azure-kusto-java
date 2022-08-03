@@ -23,6 +23,7 @@ This method is the easiest to follow, just add the following dependency to your 
 <dependency>
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-ingest</artifactId>
+    <version>x.y.z</version>
 </dependency>
 ```
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.azure.kusto/kusto-ingest/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.azure.kusto/kusto-ingest)
