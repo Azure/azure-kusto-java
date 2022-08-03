@@ -18,14 +18,15 @@ This library contains 3 different modules:
 
 ## Maven
 
-This method is the easiest to follow, just add the following dependency to your pom.xml:
+This method is the easiest to follow, just add the following dependency to your pom.xml (with the right version tag from maven central):
 ```xml
 <dependency>
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-ingest</artifactId>
-    <version>3.1.3</version>
 </dependency>
 ```
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.azure.kusto/kusto-ingest/badge.svg?style=plastic)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.azure.kusto/kusto-ingest)
+
 
 ## Clone
 Download the source code, compile and install locally.
