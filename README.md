@@ -23,7 +23,7 @@ This method is the easiest to follow, just add the following dependency to your 
 <dependency>
     <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>kusto-ingest</artifactId>
-    <version>2.1.2</version>
+    <version>3.1.3</version>
 </dependency>
 ```
 
@@ -58,7 +58,6 @@ Alternatively, you can define a proxy programmatically when creating a client, u
 ```java
 HttpClientProperties httpClientProperties = HttpClientProperties.builder()
         .proxy(new HttpHost("1.2.3.4", 8989))
-        .credentialsProvider(credentialsProvider)
         .build();
 
 Client = ClientFactory.createClient(<engine_connection_string>, httpClientProperties); 
