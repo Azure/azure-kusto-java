@@ -32,11 +32,13 @@ public class CloudInfo {
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
+    public static final String LOCALHOST_IP = "127.0.0.1";
 
     private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
+        cache.put(LOCALHOST_IP, DEFAULT_CLOUD);
     }
 
     private final boolean loginMfaRequired;

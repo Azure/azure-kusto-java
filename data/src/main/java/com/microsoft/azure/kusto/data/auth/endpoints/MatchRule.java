@@ -31,17 +31,17 @@ public class MatchRule
         return new MatchRule(suffix, exact);
     }
 
-    public String GetSuffixTail(int minRuleLength) {
+    public static String GetStringTail(String val, int minRuleLength) {
         if (minRuleLength <= 0)
         {
             return "";
         }
 
-        if (minRuleLength >= suffix.length())
+        if (minRuleLength >= val.length())
         {
-            return suffix;
+            return val;
         }
 
-        return suffix.substring(suffix.length() - minRuleLength);
+        return val.substring(val.length() - minRuleLength);
     }
 }

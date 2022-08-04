@@ -28,6 +28,8 @@ public class WellKnownKustoEndpointsData {
                     "/WellKnownKustoEndpoints.json";
             ObjectMapper objectMapper = new ObjectMapper();
             byte[] bytes = Files.readAllBytes(Paths.get(filename));
+//            FileInputStream file = new FileInputStream(fileName);
+//            ObjectInputStream in = new ObjectInputStream(file);
             return objectMapper.readValue(bytes, WellKnownKustoEndpointsData.class);
         } catch (Exception ex) {
             ex.printStackTrace();

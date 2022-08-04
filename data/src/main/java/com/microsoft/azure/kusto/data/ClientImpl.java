@@ -136,6 +136,7 @@ public class ClientImpl implements Client, StreamingClient {
         command = command.trim();
         CommandType commandType = determineCommandType(command);
         long timeoutMs = determineTimeout(properties, commandType);
+        // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
         Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute",

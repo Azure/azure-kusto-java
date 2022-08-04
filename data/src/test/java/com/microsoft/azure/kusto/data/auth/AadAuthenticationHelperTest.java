@@ -9,6 +9,7 @@ import com.microsoft.aad.msal4j.ITenantProfile;
 import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -52,7 +53,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-        PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
+            PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -107,7 +108,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
     void useCachedTokenAndRefreshWhenNeeded()
-        throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
+            throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException, KustoClientInvalidConnectionStringException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -149,7 +150,7 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate cloud settings for non-standard cloud")
-    void checkCloudSettingsAbnormal() throws URISyntaxException, DataServiceException, DataClientException {
+    void checkCloudSettingsAbnormal() throws URISyntaxException, DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
 
@@ -187,7 +188,7 @@ public class AadAuthenticationHelperTest {
 
     @Test
     @DisplayName("validate cloud settings for the standard cloud")
-    void checkCloudSettingsNormal() throws URISyntaxException, DataServiceException, DataClientException {
+    void checkCloudSettingsNormal() throws URISyntaxException, DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
 
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "auth_id", "");
 

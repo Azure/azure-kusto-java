@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
@@ -128,7 +130,7 @@ public class KustoSampleApp {
             if (shouldQueryData) {
                 executeValidationQueries(kustoClient, databaseName, tableName, shouldIngestData);
             }
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | KustoClientInvalidConnectionStringException e) {
             die("Couldn't create Kusto client", e);
         }
     }
@@ -183,7 +185,7 @@ public class KustoSampleApp {
         }
     }
 
-    private static ConnectionStringBuilder generateConnectionString(String clusterUrl, String authenticationMode) {
+    private static ConnectionStringBuilder generateConnectionString(String clusterUrl, String authenticationMode) throws KustoClientInvalidConnectionStringException {
         // Learn More: For additional information on how to authorize users and apps in Kusto, see:
         // https://docs.microsoft.com/azure/data-explorer/manage-database-permissions
         ConnectionStringBuilder csb = null;
@@ -219,7 +221,7 @@ public class KustoSampleApp {
     }
 
     @NotNull
-    private static ConnectionStringBuilder createManagedIdentityConnectionString(String clusterUrl) {
+    private static ConnectionStringBuilder createManagedIdentityConnectionString(String clusterUrl) throws KustoClientInvalidConnectionStringException {
         // Connect using the system- or user-assigned managed identity (Azure service only)
         // TODO (config - optional): Managed identity client ID if you are using a user-assigned managed identity
         String clientId = System.getenv("MANAGED_IDENTITY_CLIENT_ID");
@@ -241,7 +243,7 @@ public class KustoSampleApp {
             PrivateKey privateKey = SecurityUtils.getPrivateKey(publicCertFilePath);
             X509Certificate x509Certificate = SecurityUtils.getPublicCertificate(privateKeyPemFilePath);
             return ConnectionStringBuilder.createWithAadApplicationCertificate(clusterUrl, appId, x509Certificate, privateKey, appTenant);
-        } catch (IOException | GeneralSecurityException e) {
+        } catch (IOException | GeneralSecurityException | KustoClientInvalidConnectionStringException e) {
             die("Couldn't create ConnectionStringBuilder for application certificate authentication", e);
             return null;
         }

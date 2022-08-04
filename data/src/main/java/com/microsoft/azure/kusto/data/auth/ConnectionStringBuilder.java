@@ -3,8 +3,14 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URISyntaxException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -34,7 +40,7 @@ public class ConnectionStringBuilder {
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "common";
 
-    private ConnectionStringBuilder(String clusterUrl) {
+    private ConnectionStringBuilder(String clusterUrl) throws KustoClientInvalidConnectionStringException {
         this.clusterUrl = clusterUrl;
         this.usernameHint = null;
         this.applicationClientId = null;
@@ -52,6 +58,7 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.clientVersionForTracing = null;
         this.applicationNameForTracing = null;
+        KustoTrustedEndpoints.ValidateTrustedEndpoint(clusterUrl);
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -160,14 +167,14 @@ public class ConnectionStringBuilder {
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
             String applicationClientId,
-            String applicationKey) {
+            String applicationKey) throws  KustoClientInvalidConnectionStringException {
         return createWithAadApplicationCredentials(clusterUrl, applicationClientId, applicationKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
             String applicationClientId,
             String applicationKey,
-            String authorityId) {
+            String authorityId) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -185,15 +192,15 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl) {
+    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl) throws  KustoClientInvalidConnectionStringException {
         return createWithUserPrompt(clusterUrl, DEFAULT_DEVICE_AUTH_TENANT, null);
     }
 
-    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String usernameHint) {
+    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String usernameHint) throws  KustoClientInvalidConnectionStringException {
         return createWithUserPrompt(clusterUrl, DEFAULT_DEVICE_AUTH_TENANT, usernameHint);
     }
 
-    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String authorityId, String usernameHint) {
+    public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String authorityId, String usernameHint) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -205,11 +212,11 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl) {
+    public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl) throws  KustoClientInvalidConnectionStringException {
         return createWithDeviceCode(clusterUrl, DEFAULT_DEVICE_AUTH_TENANT);
     }
 
-    public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl, String authorityId) {
+    public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl, String authorityId) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -223,7 +230,7 @@ public class ConnectionStringBuilder {
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
             String applicationClientId,
             X509Certificate x509Certificate,
-            PrivateKey privateKey) {
+            PrivateKey privateKey) throws  KustoClientInvalidConnectionStringException {
         return createWithAadApplicationCertificate(clusterUrl, applicationClientId, x509Certificate, privateKey, null);
     }
 
@@ -231,7 +238,7 @@ public class ConnectionStringBuilder {
             String applicationClientId,
             X509Certificate x509Certificate,
             PrivateKey privateKey,
-            String authorityId) {
+            String authorityId) throws KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -256,7 +263,7 @@ public class ConnectionStringBuilder {
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
             String applicationClientId,
             List<X509Certificate> x509CertificateChain,
-            PrivateKey privateKey) {
+            PrivateKey privateKey) throws  KustoClientInvalidConnectionStringException {
         return createWithAadApplicationCertificateSubjectNameIssuer(clusterUrl, applicationClientId, x509CertificateChain, privateKey, null);
     }
 
@@ -264,7 +271,7 @@ public class ConnectionStringBuilder {
             String applicationClientId,
             List<X509Certificate> x509CertificateChain,
             PrivateKey privateKey,
-            String authorityId) {
+            String authorityId) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -286,7 +293,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithAadAccessTokenAuthentication(String clusterUrl, String token) {
+    public static ConnectionStringBuilder createWithAadAccessTokenAuthentication(String clusterUrl, String token) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -299,7 +306,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String clusterUrl, Callable<String> tokenProviderCallable) {
+    public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String clusterUrl, Callable<String> tokenProviderCallable) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -313,11 +320,11 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl) {
+    public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl) throws  KustoClientInvalidConnectionStringException {
         return createWithAadManagedIdentity(clusterUrl, null);
     }
 
-    public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl, String managedIdentityClientId) {
+    public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl, String managedIdentityClientId) throws  KustoClientInvalidConnectionStringException {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
