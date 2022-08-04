@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,19 +22,21 @@ public class KustoTrustedEndpoints {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public static boolean enableWellKnownKustoEndpointsValidation = true;
-    private static FastSuffixMatcher s_matcher;
-    private static FastSuffixMatcher s_additionalMatcher;
-    private static Predicate<String> s_overrideMatcher; // We could unify this with s_matcher, but separating makes debugging easier
+    private static FastSuffixMatcher matcher;
+    private static FastSuffixMatcher additionalMatcher;
+    private static Predicate<String> overrideMatcher; // We could unify this with s_matcher, but separating makes debugging easier
 
     KustoTrustedEndpoints()
     {
         List<MatchRule> rules = new ArrayList<>();
 
-        WellKnownKustoEndpointsData.getInstance().AllowedKustoSuffixes.forEach(suffix -> rules.add(new MatchRule(suffix, false)));
-        WellKnownKustoEndpointsData.getInstance().AllowedKustoHostnames.forEach(hostname -> rules.add(new MatchRule(hostname, true)));
-        s_matcher = FastSuffixMatcher.Create(rules);
-        s_additionalMatcher = null;
-        s_overrideMatcher = null;
+//        WellKnownKustoEndpointsData.getInstance().AllowedKustoSuffixes.forEach(suffix -> rules.add(new MatchRule(suffix, false)));
+//        WellKnownKustoEndpointsData.getInstance().AllowedKustoHostnames.forEach(hostname -> rules.add(new MatchRule(hostname, true)));
+
+        WellKnownKustoEndpointsData.getInstance().AllowedKustoSuffixes.forEach(pair -> )
+        matcher = FastSuffixMatcher.Create(rules);
+        additionalMatcher = null;
+        overrideMatcher = null;
     }
 
     /**
@@ -44,7 +45,7 @@ public class KustoTrustedEndpoints {
      */
     public static void SetOverridePolicy(Predicate<String> matcher)
     {
-        s_overrideMatcher = matcher;
+        overrideMatcher = matcher;
     }
 
     /// <summary>
@@ -82,7 +83,7 @@ public class KustoTrustedEndpoints {
     {
         if (replace)
         {
-            s_additionalMatcher = null;
+            additionalMatcher = null;
         }
 
         if (rules.isEmpty())
@@ -90,7 +91,7 @@ public class KustoTrustedEndpoints {
             return;
         }
 
-        s_additionalMatcher = FastSuffixMatcher.Create(s_additionalMatcher, rules);
+        additionalMatcher = FastSuffixMatcher.Create(additionalMatcher, rules);
     }
 
     private static void ValidateHostnameIsTrusted(String hostname) throws KustoClientInvalidConnectionStringException {
@@ -101,19 +102,19 @@ public class KustoTrustedEndpoints {
         }
 
         // Either check the override matcher OR the matcher:
-        if (s_overrideMatcher != null)
+        if (overrideMatcher != null)
         {
-            if (s_overrideMatcher.test(hostname))
+            if (overrideMatcher.test(hostname))
             {
                 return;
             }
         }
-        else if (s_matcher.isMatch(hostname))
+        else if (matcher.isMatch(hostname))
         {
             return;
         }
 
-        if (s_additionalMatcher != null && s_additionalMatcher.isMatch(hostname))
+        if (additionalMatcher != null && additionalMatcher.isMatch(hostname))
         {
             return;
         }
@@ -126,5 +127,9 @@ public class KustoTrustedEndpoints {
 
         throw new KustoClientInvalidConnectionStringException(
                 String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints", hostname));
+    }
+
+    public static void ValidateTrustedLogin(String loginEndpoit) {
+
     }
 }

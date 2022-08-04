@@ -76,6 +76,7 @@ public class FastSuffixMatcher {
     {
         return Match(candidate).isMatch;
     }
+
     public MatchResult Match(String candidate)
     {
         Ensure.argIsNotNull(candidate, "candidate");

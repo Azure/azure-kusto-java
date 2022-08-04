@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -90,6 +91,7 @@ public class CloudInfo {
                             throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                         }
                         result = parseCloudInfo(content);
+                        KustoTrustedEndpoints.ValidateTrustedLogin(result.loginEndpoint);
                     } else if (statusCode == 404) {
                         result = DEFAULT_CLOUD;
                     } else {

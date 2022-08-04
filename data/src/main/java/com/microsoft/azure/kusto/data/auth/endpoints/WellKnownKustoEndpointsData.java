@@ -6,13 +6,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class WellKnownKustoEndpointsData {
 
     @JsonIgnore
     public ArrayList<String> _Comments;
-    public ArrayList<String> AllowedKustoSuffixes;
-    public ArrayList<String> AllowedKustoHostnames;
+    public class AllowedEndpoints
+    {
+        public ArrayList<String> AllowedKustoSuffixes;
+        public ArrayList<String> AllowedKustoHostnames;
+    }
+
+    public HashMap<String, AllowedEndpoints> AllowedEndpointsByLogin;
+
     private static WellKnownKustoEndpointsData instance = null;
     public static WellKnownKustoEndpointsData getInstance() {
         if (instance == null)
