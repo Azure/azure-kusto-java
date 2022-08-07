@@ -12,32 +12,30 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
-/// <summary>
-/// A helper class to determine which DNS names are "well-known/trusted"
-/// Kusto endpoints. Untrusted endpoints might require additional configuration
-/// before they can be used, for security reasons.
-/// </summary>
+/**
+ * A helper class to determine which DNS names are "well-known/trusted"'
+ * Kusto endpoints. Untrusted endpoints might require additional configuration
+ * before they can be used, for security reasons.
+ */
 public class KustoTrustedEndpoints {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public static boolean enableWellKnownKustoEndpointsValidation = true;
     private static HashMap<String, FastSuffixMatcher> matchers;
     private static FastSuffixMatcher additionalMatcher;
-    private static Predicate<String> overrideMatcher; // We could unify this with s_matcher, but separating makes debugging easier
+    private static Predicate<String> overrideMatcher; // We could unify this with matchers, but separating makes debugging easier
 
     KustoTrustedEndpoints() {
         matchers = new HashMap<>();
-        for (Map.Entry<String, WellKnownKustoEndpointsData.AllowedEndpoints> pair : WellKnownKustoEndpointsData.getInstance().AllowedEndpointsByLogin.entrySet()) {
+
+        WellKnownKustoEndpointsData.getInstance().AllowedEndpointsByLogin.forEach((key, value) -> {
             List<MatchRule> rules = new ArrayList<>();
-            pair.getValue().AllowedKustoSuffixes.forEach(suffix -> rules.add(
-                    new MatchRule(suffix, false)));
-            pair.getValue().AllowedKustoHostnames.forEach(hostname -> rules.add(
-                    new MatchRule(hostname, true)));
-            matchers.put(pair.getKey(), FastSuffixMatcher.Create(rules));
-        }
+            value.AllowedKustoSuffixes.forEach(suffix -> rules.add(new MatchRule(suffix, false)));
+            value.AllowedKustoHostnames.forEach(hostname -> rules.add(new MatchRule(hostname, true)));
+            matchers.put(key, FastSuffixMatcher.Create(rules));
+        });
 
         additionalMatcher = null;
         overrideMatcher = null;
@@ -51,11 +49,13 @@ public class KustoTrustedEndpoints {
         overrideMatcher = matcher;
     }
 
-    /// <summary>
-    /// Throw an exception if the endpoint specified in the <paramref name="uri"/>
-    /// is not trusted.
-    /// </summary>
-    /// <exception cref="KustoClientInvalidConnectionStringException"></exception>
+
+    /**
+     * Throw an exception if the endpoint specified is not trusted.
+     *
+     * @param uri - Kusto endpoint
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
+     */
     public static void ValidateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
             ValidateTrustedEndpoint(new URI(uri));
@@ -64,13 +64,12 @@ public class KustoTrustedEndpoints {
         }
     }
 
-    /// <summary>
-    /// Is the endpoint specified in the <paramref name="uri"/> trusted?
-    /// </summary>
-    /// <param name="uri">The endpoint to inspect.</param>
-    /// <param name="errorMessage">If this is not a trusted endpoint, holds a display
-    /// string that describes the "error".</param>
-    /// <returns>True if this is a trusted endpoint, false otherwise.</returns>
+    /**
+     * Is the endpoint uri trusted?
+     *
+     * @param uri The endpoint to inspect.
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
+     */
     public static void ValidateTrustedEndpoint(URI uri) throws KustoClientInvalidConnectionStringException {
         Ensure.argIsNotNull(uri, "uri");
 
@@ -78,10 +77,13 @@ public class KustoTrustedEndpoints {
         ValidateHostnameIsTrusted(uri.getHost());
     }
 
-    /// <summary>
-    /// Adds the rules that determine if a hostname is a valid/trusted Kusto endpoint
-    /// (extends existing rules).
-    /// </summary>
+    /**
+     * Adds the rules that determine if a hostname is a valid/trusted Kusto endpoint
+     * (extends existing rules).
+     *
+     * @param rules   - A set of rules
+     * @param replace - If true nullifies the last added rules
+     */
     public synchronized static void AddTrustedHosts(List<MatchRule> rules, boolean replace) {
         if (replace) {
             additionalMatcher = null;
@@ -92,6 +94,22 @@ public class KustoTrustedEndpoints {
         }
 
         additionalMatcher = FastSuffixMatcher.Create(additionalMatcher, rules);
+    }
+
+    /**
+     * Is the login endpoint trusted?
+     *
+     * @param loginEndpoint The endpoint to inspect.
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted login endpoint to Kusto
+     */
+    public static void ValidateTrustedLogin(String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+        FastSuffixMatcher matcher = matchers.get(loginEndpoint);
+        if (matcher != null && matcher.isMatch(loginEndpoint)) {
+            return;
+        }
+
+        throw new KustoClientInvalidConnectionStringException(
+                String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this loginEndpoint is currently not trusted; please see https://aka.ms/kustotrustedendpoints", loginEndpoint));
     }
 
     private static void ValidateHostnameIsTrusted(String hostname) throws KustoClientInvalidConnectionStringException {
@@ -124,15 +142,5 @@ public class KustoTrustedEndpoints {
 
         throw new KustoClientInvalidConnectionStringException(
                 String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints", hostname));
-    }
-
-    public static void ValidateTrustedLogin(String loginEndpoint) throws KustoClientInvalidConnectionStringException {
-        FastSuffixMatcher matcher = matchers.get(loginEndpoint);
-        if (matcher != null && matcher.isMatch(loginEndpoint)) {
-            return;
-        }
-
-        throw new KustoClientInvalidConnectionStringException(
-                String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this loginEndpoint is currently not trusted; please see https://aka.ms/kustotrustedendpoints", loginEndpoint));
     }
 }
