@@ -18,5 +18,6 @@ public abstract class TokenProviderBase {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
     }
 
-    public abstract String acquireAccessToken() throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException;
+    public abstract String acquireAccessToken() throws DataServiceException, DataClientException,
+            KustoClientInvalidConnectionStringException;
 }

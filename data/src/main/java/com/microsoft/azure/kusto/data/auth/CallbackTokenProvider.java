@@ -19,7 +19,7 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
+    public String acquireAccessToken() throws DataClientException {
         try {
             return tokenProvider.call();
         } catch (Exception e) {

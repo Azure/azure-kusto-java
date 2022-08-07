@@ -140,8 +140,13 @@ public class ClientImpl implements Client, StreamingClient {
         // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
-                commandType.getActivityTypeSuffix());
+        Map<String, String> headers = null;
+        try {
+            headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
+                    commandType.getActivityTypeSuffix());
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+        }
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
@@ -151,7 +156,7 @@ public class ClientImpl implements Client, StreamingClient {
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat, String mappingName, boolean leaveOpen)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+            throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -169,8 +174,13 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
-                CommandType.STREAMING_INGEST.getActivityTypeSuffix());
+        Map<String, String> headers = null;
+        try {
+            headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
+                    CommandType.STREAMING_INGEST.getActivityTypeSuffix());
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+        }
 
         Long timeoutMs = null;
         if (properties != null) {
@@ -196,18 +206,18 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+    public InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException {
         return executeStreamingQuery(DEFAULT_DATABASE_NAME, command);
     }
 
     @Override
-    public InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+    public InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException {
         return executeStreamingQuery(database, command, null);
     }
 
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+            throws DataServiceException, DataClientException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -219,8 +229,14 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
-                commandType.getActivityTypeSuffix());
+        Map<String, String> headers = null;
+        try {
+            headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
+                    commandType.getActivityTypeSuffix());
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+        }
+
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
@@ -249,7 +265,7 @@ public class ClientImpl implements Client, StreamingClient {
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
             String clientRequestIdPrefix,
             String activityTypeSuffix)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {

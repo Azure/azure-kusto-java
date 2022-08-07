@@ -67,7 +67,7 @@ public class CloudInfo {
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException,
-            URISyntaxException, KustoClientInvalidConnectionStringException {
+            KustoClientInvalidConnectionStringException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {
@@ -104,6 +104,8 @@ public class CloudInfo {
                 }
             } catch (IOException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
+            } catch (URISyntaxException ex) {
+                throw new KustoClientInvalidConnectionStringException(ex);
             }
             cache.put(clusterUrl, result);
             return result;

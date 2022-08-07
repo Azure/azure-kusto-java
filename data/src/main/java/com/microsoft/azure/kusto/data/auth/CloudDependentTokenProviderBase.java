@@ -21,7 +21,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         super(clusterUrl);
     }
 
-    synchronized void initialize() throws DataClientException, DataServiceException, KustoClientInvalidConnectionStringException, URISyntaxException {
+    synchronized void initialize() throws DataClientException, DataServiceException, KustoClientInvalidConnectionStringException {
         if (initialized) {
             return;
         }
@@ -39,7 +39,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
+    public String acquireAccessToken() throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         initialize();
         return acquireAccessTokenImpl();
     }

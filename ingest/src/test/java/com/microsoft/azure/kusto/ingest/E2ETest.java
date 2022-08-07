@@ -410,7 +410,7 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWithCluster() throws DataServiceException {
+    void testCloudInfoWithCluster() throws DataServiceException, KustoClientInvalidConnectionStringException {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
@@ -419,7 +419,7 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWith404() throws DataServiceException {
+    void testCloudInfoWith404() throws DataServiceException, KustoClientInvalidConnectionStringException {
         String fakeClusterUrl = "https://www.microsoft.com/";
         assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
     }
@@ -466,7 +466,7 @@ class E2ETest {
     }
 
     @Test
-    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException, KustoClientInvalidConnectionStringException, URISyntaxException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
         StopWatch stopWatch = new StopWatch();

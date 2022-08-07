@@ -30,7 +30,7 @@ public interface StreamingClient {
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
             String mappingName, boolean leaveOpen)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException;
+            throws DataServiceException, DataClientException;
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
@@ -44,11 +44,11 @@ public interface StreamingClient {
      * @throws DataClientException  An exception originating from a client activity
      * @throws DataServiceException An exception returned from the service
      */
-    InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException;
+    InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException;
+    InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException;
 
-    InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException;
+    InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException;
 
     /**
      * <p>Execute the provided command against the default database.</p>
