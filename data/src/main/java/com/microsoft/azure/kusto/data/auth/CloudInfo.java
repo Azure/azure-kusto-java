@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -65,7 +66,8 @@ public class CloudInfo {
         }
     }
 
-    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException {
+    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException,
+            URISyntaxException, KustoClientInvalidConnectionStringException {
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {
@@ -100,7 +102,7 @@ public class CloudInfo {
                                 "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                     }
                 }
-            } catch (IOException | URISyntaxException ex) {
+            } catch (IOException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
             }
             cache.put(clusterUrl, result);

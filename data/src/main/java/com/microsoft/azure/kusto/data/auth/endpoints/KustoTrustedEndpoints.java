@@ -10,7 +10,9 @@ import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /// <summary>
@@ -22,29 +24,30 @@ public class KustoTrustedEndpoints {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public static boolean enableWellKnownKustoEndpointsValidation = true;
-    private static FastSuffixMatcher matcher;
+    private static HashMap<String, FastSuffixMatcher> matchers;
     private static FastSuffixMatcher additionalMatcher;
     private static Predicate<String> overrideMatcher; // We could unify this with s_matcher, but separating makes debugging easier
 
-    KustoTrustedEndpoints()
-    {
-        List<MatchRule> rules = new ArrayList<>();
+    KustoTrustedEndpoints() {
+        matchers = new HashMap<>();
+        for (Map.Entry<String, WellKnownKustoEndpointsData.AllowedEndpoints> pair : WellKnownKustoEndpointsData.getInstance().AllowedEndpointsByLogin.entrySet()) {
+            List<MatchRule> rules = new ArrayList<>();
+            pair.getValue().AllowedKustoSuffixes.forEach(suffix -> rules.add(
+                    new MatchRule(suffix, false)));
+            pair.getValue().AllowedKustoHostnames.forEach(hostname -> rules.add(
+                    new MatchRule(hostname, true)));
+            matchers.put(pair.getKey(), FastSuffixMatcher.Create(rules));
+        }
 
-//        WellKnownKustoEndpointsData.getInstance().AllowedKustoSuffixes.forEach(suffix -> rules.add(new MatchRule(suffix, false)));
-//        WellKnownKustoEndpointsData.getInstance().AllowedKustoHostnames.forEach(hostname -> rules.add(new MatchRule(hostname, true)));
-
-        WellKnownKustoEndpointsData.getInstance().AllowedKustoSuffixes.forEach(pair -> )
-        matcher = FastSuffixMatcher.Create(rules);
         additionalMatcher = null;
         overrideMatcher = null;
     }
 
     /**
      * Sets the rules that determine if a hostname is a valid/trusted Kusto endpoint
-     *  (replaces existing rules). Null means "use the default policy".
+     * (replaces existing rules). Null means "use the default policy".
      */
-    public static void SetOverridePolicy(Predicate<String> matcher)
-    {
+    public static void SetOverridePolicy(Predicate<String> matcher) {
         overrideMatcher = matcher;
     }
 
@@ -79,15 +82,12 @@ public class KustoTrustedEndpoints {
     /// Adds the rules that determine if a hostname is a valid/trusted Kusto endpoint
     /// (extends existing rules).
     /// </summary>
-    public synchronized static void AddTrustedHosts(List<MatchRule> rules, boolean replace)
-    {
-        if (replace)
-        {
+    public synchronized static void AddTrustedHosts(List<MatchRule> rules, boolean replace) {
+        if (replace) {
             additionalMatcher = null;
         }
 
-        if (rules.isEmpty())
-        {
+        if (rules.isEmpty()) {
             return;
         }
 
@@ -96,26 +96,23 @@ public class KustoTrustedEndpoints {
 
     private static void ValidateHostnameIsTrusted(String hostname) throws KustoClientInvalidConnectionStringException {
         // The loopback is unconditionally allowed (since we trust ourselves)
-        if (hostname.equals(CloudInfo.LOCALHOST) || hostname.equals(CloudInfo.LOCALHOST_IP))
-        {
+        if (hostname.equals(CloudInfo.LOCALHOST) || hostname.equals(CloudInfo.LOCALHOST_IP)) {
             return;
         }
 
         // Either check the override matcher OR the matcher:
-        if (overrideMatcher != null)
-        {
-            if (overrideMatcher.test(hostname))
-            {
+        if (overrideMatcher != null) {
+            if (overrideMatcher.test(hostname)) {
+                return;
+            }
+        } else {
+            FastSuffixMatcher matcher = matchers.get(hostname);
+            if (matcher != null && matcher.isMatch(hostname)) {
                 return;
             }
         }
-        else if (matcher.isMatch(hostname))
-        {
-            return;
-        }
 
-        if (additionalMatcher != null && additionalMatcher.isMatch(hostname))
-        {
+        if (additionalMatcher != null && additionalMatcher.isMatch(hostname)) {
             return;
         }
 
@@ -129,7 +126,13 @@ public class KustoTrustedEndpoints {
                 String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints", hostname));
     }
 
-    public static void ValidateTrustedLogin(String loginEndpoit) {
+    public static void ValidateTrustedLogin(String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+        FastSuffixMatcher matcher = matchers.get(loginEndpoint);
+        if (matcher != null && matcher.isMatch(loginEndpoint)) {
+            return;
+        }
 
+        throw new KustoClientInvalidConnectionStringException(
+                String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this loginEndpoint is currently not trusted; please see https://aka.ms/kustotrustedendpoints", loginEndpoint));
     }
 }

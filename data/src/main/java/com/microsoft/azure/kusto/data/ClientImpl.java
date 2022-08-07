@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -150,7 +151,7 @@ public class ClientImpl implements Client, StreamingClient {
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat, String mappingName, boolean leaveOpen)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
         }
@@ -195,18 +196,18 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException {
+    public InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         return executeStreamingQuery(DEFAULT_DATABASE_NAME, command);
     }
 
     @Override
-    public InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException {
+    public InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         return executeStreamingQuery(database, command, null);
     }
 
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         if (StringUtils.isEmpty(database)) {
             throw new IllegalArgumentException("Database is empty");
         }
@@ -248,7 +249,7 @@ public class ClientImpl implements Client, StreamingClient {
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
             String clientRequestIdPrefix,
             String activityTypeSuffix)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {

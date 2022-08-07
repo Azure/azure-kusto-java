@@ -8,6 +8,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
@@ -19,7 +21,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         super(clusterUrl);
     }
 
-    synchronized void initialize() throws DataClientException, DataServiceException {
+    synchronized void initialize() throws DataClientException, DataServiceException, KustoClientInvalidConnectionStringException, URISyntaxException {
         if (initialized) {
             return;
         }
@@ -37,7 +39,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
+    public String acquireAccessToken() throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException, URISyntaxException {
         initialize();
         return acquireAccessTokenImpl();
     }
