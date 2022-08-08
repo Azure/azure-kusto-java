@@ -41,16 +41,16 @@ public class Utils {
             // Learn More: For additional information on how to authorize users and apps in Kusto, see:
             // https://docs.microsoft.com/azure/data-explorer/manage-database-permissions
             switch (authenticationMode) {
-                case userPrompt:
+                case USER_PROMPT:
                     // Prompt user for credentials
                     return ConnectionStringBuilder.createWithUserPrompt(clusterUrl);
 
-                case managedIdentity:
+                case MANAGED_IDENTITY:
                     // Authenticate using a System-Assigned managed identity provided to an azure service, or using a User-Assigned managed identity.
                     // For more information, see https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview
                     return createManagedIdentityConnectionString(clusterUrl);
 
-                case appKey:
+                case APP_KEY:
                     // Learn More: For information about how to procure an AAD Application,
                     // see: https://docs.microsoft.com/azure/data-explorer/provision-azure-ad-app
                     // TODO (config - optional): App ID and tenant, and App Key to authenticate with
@@ -59,7 +59,7 @@ public class Utils {
                             System.getenv("APP_KEY"),
                             System.getenv("APP_TENANT"));
 
-                case appCertificate:
+                case APP_CERTIFICATE:
                     // Authenticate using a certificate file.
                     return createApplicationCertificateConnectionString(clusterUrl);
 

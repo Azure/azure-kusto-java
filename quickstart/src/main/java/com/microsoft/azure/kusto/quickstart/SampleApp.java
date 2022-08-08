@@ -20,23 +20,34 @@ import java.util.UUID;
  * SourceType - represents the type of files used for ingestion
  */
 enum SourceType {
-    localFileSource, blobSource
+    LOCAL_FILE_SOURCE("localFileSource"), BLOB_SOURCE("blobSource");
+
+    private final String source;
+
+    SourceType(String source) {
+        this.source = source;
+    }
+
+    public static SourceType valueOfLabel(String label) {
+        for (SourceType e : values()) {
+            if (e.source.equals(label)) {
+                return e;
+            }
+        }
+        return null;
+    }
 }
 
 /**
  * AuthenticationModeOptions - represents the different options to autenticate to the system
  */
 enum AuthenticationModeOptions {
-    userPrompt("UserPrompt"), managedIdentity("ManagedIdentity"), appKey("AppKey"), appCertificate("AppCertificate");
+    USER_PROMPT("UserPrompt"), MANAGED_IDENTITY("ManagedIdentity"), APP_KEY("AppKey"), APP_CERTIFICATE("AppCertificate");
 
     private final String mode;
 
     AuthenticationModeOptions(String mode) {
         this.mode = mode;
-    }
-
-    public String getMode() {
-        return mode;
     }
 
     public static AuthenticationModeOptions valueOfLabel(String label) {
@@ -65,7 +76,7 @@ class ConfigData {
     }
 
     public void setSourceType(String sourceType) {
-        this.sourceType = SourceType.valueOf(sourceType);
+        this.sourceType = SourceType.valueOfLabel(sourceType);
     }
 
     public String getDataSourceUri() {
@@ -152,88 +163,40 @@ class ConfigJson {
         return useExistingTable;
     }
 
-    public void setUseExistingTable(boolean useExistingTable) {
-        this.useExistingTable = useExistingTable;
-    }
-
     public String getDatabaseName() {
         return databaseName;
-    }
-
-    public void setDatabaseName(String databaseName) {
-        this.databaseName = databaseName;
     }
 
     public String getTableName() {
         return tableName;
     }
 
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
     public String getTableSchema() {
         return tableSchema;
-    }
-
-    public void setTableSchema(String tableSchema) {
-        this.tableSchema = tableSchema;
     }
 
     public String getKustoUri() {
         return kustoUri;
     }
 
-    public void setKustoUri(String kustoUri) {
-        this.kustoUri = kustoUri;
-    }
-
     public String getIngestUri() {
         return ingestUri;
-    }
-
-    public void setIngestUri(String ingestUri) {
-        this.ingestUri = ingestUri;
-    }
-
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
     }
 
     public List<ConfigData> getData() {
         return data;
     }
 
-    public void setData(List<ConfigData> data) {
-        this.data = data;
-    }
-
     public boolean isAlterTable() {
         return alterTable;
-    }
-
-    public void setAlterTable(boolean alterTable) {
-        this.alterTable = alterTable;
     }
 
     public boolean isQueryData() {
         return queryData;
     }
 
-    public void setQueryData(boolean queryData) {
-        this.queryData = queryData;
-    }
-
     public boolean isIngestData() {
         return ingestData;
-    }
-
-    public void setIngestData(boolean ingestData) {
-        this.ingestData = ingestData;
     }
 
     public AuthenticationModeOptions getAuthenticationMode() {
@@ -248,24 +211,12 @@ class ConfigJson {
         return waitForUser;
     }
 
-    public void setWaitForUser(boolean waitForUser) {
-        this.waitForUser = waitForUser;
-    }
-
     public int getWaitForIngestSeconds() {
         return waitForIngestSeconds;
     }
 
-    public void setWaitForIngestSeconds(int waitForIngestSeconds) {
-        this.waitForIngestSeconds = waitForIngestSeconds;
-    }
-
     public String getBatchingPolicy() {
         return batchingPolicy;
-    }
-
-    public void setBatchingPolicy(String batchingPolicy) {
-        this.batchingPolicy = batchingPolicy;
     }
 
     @Override
@@ -311,7 +262,7 @@ public class SampleApp {
         ConfigJson config = loadConfigs();
         waitForUser = config.isWaitForUser();
 
-        if (config.getAuthenticationMode() == AuthenticationModeOptions.userPrompt) {
+        if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
             waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
         }
         try {
@@ -488,16 +439,16 @@ public class SampleApp {
      * @param ingestClient Client to ingest data
      */
     private static void ingestion(ConfigJson config, Client kustoClient, IngestClient ingestClient) {
-        for (ConfigData data_source : config.getData()) {
+        for (ConfigData dataSource : config.getData()) {
             // Tip: This is generally a one-time configuration.
             // Learn More: For more information about providing inline mappings and mapping references, see:
             // https://docs.microsoft.com/azure/data-explorer/kusto/management/mappings
-            createIngestionMappings(data_source.isUseExistingMapping(), kustoClient, config.getDatabaseName(), config.getTableName(),
-                    data_source.getMappingName(), data_source.getMappingValue(), data_source.getFormat());
+            createIngestionMappings(dataSource.isUseExistingMapping(), kustoClient, config.getDatabaseName(), config.getTableName(),
+                    dataSource.getMappingName(), dataSource.getMappingValue(), dataSource.getFormat());
 
             // Learn More: For more information about ingesting data to Kusto in Java, see:
             // https://docs.microsoft.com/azure/data-explorer/java-ingest-data
-            ingest_data(data_source, data_source.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), data_source.getMappingName());
+            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName());
         }
 
         /*
@@ -558,10 +509,10 @@ public class SampleApp {
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
         // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
         switch (sourceType) {
-            case localFileSource:
+            case LOCAL_FILE_SOURCE:
                 Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
                 break;
-            case blobSource:
+            case BLOB_SOURCE:
                 Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
                 break;
             default:
