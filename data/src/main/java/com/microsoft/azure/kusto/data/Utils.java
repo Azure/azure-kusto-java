@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
@@ -54,8 +55,10 @@ class Utils {
 
     static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
             boolean leaveOpen)
-        throws DataServiceException, DataClientException {
+            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         URI url = parseUriFromUrlString(urlStr);
+        KustoTrustedEndpoints.ValidateTrustedEndpoint(url.getHost(),
+            CloudInfo.retrieveCloudInfoForCluster(url.toString()).getLoginEndpoint());
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(url, payload, stream, headers);

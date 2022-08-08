@@ -6,16 +6,16 @@ import com.microsoft.azure.kusto.data.StringUtils;
 import java.util.*;
 
 public class FastSuffixMatcher {
-    private int suffixLength;
-    private Map<String, List<MatchRule>> m_rules;
+    private final int suffixLength;
+    private final Map<String, List<MatchRule>> m_rules;
 
     /**
      * Creates a new matcher with the provided matching rules.
+     *
      * @param rules - One or more matching rules to apply when <see cref="Match(string)"/>
-     * is called
+     *              is called
      */
-    public static FastSuffixMatcher Create(List<MatchRule> rules)
-    {
+    public static FastSuffixMatcher Create(List<MatchRule> rules) {
         Ensure.argIsNotNull(rules, "rules");
         int minRuleLength = rules.stream().min(Comparator.comparing(MatchRule::getSuffixLength))
                 .map(MatchRule::getSuffixLength).orElse(0);
@@ -24,8 +24,7 @@ public class FastSuffixMatcher {
                 "whose length is zero");
 
         Map<String, List<MatchRule>> processedRules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (MatchRule rule : rules)
-        {
+        for (MatchRule rule : rules) {
             String suffix = StringUtils.GetStringTail(rule.suffix, minRuleLength);
             List<MatchRule> list = processedRules.computeIfAbsent(suffix, k -> new ArrayList<>());
             list.add(rule.Clone());
@@ -34,24 +33,23 @@ public class FastSuffixMatcher {
         return new FastSuffixMatcher(minRuleLength, processedRules);
     }
 
-    private FastSuffixMatcher(int suffixLength, Map<String, List<MatchRule>> rules)
-    {
+    private FastSuffixMatcher(int suffixLength, Map<String, List<MatchRule>> rules) {
         this.suffixLength = suffixLength;
         m_rules = rules;
     }
+
     /**
      * Creates a new matcher with the provided matching rules.
+     *
      * @param existing - An existing matcher whose rules are to be baseline <see cref="Match(string)"/>
-     * @param rules - One or more matching rules to apply when <see cref="Match(string)"/>
-     * is called
+     * @param rules    - One or more matching rules to apply when <see cref="Match(string)"/>
+     *                 is called
      */
     /// <param name="existing">An existing matcher whose rules are to be baseline.</param>
     /// <param name="rules">One or more matching rules to apply when <see cref="Match(string)"/>
     ///   is called.</param>
-    public static FastSuffixMatcher Create(FastSuffixMatcher existing, List<MatchRule> rules)
-    {
-        if (existing == null || existing.m_rules.size() == 0)
-        {
+    public static FastSuffixMatcher Create(FastSuffixMatcher existing, List<MatchRule> rules) {
+        if (existing == null || existing.m_rules.size() == 0) {
             return Create(rules);
         }
 
@@ -60,7 +58,7 @@ public class FastSuffixMatcher {
         }
 
         List<MatchRule> list = new ArrayList<>();
-        for (Map.Entry<String,List<MatchRule>> entry: existing.m_rules.entrySet()) {
+        for (Map.Entry<String, List<MatchRule>> entry : existing.m_rules.entrySet()) {
             list.addAll(entry.getValue());
         }
 
@@ -74,25 +72,20 @@ public class FastSuffixMatcher {
      */
 
     /// </summary>
-    public Boolean isMatch(String candidate)
-    {
+    public Boolean isMatch(String candidate) {
         return Match(candidate).isMatch;
     }
 
-    public MatchResult Match(String candidate)
-    {
+    public MatchResult Match(String candidate) {
         Ensure.argIsNotNull(candidate, "candidate");
 
-        if (candidate.length() >= suffixLength){
+        if (candidate.length() >= suffixLength) {
             List<MatchRule> matchRules = m_rules.getOrDefault(StringUtils.GetStringTail(candidate, suffixLength),
                     new ArrayList<>());
-            for ( MatchRule rule : matchRules)
-            {
-                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix))
-                {
+            for (MatchRule rule : matchRules) {
+                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
                     if (candidate.length() == rule.suffix.length()
-                            || !rule.exact)
-                    {
+                            || !rule.exact) {
                         return new MatchResult(true, rule);
                     }
                 }

@@ -243,7 +243,7 @@ public class KustoSampleApp {
             PrivateKey privateKey = SecurityUtils.getPrivateKey(publicCertFilePath);
             X509Certificate x509Certificate = SecurityUtils.getPublicCertificate(privateKeyPemFilePath);
             return ConnectionStringBuilder.createWithAadApplicationCertificate(clusterUrl, appId, x509Certificate, privateKey, appTenant);
-        } catch (IOException | GeneralSecurityException | KustoClientInvalidConnectionStringException e) {
+        } catch (IOException | GeneralSecurityException e) {
             die("Couldn't create ConnectionStringBuilder for application certificate authentication", e);
             return null;
         }

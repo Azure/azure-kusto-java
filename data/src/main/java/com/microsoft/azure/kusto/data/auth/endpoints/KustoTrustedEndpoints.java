@@ -103,7 +103,7 @@ public class KustoTrustedEndpoints {
             additionalMatcher = null;
         }
 
-        if (rules.isEmpty()) {
+        if (rules == null || rules.isEmpty()) {
             return;
         }
 

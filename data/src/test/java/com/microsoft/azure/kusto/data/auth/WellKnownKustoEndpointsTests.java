@@ -232,12 +232,12 @@ public class WellKnownKustoEndpointsTests {
     public void WellKnownKustoEndpoints_NegativeTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String clusterName : new String[]
                 {
-                    "https://localhostess",
-                    "https://127.0.0.1.a",
-                    "https://some.azurewebsites.net",
-                    "https://kusto.azurewebsites.net",
-                    "https://test.kusto.core.microsoft.scloud",
-                    "https://cluster.kusto.azuresynapse.azure.cn"
+                        "https://localhostess",
+                        "https://127.0.0.1.a",
+                        "https://some.azurewebsites.net",
+                        "https://kusto.azurewebsites.net",
+                        "https://test.kusto.core.microsoft.scloud",
+                        "https://cluster.kusto.azuresynapse.azure.cn"
 
                 }) {
             {
@@ -278,13 +278,14 @@ public class WellKnownKustoEndpointsTests {
                         new MatchRule("www.someotherdomain2.net", true),
                 }.clone()), false);
 
+
         for (String clusterName : new String[]
                 {
                         "https://some.someotherdomain1.net",
                         "https://www.someotherdomain2.net",
                 }) {
             {
-                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, true);
+                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, false);
             }
         }
 
@@ -293,7 +294,7 @@ public class WellKnownKustoEndpointsTests {
                         "https://some.someotherdomain2.net",
                 }) {
             {
-                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, false);
+                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, true);
             }
         }
 
@@ -305,7 +306,7 @@ public class WellKnownKustoEndpointsTests {
                 "https://www.someotherdomain2.net",
         }) {
             {
-                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, false);
+                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, true);
             }
         }
     }
@@ -320,11 +321,6 @@ public class WellKnownKustoEndpointsTests {
         }
     }
 
-    @Test
-    @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
-    void overrideMatchers() {
-
-    }
 
     private void ValidateEndpoint(String address, String loginEndpoint) throws URISyntaxException, KustoClientInvalidConnectionStringException {
         KustoTrustedEndpoints.ValidateTrustedEndpoint(new URI(address), loginEndpoint);
