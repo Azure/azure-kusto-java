@@ -12,7 +12,7 @@ public class FastSuffixMatcher {
     /**
      * Creates a new matcher with the provided matching rules.
      *
-     * @param rules - One or more matching rules to apply when Match"/>
+     * @param rules - One or more matching rules to apply when Match
      *              is called
      * @return FastSuffixMatcher
      */
@@ -42,8 +42,8 @@ public class FastSuffixMatcher {
     /**
      * Creates a new matcher with the provided matching rules.
      *
-     * @param existing - An existing matcher whose rules are to be baseline Match"/>
-     * @param rules    - One or more matching rules to apply when Match"/>
+     * @param existing - An existing matcher whose rules are to be baseline Match
+     * @param rules    - One or more matching rules to apply when Match
      *                 is called
      * @return FastSuffixMatcher
      */
