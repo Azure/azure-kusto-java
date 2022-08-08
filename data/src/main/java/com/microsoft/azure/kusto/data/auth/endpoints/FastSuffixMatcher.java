@@ -1,12 +1,13 @@
 package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.util.*;
 
 public class FastSuffixMatcher {
     private int suffixLength;
-    private HashMap<String, List<MatchRule>> m_rules;
+    private Map<String, List<MatchRule>> m_rules;
 
     /**
      * Creates a new matcher with the provided matching rules.
@@ -22,17 +23,18 @@ public class FastSuffixMatcher {
         Ensure.isTrue(minRuleLength > 0 && minRuleLength != Integer.MAX_VALUE, "Cannot have a match rule " +
                 "whose length is zero");
 
-        HashMap<String, List<MatchRule>> processedRules = new HashMap<>();
+        Map<String, List<MatchRule>> processedRules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (MatchRule rule : rules)
         {
-            String suffix = MatchRule.GetStringTail(rule.suffix, minRuleLength);
+            String suffix = StringUtils.GetStringTail(rule.suffix, minRuleLength);
             List<MatchRule> list = processedRules.computeIfAbsent(suffix, k -> new ArrayList<>());
             list.add(rule.Clone());
         }
 
         return new FastSuffixMatcher(minRuleLength, processedRules);
     }
-    private FastSuffixMatcher(int suffixLength, HashMap<String, List<MatchRule>> rules)
+
+    private FastSuffixMatcher(int suffixLength, Map<String, List<MatchRule>> rules)
     {
         this.suffixLength = suffixLength;
         m_rules = rules;
@@ -82,10 +84,11 @@ public class FastSuffixMatcher {
         Ensure.argIsNotNull(candidate, "candidate");
 
         if (candidate.length() >= suffixLength){
-            List<MatchRule> matchRules = m_rules.get(MatchRule.GetStringTail(candidate, suffixLength));
+            List<MatchRule> matchRules = m_rules.getOrDefault(StringUtils.GetStringTail(candidate, suffixLength),
+                    new ArrayList<>());
             for ( MatchRule rule : matchRules)
             {
-                if (candidate.endsWith(rule.suffix))
+                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix))
                 {
                     if (candidate.length() == rule.suffix.length()
                             || !rule.exact)

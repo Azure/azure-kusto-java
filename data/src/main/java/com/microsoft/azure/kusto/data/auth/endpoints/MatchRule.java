@@ -30,18 +30,4 @@ public class MatchRule
     {
         return new MatchRule(suffix, exact);
     }
-
-    public static String GetStringTail(String val, int minRuleLength) {
-        if (minRuleLength <= 0)
-        {
-            return "";
-        }
-
-        if (minRuleLength >= val.length())
-        {
-            return val;
-        }
-
-        return val.substring(val.length() - minRuleLength);
-    }
 }

@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class CloudInfo {
+    private static final Map<String, CloudInfo> cache = new HashMap<>();
+
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     public static final boolean DEFAULT_LOGIN_MFA_REQUIRED = false;
@@ -34,13 +36,34 @@ public class CloudInfo {
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
-    public static final String LOCALHOST_IP = "127.0.0.1";
-
-    private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
-        cache.put(LOCALHOST_IP, DEFAULT_CLOUD);
+    }
+
+    public static boolean isLocalAddress(String host)
+    {
+        if (host.equals("localhost")
+                || host.equals("127.0.0.1")
+                || host.equals("::1")
+                || host.equals("[::1]"))
+        {
+            return true;
+        }
+
+        if (host.startsWith("127.") && host.length() <= 15 && host.length() >= 9)
+        {
+            for (int i = 0; i < host.length(); i++) {
+                char c = host.charAt(i);
+                if (c != '.' && (c < '0' || c > '9'))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
     }
 
     private final boolean loginMfaRequired;
@@ -93,7 +116,6 @@ public class CloudInfo {
                             throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                         }
                         result = parseCloudInfo(content);
-                        KustoTrustedEndpoints.ValidateTrustedLogin(result.loginEndpoint);
                     } else if (statusCode == 404) {
                         result = DEFAULT_CLOUD;
                     } else {

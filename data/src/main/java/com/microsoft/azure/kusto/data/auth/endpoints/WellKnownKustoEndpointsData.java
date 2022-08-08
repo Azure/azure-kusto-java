@@ -2,42 +2,47 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.util.IOUtils;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class WellKnownKustoEndpointsData {
-
-    @JsonIgnore
-    public ArrayList<String> _Comments;
-    public class AllowedEndpoints
+    public static class AllowedEndpoints
     {
         public ArrayList<String> AllowedKustoSuffixes;
         public ArrayList<String> AllowedKustoHostnames;
     }
 
+    @JsonIgnore
+    public ArrayList<String> _Comments;
     public HashMap<String, AllowedEndpoints> AllowedEndpointsByLogin;
-
     private static WellKnownKustoEndpointsData instance = null;
+
     public static WellKnownKustoEndpointsData getInstance() {
         if (instance == null)
             instance = readInstance();
 
         return instance;
     }
+
+    // For Deserialization
     public WellKnownKustoEndpointsData(){}
 
     private static WellKnownKustoEndpointsData readInstance(){
         try {
-            String filename = System.getProperty("user.dir") + "/data/src/main/resources" +
-                    "/WellKnownKustoEndpoints.json";
+            // Beautiful !
             ObjectMapper objectMapper = new ObjectMapper();
-            byte[] bytes = Files.readAllBytes(Paths.get(filename));
-//            FileInputStream file = new FileInputStream(fileName);
-//            ObjectInputStream in = new ObjectInputStream(file);
-            return objectMapper.readValue(bytes, WellKnownKustoEndpointsData.class);
+            try (InputStream resourceAsStream = WellKnownKustoEndpointsData.class.getResourceAsStream(
+                    "/WellKnownKustoEndpoints.json")) {
+               return objectMapper.readValue(resourceAsStream, WellKnownKustoEndpointsData.class);
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
