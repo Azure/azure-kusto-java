@@ -38,7 +38,7 @@ public class ConnectionStringBuilder {
     private String userNameForTracing;
     private String clientVersionForTracing;
     private String applicationNameForTracing;
-    private static final String DEFAULT_DEVICE_AUTH_TENANT = "common";
+    private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
 
     private ConnectionStringBuilder(String clusterUrl) {
         this.clusterUrl = clusterUrl;

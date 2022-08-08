@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
+import org.apache.http.HttpHost;
+
 /**
  * HTTP client properties.
  */
@@ -10,6 +12,7 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
+    private final HttpHost proxy;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -17,6 +20,7 @@ public class HttpClientProperties {
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
+        this.proxy = builder.proxy;
     }
 
     /**
@@ -85,6 +89,15 @@ public class HttpClientProperties {
         return maxConnectionRoute;
     }
 
+    /**
+     * The proxy to use when connecting to the remote server.
+     *
+     * @return the proxy
+     */
+    public HttpHost getProxy() {
+        return proxy;
+    }
+
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -92,6 +105,7 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
+        private HttpHost proxy = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -162,6 +176,17 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder maxConnectionsPerRoute(Integer maxConnections) {
             this.maxConnectionsPerRoute = maxConnections;
+            return this;
+        }
+
+        /**
+         * Sets a proxy server to use for the client.
+         *
+         * @param proxy the proxy server
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder proxy(HttpHost proxy) {
+            this.proxy = proxy;
             return this;
         }
 

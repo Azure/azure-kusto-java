@@ -12,16 +12,17 @@ import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import org.json.JSONException;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -50,6 +51,11 @@ class ResourceManagerTest {
         resourceManager = new ResourceManager(clientMock);
     }
 
+    @AfterAll
+    static void afterAll() {
+        resourceManager.close();
+    }
+
     @Test
     void GetIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
         assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
@@ -57,7 +63,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_TempStorage_VerifyRoundRobin()
-        throws IngestionServiceException, IngestionClientException {
+            throws IngestionServiceException, IngestionClientException {
         List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
         String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
@@ -73,7 +79,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_AggregationQueue_VerifyRoundRobin()
-        throws IngestionServiceException, IngestionClientException {
+            throws IngestionServiceException, IngestionClientException {
         List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
         String queue = resourceManager
@@ -91,7 +97,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_StatusTable_ReturnCorrectTable()
-        throws IngestionServiceException, IngestionClientException {
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 STATUS_TABLE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
@@ -99,7 +105,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
-        throws IngestionServiceException, IngestionClientException {
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 FAILED_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
@@ -107,38 +113,13 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
-        throws IngestionServiceException, IngestionClientException {
+            throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 SUCCESS_QUEUE,
                 resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
     }
 
-    @Test
-    void TimerTest() throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError, IOException {
-        Client mockedClient = mock(Client.class);
-        final List<Date> refreshTimestamps = new ArrayList<>();
-        when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
-        when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
-            refreshTimestamps.add((new Date()));
-            if (refreshTimestamps.size() != 1) {
-                throw new Exception();
-            }
-
-            return generateIngestionResourcesResult();
-        });
-
-        ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L);
-        Thread.sleep(100);
-        assertEquals(1, refreshTimestamps.size());
-        Thread.sleep(1100);
-        assertEquals(2, refreshTimestamps.size());
-        Thread.sleep(600);
-        assertEquals(3, refreshTimestamps.size());
-        resourceManager.close();
-    }
-
-    private static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
@@ -156,7 +137,7 @@ class ResourceManagerTest {
         return new KustoOperationResult(response, "v1");
     }
 
-    private static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceQueryError, IOException {
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);

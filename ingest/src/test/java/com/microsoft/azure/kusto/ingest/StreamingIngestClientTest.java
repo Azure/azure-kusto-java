@@ -64,12 +64,14 @@ class StreamingIngestClientTest {
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
 
-    @Mock private static StreamingClient streamingClientMock;
+    @Mock
+    private static StreamingClient streamingClientMock;
 
-    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor
+    private static ArgumentCaptor<InputStream> argumentCaptor;
 
     private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
-    private String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
+    private final String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
 
     @BeforeAll
     static void setUp() {
@@ -255,7 +257,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -281,7 +283,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
@@ -363,7 +365,8 @@ class StreamingIngestClientTest {
         streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM,
+        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_DM + "'",
+                EXPECTED_SERVICE_TYPE,
                 "https://testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
@@ -473,7 +476,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
-        throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);

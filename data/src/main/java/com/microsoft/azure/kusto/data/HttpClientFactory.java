@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -60,6 +61,10 @@ class HttpClientFactory {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
 
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
+        }
+
+        if (properties.getProxy() != null) {
+            httpClientBuilder.setProxy(properties.getProxy());
         }
 
         final CloseableHttpClient httpClient = httpClientBuilder.build();

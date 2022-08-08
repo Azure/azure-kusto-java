@@ -71,10 +71,13 @@ class ManagedStreamingIngestClientTest {
     private static IngestionProperties ingestionProperties;
     private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
 
-    @Mock private static StreamingClient streamingClientMock;
+    @Mock
+    private static StreamingClient streamingClientMock;
 
-    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
-    @Captor private static ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesCaptor;
+    @Captor
+    private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor
+    private static ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesCaptor;
 
     private static final UUID CustomUUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
@@ -101,7 +104,7 @@ class ManagedStreamingIngestClientTest {
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), any());
 
         streamingClientMock = mock(StreamingClient.class);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));

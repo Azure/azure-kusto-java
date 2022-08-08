@@ -4,7 +4,9 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobOutputStream;
@@ -12,9 +14,12 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
+import com.microsoft.azure.storage.queue.QueueRequestOptions;
 import com.microsoft.azure.storage.table.CloudTable;
 import com.microsoft.azure.storage.table.TableOperation;
 import com.microsoft.azure.storage.table.TableServiceEntity;
+
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,19 +38,29 @@ class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int GZIP_BUFFER_SIZE = 16384;
     private static final int STREAM_BUFFER_SIZE = 16384;
+    @Nullable
+    private final OperationContext operationContext;
 
-    void postMessageToQueue(String queuePath, String content) throws StorageException, URISyntaxException {
+    public AzureStorageClient() {
+        this(null);
+    }
+
+    public AzureStorageClient(@Nullable HttpClientProperties httpClientProperties) {
+        this.operationContext = IngestionUtils.httpClientPropertiesToOperationContext(httpClientProperties);
+    }
+
+    void postMessageToQueue(String queuePath, String content, QueueRequestOptions options) throws StorageException, URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(queuePath, "queuePath");
         Ensure.stringIsNotBlank(content, "content");
 
         CloudQueue queue = new CloudQueue(new URI(queuePath));
         CloudQueueMessage queueMessage = new CloudQueueMessage(content);
-        queue.addMessage(queueMessage);
+        queue.addMessage(queueMessage, 0, 0, options, this.operationContext);
     }
 
     void azureTableInsertEntity(String tableUri, TableServiceEntity entity) throws StorageException,
-        URISyntaxException {
+            URISyntaxException {
         // Ensure
         Ensure.stringIsNotBlank(tableUri, "tableUri");
         Ensure.argIsNotNull(entity, "entity");
@@ -54,11 +69,11 @@ class AzureStorageClient {
         // Create an operation to add the new customer to the table basics table.
         TableOperation insert = TableOperation.insert(entity);
         // Submit the operation to the table service.
-        table.execute(insert);
+        table.execute(insert, null, this.operationContext);
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, IngestionProperties.DataFormat dataFormat)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         Ensure.fileExists(filePath);
 
         CompressionType sourceCompressionType = getCompression(filePath);
@@ -66,7 +81,7 @@ class AzureStorageClient {
     }
 
     CloudBlockBlob uploadLocalFileToBlob(String filePath, String blobName, String storageUri, boolean shouldCompress)
-        throws URISyntaxException, StorageException, IOException {
+            throws URISyntaxException, StorageException, IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", filePath, blobName, storageUri);
 
         // Ensure
@@ -93,7 +108,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(Paths.get(filePath));
-                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+                GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream(null, null, this.operationContext))) {
             copyStream(fin, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -103,11 +118,11 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
 
-        blob.uploadFromFile(sourceFile.getAbsolutePath());
+        blob.uploadFromFile(sourceFile.getAbsolutePath(), null, null, this.operationContext);
     }
 
     CloudBlockBlob uploadStreamToBlob(InputStream inputStream, String blobName, String storageUri, boolean shouldCompress)
-        throws IOException, URISyntaxException, StorageException {
+            throws IOException, URISyntaxException, StorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, storageUri);
 
         // Ensure
@@ -131,7 +146,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        BlobOutputStream bos = blob.openOutputStream();
+        BlobOutputStream bos = blob.openOutputStream(null, null, this.operationContext);
         copyStream(inputStream, bos, STREAM_BUFFER_SIZE);
         bos.close();
     }
@@ -141,7 +156,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream())) {
+        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.openOutputStream(null, null, this.operationContext))) {
             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -165,7 +180,7 @@ class AzureStorageClient {
         Ensure.stringIsNotBlank(blobPath, "blobPath");
 
         CloudBlockBlob blockBlob = new CloudBlockBlob(new URI(blobPath));
-        blockBlob.downloadAttributes();
+        blockBlob.downloadAttributes(null, null, this.operationContext);
         return blockBlob.getProperties().getLength();
     }
 

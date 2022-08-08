@@ -7,7 +7,10 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -25,8 +28,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     protected String aadAuthorityUrl;
     private String firstPartyAuthorityUrl;
 
-    MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        super(clusterUrl);
+    MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, httpClient);
         this.authorityId = authorityId;
     }
 
@@ -35,6 +38,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         super.initializeWithCloudInfo(cloudInfo);
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
+        // Some apis (e.g. device authentication) require the url to always end in backslash.
+        firstPartyAuthorityUrl = StringUtils.appendIfMissing(firstPartyAuthorityUrl, "/");
     }
 
     private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
@@ -70,7 +75,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal()
-        throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
 
     protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
 
