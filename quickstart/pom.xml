@@ -61,7 +61,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.microsoft.azure.kusto.quickstart.KustoSampleApp</mainClass>
+                            <mainClass>com.microsoft.azure.kusto.quickstart.SampleApp</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -73,7 +73,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.microsoft.azure.kusto.quickstart.KustoSampleApp</mainClass>
+                            <mainClass>com.microsoft.azure.kusto.quickstart.SampleApp</mainClass>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
