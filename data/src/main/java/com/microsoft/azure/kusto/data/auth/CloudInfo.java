@@ -89,8 +89,7 @@ public class CloudInfo {
         }
     }
 
-    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException,
-            KustoClientInvalidConnectionStringException {
+    public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) throws DataServiceException{
         synchronized (cache) {
             CloudInfo cloudInfo;
             try {
@@ -124,10 +123,8 @@ public class CloudInfo {
                                 "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                     }
                 }
-            } catch (IOException ex) {
+            } catch (IOException | URISyntaxException ex) {
                 throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
-            } catch (URISyntaxException ex) {
-                throw new KustoClientInvalidConnectionStringException(ex);
             }
             cache.put(clusterUrl, result);
             return result;

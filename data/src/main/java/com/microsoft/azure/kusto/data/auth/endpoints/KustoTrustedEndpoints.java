@@ -41,8 +41,8 @@ public class KustoTrustedEndpoints {
     }
 
     /**
-     * Sets the rules that determine if a hostname is a valid/trusted Kusto endpoint
-     * (replaces existing rules). Null means "use the default policy".
+     * @param matcher Rules that determine if a hostname is a valid/trusted Kusto endpoint
+     *  (replaces existing rules). Null means "use the default policy".
      */
     public static void SetOverridePolicy(Predicate<String> matcher) {
         overrideMatcher = matcher;

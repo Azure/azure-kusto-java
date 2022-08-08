@@ -5,10 +5,8 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 
 import java.io.InputStream;
-import java.net.URISyntaxException;
 
 public interface StreamingClient {
     /**

@@ -3,12 +3,11 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import java.net.URISyntaxException;
-
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URISyntaxException;
 
 public abstract class TokenProviderBase {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -18,6 +17,5 @@ public abstract class TokenProviderBase {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
     }
 
-    public abstract String acquireAccessToken() throws DataServiceException, DataClientException,
-            KustoClientInvalidConnectionStringException;
+    public abstract String acquireAccessToken() throws DataServiceException, DataClientException;
 }

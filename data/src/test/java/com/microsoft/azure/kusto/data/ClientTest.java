@@ -1,9 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +13,7 @@ public class ClientTest {
 
     @Test
     @DisplayName("test url parsing")
-    void testUrlParsing() throws URISyntaxException, KustoClientInvalidConnectionStringException {
+    void testUrlParsing() throws URISyntaxException {
         Map<String, String> tests = new HashMap<>();
         tests.put("https://kusto.test.com", "https://kusto.test.com");
         tests.put("https://kusto.test.com/", "https://kusto.test.com");

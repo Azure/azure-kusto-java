@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
@@ -135,7 +134,7 @@ class ConnectionStringBuilderTest {
 
     @Test
     @DisplayName("validate ClientImpl strips fed=true if needed")
-    void stripFederatedAuthFromCSB() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    void stripFederatedAuthFromCSB() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCredentials("https://service.uri;fed=true", "id", "appKey");
         ClientImpl client = new ClientImpl(csb);

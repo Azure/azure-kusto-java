@@ -5,7 +5,6 @@ import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -552,7 +551,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException, KustoClientInvalidConnectionStringException {
+    void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient
                 .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
@@ -569,7 +568,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException, KustoClientInvalidConnectionStringException {
+    void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient.fromEngineConnectionString(
                 ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);

@@ -13,7 +13,6 @@ import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -130,7 +129,7 @@ public class KustoSampleApp {
             if (shouldQueryData) {
                 executeValidationQueries(kustoClient, databaseName, tableName, shouldIngestData);
             }
-        } catch (URISyntaxException | KustoClientInvalidConnectionStringException e) {
+        } catch (URISyntaxException e) {
             die("Couldn't create Kusto client", e);
         }
     }
@@ -185,7 +184,7 @@ public class KustoSampleApp {
         }
     }
 
-    private static ConnectionStringBuilder generateConnectionString(String clusterUrl, String authenticationMode) throws KustoClientInvalidConnectionStringException {
+    private static ConnectionStringBuilder generateConnectionString(String clusterUrl, String authenticationMode) {
         // Learn More: For additional information on how to authorize users and apps in Kusto, see:
         // https://docs.microsoft.com/azure/data-explorer/manage-database-permissions
         ConnectionStringBuilder csb = null;
@@ -221,7 +220,7 @@ public class KustoSampleApp {
     }
 
     @NotNull
-    private static ConnectionStringBuilder createManagedIdentityConnectionString(String clusterUrl) throws KustoClientInvalidConnectionStringException {
+    private static ConnectionStringBuilder createManagedIdentityConnectionString(String clusterUrl) {
         // Connect using the system- or user-assigned managed identity (Azure service only)
         // TODO (config - optional): Managed identity client ID if you are using a user-assigned managed identity
         String clientId = System.getenv("MANAGED_IDENTITY_CLIENT_ID");

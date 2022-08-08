@@ -141,16 +141,15 @@ public class ClientImpl implements Client, StreamingClient {
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
         Map<String, String> headers = null;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
+                commandType.getActivityTypeSuffix());
+
+        addCommandHeaders(headers);
+        String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
         try {
-            headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
-                    commandType.getActivityTypeSuffix());
-
-            addCommandHeaders(headers);
-            String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
-
             return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
         } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
     }
 
@@ -176,33 +175,31 @@ public class ClientImpl implements Client, StreamingClient {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
         Map<String, String> headers = null;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
+        CommandType.STREAMING_INGEST.getActivityTypeSuffix());
+
+        Long timeoutMs = null;
+        if (properties != null) {
+            timeoutMs = properties.getTimeoutInMilliSec();
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Object> pair = iterator.next();
+                headers.put(pair.getKey(), pair.getValue().toString());
+            }
+        }
+
+        headers.put(HttpHeaders.CONTENT_ENCODING, "gzip");
+
+        if (timeoutMs == null) {
+            timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+        }
         try {
-            headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
-                    CommandType.STREAMING_INGEST.getActivityTypeSuffix());
-
-            Long timeoutMs = null;
-            if (properties != null) {
-                timeoutMs = properties.getTimeoutInMilliSec();
-                Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Object> pair = iterator.next();
-                    headers.put(pair.getKey(), pair.getValue().toString());
-                }
-            }
-
-            headers.put(HttpHeaders.CONTENT_ENCODING, "gzip");
-
-            if (timeoutMs == null) {
-                timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
-            }
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
-            try {
-                return new KustoOperationResult(response, "v1");
-            } catch (KustoServiceQueryError e) {
-                throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
-            }
+            return new KustoOperationResult(response, "v1");
+        } catch (KustoServiceQueryError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
     }
 
@@ -231,17 +228,17 @@ public class ClientImpl implements Client, StreamingClient {
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
         Map<String, String> headers = null;
-        try {
             headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
                     commandType.getActivityTypeSuffix());
-        } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
-        }
 
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
-        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        try {
+            return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        }
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
@@ -266,7 +263,7 @@ public class ClientImpl implements Client, StreamingClient {
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
             String clientRequestIdPrefix,
             String activityTypeSuffix)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
+            throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);
         if (applicationNameForTracing != null) {

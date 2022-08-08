@@ -11,7 +11,6 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
@@ -81,7 +80,7 @@ class E2ETest {
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
 
     @BeforeAll
-    public static void setUp() throws IOException, KustoClientInvalidConnectionStringException {
+    public static void setUp() throws IOException {
         appKey = System.getenv("APP_KEY");
         if (appKey == null) {
             String secretPath = System.getProperty("SecretPath");
@@ -360,7 +359,7 @@ class E2ETest {
     }
 
     @Test
-    void testCreateWithUserPrompt() throws KustoClientInvalidConnectionStringException {
+    void testCreateWithUserPrompt() {
         Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null,
                 System.getenv("USERNAME_HINT"));
@@ -368,14 +367,14 @@ class E2ETest {
     }
 
     @Test
-    void testCreateWithDeviceAuthentication() throws KustoClientInvalidConnectionStringException {
+    void testCreateWithDeviceAuthentication() {
         Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
-    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException, KustoClientInvalidConnectionStringException {
+    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PUBLIC_X509CER_FILE_LOC")));
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
         X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
@@ -386,14 +385,14 @@ class E2ETest {
     }
 
     @Test
-    void testCreateWithAadApplicationCredentials() throws KustoClientInvalidConnectionStringException {
+    void testCreateWithAadApplicationCredentials() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
                 appKey, tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
-    void testCreateWithAadAccessTokenAuthentication() throws KustoClientInvalidConnectionStringException {
+    void testCreateWithAadAccessTokenAuthentication() {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         String token = System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
@@ -401,7 +400,7 @@ class E2ETest {
     }
 
     @Test
-    void testCreateWithAadTokenProviderAuthentication() throws KustoClientInvalidConnectionStringException {
+    void testCreateWithAadTokenProviderAuthentication() {
         Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
         Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"),
@@ -410,7 +409,7 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWithCluster() throws DataServiceException, KustoClientInvalidConnectionStringException {
+    void testCloudInfoWithCluster() throws DataServiceException {
         String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
@@ -419,7 +418,7 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWith404() throws DataServiceException, KustoClientInvalidConnectionStringException {
+    void testCloudInfoWith404() throws DataServiceException {
         String fakeClusterUrl = "https://www.microsoft.com/";
         assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
     }
@@ -466,7 +465,7 @@ class E2ETest {
     }
 
     @Test
-    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException, KustoClientInvalidConnectionStringException, URISyntaxException {
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
         StopWatch stopWatch = new StopWatch();
@@ -518,7 +517,7 @@ class E2ETest {
     }
 
     @Test
-    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException, KustoClientInvalidConnectionStringException {
+    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
                 appKey, tenantId);
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();

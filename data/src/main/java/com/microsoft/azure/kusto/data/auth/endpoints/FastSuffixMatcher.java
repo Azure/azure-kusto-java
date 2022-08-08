@@ -12,8 +12,9 @@ public class FastSuffixMatcher {
     /**
      * Creates a new matcher with the provided matching rules.
      *
-     * @param rules - One or more matching rules to apply when <see cref="Match(string)"/>
+     * @param rules - One or more matching rules to apply when Match"/>
      *              is called
+     * @return FastSuffixMatcher
      */
     public static FastSuffixMatcher Create(List<MatchRule> rules) {
         Ensure.argIsNotNull(rules, "rules");
@@ -41,13 +42,11 @@ public class FastSuffixMatcher {
     /**
      * Creates a new matcher with the provided matching rules.
      *
-     * @param existing - An existing matcher whose rules are to be baseline <see cref="Match(string)"/>
-     * @param rules    - One or more matching rules to apply when <see cref="Match(string)"/>
+     * @param existing - An existing matcher whose rules are to be baseline Match"/>
+     * @param rules    - One or more matching rules to apply when Match"/>
      *                 is called
+     * @return FastSuffixMatcher
      */
-    /// <param name="existing">An existing matcher whose rules are to be baseline.</param>
-    /// <param name="rules">One or more matching rules to apply when <see cref="Match(string)"/>
-    ///   is called.</param>
     public static FastSuffixMatcher Create(FastSuffixMatcher existing, List<MatchRule> rules) {
         if (existing == null || existing.m_rules.size() == 0) {
             return Create(rules);
@@ -67,11 +66,9 @@ public class FastSuffixMatcher {
     }
 
     /**
-     * Matches an input string to the list of match rules, and returns true
-     * if at least one of the rules matched.
+     * @param candidate - A string to match to the list of match rules
+     * @return true if at least one of the rules matched.
      */
-
-    /// </summary>
     public Boolean isMatch(String candidate) {
         return Match(candidate).isMatch;
     }
