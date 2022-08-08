@@ -155,7 +155,7 @@ public class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-                                                       String streamFormat, String mappingName, boolean leaveOpen)
+            String streamFormat, String mappingName, boolean leaveOpen)
             throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
@@ -261,8 +261,8 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
-                                                                String clientRequestIdPrefix,
-                                                                String activityTypeSuffix)
+            String clientRequestIdPrefix,
+            String activityTypeSuffix)
             throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
         headers.put("x-ms-client-version", clientVersionForTracing);

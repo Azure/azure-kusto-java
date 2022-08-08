@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data.auth.endpoints;
 
-public class MatchRule
-{
+public class MatchRule {
     /// <summary>
     /// The suffix which the candidate must end with in order to match.
     /// </summary>
@@ -17,8 +16,7 @@ public class MatchRule
         return suffix == null ? 0 : suffix.length();
     }
 
-    public MatchRule(String suffix, Boolean exact)
-    {
+    public MatchRule(String suffix, Boolean exact) {
         this.suffix = suffix;
         this.exact = exact;
     }
@@ -26,8 +24,7 @@ public class MatchRule
     /// <summary>
     /// Clones this object.
     /// </summary>
-    public MatchRule Clone()
-    {
+    public MatchRule Clone() {
         return new MatchRule(suffix, exact);
     }
 }
