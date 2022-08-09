@@ -48,4 +48,3 @@ public class WellKnownKustoEndpointsData {
         return null;
     }
 }
-

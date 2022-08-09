@@ -60,7 +60,7 @@ class Utils {
         URI url = parseUriFromUrlString(urlStr);
 
         KustoTrustedEndpoints.validateTrustedEndpoint(url.getHost(),
-            CloudInfo.retrieveCloudInfoForCluster(url.toString()).getLoginEndpoint());
+                CloudInfo.retrieveCloudInfoForCluster(url.toString()).getLoginEndpoint());
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
@@ -103,7 +103,7 @@ class Utils {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
         KustoTrustedEndpoints.validateTrustedEndpoint(uri.getHost(),
-            CloudInfo.retrieveCloudInfoForCluster(uri.toString()).getLoginEndpoint());
+                CloudInfo.retrieveCloudInfoForCluster(uri.toString()).getLoginEndpoint());
         boolean returnInputStream = false;
         String errorFromResponse = null;
         /*

@@ -133,13 +133,14 @@ public class KustoTrustedEndpoints {
             return;
         }
 
-
         if (!enableWellKnownKustoEndpointsValidation) {
             log.warn("Can't communicate with '{}' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints.", hostname);
             return;
         }
 
         throw new KustoClientInvalidConnectionStringException(
-                String.format("$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints", hostname));
+                String.format(
+                        "$$ALERT[ValidateHostnameIsTrusted]: Can't communicate with '%s' as this hostname is currently not trusted; please see https://aka.ms/kustotrustedendpoints",
+                        hostname));
     }
 }

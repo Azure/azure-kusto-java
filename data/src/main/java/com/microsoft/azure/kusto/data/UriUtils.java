@@ -24,22 +24,18 @@ public class UriUtils {
         return setPathForUri(uri, path, false);
     }
 
-    public static boolean isLocalAddress(String host)
-    {
+    public static boolean isLocalAddress(String host) {
         if (host.equals("localhost")
                 || host.equals("127.0.0.1")
                 || host.equals("::1")
-                || host.equals("[::1]"))
-        {
+                || host.equals("[::1]")) {
             return true;
         }
 
-        if (host.startsWith("127.") && host.length() <= 15 && host.length() >= 9)
-        {
+        if (host.startsWith("127.") && host.length() <= 15 && host.length() >= 9) {
             for (int i = 0; i < host.length(); i++) {
                 char c = host.charAt(i);
-                if (c != '.' && (c < '0' || c > '9'))
-                {
+                if (c != '.' && (c < '0' || c > '9')) {
                     return false;
                 }
             }
