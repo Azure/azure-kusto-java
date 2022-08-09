@@ -20,7 +20,7 @@ public class WellKnownKustoEndpointsTests {
 
     @Test
     @DisplayName("Validate loading of WellKnownKustoEndpointsData")
-    public void GetWellKnownKustoDnsSuffixes() {
+    public void getWellKnownKustoDnsSuffixes() {
         // Has to be final
         class BooleanHolder {
             boolean v;
@@ -57,7 +57,7 @@ public class WellKnownKustoEndpointsTests {
 
     @Test
     @DisplayName("Validate some endpoints")
-    public void WellKnownKustoEndpoints_RandomKustoClustersTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void wellKnownKustoEndpoints_RandomKustoClustersTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String c : new String[]
                 {
                         "https://127.0.0.1",
@@ -133,26 +133,25 @@ public class WellKnownKustoEndpointsTests {
                         "https://kustor3gjpwqum3olw.canadacentral.kusto.windows.net"
                 }) {
             {
-                String clusterName = c;
-                ValidateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
+                validateEndpoint(c, DEFAULT_PUBLIC_LOGIN_URL);
             }
 
             // Test case sensitivity
             {
                 String clusterName = c.toUpperCase();
-                ValidateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
+                validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
 
             // Test MFA endpoints
             if (!c.contains("synapse")) {
                 String clusterName = c.replace(".kusto.", ".kustomfa.");
-                ValidateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
+                validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
 
             // Test dev endpoints
             if (!c.contains("synapse")) {
                 String clusterName = c.replace(".kusto.", ".kustodev.");
-                ValidateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
+                validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
         }
     }
@@ -171,7 +170,7 @@ public class WellKnownKustoEndpointsTests {
     }
 
     @Test
-    public void WellKnownKustoEndpoints_NationalClustersTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void WwllKnownKustoEndpoints_NationalClustersTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String c : new String[]
                 {
                         String.format("https://kustozszokb5yrauyq.kusto.chinacloudapi.cn,%s", chinaCloudLogin),
@@ -184,14 +183,14 @@ public class WellKnownKustoEndpointsTests {
                         "https://rpe2e0422132101fct2.kusto.core.microsoft.scloud,https://login.microsoftonline.microsoft.scloud",
                 }) {
             String[] clusterAndLoginEndpoint = c.split(",");
-            ValidateEndpoint(clusterAndLoginEndpoint[0], clusterAndLoginEndpoint[1]);
+            validateEndpoint(clusterAndLoginEndpoint[0], clusterAndLoginEndpoint[1]);
             // Test case sensitivity
-            ValidateEndpoint(clusterAndLoginEndpoint[0].toUpperCase(), clusterAndLoginEndpoint[1].toUpperCase());
+            validateEndpoint(clusterAndLoginEndpoint[0].toUpperCase(), clusterAndLoginEndpoint[1].toUpperCase());
         }
     }
 
     @Test
-    public void WellKnownKustoEndpoints_ProxyTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void wellKnownKustoEndpoints_ProxyTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String c : new String[]
                 {
                         String.format("https://kusto.aria.microsoft.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
@@ -204,14 +203,14 @@ public class WellKnownKustoEndpointsTests {
                         String.format("https://cluster.playfab.cn,%s", chinaCloudLogin),
                 }) {
             String[] clusterAndLoginEndpoint = c.split(",");
-            ValidateEndpoint(clusterAndLoginEndpoint[0], clusterAndLoginEndpoint[1]);
+            validateEndpoint(clusterAndLoginEndpoint[0], clusterAndLoginEndpoint[1]);
             // Test case sensitivity
-            ValidateEndpoint(clusterAndLoginEndpoint[0].toUpperCase(), clusterAndLoginEndpoint[1].toUpperCase());
+            validateEndpoint(clusterAndLoginEndpoint[0].toUpperCase(), clusterAndLoginEndpoint[1].toUpperCase());
         }
     }
 
     @Test
-    public void WellKnownKustoEndpoints_ProxyNegativeTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void wellKnownKustoEndpoints_ProxyNegativeTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String clusterName : new String[]
                 {
                         "https://cluster.kusto.aria.microsoft.com",
@@ -229,7 +228,7 @@ public class WellKnownKustoEndpointsTests {
     }
 
     @Test
-    public void WellKnownKustoEndpoints_NegativeTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void wellKnownKustoEndpoints_NegativeTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String clusterName : new String[]
                 {
                         "https://localhostess",
@@ -247,43 +246,43 @@ public class WellKnownKustoEndpointsTests {
     }
 
     @Test
-    public void WellKnownKustoEndpoints_OverrideTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+    public void wellKnownKustoEndpoints_OverrideTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         try {
-            KustoTrustedEndpoints.SetOverridePolicy(hostname -> true);
+            KustoTrustedEndpoints.setOverridePolicy(hostname -> true);
             checkEndpoint("https://kusto.kusto.windows.net", "", false);
             checkEndpoint("https://bing.com", "", false);
 
-            KustoTrustedEndpoints.SetOverridePolicy(hostname -> false);
+            KustoTrustedEndpoints.setOverridePolicy(hostname -> false);
             checkEndpoint("https://kusto.kusto.windows.net", "", true);
             checkEndpoint("https://bing.com", "", true);
 
-            KustoTrustedEndpoints.SetOverridePolicy(null);
+            KustoTrustedEndpoints.setOverridePolicy(null);
             checkEndpoint("https://kusto.kusto.windows.net", DEFAULT_PUBLIC_LOGIN_URL, false);
             checkEndpoint("https://bing.com", DEFAULT_PUBLIC_LOGIN_URL, true);
         } finally {
-            KustoTrustedEndpoints.SetOverridePolicy(null);
+            KustoTrustedEndpoints.setOverridePolicy(null);
         }
     }
 
     @Test
-    public void WellKnownKustoEndpoints_AdditionalWebsites() throws KustoClientInvalidConnectionStringException, URISyntaxException {
-        KustoTrustedEndpoints.AddTrustedHosts(Arrays.asList(new MatchRule[]
-                {
-                        new MatchRule(".someotherdomain1.net", false),
-                }.clone()), true);
+    public void wellKnownKustoEndpoints_AdditionalWebsites() throws KustoClientInvalidConnectionStringException, URISyntaxException {
+        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule[]
+            {
+                    new MatchRule(".someotherdomain1.net", false),
+            }.clone()), true);
 
         // 2nd call - to validate that addition works
-        KustoTrustedEndpoints.AddTrustedHosts(Arrays.asList(new MatchRule[]
-                {
-                        new MatchRule("www.someotherdomain2.net", true),
-                }.clone()), false);
+        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule[]
+            {
+                    new MatchRule("www.someotherdomain2.net", true),
+            }.clone()), false);
 
 
         for (String clusterName : new String[]
-                {
-                        "https://some.someotherdomain1.net",
-                        "https://www.someotherdomain2.net",
-                }) {
+            {
+                    "https://some.someotherdomain1.net",
+                    "https://www.someotherdomain2.net",
+            }) {
             {
                 checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, false);
             }
@@ -299,7 +298,7 @@ public class WellKnownKustoEndpointsTests {
         }
 
         // Reset additional hosts
-        KustoTrustedEndpoints.AddTrustedHosts(null, true);
+        KustoTrustedEndpoints.addTrustedHosts(null, true);
         // Validate that hosts are not allowed anymore
         for (String clusterName : new String[]{
                 "https://some.someotherdomain1.net",
@@ -309,20 +308,34 @@ public class WellKnownKustoEndpointsTests {
                 checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL, true);
             }
         }
+
+        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule[]
+            {
+                new MatchRule("www.someotherdomain2.net", true),
+                new MatchRule(".someotherdomain1.net", false)
+            }.clone()), false);
+        for (String clusterName : new String[]{
+                "https://some.someotherdomain1.net",
+                "https://www.someotherdomain2.net",
+        }) {
+            {
+                checkEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL,false);
+            }
+        }
     }
 
 
     private void checkEndpoint(String clusterName, String defaultPublicLoginUrl, boolean expectFail) throws KustoClientInvalidConnectionStringException, URISyntaxException {
         if (expectFail) {
-            Assertions.assertThrows(KustoClientInvalidConnectionStringException.class, () -> ValidateEndpoint(clusterName,
+            Assertions.assertThrows(KustoClientInvalidConnectionStringException.class, () -> validateEndpoint(clusterName,
                     defaultPublicLoginUrl));
         } else {
-            ValidateEndpoint(clusterName, defaultPublicLoginUrl);
+            validateEndpoint(clusterName, defaultPublicLoginUrl);
         }
     }
 
 
-    private void ValidateEndpoint(String address, String loginEndpoint) throws URISyntaxException, KustoClientInvalidConnectionStringException {
-        KustoTrustedEndpoints.ValidateTrustedEndpoint(new URI(address), loginEndpoint);
+    private void validateEndpoint(String address, String loginEndpoint) throws URISyntaxException, KustoClientInvalidConnectionStringException {
+        KustoTrustedEndpoints.validateTrustedEndpoint(new URI(address), loginEndpoint);
     }
 }

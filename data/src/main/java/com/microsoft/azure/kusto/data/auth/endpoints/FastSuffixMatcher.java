@@ -4,6 +4,8 @@ import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class FastSuffixMatcher {
     private final int suffixLength;
@@ -16,7 +18,7 @@ public class FastSuffixMatcher {
      *              is called
      * @return FastSuffixMatcher
      */
-    public static FastSuffixMatcher Create(List<MatchRule> rules) {
+    public static FastSuffixMatcher create(List<MatchRule> rules) {
         Ensure.argIsNotNull(rules, "rules");
         int minRuleLength = rules.stream().min(Comparator.comparing(MatchRule::getSuffixLength))
                 .map(MatchRule::getSuffixLength).orElse(0);
@@ -47,22 +49,19 @@ public class FastSuffixMatcher {
      *                 is called
      * @return FastSuffixMatcher
      */
-    public static FastSuffixMatcher Create(FastSuffixMatcher existing, List<MatchRule> rules) {
+    public static FastSuffixMatcher create(FastSuffixMatcher existing, List<MatchRule> rules) {
         if (existing == null || existing.m_rules.size() == 0) {
-            return Create(rules);
+            return create(rules);
         }
 
         if (rules == null || rules.isEmpty()) {
             return existing;
         }
 
-        List<MatchRule> list = new ArrayList<>();
-        for (Map.Entry<String, List<MatchRule>> entry : existing.m_rules.entrySet()) {
-            list.addAll(entry.getValue());
-        }
-
-        list.addAll(rules);
-        return Create(list);
+        List<MatchRule> list = Stream.concat(rules.stream(),
+                existing.m_rules.values().stream().flatMap(Collection::stream))
+                .collect(Collectors.toList());
+        return create(list);
     }
 
     /**
@@ -70,15 +69,18 @@ public class FastSuffixMatcher {
      * @return true if at least one of the rules matched.
      */
     public Boolean isMatch(String candidate) {
-        return Match(candidate).isMatch;
+        return match(candidate).isMatch;
     }
 
-    public MatchResult Match(String candidate) {
+    public MatchResult match(String candidate) {
         Ensure.argIsNotNull(candidate, "candidate");
 
-        if (candidate.length() >= suffixLength) {
-            List<MatchRule> matchRules = m_rules.getOrDefault(StringUtils.GetStringTail(candidate, suffixLength),
-                    new ArrayList<>());
+        if (candidate.length() < suffixLength) {
+            return new MatchResult(false, null);
+        }
+
+        List<MatchRule> matchRules = m_rules.get(StringUtils.GetStringTail(candidate, suffixLength));
+        if (matchRules != null) {
             for (MatchRule rule : matchRules) {
                 if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
                     if (candidate.length() == rule.suffix.length()

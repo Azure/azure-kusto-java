@@ -17,11 +17,16 @@ public class WellKnownKustoEndpointsData {
     public ArrayList<String> _Comments;
     public HashMap<String, AllowedEndpoints> AllowedEndpointsByLogin;
     private static WellKnownKustoEndpointsData instance = null;
+    private static final Object object = new Object();
 
     public static WellKnownKustoEndpointsData getInstance() {
-        if (instance == null)
-            instance = readInstance();
-
+        if (instance != null)
+            return instance;
+        synchronized (object) {
+            if (instance == null) {
+                instance = readInstance();
+            }
+        }
         return instance;
     }
 

@@ -113,7 +113,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionResources();
                     timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionResources.", e);
+                    log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
                     timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                 }
             }
@@ -126,7 +126,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionAuthToken();
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionAuthToken.", e);
+                    log.error("Error in refreshIngestionAuthToken." + e.getMessage(), e);
                     timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                 }
             }

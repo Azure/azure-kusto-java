@@ -59,7 +59,7 @@ class Utils {
             throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         URI url = parseUriFromUrlString(urlStr);
 
-        KustoTrustedEndpoints.ValidateTrustedEndpoint(url.getHost(),
+        KustoTrustedEndpoints.validateTrustedEndpoint(url.getHost(),
             CloudInfo.retrieveCloudInfoForCluster(url.toString()).getLoginEndpoint());
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
@@ -102,7 +102,7 @@ class Utils {
             throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
-        KustoTrustedEndpoints.ValidateTrustedEndpoint(uri.getHost(),
+        KustoTrustedEndpoints.validateTrustedEndpoint(uri.getHost(),
             CloudInfo.retrieveCloudInfoForCluster(uri.toString()).getLoginEndpoint());
         boolean returnInputStream = false;
         String errorFromResponse = null;

@@ -67,10 +67,10 @@ class E2ETest {
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ClientImpl queryClient;
-    private static final String databaseName = System.getenv("TEST_DATABASE");
-    private static final String appId = System.getenv("APP_ID");
+    private static final String databaseName = System.getProperty("TEST_DATABASE");
+    private static final String appId = System.getProperty("APP_ID");
     private static String appKey;
-    private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
+    private static final String tenantId = System.getProperties().getOrDefault("TENANT_ID", "microsoft.com").toString();
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -81,7 +81,7 @@ class E2ETest {
 
     @BeforeAll
     public static void setUp() throws IOException {
-        appKey = System.getenv("APP_KEY");
+        appKey = System.getProperty("APP_KEY");
         if (appKey == null) {
             String secretPath = System.getProperty("SecretPath");
             if (secretPath == null) {
@@ -94,7 +94,7 @@ class E2ETest {
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey,
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("DM_CONNECTION_STRING"), appId, appKey,
                 tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
@@ -103,7 +103,7 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("ENGINE_CONNECTION_STRING"), appId,
                 appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);

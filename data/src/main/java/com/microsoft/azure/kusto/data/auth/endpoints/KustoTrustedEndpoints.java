@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
@@ -33,7 +34,7 @@ public class KustoTrustedEndpoints {
             List<MatchRule> rules = new ArrayList<>();
             value.AllowedKustoSuffixes.forEach(suffix -> rules.add(new MatchRule(suffix, false)));
             value.AllowedKustoHostnames.forEach(hostname -> rules.add(new MatchRule(hostname, true)));
-            matchers.put(key, FastSuffixMatcher.Create(rules));
+            matchers.put(key, FastSuffixMatcher.create(rules));
         });
 
         additionalMatcher = null;
@@ -42,9 +43,9 @@ public class KustoTrustedEndpoints {
 
     /**
      * @param matcher Rules that determine if a hostname is a valid/trusted Kusto endpoint
-     *  (replaces existing rules). Null means "use the default policy".
+     *  (replaces existing rules). NuisLocalAddressolicy".
      */
-    public static void SetOverridePolicy(Predicate<String> matcher) {
+    public static void setOverridePolicy(Predicate<String> matcher) {
         overrideMatcher = matcher;
     }
 
@@ -55,9 +56,9 @@ public class KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void ValidateTrustedEndpoint(String uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(String uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
         try {
-            ValidateTrustedEndpoint(new URI(uri), loginEndpoint);
+            validateTrustedEndpoint(new URI(uri), loginEndpoint);
         } catch (URISyntaxException ex) {
             throw new KustoClientInvalidConnectionStringException(ex);
         }
@@ -69,9 +70,9 @@ public class KustoTrustedEndpoints {
      * @param uri - Kusto endpoint
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void ValidateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
-            ValidateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
+            validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
         } catch (URISyntaxException | DataServiceException ex) {
             throw new KustoClientInvalidConnectionStringException(ex);
         }
@@ -84,11 +85,11 @@ public class KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void ValidateTrustedEndpoint(URI uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(URI uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
         Ensure.argIsNotNull(uri, "uri");
-
+        String host = uri.getHost();
         // Check that target hostname is trusted and can accept security token
-        ValidateHostnameIsTrusted(uri.getHost(), loginEndpoint);
+        validateHostnameIsTrusted(host != null ? host : uri.toString(), loginEndpoint);
     }
 
     /**
@@ -98,7 +99,7 @@ public class KustoTrustedEndpoints {
      * @param rules   - A set of rules
      * @param replace - If true nullifies the last added rules
      */
-    public synchronized static void AddTrustedHosts(List<MatchRule> rules, boolean replace) {
+    public synchronized static void addTrustedHosts(List<MatchRule> rules, boolean replace) {
         if (replace) {
             additionalMatcher = null;
         }
@@ -107,12 +108,12 @@ public class KustoTrustedEndpoints {
             return;
         }
 
-        additionalMatcher = FastSuffixMatcher.Create(additionalMatcher, rules);
+        additionalMatcher = FastSuffixMatcher.create(additionalMatcher, rules);
     }
 
-    private static void ValidateHostnameIsTrusted(String hostname, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
         // The loopback is unconditionally allowed (since we trust ourselves)
-        if (CloudInfo.isLocalAddress(hostname)) {
+        if (UriUtils.isLocalAddress(hostname)) {
             return;
         }
 

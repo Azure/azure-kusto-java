@@ -42,31 +42,6 @@ public class CloudInfo {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
     }
 
-    public static boolean isLocalAddress(String host)
-    {
-        if (host.equals("localhost")
-                || host.equals("127.0.0.1")
-                || host.equals("::1")
-                || host.equals("[::1]"))
-        {
-            return true;
-        }
-
-        if (host.startsWith("127.") && host.length() <= 15 && host.length() >= 9)
-        {
-            for (int i = 0; i < host.length(); i++) {
-                char c = host.charAt(i);
-                if (c != '.' && (c < '0' || c > '9'))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        return false;
-    }
-
     private final boolean loginMfaRequired;
     private final String loginEndpoint;
     private final String kustoClientAppId;
