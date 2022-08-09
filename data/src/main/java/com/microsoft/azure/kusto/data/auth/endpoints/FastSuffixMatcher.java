@@ -30,7 +30,7 @@ public class FastSuffixMatcher {
         for (MatchRule rule : rules) {
             String suffix = StringUtils.GetStringTail(rule.suffix, minRuleLength);
             List<MatchRule> list = processedRules.computeIfAbsent(suffix, k -> new ArrayList<>());
-            list.add(rule.Clone());
+            list.add(rule.clone());
         }
 
         return new FastSuffixMatcher(minRuleLength, processedRules);

@@ -24,7 +24,7 @@ public class MatchRule {
     /// <summary>
     /// Clones this object.
     /// </summary>
-    public MatchRule Clone() {
+    public MatchRule clone() {
         return new MatchRule(suffix, exact);
     }
 }
