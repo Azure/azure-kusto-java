@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.quickstart;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
@@ -63,6 +65,7 @@ enum AuthenticationModeOptions {
 /**
  * ConfigData object - represents a file from which to ingest
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 class ConfigData {
     private SourceType sourceType;
     private String dataSourceUri;
@@ -135,6 +138,7 @@ class ConfigData {
 /**
  * ConfigJson object - represents a cluster and DataBase connection configuration file.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 class ConfigJson {
     private boolean useExistingTable;
     private String databaseName;
@@ -298,6 +302,7 @@ public class SampleApp {
         File configFile = new File(".\\" + SampleApp.configFileName);
         try {
             ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
             return mapper.readValue(configFile, ConfigJson.class);
 
         } catch (Exception e) {
