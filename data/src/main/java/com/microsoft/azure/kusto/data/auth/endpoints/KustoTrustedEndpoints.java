@@ -99,16 +99,17 @@ public class KustoTrustedEndpoints {
      * @param rules   - A set of rules
      * @param replace - If true nullifies the last added rules
      */
-    public synchronized static void addTrustedHosts(List<MatchRule> rules, boolean replace) {
-        if (replace) {
-            additionalMatcher = null;
-        }
-
-        if (rules == null || rules.isEmpty()) {
+    public static void addTrustedHosts(List<MatchRule> rules, boolean replace) {
+        if (rules.isEmpty())
+        {
+            if (replace)
+            {
+                additionalMatcher = null;
+            }
             return;
         }
 
-        additionalMatcher = FastSuffixMatcher.create(additionalMatcher, rules);
+        additionalMatcher = FastSuffixMatcher.create(replace ? null : additionalMatcher, rules);
     }
 
     private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
@@ -118,8 +119,9 @@ public class KustoTrustedEndpoints {
         }
 
         // Either check the override matcher OR the matcher:
-        if (overrideMatcher != null) {
-            if (overrideMatcher.test(hostname)) {
+        Predicate<String> override = overrideMatcher;
+        if (override != null) {
+            if (override.test(hostname)) {
                 return;
             }
         } else {
@@ -129,7 +131,8 @@ public class KustoTrustedEndpoints {
             }
         }
 
-        if (additionalMatcher != null && additionalMatcher.isMatch(hostname)) {
+        FastSuffixMatcher matcher = additionalMatcher;
+        if (matcher != null && matcher.isMatch(hostname)) {
             return;
         }
 

@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 public class FastSuffixMatcher {
     private final int suffixLength;
-    private final Map<String, List<MatchRule>> m_rules;
+    private final Map<String, List<MatchRule>> rules;
 
     /**
      * Creates a new matcher with the provided matching rules.
@@ -36,11 +36,6 @@ public class FastSuffixMatcher {
         return new FastSuffixMatcher(minRuleLength, processedRules);
     }
 
-    private FastSuffixMatcher(int suffixLength, Map<String, List<MatchRule>> rules) {
-        this.suffixLength = suffixLength;
-        m_rules = rules;
-    }
-
     /**
      * Creates a new matcher with the provided matching rules.
      *
@@ -50,7 +45,7 @@ public class FastSuffixMatcher {
      * @return FastSuffixMatcher
      */
     public static FastSuffixMatcher create(FastSuffixMatcher existing, List<MatchRule> rules) {
-        if (existing == null || existing.m_rules.size() == 0) {
+        if (existing == null || existing.rules.size() == 0) {
             return create(rules);
         }
 
@@ -59,7 +54,7 @@ public class FastSuffixMatcher {
         }
 
         List<MatchRule> list = Stream.concat(rules.stream(),
-                existing.m_rules.values().stream().flatMap(Collection::stream))
+                existing.rules.values().stream().flatMap(Collection::stream))
                 .collect(Collectors.toList());
         return create(list);
     }
@@ -72,6 +67,9 @@ public class FastSuffixMatcher {
         return match(candidate).isMatch;
     }
 
+    /**
+     * Matches an input string to the list of match rules, and returns MatchResult accordingly.
+     */
     public MatchResult match(String candidate) {
         Ensure.argIsNotNull(candidate, "candidate");
 
@@ -79,10 +77,10 @@ public class FastSuffixMatcher {
             return new MatchResult(false, null);
         }
 
-        List<MatchRule> matchRules = m_rules.get(StringUtils.GetStringTail(candidate, suffixLength));
+        List<MatchRule> matchRules = rules.get(StringUtils.GetStringTail(candidate, suffixLength));
         if (matchRules != null) {
             for (MatchRule rule : matchRules) {
-                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
+                if (org.apache.commons.lang3.StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
                     if (candidate.length() == rule.suffix.length()
                             || !rule.exact) {
                         return new MatchResult(true, rule);
@@ -92,5 +90,10 @@ public class FastSuffixMatcher {
         }
 
         return new MatchResult(false, null);
+    }
+
+    private FastSuffixMatcher(int suffixLength, Map<String, List<MatchRule>> rules) {
+        this.suffixLength = suffixLength;
+        this.rules = rules;
     }
 }
