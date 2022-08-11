@@ -283,6 +283,8 @@ public class ClientImpl implements Client, StreamingClient {
         }
         headers.put("x-ms-client-request-id", clientRequestId);
 
+        headers.put("Connection", "Keep-Alive");
+
         UUID activityId = UUID.randomUUID();
         String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
                 activityId, activityId, activityId, clientRequestId);
