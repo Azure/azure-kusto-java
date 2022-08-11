@@ -43,7 +43,7 @@ public class KustoTrustedEndpoints {
 
     /**
      * @param matcher Rules that determine if a hostname is a valid/trusted Kusto endpoint
-     *  (replaces existing rules). NuisLocalAddressolicy".
+     *                (replaces existing rules). NuisLocalAddressolicy".
      */
     public static void setOverridePolicy(Predicate<String> matcher) {
         overrideMatcher = matcher;
@@ -52,7 +52,7 @@ public class KustoTrustedEndpoints {
     /**
      * Throw an exception if the endpoint specified is not trusted.
      *
-     * @param uri - Kusto endpoint
+     * @param uri           - Kusto endpoint
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
@@ -81,7 +81,7 @@ public class KustoTrustedEndpoints {
     /**
      * Is the endpoint uri trusted?
      *
-     * @param uri The endpoint to inspect.
+     * @param uri           The endpoint to inspect.
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
@@ -100,10 +100,8 @@ public class KustoTrustedEndpoints {
      * @param replace - If true nullifies the last added rules
      */
     public static void addTrustedHosts(List<MatchRule> rules, boolean replace) {
-        if (rules.isEmpty())
-        {
-            if (replace)
-            {
+        if (rules == null || rules.isEmpty()) {
+            if (replace) {
                 additionalMatcher = null;
             }
             return;
