@@ -59,8 +59,6 @@ class Utils {
             throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
-
-
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
             int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
