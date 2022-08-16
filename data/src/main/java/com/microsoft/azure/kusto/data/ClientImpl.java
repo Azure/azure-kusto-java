@@ -43,7 +43,7 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
-    private boolean validated = false;
+    private boolean _endpoint_validated = false;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -149,7 +149,7 @@ public class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
         try {
-            validateEndpoint(clusterUrl);
+            validateEndpoint();
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
@@ -157,11 +157,11 @@ public class ClientImpl implements Client, StreamingClient {
         return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
-    private void validateEndpoint(String clusterUrl) throws DataServiceException, KustoClientInvalidConnectionStringException {
-        if (!validated) {
+    private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
+        if (!_endpoint_validated) {
             KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
                     CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-            validated = true;
+            _endpoint_validated = true;
         }
     }
 
@@ -206,7 +206,7 @@ public class ClientImpl implements Client, StreamingClient {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
         try {
-            validateEndpoint(clusterUrl);
+            validateEndpoint();
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -248,7 +248,7 @@ public class ClientImpl implements Client, StreamingClient {
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
         try {
-            validateEndpoint(clusterUrl);
+            validateEndpoint();
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
