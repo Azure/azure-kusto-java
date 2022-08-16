@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
@@ -42,6 +43,7 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
+    private boolean validated = false;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -140,16 +142,26 @@ public class ClientImpl implements Client, StreamingClient {
         // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
                 commandType.getActivityTypeSuffix());
 
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
         try {
-            return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+            validateEndpoint(clusterUrl);
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
+        }
+
+        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+    }
+
+    private void validateEndpoint(String clusterUrl) throws DataServiceException, KustoClientInvalidConnectionStringException {
+        if (!validated) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
+                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
+            validated = true;
         }
     }
 
@@ -174,7 +186,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
                 CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
@@ -194,6 +206,7 @@ public class ClientImpl implements Client, StreamingClient {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
         try {
+            validateEndpoint(clusterUrl);
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -235,10 +248,12 @@ public class ClientImpl implements Client, StreamingClient {
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
 
         try {
-            return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+            validateEndpoint(clusterUrl);
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
+
+        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
