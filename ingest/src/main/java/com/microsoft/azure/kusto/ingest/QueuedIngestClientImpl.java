@@ -53,15 +53,17 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private @Nullable HttpClientProperties httpClientProperties;
     private QueueRequestOptions queueRequestOptions = null;
 
+    QueuedIngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
+        this(csb, null);
+    }
+
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         httpClientProperties = properties;
-        ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
-        csbWithEndpoint.setClusterUrl(getIngestionEndpoint(csbWithEndpoint.getClusterUrl()));
-        Client client = ClientFactory.createClient(csbWithEndpoint, httpClientProperties);
+        Client client = ClientFactory.createClient(csb, httpClientProperties);
         this.resourceManager = new ResourceManager(client);
         this.azureStorageClient = new AzureStorageClient(httpClientProperties);
-        this.connectionDataSource = csbWithEndpoint.getClusterUrl();
+        this.connectionDataSource = csb.getClusterUrl();
     }
 
     QueuedIngestClientImpl(ResourceManager resourceManager) {
@@ -78,6 +80,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     public void setQueueRequestOptions(QueueRequestOptions queueRequestOptions) {
         this.queueRequestOptions = queueRequestOptions;
+    }
+
+    public static String generateDmUriSuggestion(URIBuilder existingEndpoint) {
+        if (existingEndpoint.getHost().toLowerCase().startsWith(INGEST_PREFIX)) {
+            throw new IllegalArgumentException("The URL is already formatted as the suggested DM endpoint, so no suggestion can be made");
+        }
+        existingEndpoint.setHost(INGEST_PREFIX + existingEndpoint.getHost());
+        return existingEndpoint.toString();
     }
 
     @Override
@@ -150,6 +160,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         } catch (IngestionServiceException e) {
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -193,6 +204,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         } catch (IngestionServiceException e) {
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -243,6 +255,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (StorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IngestionServiceException e) {
+            validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
             throw e;
         }
     }
@@ -284,6 +297,19 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             log.error(msg, ex);
             throw new IngestionClientException(msg, ex);
         }
+    }
+
+    @Override
+    protected String emendEndpointUri(URIBuilder existingEndpoint) {
+        return generateDmUriSuggestion(existingEndpoint);
+    }
+
+    @Override
+    protected String retrieveServiceType() {
+        if (resourceManager != null) {
+            return resourceManager.retrieveServiceType();
+        }
+        return null;
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {

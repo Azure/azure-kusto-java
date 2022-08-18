@@ -554,24 +554,6 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithQueryUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://testendpoint.dev.kusto.windows.net"));
-        assertNotNull(client);
-        assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
-        assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
-    }
-
-    @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithIngestUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://ingest-testendpoint.dev.kusto.windows.net"));
-        assertNotNull(client);
-        assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
-        assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
-    }
-
-    @Test
     void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient
                 .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
@@ -581,12 +563,28 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
+    void CreateManagedStreamingIngestClient_WithWrongDmUri_Fail() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ManagedStreamingIngestClient client = ManagedStreamingIngestClient
+                    .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
+        });
+    }
+
+    @Test
     void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient.fromEngineConnectionString(
                 ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
+    }
+
+    @Test
+    void CreateManagedStreamingIngestClient_WithWrongEngineUri_Fail() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            ManagedStreamingIngestClient client = ManagedStreamingIngestClient.fromEngineConnectionString(
+                    ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
+        });
     }
 
     private static void verifyClientRequestId() {
