@@ -52,8 +52,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingClient = ClientFactory.createStreamingClient(csb, properties);
-        this.connectionDataSource = csb.getClusterUrl();
+        ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
+        csbWithEndpoint.setClusterUrl(getQueryEndpoint(csbWithEndpoint.getClusterUrl()));
+        this.streamingClient = ClientFactory.createStreamingClient(csbWithEndpoint, properties);
+        this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
     StreamingIngestClient(StreamingClient streamingClient) {
@@ -171,9 +173,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
-            if (e.getStatusCode() != null && e.getStatusCode() == HttpStatus.SC_NOT_FOUND) {
-                validateEndpointServiceType(connectionDataSource, EXPECTED_SERVICE_TYPE);
-            }
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
@@ -221,35 +220,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         InputStream stream = cloudBlockBlob.openInputStream();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId(), AzureStorageClient.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
-    }
-
-    @Override
-    protected String emendEndpointUri(URIBuilder existingEndpoint) {
-        return generateEngineUriSuggestion(existingEndpoint);
-    }
-
-    @Override
-    protected String retrieveServiceType() {
-        if (streamingClient != null) {
-            log.info("Getting version to determine endpoint's ServiceType");
-            try {
-                KustoOperationResult versionResult = streamingClient.execute(Commands.VERSION_SHOW_COMMAND);
-                if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
-                    KustoResultSetTable resultTable = versionResult.next();
-                    resultTable.next();
-                    return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
-                }
-            } catch (DataServiceException e) {
-                log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
-                return null;
-            } catch (DataClientException e) {
-                log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
-                return null;
-            }
-            log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
-            return null;
-        }
-        return null;
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {
