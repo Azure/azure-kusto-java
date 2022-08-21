@@ -169,10 +169,9 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
-            String blobPath;
-            BlobClient blobClient = azureStorageClient.uploadLocalFileToBlob(file, blobName,
+            azureStorageClient.uploadLocalFileToBlob(file, blobName,
                     container.getContainer(), shouldCompress);
-            blobPath = azureStorageClient.getBlobPathWithSas(blobClient.getBlobUrl(),container.getSas());
+            String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes() :
                     estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
 
@@ -223,7 +222,7 @@ public class QueuedIngestClient extends IngestClientBase implements IngestClient
                 container.getContainer(),
                 shouldCompress
             );
-            String blobPath = azureStorageClient.getBlobPathWithSas(container.getSas(), blobName);
+            String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                     blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
 

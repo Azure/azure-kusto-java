@@ -68,13 +68,7 @@ class QueuedIngestClientTest {
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
-        when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean()))
-                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URL).blobName("blobName").buildClient());
-
         when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URL);
-
-        when(azureStorageClientMock.uploadLocalFileToBlob(any(File.class), anyString(), any(), anyBoolean()))
-                .thenReturn(new BlobClientBuilder().endpoint(STORAGE_URL).blobName("blobName").buildClient());
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 

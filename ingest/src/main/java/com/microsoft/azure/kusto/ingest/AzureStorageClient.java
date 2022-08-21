@@ -47,7 +47,7 @@ public class AzureStorageClient {
         tableClient.createEntity(tableEntity);
     }
 
-    BlobClient uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
+    void uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
             throws IOException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, container.getBlobContainerUrl());
 
@@ -62,8 +62,6 @@ public class AzureStorageClient {
         } else {
             uploadFileToBlob(file, blobClient);
         }
-
-        return blobClient;
     }
 
     void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException {
@@ -84,7 +82,7 @@ public class AzureStorageClient {
         }
     }
 
-    BlobClient uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
+    void uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
             throws IOException, URISyntaxException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
 
@@ -99,8 +97,6 @@ public class AzureStorageClient {
         } else {
             uploadStream(inputStream, blobClient);
         }
-
-        return blobClient;
     }
 
     void uploadStream(InputStream inputStream, BlobClient blob) throws IOException {

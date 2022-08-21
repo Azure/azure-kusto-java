@@ -612,7 +612,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Unexpected Storage error when ingesting a blob."));
+        assertTrue(ingestionClientException.getMessage().contains("Exception trying to read blob metadata"));
     }
 
     @Test
@@ -633,7 +633,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet() throws Exception {
+    void IngestFbromResultSet() throws Exception {
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         ResultSet resultSet = mock(ResultSet.class);
 

@@ -237,7 +237,6 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                KustoOperationResult ingestionResourcesResults = client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
                 this.containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
                 this.queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
                 this.successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);
@@ -247,7 +246,6 @@ class ResourceManager implements Closeable {
                 CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
                         () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                 KustoOperationResult ingestionResourcesResults = retryExecute.apply();
-                ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     KustoResultSetTable table = ingestionResourcesResults.next();
                     // Add the received values to a new IngestionResources map

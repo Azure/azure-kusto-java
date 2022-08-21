@@ -47,11 +47,10 @@
         <httpcore.version>4.4.15</httpcore.version>
         <json.version>20201115</json.version>
         <fasterxml.jackson.core.version>2.13.1</fasterxml.jackson.core.version>
-        <reactor-core.version>3.4.10</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <!-- Bom 1.0.6 targets azure-core with same fasterxml version as databricks runtime 10
          https://docs.microsoft.com/en-us/azure/databricks/release-notes/runtime/10.3-->
-        <azure-bom-version>1.2.0</azure-bom-version>
+        <azure-bom-version>1.2.4</azure-bom-version>
         <resilience4j.version>1.7.1</resilience4j.version>
         <io.vavr.version>0.10.2</io.vavr.version>
         <!-- Test dependencies -->
