@@ -49,7 +49,7 @@ public class ClientRequestProperties implements Serializable {
     private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
-    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toSeconds(1) * 1000;
+    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
