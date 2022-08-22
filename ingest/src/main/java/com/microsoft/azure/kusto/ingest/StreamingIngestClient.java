@@ -45,7 +45,6 @@ import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
-    public static final String EXPECTED_SERVICE_TYPE = "Engine";
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private final StreamingClient streamingClient;

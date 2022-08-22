@@ -49,7 +49,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
-    public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
     private @Nullable HttpClientProperties httpClientProperties;
     private QueueRequestOptions queueRequestOptions = null;
 

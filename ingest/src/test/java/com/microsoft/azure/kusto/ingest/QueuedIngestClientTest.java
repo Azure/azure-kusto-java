@@ -33,8 +33,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.function.BiFunction;
 
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.EXPECTED_SERVICE_TYPE;
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
