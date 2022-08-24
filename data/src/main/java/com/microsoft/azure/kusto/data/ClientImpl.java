@@ -43,7 +43,7 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
-    private boolean _endpoint_validated = false;
+    private boolean endpointValidated = false;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -158,10 +158,10 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
-        if (!_endpoint_validated) {
+        if (!endpointValidated) {
             KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
                     CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-            _endpoint_validated = true;
+            endpointValidated = true;
         }
     }
 
