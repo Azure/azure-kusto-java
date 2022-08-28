@@ -4,10 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -26,7 +23,9 @@ import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.queue.QueueRequestOptions;
 import com.univocity.parsers.csv.CsvRoutines;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,19 +49,21 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
-    private @Nullable HttpClientProperties httpClientProperties;
     private QueueRequestOptions queueRequestOptions = null;
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
-        this(csb, null);
+        this(csb, (HttpClientProperties) null);
     }
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+        this(csb, HttpClientFactory.create(properties));
+    }
+
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new IngestClient");
-        httpClientProperties = properties;
-        Client client = ClientFactory.createClient(csb, httpClientProperties);
+        Client client = ClientFactory.createClient(csb, httpClient);
         this.resourceManager = new ResourceManager(client);
-        this.azureStorageClient = new AzureStorageClient(httpClientProperties);
+        this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csb.getClusterUrl();
     }
 

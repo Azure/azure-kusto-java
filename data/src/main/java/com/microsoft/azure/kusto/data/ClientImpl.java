@@ -18,13 +18,14 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public class ClientImpl implements Client, StreamingClient {
+class ClientImpl implements Client, StreamingClient {
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
@@ -42,16 +43,18 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
+    private final boolean leaveHttpClientOpen;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
     }
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
-        this(csb, HttpClientFactory.getInstance().create(properties));
+        this(csb, HttpClientFactory.create(properties), false);
     }
 
-    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+    // Accepting a CloseableHttpClient so that we can create InputStream from response
+    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean leaveHttpClientOpen) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
@@ -87,6 +90,7 @@ public class ClientImpl implements Client, StreamingClient {
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
         this.httpClient = httpClient;
+        this.leaveHttpClientOpen = leaveHttpClientOpen;
     }
 
     @Override
@@ -140,7 +144,7 @@ public class ClientImpl implements Client, StreamingClient {
         // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
                 commandType.getActivityTypeSuffix());
 
@@ -174,7 +178,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
                 CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
@@ -227,7 +231,7 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
                 commandType.getActivityTypeSuffix());
 
@@ -321,5 +325,12 @@ public class ClientImpl implements Client, StreamingClient {
 
     public String getClusterUrl() {
         return clusterUrl;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (!leaveHttpClientOpen) {
+            httpClient.close();
+        }
     }
 }

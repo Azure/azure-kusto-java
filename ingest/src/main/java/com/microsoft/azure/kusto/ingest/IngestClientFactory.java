@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
@@ -34,6 +35,17 @@ public class IngestClientFactory {
      */
     public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         return new QueuedIngestClientImpl(csb, properties);
+    }
+
+    /**
+     * Creates a new queued ingest client.
+     * @param csb connection string builder for the data management endpoint
+     * @param properties additional properties to configure the http client
+     * @return a new queued ingest client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClient client) throws URISyntaxException {
+        return new QueuedIngestClientImpl(csb, client);
     }
 
     /**

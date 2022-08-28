@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 
 import java.time.LocalDateTime;
@@ -29,7 +25,7 @@ public class AdvancedQuery {
                     .maxConnectionsTotal(40)
                     .build();
 
-            ClientImpl client = new ClientImpl(csb, properties);
+            Client client = ClientFactory.createClient(csb, properties);
             String database = System.getProperty("dbName");
             String newLine = System.getProperty("line.separator");
 

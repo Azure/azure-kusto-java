@@ -257,6 +257,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
+        streamingClient.close();
     }
 }
