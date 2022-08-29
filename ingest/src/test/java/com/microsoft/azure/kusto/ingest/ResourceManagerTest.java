@@ -11,18 +11,20 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -48,7 +50,7 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
 
-        resourceManager = new ResourceManager(clientMock);
+        resourceManager = new ResourceManager(clientMock, null);
     }
 
     @AfterAll
@@ -62,15 +64,16 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_TempStorage_VerifyRoundRobin()
+    void GetIngestionResource_TempStorage_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
+        List<ContainerWithSas> availableStorages = new ArrayList<>(Arrays.asList(
+                TestUtils.containerWithSasFromBlobName(STORAGE_1), TestUtils.containerWithSasFromBlobName(STORAGE_2)));
 
-        String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        ContainerWithSas storage = resourceManager.getTempStorage();
         int lastIndex = availableStorages.indexOf(storage);
 
         for (int i = 0; i < 10; i++) {
-            storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+            storage = resourceManager.getTempStorage();
             int currIdx = availableStorages.indexOf(storage);
             assertEquals((lastIndex + 1) % availableStorages.size(), currIdx);
             lastIndex = currIdx;
@@ -78,17 +81,18 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_AggregationQueue_VerifyRoundRobin()
+    void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
+        List<QueueWithSas> availableQueues = new ArrayList<>(Arrays.asList(
+                TestUtils.queueWithSasFromQueueName(QUEUE_1), TestUtils.queueWithSasFromQueueName(QUEUE_2)));
 
-        String queue = resourceManager
-                .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+        QueueWithSas queue = resourceManager
+                .getQueue();
         int lastIndex = availableQueues.indexOf(queue);
 
         for (int i = 0; i < 10; i++) {
             queue = resourceManager
-                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+                    .getQueue();
             int currIdx = availableQueues.indexOf(queue);
             assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
             lastIndex = currIdx;
@@ -99,24 +103,24 @@ class ResourceManagerTest {
     void GetIngestionResource_StatusTable_ReturnCorrectTable()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                STATUS_TABLE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
+                TestUtils.tableWithSasFromTableName(STATUS_TABLE),
+                resourceManager.getStatusTable());
     }
 
     @Test
     void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                FAILED_QUEUE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
+                TestUtils.containerWithSasFromBlobName(FAILED_QUEUE),
+                resourceManager.getFailedQueues());
     }
 
     @Test
     void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                SUCCESS_QUEUE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
+                TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE),
+                resourceManager.getSuccessfullQueues());
     }
 
     static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {

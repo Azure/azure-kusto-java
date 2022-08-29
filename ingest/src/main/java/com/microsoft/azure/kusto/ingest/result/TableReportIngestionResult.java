@@ -3,37 +3,28 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.microsoft.azure.kusto.data.HttpClientProperties;
-import com.microsoft.azure.kusto.ingest.IngestionUtils;
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.table.CloudTable;
-import com.microsoft.azure.storage.table.TableOperation;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
-import org.jetbrains.annotations.Nullable;
-
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 
 public class TableReportIngestionResult implements IngestionResult {
     private final List<IngestionStatusInTableDescription> descriptors;
-    private final OperationContext operationContext;
 
-    public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors, @Nullable HttpClientProperties properties) {
+    public TableReportIngestionResult(List<IngestionStatusInTableDescription> descriptors) {
         this.descriptors = descriptors;
-        this.operationContext = IngestionUtils.httpClientPropertiesToOperationContext(properties);
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws StorageException, URISyntaxException {
+    public List<IngestionStatus> getIngestionStatusCollection() throws ParseException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            CloudTable table = new CloudTable(new URI(descriptor.getTableConnectionString()));
-            TableOperation operation = TableOperation.retrieve(descriptor.getPartitionKey(), descriptor.getRowKey(),
-                    IngestionStatus.class);
-            results.add(table.execute(operation, null, operationContext).getResultAsType());
+            TableClient table = descriptor.getTableClient();
+            TableEntity entity = table.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey());
+            results.add(IngestionStatus.fromEntity(entity));
         }
 
         return results;

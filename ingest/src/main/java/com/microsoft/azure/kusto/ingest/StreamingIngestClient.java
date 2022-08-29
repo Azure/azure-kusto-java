@@ -3,17 +3,13 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.StreamingClient;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -24,22 +20,17 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.HttpStatus;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.zip.GZIPOutputStream;
 
@@ -53,6 +44,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         this.streamingClient = ClientFactory.createStreamingClient(csb, properties);
+        this.connectionDataSource = csb.getClusterUrl();
+    }
+
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+        log.info("Creating a new StreamingIngestClient");
+        this.streamingClient = ClientFactory.createStreamingClient(csb, httpClient);
         this.connectionDataSource = csb.getClusterUrl();
     }
 
@@ -99,13 +96,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         ingestionProperties.validate();
 
         try {
-            CloudBlockBlob cloudBlockBlob = new CloudBlockBlob(new URI(blobSourceInfo.getBlobPath()));
-            return ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob);
-        } catch (URISyntaxException | IllegalArgumentException e) {
+            BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
+            return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient);
+        } catch (IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
             log.error(msg, e);
             throw new IngestionClientException(msg, e);
-        } catch (StorageException e) {
+        } catch (BlobStorageException e) {
             String msg = "Unexpected Storage error when ingesting a blob.";
             log.error(msg, e);
             throw new IngestionClientException(msg, e);
@@ -209,17 +206,22 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return inputStream;
     }
 
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, CloudBlockBlob cloudBlockBlob)
-            throws IngestionClientException, IngestionServiceException, StorageException {
+    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
+            throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
-        cloudBlockBlob.downloadAttributes();
-        if (cloudBlockBlob.getProperties().getLength() == 0) {
-            String message = "Empty blob.";
-            log.error(message);
-            throw new IngestionClientException(message);
+        try {
+            // No need to check blob size if it was given to us that it's not empty
+            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) {
+                String message = "Empty blob.";
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
+        } catch (BlobStorageException ex) {
+            throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
+                    ex.getStatusCode() == 403 ? "this might mean the blob doesn't exist" : ""), ex);
         }
         InputStream stream = cloudBlockBlob.openInputStream();
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId(), AzureStorageClient.getCompression(blobPath));
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, blobSourceInfo.getSourceId(), IngestionUtils.getCompression(blobPath));
         return ingestFromStream(streamSourceInfo, ingestionProperties);
     }
 
@@ -247,7 +249,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                 return null;
             }
             log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
-            return null;
         }
         return null;
     }
@@ -257,7 +258,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public void close() throws IOException {
-        streamingClient.close();
+    public void close() {
     }
 }

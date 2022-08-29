@@ -1,5 +1,6 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.utils;
 
+import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -66,7 +67,7 @@ public class IngestionUtils {
         return buffer.toByteArray();
     }
 
-    static CompressionType getCompression(String fileName) {
+    public static CompressionType getCompression(String fileName) {
         if (fileName.endsWith(".gz")) {
             return CompressionType.gz;
         }
@@ -75,5 +76,19 @@ public class IngestionUtils {
         }
 
         return null;
+    }
+
+    public static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf('\\');
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
     }
 }

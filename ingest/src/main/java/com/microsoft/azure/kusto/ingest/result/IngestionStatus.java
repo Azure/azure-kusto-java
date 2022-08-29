@@ -3,9 +3,14 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.microsoft.azure.storage.table.TableServiceEntity;
+import com.azure.data.tables.models.TableEntity;
 
+import java.text.ParseException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /// <summary>
@@ -14,20 +19,28 @@ import java.util.UUID;
 /// <remarks>
 /// Any change to this class must be made in a backwards/forwards-compatible manner.
 /// </remarks>
-public class IngestionStatus extends TableServiceEntity {
+public class IngestionStatus {
     /// <summary>
     /// The updated status of the ingestion. The ingestion status will be 'Pending'
     /// during the ingestion's process
     /// and will be updated as soon as the ingestion completes.
     /// </summary>
     public OperationStatus status;
+    private Map<String, Object> personalInfo = new HashMap<>();
 
     public String getStatus() {
         return status.toString();
     }
 
     public void setStatus(String s) {
-        status = OperationStatus.valueOf(s);
+        if (s != null) {
+            setStatus(OperationStatus.valueOf(s));
+        }
+    }
+
+    public void setStatus(OperationStatus st) {
+        status = st;
+        personalInfo.put("Status", st);
     }
 
     /// <summary>
@@ -58,6 +71,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setIngestionSourcePath(String path) {
         ingestionSourcePath = path;
+        personalInfo.put("IngestionSourcePath", ingestionSourcePath);
     }
 
     /// <summary>
@@ -71,6 +85,7 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setDatabase(String db) {
         database = db;
+        personalInfo.put("Database", database);
     }
 
     /// <summary>
@@ -84,19 +99,21 @@ public class IngestionStatus extends TableServiceEntity {
 
     public void setTable(String t) {
         table = t;
+        personalInfo.put("Table", table);
     }
 
     /// <summary>
     /// The last updated time of the ingestion status.
     /// </summary>
-    public Date updatedOn;
+    public Instant updatedOn;
 
-    public Date getUpdatedOn() {
+    public Instant getUpdatedOn() {
         return updatedOn;
     }
 
-    public void setUpdatedOn(Date lastUpdated) {
+    public void setUpdatedOn(Instant lastUpdated) {
         updatedOn = lastUpdated;
+        personalInfo.put("UpdatedOn", updatedOn);
     }
 
     /// <summary>
@@ -155,7 +172,9 @@ public class IngestionStatus extends TableServiceEntity {
     }
 
     public void setFailureStatus(String status) {
-        failureStatus = IngestionFailureInfo.FailureStatusValue.valueOf(status);
+        if (status != null) {
+            failureStatus = IngestionFailureInfo.FailureStatusValue.valueOf(status);
+        }
     }
 
     /// <summary>
@@ -188,7 +207,43 @@ public class IngestionStatus extends TableServiceEntity {
     public IngestionStatus() {
     }
 
-    public IngestionStatus(UUID uuid) {
-        super(uuid.toString(), uuid.toString());
+    public Map<String, Object> getEntityProperties() {
+        return personalInfo;
+    }
+
+    public static IngestionStatus fromEntity(TableEntity tableEntity) throws ParseException {
+        IngestionStatus ingestionStatus = new IngestionStatus();
+        Object ingestionSourceId = tableEntity.getProperty("IngestionSourceId");
+        ingestionStatus.ingestionSourceId = ingestionSourceId == null ? null : (UUID) ingestionSourceId;
+        ingestionStatus.database = (String) tableEntity.getProperty("Database");
+        ingestionStatus.table = (String) tableEntity.getProperty("Table");
+        Object operationId = tableEntity.getProperty("OperationId");
+        ingestionStatus.operationId = ingestionSourceId == null ? null : (UUID) operationId;
+        Object status = tableEntity.getProperty("Status");
+        if (status instanceof String) {
+            ingestionStatus.setStatus((String) status);
+        } else {
+            ingestionStatus.setStatus((OperationStatus) status);
+        }
+        Object activityId = tableEntity.getProperty("ActivityId");
+        ingestionStatus.activityId = ingestionSourceId == null ? null : (UUID) activityId;
+        ingestionStatus.setFailureStatus((String) tableEntity.getProperty("FailureStatus"));
+        Object originatesFromUpdatePolicy = tableEntity.getProperty("OriginatesFromUpdatePolicy");
+        ingestionStatus.originatesFromUpdatePolicy = originatesFromUpdatePolicy != null && (boolean) originatesFromUpdatePolicy;
+        ingestionStatus.ingestionSourcePath = (String) tableEntity.getProperty("IngestionSourcePath");
+        Object errorCode = tableEntity.getProperty("ErrorCode");
+        if (errorCode != null) {
+            ingestionStatus.setErrorCode((String) errorCode);
+        }
+
+        ingestionStatus.details = (String) tableEntity.getProperty("Details");
+        Object updatedOn = tableEntity.getProperty("UpdatedOn");
+
+        if (updatedOn instanceof OffsetDateTime) {
+            ingestionStatus.setUpdatedOn(((OffsetDateTime) updatedOn).toInstant());
+        } else {
+            ingestionStatus.setUpdatedOn((Instant) updatedOn);
+        }
+        return ingestionStatus;
     }
 }

@@ -37,7 +37,7 @@ public class ResourceManagerTimerTest {
             return generateIngestionResourcesResult();
         });
 
-        ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L);
+        ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
         Thread.sleep(100);
         assertEquals(1, refreshTimestamps.size());
         Thread.sleep(1100);

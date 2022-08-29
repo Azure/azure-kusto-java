@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
@@ -18,10 +21,6 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobInputStream;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
@@ -42,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.text.ParseException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -52,7 +52,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isNull;
@@ -257,7 +256,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -283,7 +282,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
@@ -476,7 +475,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -499,7 +498,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -519,17 +518,15 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromBlob() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
-
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 1000);
+        when(blobProperties.getBlobSize()).thenReturn((long) 1000);
 
         BlobInputStream blobInputStream = mock(BlobInputStream.class);
         when(blobInputStream.read(any(byte[].class))).thenReturn(10).thenReturn(-1);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
@@ -635,15 +632,14 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_EmptyBlob_IngestClientException() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+    void IngestFromBlob_EmptyBlob_IngestClientException() {
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
 
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 0);
+        when(blobProperties.getBlobSize()).thenReturn((long) 0);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
 
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,

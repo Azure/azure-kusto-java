@@ -3,32 +3,43 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.http.policy.RetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.Retry;
 import io.vavr.CheckedFunction0;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
-import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager implements Closeable {
+    public static int UPLOAD_TIMEOUT_MINUTES = 10;
+    private RetryOptions queueRequestOptions = null;
 
-    public enum ResourceType {
+    enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
         FAILED_INGESTIONS_QUEUE("FailedIngestionsQueue"),
         SUCCESSFUL_INGESTIONS_QUEUE("SuccessfulIngestionsQueue"),
@@ -51,17 +62,16 @@ class ResourceManager implements Closeable {
                     return resourceType;
                 }
             }
-            return null;
+            throw new IllegalArgumentException(resourceTypeName);
         }
     }
 
-    private Map<ResourceType, IngestionResource> ingestionResources;
     private String identityToken;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private final Timer timer;
-    private ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
-    private ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
     private static final int MAX_RETRY_ATTEMPTS = 4;
@@ -70,19 +80,29 @@ class ResourceManager implements Closeable {
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
+    private IngestionResource<ContainerWithSas> containers;
+    private IngestionResource<TableWithSas> statusTable;
+    private IngestionResource<QueueWithSas> queues;
+    private IngestionResource<QueueWithSas> successfulIngestionsQueues;
+    private IngestionResource<QueueWithSas> failedIngestionsQueues;
+    private final HttpClient httpClient;
     private final RetryConfig retryConfig;
 
-    ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
+        // Using ctor with client so that the dependency is used
+        this.httpClient = httpClient == null
+                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
+                : new HttpClientWrapper(httpClient);
         retryConfig = buildRetryConfig();
         init();
     }
 
-    ResourceManager(Client client) {
-        this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE);
+    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
+        this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
     @Override
@@ -104,8 +124,6 @@ class ResourceManager implements Closeable {
     }
 
     private void init() {
-        ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
-
         class RefreshIngestionResourcesTask extends TimerTask {
             @Override
             public void run() {
@@ -113,7 +131,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionResources();
                     timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
+                    log.error("Error in refreshIngestionResources.", e);
                     timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                 }
             }
@@ -126,7 +144,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionAuthToken();
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionAuthToken." + e.getMessage(), e);
+                    log.error("Error in refreshIngestionAuthToken.", e);
                     timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                 }
             }
@@ -136,27 +154,27 @@ class ResourceManager implements Closeable {
         timer.schedule(new RefreshIngestionResourcesTask(), 0);
     }
 
-    String getIngestionResource(ResourceType resourceType) throws IngestionServiceException, IngestionClientException {
-        IngestionResource ingestionResource = ingestionResources.get(resourceType);
-        if (ingestionResource == null) {
-            // TODO we might want to force refresh if coming from ingestion flow, same with identityToken
-            refreshIngestionResources();
-            try {
-                // If the write lock is locked, then the read will wait here.
-                // In other words if the refresh is running yet, then wait until it ends
-                ingestionResourcesLock.readLock().lock();
-                ingestionResource = ingestionResources.get(resourceType);
-                if (ingestionResource == null) {
-                    throw new IngestionServiceException("Unable to get ingestion resources for this type: " + resourceType.getResourceTypeName());
-                }
-            } finally {
-                ingestionResourcesLock.readLock().unlock();
-            }
-        }
-        return ingestionResource.nextStorageUrl();
+    public ContainerWithSas getTempStorage() throws IngestionClientException, IngestionServiceException {
+        return getResource(() -> this.containers);
     }
 
-    String getIdentityToken() throws IngestionServiceException, IngestionClientException {
+    public QueueWithSas getQueue() throws IngestionClientException, IngestionServiceException {
+        return getResource(() -> this.queues);
+    }
+
+    public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
+        return getResource(() -> this.statusTable);
+    }
+
+    public QueueWithSas getFailedQueues() throws IngestionClientException, IngestionServiceException {
+        return getResource(() -> this.failedIngestionsQueues);
+    }
+
+    public QueueWithSas getSuccessfullQueues() throws IngestionClientException, IngestionServiceException {
+        return getResource(() -> this.successfulIngestionsQueues);
+    }
+
+    public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
         if (identityToken == null) {
             refreshIngestionAuthToken();
             try {
@@ -171,13 +189,59 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
+    public void setQueueRequestOptions(RetryOptions queueRequestOptions) {
+        this.queueRequestOptions = queueRequestOptions;
+    }
+
+    private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
+        IngestionResource<T> resource = null;
+        try {
+            resource = resourceGetter.call();
+        } catch (Exception ignore) {
+        }
+
+        if (resource == null || resource.resourcesList.size() == 0) {
+            refreshIngestionResources();
+
+            // If the write lock is locked, then the read will wait here.
+            // In other words if the refresh is running yet, then wait until it ends
+            ingestionResourcesLock.readLock().lock();
+            try {
+                resource = resourceGetter.call();
+
+            } catch (Exception ignore) {
+            } finally {
+                ingestionResourcesLock.readLock().unlock();
+            }
+            if (resource == null || resource.resourcesList.size() == 0) {
+                throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
+                        (resource == null ? "" : resource.resourceType));
+            }
+        }
+
+        return resource.nextResource();
+    }
+
     private void addIngestionResource(String resourceTypeName, String storageUrl) {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
-        if (resourceType != null) {
-            if (!ingestionResources.containsKey(resourceType)) {
-                ingestionResources.put(resourceType, new IngestionResource(resourceType));
-            }
-            ingestionResources.get(resourceType).addStorageUrl(storageUrl);
+        switch (resourceType) {
+            case TEMP_STORAGE:
+                this.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
+                break;
+            case INGESTIONS_STATUS_TABLE:
+                this.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
+                break;
+            case SECURED_READY_FOR_AGGREGATION_QUEUE:
+                this.queues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            case SUCCESSFUL_INGESTIONS_QUEUE:
+                this.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            case FAILED_INGESTIONS_QUEUE:
+                this.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + resourceType);
         }
     }
 
@@ -186,11 +250,15 @@ class ResourceManager implements Closeable {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
+                this.containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
+                this.queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
+                this.successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);
+                this.failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);
+                this.statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);
                 Retry retry = Retry.of("get ingestion resources", this.retryConfig);
                 CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
                         () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                 KustoOperationResult ingestionResourcesResults = retryExecute.apply();
-                ingestionResources = Collections.synchronizedMap(new EnumMap<>(ResourceType.class));
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     KustoResultSetTable table = ingestionResourcesResults.next();
                     // Add the received values to a new IngestionResources map
@@ -259,23 +327,23 @@ class ResourceManager implements Closeable {
         return null;
     }
 
-    private static class IngestionResource {
-        ResourceType resourceType;
+    private static class IngestionResource<T> {
         int roundRobinIdx = 0;
-        List<String> storageUrls;
+        List<T> resourcesList;
+        final ResourceType resourceType;
 
         IngestionResource(ResourceType resourceType) {
             this.resourceType = resourceType;
-            storageUrls = new ArrayList<>();
+            resourcesList = new ArrayList<>();
         }
 
-        void addStorageUrl(String storageUrl) {
-            storageUrls.add(storageUrl);
+        void addResource(T resource) {
+            resourcesList.add(resource);
         }
 
-        String nextStorageUrl() {
-            roundRobinIdx = (roundRobinIdx + 1) % storageUrls.size();
-            return storageUrls.get(roundRobinIdx);
+        T nextResource() {
+            roundRobinIdx = (roundRobinIdx + 1) % resourcesList.size();
+            return resourcesList.get(roundRobinIdx);
         }
     }
 }

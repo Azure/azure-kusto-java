@@ -15,7 +15,10 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
+import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONException;
 import org.slf4j.Logger;
@@ -58,7 +61,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
-        return fromDmConnectionString(dmConnectionString, null);
+        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null);
     }
 
     /**
@@ -76,6 +79,23 @@ public class ManagedStreamingIngestClient implements IngestClient {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
         return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
+    }
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param dmConnectionString dm connection string
+     * @param httpClient HTTP client for service and storage calls
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
+            @Nullable CloseableHttpClient httpClient)
+            throws URISyntaxException {
+        ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
+        engineConnectionString.setClusterUrl(StreamingIngestClient.generateEngineUriSuggestion(new URIBuilder(dmConnectionString.getClusterUrl())));
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, httpClient);
     }
 
     /**
@@ -109,7 +129,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
             ConnectionStringBuilder engineConnectionStringBuilder) throws URISyntaxException {
-        this(dmConnectionStringBuilder, engineConnectionStringBuilder, null);
+        this(dmConnectionStringBuilder, engineConnectionStringBuilder, (HttpClientProperties) null);
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
@@ -121,12 +141,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
-        log.info("Creating a new ManagedStreamingIngestClient from raw parts");
-        queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
-        streamingIngestClient = new StreamingIngestClient(streamingClient);
+    public ManagedStreamingIngestClient(ConnectionStringBuilder dmConnectionStringBuilder,
+            ConnectionStringBuilder engineConnectionStringBuilder,
+            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(dmConnectionStringBuilder, httpClient);
+        streamingIngestClient = new StreamingIngestClient(engineConnectionStringBuilder, httpClient);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
@@ -286,7 +306,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         queuedIngestClient.close();
         streamingIngestClient.close();
     }

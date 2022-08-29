@@ -30,6 +30,7 @@ class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     static final int GZIP_BUFFER_SIZE = 16384;
     static final int STREAM_BUFFER_SIZE = 16384;
+
     public AzureStorageClient() {
     }
 
@@ -66,22 +67,22 @@ class AzureStorageClient {
         }
     }
 
+    void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException {
+        Ensure.fileExists(sourceFile, "sourceFile");
+        Ensure.argIsNotNull(blob, "blob");
+
+        try (InputStream fin = Files.newInputStream(sourceFile.toPath());
+                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+            copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
+        }
+    }
+
     void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException {
         // Ensure
         Ensure.argIsNotNull(blobClient, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
 
         blobClient.uploadFromFile(sourceFile.getPath());
-    }
-
-    public void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException {
-        Ensure.fileExists(sourceFile, "sourceFile");
-        Ensure.argIsNotNull(blob, "blob");
-
-        try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-             GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
-            copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
-        }
     }
 
     void uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
@@ -131,17 +132,5 @@ class AzureStorageClient {
 
     String getBlobPathWithSas(String blobSas, String blobName) {
         return blobSas.concat(blobName);
-    }
-
-    public static TableClient TableClientFromUrl(String url) {
-        String[] parts = url.split("\\?");
-        int tableNameIndex = parts[0].lastIndexOf('/');
-        String tableName = parts[0].substring(tableNameIndex + 1);
-
-        return new TableClientBuilder()
-                .endpoint(parts[0].substring(0, tableNameIndex))
-                .sasToken(parts[1])
-                .tableName(tableName)
-                .buildClient();
     }
 }

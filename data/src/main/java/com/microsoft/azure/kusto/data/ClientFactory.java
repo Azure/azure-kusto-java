@@ -60,7 +60,7 @@ public class ClientFactory {
      * @throws URISyntaxException if the cluster URL is invalid
      */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        return createStreamingClient(csb, null);
+        return createStreamingClient(csb, (HttpClientProperties) null);
     }
 
     /**
@@ -74,5 +74,18 @@ public class ClientFactory {
      */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
         return new ClientImpl(csb, properties);
+    }
+
+    /**
+     * Creates a new {@linkplain StreamingClient} instance with the given connection string. The underlying HTTP client
+     * is customized with the given properties.
+     *
+     * @param csb the connection string builder
+     * @param httpClient HTTP client
+     * @return a fully constructed {@linkplain StreamingClient} instance
+     * @throws URISyntaxException if the cluster URL is invalid
+     */
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+        return new ClientImpl(csb, httpClient, true);
     }
 }

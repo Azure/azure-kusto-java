@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.data.tables.models.TableEntity;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -14,8 +15,8 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.table.TableServiceEntity;
+import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +32,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -83,28 +83,19 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE))
-                .thenReturn("queue1")
-                .thenReturn("queue2");
-
-        when(resourceManagerMock.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE))
-                .thenReturn("http://statusTable.com");
+        when(resourceManagerMock.getQueue())
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
+                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
+        when(resourceManagerMock.getStatusTable())
+                .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
-        when(azureStorageClientMock.uploadStreamToBlob(any(InputStream.class), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URL)));
+        when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URL);
 
-        when(azureStorageClientMock.getBlobPathWithSas(any(CloudBlockBlob.class))).thenReturn(STORAGE_URL);
+        doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
-        when(azureStorageClientMock.getBlobSize(anyString())).thenReturn(100L);
-
-        when(azureStorageClientMock.uploadLocalFileToBlob(anyString(), anyString(), anyString(), anyBoolean()))
-                .thenReturn(new CloudBlockBlob(new URI(STORAGE_URL)));
-
-        doNothing().when(azureStorageClientMock).azureTableInsertEntity(anyString(), any(TableServiceEntity.class));
-
-        doNothing().when(azureStorageClientMock).postMessageToQueue(anyString(), anyString(), any());
+        doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
 
         streamingClientMock = mock(StreamingClient.class);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));
@@ -113,11 +104,10 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn("storage1", "storage2").when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
+        doReturn(TestUtils.containerWithSasFromBlobName("blobName"), TestUtils.containerWithSasFromBlobName("blobName2")).when(resourceManagerMock)
+                .getTempStorage();
 
-        ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT);
-        retryTemplate.sleepBaseSecs = 0;
-        retryTemplate.maxJitterSecs = 0;
+        ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
                 retryTemplate);
@@ -126,12 +116,10 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsQueue_IngestionStatusHardcoded() throws Exception {
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+    void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(1, result.getIngestionStatusesLength());
-        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
+        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
     }
 
     @Test
@@ -140,7 +128,7 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(0, result.getIngestionStatusesLength());
+        assertNotEquals(result.getIngestionStatusesLength(), 0);
     }
 
     @Test
@@ -165,12 +153,13 @@ class ManagedStreamingIngestClientTest {
                 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
-        ArgumentCaptor<TableServiceEntity> capture = ArgumentCaptor.forClass(TableServiceEntity.class);
+        ArgumentCaptor<TableEntity> captor = ArgumentCaptor.forClass(TableEntity.class);
 
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(anyString(), capture.capture());
-        assert (((IngestionStatus) capture.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captor.capture());
+        assert (IngestionStatus.fromEntity(captor.getValue()).getIngestionSourcePath())
+                .equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
     @Test
@@ -541,7 +530,7 @@ class ManagedStreamingIngestClientTest {
         verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
 
-        verify(azureStorageClientMock, atLeast(1)).uploadStreamToBlob(capture.capture(), anyString(), anyString(), anyBoolean());
+        verify(azureStorageClientMock, atLeast(1)).uploadStreamToBlob(capture.capture(), anyString(), any(), anyBoolean());
 
         InputStream value = capture.getValue();
         if (leaveOpen) {

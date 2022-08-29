@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.utils;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -19,6 +19,12 @@ public class ExponentialRetry {
         this.maxAttempts = maxAttempts;
         this.sleepBaseSecs = 1.0;
         this.maxJitterSecs = 1.0;
+    }
+
+    public ExponentialRetry(int maxAttempts, double sleepBaseSecs, double maxJitterSecs) {
+        this.maxAttempts = maxAttempts;
+        this.sleepBaseSecs = sleepBaseSecs;
+        this.maxJitterSecs = maxJitterSecs;
     }
 
     public ExponentialRetry(ExponentialRetry other) {
