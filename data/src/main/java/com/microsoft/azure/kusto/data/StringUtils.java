@@ -17,7 +17,15 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
         return val.substring(val.length() - minRuleLength);
     }
 
-    public static String quoteEntityName(String name) {
-        return "['" + name + "']";
+    public static String normalizeEntityName(String name) {
+        if (StringUtils.isBlank(name)) {
+            return name;
+        } else if (name.startsWith("[")) {
+            return name;
+        } else if (!name.contains("'")) {
+            return "['" + name + "']";
+        } else {
+            return "[\"" + name + "\"]";
+        }
     }
 }
