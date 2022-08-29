@@ -56,11 +56,8 @@ class Utils {
 
     static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
             boolean leaveOpen)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
+            throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
-
-        KustoTrustedEndpoints.validateTrustedEndpoint(url.getHost(),
-                CloudInfo.retrieveCloudInfoForCluster(url.toString()).getLoginEndpoint());
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
             HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
@@ -93,17 +90,16 @@ class Utils {
     }
 
     static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
+            throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
     }
 
     static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers,
             int redirectCount)
-            throws DataServiceException, DataClientException, KustoClientInvalidConnectionStringException {
+            throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
-        KustoTrustedEndpoints.validateTrustedEndpoint(uri.getHost(),
-                CloudInfo.retrieveCloudInfoForCluster(uri.toString()).getLoginEndpoint());
+
         boolean returnInputStream = false;
         String errorFromResponse = null;
         /*
