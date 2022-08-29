@@ -5,20 +5,27 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.http.policy.RetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.Retry;
 import io.vavr.CheckedFunction0;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
@@ -30,6 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager implements Closeable {
     public static int UPLOAD_TIMEOUT_MINUTES = 10;
+    private RetryOptions queueRequestOptions = null;
 
     enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
@@ -80,20 +88,21 @@ class ResourceManager implements Closeable {
     private final HttpClient httpClient;
     private final RetryConfig retryConfig;
 
-    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure) {
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
         timer = new Timer(true);
         // Using ctor with client so that the dependency is used
-        httpClient = new NettyAsyncHttpClientBuilder().
-                responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build();
+        this.httpClient = httpClient == null
+                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
+                : new HttpClientWrapper(httpClient);
         retryConfig = buildRetryConfig();
         init();
     }
 
-    public ResourceManager(Client client) {
-        this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE);
+    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
+        this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
     @Override
@@ -165,6 +174,25 @@ class ResourceManager implements Closeable {
         return getResource(() -> this.successfulIngestionsQueues);
     }
 
+    public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
+        if (identityToken == null) {
+            refreshIngestionAuthToken();
+            try {
+                authTokenLock.readLock().lock();
+                if (identityToken == null) {
+                    throw new IngestionServiceException("Unable to get Identity token");
+                }
+            } finally {
+                authTokenLock.readLock().unlock();
+            }
+        }
+        return identityToken;
+    }
+
+    public void setQueueRequestOptions(RetryOptions queueRequestOptions) {
+        this.queueRequestOptions = queueRequestOptions;
+    }
+
     private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
         IngestionResource<T> resource = null;
         try {
@@ -183,7 +211,7 @@ class ResourceManager implements Closeable {
 
             } catch (Exception ignore) {
             } finally {
-              ingestionResourcesLock.readLock().unlock();
+                ingestionResourcesLock.readLock().unlock();
             }
             if (resource == null || resource.resourcesList.size() == 0) {
                 throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
@@ -194,21 +222,6 @@ class ResourceManager implements Closeable {
         return resource.nextResource();
     }
 
-    public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
-        if (identityToken == null) {
-            refreshIngestionAuthToken();
-            try {
-                authTokenLock.readLock().lock();
-                if (identityToken == null) {
-                    throw new IngestionServiceException("Unable to get Identity token");
-                }
-            } finally {
-                authTokenLock.readLock().unlock();
-            }
-        }
-        return identityToken;
-    }
-
     private void addIngestionResource(String resourceTypeName, String storageUrl) {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         switch (resourceType) {
@@ -216,16 +229,16 @@ class ResourceManager implements Closeable {
                 this.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
                 break;
             case INGESTIONS_STATUS_TABLE:
-                this.statusTable.addResource(new TableWithSas(storageUrl));
+                this.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
                 break;
             case SECURED_READY_FOR_AGGREGATION_QUEUE:
-                this.queues.addResource(new QueueWithSas(storageUrl));
+                this.queues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             case SUCCESSFUL_INGESTIONS_QUEUE:
-                this.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl));
+                this.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             case FAILED_INGESTIONS_QUEUE:
-                this.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl));
+                this.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + resourceType);
@@ -255,6 +268,7 @@ class ResourceManager implements Closeable {
                         addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
+                log.info("Refreshing Ingestion Resources Finised");
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
             } catch (DataClientException e) {
@@ -293,7 +307,7 @@ class ResourceManager implements Closeable {
         }
     }
 
-    public String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    protected String retrieveServiceType() {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
             KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
@@ -303,13 +317,14 @@ class ResourceManager implements Closeable {
                 return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
             }
         } catch (DataServiceException e) {
-            throw new IngestionServiceException(e.getIngestionSource(),
-                    "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+            log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
+            return null;
         } catch (DataClientException e) {
-            throw new IngestionClientException(e.getIngestionSource(), "Couldn't retrieve ServiceType because of a client exception executing '.show version'",
-                    e);
+            log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
+            return null;
         }
-        throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        return null;
     }
 
     private static class IngestionResource<T> {

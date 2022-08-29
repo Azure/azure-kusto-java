@@ -15,6 +15,7 @@ import org.apache.http.ParseException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,7 +35,7 @@ import java.util.regex.Pattern;
  * For a complete list of available client request properties
  * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
-public class ClientRequestProperties {
+public class ClientRequestProperties implements Serializable {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
     /*
@@ -48,7 +49,7 @@ public class ClientRequestProperties {
     private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
-    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toSeconds(1) * 1000;
+    static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();

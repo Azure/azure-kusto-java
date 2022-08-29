@@ -17,6 +17,7 @@
         <!--suppress MavenPropertyInParent -->
         <version>${revision}</version>
     </parent>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -149,21 +150,15 @@
             </resource>
         </resources>
     </build>
-
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
         <dependency>
-            <groupId>com.microsoft.azure</groupId>
-        <artifactId>msal4j</artifactId>
-        <version>${msal4j.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>slf4j-api</artifactId>
-                    <groupId>org.slf4j</groupId>
-                </exclusion>
-            </exclusions>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -193,6 +188,16 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+            <artifactId>jackson-databind</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <artifactId>jackson-annotations</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
@@ -206,17 +211,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-identity</artifactId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>runtime</scope>
         </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core</artifactId>
-        </dependency>
-        <!-- Maven analyze warning -->
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
@@ -251,6 +252,12 @@
             <artifactId>jsonassert</artifactId>
             <version>${jsonassert.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>msal4j</artifactId>
+            <version>${msal4j.version}</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 </project>

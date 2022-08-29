@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.kusto.ingest.AzureStorageClient;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
 import java.text.ParseException;
 import java.util.LinkedList;
@@ -22,7 +22,7 @@ public class TableReportIngestionResult implements IngestionResult {
     public List<IngestionStatus> getIngestionStatusCollection() throws ParseException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
-            TableClient table = AzureStorageClient.TableClientFromUrl(descriptor.getTableConnectionString());
+            TableClient table = descriptor.getTableClient();
             TableEntity entity = table.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey());
             results.add(IngestionStatus.fromEntity(entity));
         }

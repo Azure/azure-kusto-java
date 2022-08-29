@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -16,6 +15,8 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,10 +71,13 @@ class ManagedStreamingIngestClientTest {
     private static IngestionProperties ingestionProperties;
     private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
 
-    @Mock private static StreamingClient streamingClientMock;
+    @Mock
+    private static StreamingClient streamingClientMock;
 
-    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
-    @Captor private static ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesCaptor;
+    @Captor
+    private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor
+    private static ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesCaptor;
 
     private static final UUID CustomUUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
@@ -95,15 +99,15 @@ class ManagedStreamingIngestClientTest {
 
         streamingClientMock = mock(StreamingClient.class);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));
+        clientRequestPropertiesCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
     }
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromBlobName("blobName"), TestUtils.containerWithSasFromBlobName("blobName2")).when(resourceManagerMock).getTempStorage();
+        doReturn(TestUtils.containerWithSasFromBlobName("blobName"), TestUtils.containerWithSasFromBlobName("blobName2")).when(resourceManagerMock)
+                .getTempStorage();
 
-        ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT);
-        retryTemplate.sleepBaseSecs = 0;
-        retryTemplate.maxJitterSecs = 0;
+        ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
                 retryTemplate);
@@ -154,7 +158,8 @@ class ManagedStreamingIngestClientTest {
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captor.capture());
-        assert (IngestionStatus.fromEntity(captor.getValue()).getIngestionSourcePath()).equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+        assert (IngestionStatus.fromEntity(captor.getValue()).getIngestionSourcePath())
+                .equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
     }
 
     @Test

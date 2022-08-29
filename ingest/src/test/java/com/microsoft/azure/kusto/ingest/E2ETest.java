@@ -3,10 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -18,6 +15,8 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -60,13 +58,14 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.atLeast;
 
 class E2ETest {
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
-    private static ClientImpl queryClient;
+    private static Client queryClient;
+    private static StreamingClient streamingClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
     private static String appKey;
@@ -107,7 +106,8 @@ class E2ETest {
                 appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
-            queryClient = new ClientImpl(engineCsb);
+            queryClient = ClientFactory.createClient(engineCsb);
+            streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
@@ -261,7 +261,7 @@ class E2ETest {
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
-    private boolean isDatabasePrincipal(ClientImpl localQueryClient) {
+    private boolean isDatabasePrincipal(Client localQueryClient) {
         KustoOperationResult result = null;
         boolean found = false;
         try {
@@ -348,7 +348,7 @@ class E2ETest {
     private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
         try {
             IngestClientFactory.createStreamingIngestClient(engineCsb);
-            ClientImpl localEngineClient = new ClientImpl(engineCsb);
+            Client localEngineClient = ClientFactory.createClient(engineCsb);
             assertTrue(isDatabasePrincipal(localEngineClient));
             assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
         } catch (URISyntaxException ex) {
@@ -493,7 +493,7 @@ class E2ETest {
         stopWatch.reset();
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
-        try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
+        try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
                 BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
@@ -522,7 +522,7 @@ class E2ETest {
                 appKey, tenantId);
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
-        ClientImpl clientImpl = new ClientImpl(engineCsb, httpClientSpy);
+        Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);
 
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 1000";
@@ -530,6 +530,6 @@ class E2ETest {
         clientImpl.execute(databaseName, query, clientRequestProperties);
         clientImpl.execute(databaseName, query, clientRequestProperties);
 
-        Mockito.verify(httpClientSpy, times(2)).execute(any());
+        Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
     }
 }

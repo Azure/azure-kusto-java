@@ -1,23 +1,17 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.utils;
 
+import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.univocity.parsers.csv.CsvRoutines;
-
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
 
 public class IngestionUtils {
@@ -41,9 +35,7 @@ public class IngestionUtils {
             stream = new ResettableFileInputStream((FileInputStream) stream);
         }
 
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId());
-        streamSourceInfo.setCompressionType(getCompression(filePath));
-        return streamSourceInfo;
+        return new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
     }
 
     @NotNull
@@ -60,7 +52,7 @@ public class IngestionUtils {
         return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
     }
 
-    public static byte[] readBytesFromInputStream(InputStream inputStream, int bytesToRead) throws IOException {//TODo del
+    public static byte[] readBytesFromInputStream(InputStream inputStream, int bytesToRead) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int numBytesRead;
         int currOffset = 0;
@@ -75,7 +67,7 @@ public class IngestionUtils {
         return buffer.toByteArray();
     }
 
-    static CompressionType getCompression(String fileName) {
+    public static CompressionType getCompression(String fileName) {
         if (fileName.endsWith(".gz")) {
             return CompressionType.gz;
         }
@@ -86,7 +78,7 @@ public class IngestionUtils {
         return null;
     }
 
-    static String removeExtension(String filename) {
+    public static String removeExtension(String filename) {
         if (filename == null) {
             return null;
         }
@@ -98,9 +90,5 @@ public class IngestionUtils {
         } else {
             return filename.substring(0, extensionPos);
         }
-    }
-
-    static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
-        return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
     }
 }

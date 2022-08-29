@@ -12,33 +12,15 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
  * A singleton factory of HTTP clients.
  */
-class HttpClientFactory {
+public class HttpClientFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
-
-    private HttpClientFactory() {
-    }
-
-    private static class HttpClientFactorySingleton {
-
-        private static final HttpClientFactory instance = new HttpClientFactory();
-    }
-
-    /**
-     * Returns the factory instance.
-     *
-     * @return the shared {@linkplain HttpClientFactory} instance
-     */
-    static HttpClientFactory getInstance() {
-        return HttpClientFactorySingleton.instance;
-    }
 
     /**
      * Creates a new Apache HTTP client.
@@ -46,7 +28,8 @@ class HttpClientFactory {
      * @param providedProperties custom HTTP client properties
      * @return a new Apache HTTP client
      */
-    CloseableHttpClient create(HttpClientProperties providedProperties) {
+    public static CloseableHttpClient create(HttpClientProperties providedProperties) {
+        LOGGER.info("Creating new CloseableHttpClient client");
         final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
@@ -62,18 +45,11 @@ class HttpClientFactory {
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
-        final CloseableHttpClient httpClient = httpClientBuilder.build();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> closeClient(httpClient)));
-        return httpClient;
-    }
-
-    private static void closeClient(CloseableHttpClient client) {
-        try {
-            LOGGER.info("Closing HTTP client");
-            client.close();
-        } catch (IOException e) {
-            LOGGER.warn("Couldn't close HTTP client.");
+        if (properties.getProxy() != null) {
+            httpClientBuilder.setProxy(properties.getProxy());
         }
+
+        return httpClientBuilder.build();
     }
 
     /**

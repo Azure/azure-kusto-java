@@ -16,7 +16,11 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
@@ -43,16 +47,27 @@ import java.util.zip.GZIPOutputStream;
 
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.WRONG_ENDPOINT_MESSAGE;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClient.EXPECTED_SERVICE_TYPE;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class StreamingIngestClientTest {
     private static StreamingIngestClient streamingIngestClient;
     private IngestionProperties ingestionProperties;
 
-    @Mock private static StreamingClient streamingClientMock;
+    @Mock
+    private static StreamingClient streamingClientMock;
 
-    @Captor private static ArgumentCaptor<InputStream> argumentCaptor;
+    @Captor
+    private static ArgumentCaptor<InputStream> argumentCaptor;
 
     private static final String ENDPOINT_SERVICE_TYPE_DM = "DataManagement";
     private final String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
@@ -349,7 +364,8 @@ class StreamingIngestClientTest {
         streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ": '%s'", EXPECTED_SERVICE_TYPE, ENDPOINT_SERVICE_TYPE_DM,
+        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_DM + "'",
+                EXPECTED_SERVICE_TYPE,
                 "https://testendpoint.dev.kusto.windows.net");
         Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
         assertEquals(expectedMessage, exception.getMessage());
@@ -612,7 +628,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Exception trying to read blob metadata"));
+        assertTrue(ingestionClientException.getMessage().contains("Unexpected Storage error when ingesting a blob."));
     }
 
     @Test
@@ -633,7 +649,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFbromResultSet() throws Exception {
+    void IngestFromResultSet() throws Exception {
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         ResultSet resultSet = mock(ResultSet.class);
 

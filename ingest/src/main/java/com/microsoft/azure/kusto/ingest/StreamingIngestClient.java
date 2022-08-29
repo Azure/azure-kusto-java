@@ -6,12 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -25,9 +20,11 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.HttpStatus;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +41,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private final StreamingClient streamingClient;
 
-    StreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingClient = ClientFactory.createStreamingClient(csb);
+        this.streamingClient = ClientFactory.createStreamingClient(csb, properties);
+        this.connectionDataSource = csb.getClusterUrl();
+    }
+
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+        log.info("Creating a new StreamingIngestClient");
+        this.streamingClient = ClientFactory.createStreamingClient(csb, httpClient);
         this.connectionDataSource = csb.getClusterUrl();
     }
 
@@ -206,7 +209,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
             throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
-        try{
+        try {
             // No need to check blob size if it was given to us that it's not empty
             if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) {
                 String message = "Empty blob.";
@@ -228,7 +231,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    protected String retrieveServiceType() throws IngestionServiceException, IngestionClientException {
+    protected String retrieveServiceType() {
         if (streamingClient != null) {
             log.info("Getting version to determine endpoint's ServiceType");
             try {
@@ -239,13 +242,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     return resultTable.getString(ResourceManager.SERVICE_TYPE_COLUMN_NAME);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a service exception executing '.show version'", e);
+                log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
+                return null;
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(),
-                        "Couldn't retrieve ServiceType because of a client exception executing '.show version'", e);
+                log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
+                return null;
             }
-            throw new IngestionServiceException("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+            log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
         }
         return null;
     }

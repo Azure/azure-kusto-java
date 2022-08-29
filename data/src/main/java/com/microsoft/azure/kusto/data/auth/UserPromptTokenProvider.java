@@ -10,7 +10,9 @@ import com.microsoft.aad.msal4j.PublicClientApplication;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -37,12 +39,9 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
 
     private final String usernameHint;
 
-    public UserPromptTokenProvider(@NotNull String clusterUrl, String authorityId) throws URISyntaxException {
-        this(clusterUrl, null, authorityId);
-    }
-
-    UserPromptTokenProvider(@NotNull String clusterUrl, String usernameHint, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    UserPromptTokenProvider(@NotNull String clusterUrl, @Nullable String usernameHint, String authorityId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, authorityId, httpClient);
         this.usernameHint = usernameHint;
     }
 

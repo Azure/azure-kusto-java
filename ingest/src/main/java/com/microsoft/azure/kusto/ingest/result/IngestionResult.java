@@ -14,5 +14,6 @@ public interface IngestionResult extends Serializable {
     /// all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
     /// </summary>
     List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, ParseException;
+
     int getIngestionStatusesLength();
 }

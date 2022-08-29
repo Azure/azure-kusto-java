@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.utils;
 
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;

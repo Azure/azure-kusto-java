@@ -6,7 +6,9 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-public interface Client {
+import java.io.Closeable;
+
+public interface Client extends Closeable {
     KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException;

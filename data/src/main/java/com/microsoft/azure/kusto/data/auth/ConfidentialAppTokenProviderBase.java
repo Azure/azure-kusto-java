@@ -16,14 +16,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProviderBase {
     final String applicationClientId;
     IConfidentialClientApplication clientApplication;
 
-    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, @NotNull String applicationClientId, String authorityId) throws URISyntaxException {
-        super(clusterUrl, authorityId);
+    ConfidentialAppTokenProviderBase(@NotNull String clusterUrl, @NotNull String applicationClientId, String authorityId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, authorityId, httpClient);
         this.applicationClientId = applicationClientId;
     }
 
@@ -59,7 +63,7 @@ public abstract class ConfidentialAppTokenProviderBase extends MsalTokenProvider
 
     @Override
     protected IAuthenticationResult acquireAccessTokenSilentlyMsal()
-        throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException {
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<Set<IAccount>> accounts = clientApplication.getAccounts();
         return clientApplication
                 .acquireTokenSilently(getSilentParameters(accounts.join()))
