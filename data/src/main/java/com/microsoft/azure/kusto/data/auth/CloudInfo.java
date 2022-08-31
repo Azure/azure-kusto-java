@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.UriUtils;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -193,6 +194,7 @@ public class CloudInfo {
             resourceUrl = resourceUrl.replace(".kusto.", ".kustomfa.");
         }
 
-        return UriUtils.setPathForUri(resourceUrl, ".default");
+        resourceUrl = StringUtils.appendIfMissing(resourceUrl, "/");
+        return resourceUrl + ".default";
     }
 }
