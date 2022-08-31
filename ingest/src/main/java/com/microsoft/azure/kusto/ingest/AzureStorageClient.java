@@ -28,8 +28,8 @@ import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    static final int GZIP_BUFFER_SIZE = 16384;
-    static final int STREAM_BUFFER_SIZE = 16384;
+    private static final int GZIP_BUFFER_SIZE = 16384;
+    private static final int STREAM_BUFFER_SIZE = 16384;
 
     public AzureStorageClient() {
     }

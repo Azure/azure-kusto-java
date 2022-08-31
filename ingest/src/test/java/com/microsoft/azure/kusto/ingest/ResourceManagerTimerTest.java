@@ -30,7 +30,7 @@ public class ResourceManagerTimerTest {
                 .thenReturn(generateIngestionAuthTokenResult());
         when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
-            if (refreshTimestamps.size() != 1) {
+            if (refreshTimestamps.size() == 2) {
                 throw new Exception();
             }
 
