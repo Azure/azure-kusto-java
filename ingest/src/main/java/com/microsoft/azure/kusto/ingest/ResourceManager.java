@@ -274,7 +274,7 @@ class ResourceManager implements Closeable {
             } catch (DataClientException e) {
                 throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
             } catch (Throwable e) {
-                throw new IngestionClientException(e.getMessage());
+                throw new IngestionClientException(e.getMessage(), e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }

@@ -18,6 +18,10 @@ public class IngestionClientException extends Exception {
         super(message, exception);
     }
 
+    public IngestionClientException(String message, Throwable throwable) {
+        super(message, throwable);
+    }
+
     public IngestionClientException(String ingestionSource, String message, Exception exception) {
         this(message, exception);
         this.ingestionSource = ingestionSource;

@@ -33,14 +33,14 @@ import static org.mockito.Mockito.when;
 class ResourceManagerTest {
     private static ResourceManager resourceManager;
     private static final Client clientMock = mock(Client.class);
-    private static final String QUEUE_1 = "queue1";
-    private static final String QUEUE_2 = "queue2";
-    private static final String STORAGE_1 = "storage1";
-    private static final String STORAGE_2 = "storage2";
+    private static final String QUEUE_1 = "https://acc.queue.core.windows.net/queue1?sas";
+    private static final String QUEUE_2 = "https://acc.queue.core.windows.net/queue2?sas";
+    private static final String STORAGE_1 = "https://acc.blob.core.windows.net/container1?sas";
+    private static final String STORAGE_2 = "https://acc.blob.core.windows.net/container2?sas";
     private static final String AUTH_TOKEN = "AuthenticationToken";
-    private static final String STATUS_TABLE = "statusTable";
-    private static final String FAILED_QUEUE = "failedQueue";
-    private static final String SUCCESS_QUEUE = "successQueue";
+    private static final String STATUS_TABLE = "https://acc.table.core.windows.net/statusTable?sass";
+    private static final String FAILED_QUEUE = "https://acc.queue.core.windows.net/failedQueue?sas";
+    private static final String SUCCESS_QUEUE = "https://acc.queue.core.windows.net/successQueue?sas";
 
     @BeforeAll
     static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceQueryError, IOException {
@@ -66,15 +66,14 @@ class ResourceManagerTest {
     @Test
     void GetIngestionResource_TempStorage_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<ContainerWithSas> availableStorages = new ArrayList<>(Arrays.asList(
-                TestUtils.containerWithSasFromBlobName(STORAGE_1), TestUtils.containerWithSasFromBlobName(STORAGE_2)));
+        List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
 
         ContainerWithSas storage = resourceManager.getTempStorage();
-        int lastIndex = availableStorages.indexOf(storage);
+        int lastIndex = availableStorages.indexOf(storage + storage.getSas());
 
         for (int i = 0; i < 10; i++) {
             storage = resourceManager.getTempStorage();
-            int currIdx = availableStorages.indexOf(storage);
+            int currIdx = availableStorages.indexOf(storage.getContainer() + storage.getSas());
             assertEquals((lastIndex + 1) % availableStorages.size(), currIdx);
             lastIndex = currIdx;
         }
@@ -83,17 +82,16 @@ class ResourceManagerTest {
     @Test
     void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<QueueWithSas> availableQueues = new ArrayList<>(Arrays.asList(
-                TestUtils.queueWithSasFromQueueName(QUEUE_1), TestUtils.queueWithSasFromQueueName(QUEUE_2)));
+        List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
 
         QueueWithSas queue = resourceManager
                 .getQueue();
-        int lastIndex = availableQueues.indexOf(queue);
+        int lastIndex = availableQueues.indexOf(queue.getQueue().getQueueUrl() + queue.getSas());
 
         for (int i = 0; i < 10; i++) {
             queue = resourceManager
                     .getQueue();
-            int currIdx = availableQueues.indexOf(queue);
+            int currIdx = availableQueues.indexOf(queue.getQueue().getQueueUrl() + queue.getSas());
             assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
             lastIndex = currIdx;
         }
