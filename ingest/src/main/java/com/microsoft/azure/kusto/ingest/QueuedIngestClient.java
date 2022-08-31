@@ -3,7 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.policy.RetryOptions;
+
+import com.azure.storage.common.policy.RequestRetryOptions;
 
 public interface QueuedIngestClient extends IngestClient {
     /**
@@ -12,5 +13,5 @@ public interface QueuedIngestClient extends IngestClient {
      * about Kusto queued ingestion
      * @param queueRequestOptions - Options to use when creating QueueClient
      */
-    void setQueueRequestOptions(RetryOptions queueRequestOptions);
+    void setQueueRequestOptions(RequestRetryOptions queueRequestOptions);
 }

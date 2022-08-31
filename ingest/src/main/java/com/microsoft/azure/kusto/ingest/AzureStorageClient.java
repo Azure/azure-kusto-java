@@ -72,7 +72,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
             copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
         }
     }
@@ -107,7 +107,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream();
+        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream(true);
         copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
         blobOutputStream.close();
     }
@@ -117,7 +117,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }

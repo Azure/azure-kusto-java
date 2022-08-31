@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager implements Closeable {
     public static int UPLOAD_TIMEOUT_MINUTES = 10;
-    private RetryOptions queueRequestOptions = null;
+    private RequestRetryOptions queueRequestOptions = null;
 
     enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
@@ -189,7 +189,7 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
-    public void setQueueRequestOptions(RetryOptions queueRequestOptions) {
+    public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
         this.queueRequestOptions = queueRequestOptions;
     }
 
