@@ -129,8 +129,4 @@ class AzureStorageClient {
             outputStream.write(buffer, 0, length);
         }
     }
-
-    String getBlobPathWithSas(String blobSas, String blobName) {
-        return blobSas.concat(blobName);
-    }
 }

@@ -9,8 +9,8 @@ public class TestUtils {
         return new QueueWithSas(String.format("https://storage.queue.core.windows.net/%s?sas", queueName), null, null);
     }
 
-    static ContainerWithSas containerWithSasFromBlobName(String blobName) {
-        return new ContainerWithSas(String.format("https://storage.blob.core.windows.net/%s?sas", blobName), null);
+    static ContainerWithSas containerWithSasFromContainerName(String containerName) {
+        return new ContainerWithSas(String.format("https://storage.blob.core.windows.net/%s?sas", containerName), null);
     }
 
     static TableWithSas tableWithSasFromTableName(String tableName) {

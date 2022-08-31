@@ -91,8 +91,6 @@ class ManagedStreamingIngestClientTest {
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
-        when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URL);
-
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
         doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
@@ -104,7 +102,7 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromBlobName("blobName"), TestUtils.containerWithSasFromBlobName("blobName2")).when(resourceManagerMock)
+        doReturn(TestUtils.containerWithSasFromContainerName("blobName"), TestUtils.containerWithSasFromContainerName("blobName2")).when(resourceManagerMock)
                 .getTempStorage();
 
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
@@ -113,6 +111,7 @@ class ManagedStreamingIngestClientTest {
                 retryTemplate);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.JSON);
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
     }
 
     @Test

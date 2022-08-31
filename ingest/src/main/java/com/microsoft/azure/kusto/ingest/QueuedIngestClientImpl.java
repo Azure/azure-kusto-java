@@ -131,6 +131,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         .getStatusTable();
                 IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionStatusInTable.setTableClient(statusTable.getTable());
+                ingestionStatusInTable.setTableConnectionString(statusTable.getUri());
                 ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
                 ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
                 ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);

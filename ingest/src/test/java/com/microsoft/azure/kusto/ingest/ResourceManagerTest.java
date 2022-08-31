@@ -42,8 +42,8 @@ class ResourceManagerTest {
     private static final String SUCCESS_QUEUE = "successQueue";
     private static final QueueWithSas QUEUE_1_RES = TestUtils.queueWithSasFromQueueName(QUEUE_1);
     private static final QueueWithSas QUEUE_2_RES = TestUtils.queueWithSasFromQueueName(QUEUE_2);
-    private static final ContainerWithSas STORAGE_1_RES = TestUtils.containerWithSasFromBlobName(STORAGE_1);
-    private static final ContainerWithSas STORAGE_2_RES = TestUtils.containerWithSasFromBlobName(STORAGE_2);
+    private static final ContainerWithSas STORAGE_1_RES = TestUtils.containerWithSasFromContainerName(STORAGE_1);
+    private static final ContainerWithSas STORAGE_2_RES = TestUtils.containerWithSasFromContainerName(STORAGE_2);
     private static final TableWithSas STATUS_TABLE_RES = TestUtils.tableWithSasFromTableName(STATUS_TABLE);
     private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);

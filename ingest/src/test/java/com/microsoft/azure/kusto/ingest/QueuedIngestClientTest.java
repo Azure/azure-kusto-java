@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.function.BiFunction;
 
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.shouldCompress;
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.EXPECTED_SERVICE_TYPE;
 import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.*;
@@ -67,8 +66,6 @@ class QueuedIngestClientTest {
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
-        when(azureStorageClientMock.getBlobPathWithSas(anyString(), anyString())).thenReturn(STORAGE_URL);
-
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
 
         doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
@@ -76,7 +73,7 @@ class QueuedIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromBlobName("storage"), TestUtils.containerWithSasFromBlobName("storage2")).when(resourceManagerMock)
+        doReturn(TestUtils.containerWithSasFromContainerName("storage"), TestUtils.containerWithSasFromContainerName("storage2")).when(resourceManagerMock)
                 .getTempStorage();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
@@ -181,13 +178,6 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_GetBlobPathWithSasIsCalled() throws Exception {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(), anyString());
-    }
-
-    @Test
     void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
@@ -208,14 +198,6 @@ class QueuedIngestClientTest {
         assertThrows(
                 IngestionClientException.class,
                 () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
-    }
-
-    @Test
-    void IngestFromStream_GetBlobPathWithSasIsCalled() throws Exception {
-        InputStream stream = new FileInputStream(testFilePath);
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        verify(azureStorageClientMock, atLeastOnce()).getBlobPathWithSas(anyString(), anyString());
     }
 
     @Test
