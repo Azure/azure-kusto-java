@@ -17,7 +17,7 @@ public class QueueWithSas {
                 .endpoint(parts[0])
                 .sasToken(parts[1])
                 .httpClient(httpClient)
-                .retryOptions(retryOptions)
+                .retryOptions(new RequestRetryOptions())
                 .buildClient();
     }
 

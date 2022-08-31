@@ -3,7 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.policy.RetryOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
