@@ -166,11 +166,11 @@ class ResourceManager implements Closeable {
         return getResource(() -> this.statusTable);
     }
 
-    public QueueWithSas getFailedQueues() throws IngestionClientException, IngestionServiceException {
+    public QueueWithSas getFailedQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.failedIngestionsQueues);
     }
 
-    public QueueWithSas getSuccessfullQueues() throws IngestionClientException, IngestionServiceException {
+    public QueueWithSas getSuccessfulQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.successfulIngestionsQueues);
     }
 
@@ -300,7 +300,7 @@ class ResourceManager implements Closeable {
             } catch (DataClientException e) {
                 throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken" + e.getMessage(), e);
             } catch (Throwable e) {
-                throw new IngestionClientException(e.getMessage());
+                throw new IngestionClientException(e.getMessage(), e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }

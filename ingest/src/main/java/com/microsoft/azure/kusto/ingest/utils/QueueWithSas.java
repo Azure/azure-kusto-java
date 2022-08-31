@@ -28,4 +28,8 @@ public class QueueWithSas {
     public QueueClient getQueue() {
         return queue;
     }
+
+    public String getEndpoint() {
+        return queue.getQueueUrl() + sas;
+    }
 }
