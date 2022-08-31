@@ -135,8 +135,8 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2_RES.getQueue().getQueueUrl() + QUEUE_2_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE_RES.getQueue().getQueueUrl() + FAILED_QUEUE_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE_RES.getQueue().getQueueUrl() + SUCCESS_QUEUE_RES.getSas()))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1_RES.getContainer().getBlobContainerUrl()+STORAGE_1_RES.getSas()))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2_RES.getContainer().getBlobContainerUrl()+STORAGE_2_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1_RES.getContainer().getBlobContainerUrl() + STORAGE_1_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2_RES.getContainer().getBlobContainerUrl() + STORAGE_2_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE_RES.getTable().getTableEndpoint() + "?sas"))));
         String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +

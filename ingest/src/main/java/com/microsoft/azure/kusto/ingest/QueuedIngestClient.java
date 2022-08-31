@@ -3,7 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-
 import com.azure.storage.common.policy.RequestRetryOptions;
 
 public interface QueuedIngestClient extends IngestClient {
