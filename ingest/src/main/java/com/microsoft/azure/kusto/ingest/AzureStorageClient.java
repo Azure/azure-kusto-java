@@ -11,6 +11,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.kusto.data.Ensure;
 
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
 
-        byte[] bytesEncoded = java.util.Base64.getDecoder().decode(content.getBytes());
+        byte[] bytesEncoded = Base64.encodeBase64(content.getBytes());
         queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
     }
 
