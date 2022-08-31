@@ -28,7 +28,7 @@ public class FastSuffixMatcher {
 
         Map<String, List<MatchRule>> processedRules = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (MatchRule rule : rules) {
-            String suffix = StringUtils.GetStringTail(rule.suffix, minRuleLength);
+            String suffix = StringUtils.getStringTail(rule.suffix, minRuleLength);
             List<MatchRule> list = processedRules.computeIfAbsent(suffix, k -> new ArrayList<>());
             list.add(rule.clone());
         }
@@ -78,7 +78,7 @@ public class FastSuffixMatcher {
             return new MatchResult(false, null);
         }
 
-        List<MatchRule> matchRules = rules.get(StringUtils.GetStringTail(candidate, suffixLength));
+        List<MatchRule> matchRules = rules.get(StringUtils.getStringTail(candidate, suffixLength));
         if (matchRules != null) {
             for (MatchRule rule : matchRules) {
                 if (org.apache.commons.lang3.StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
