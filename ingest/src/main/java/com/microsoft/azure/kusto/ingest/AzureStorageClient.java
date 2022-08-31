@@ -3,17 +3,14 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.HttpClient;
 import com.azure.core.util.BinaryData;
 import com.azure.data.tables.TableClient;
-import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.queue.QueueClient;
 import com.microsoft.azure.kusto.data.Ensure;
 
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +36,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
 
-        byte[] bytesEncoded = Base64.encodeBase64(content.getBytes());
+        byte[] bytesEncoded = java.util.Base64.getDecoder().decode(content.getBytes());
         queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
     }
 
