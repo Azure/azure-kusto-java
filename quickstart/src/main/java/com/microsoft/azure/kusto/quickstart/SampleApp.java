@@ -152,12 +152,14 @@ class ConfigJson {
     private boolean queryData;
     private boolean ingestData;
     /// Recommended default: UserPrompt
-    /// Some of the auth modes require additional environment variables to be set in order to work (see usage in generate_connection_string function).
+    /// Some auth modes require additional environment variables to be set in order to work (see usage in generate_connection_string function).
     /// Managed Identity Authentication only works when running as an Azure service (webapp, function, etc.)
     private AuthenticationModeOptions authenticationMode;
     /// Recommended default: True
     /// Toggle to False to execute this script "unattended"
     private boolean waitForUser;
+    /// Ignores the first record in a "X-seperated value" type file
+    private boolean ignoreFirstRecord;
     /// Sleep time to allow for queued ingestion to complete.
     private int waitForIngestSeconds;
     /// Optional - Customized ingestion batching policy
@@ -215,6 +217,10 @@ class ConfigJson {
         return waitForUser;
     }
 
+    public boolean isIgnoreFirstRecord() {
+        return ignoreFirstRecord;
+    }
+
     public int getWaitForIngestSeconds() {
         return waitForIngestSeconds;
     }
@@ -239,6 +245,7 @@ class ConfigJson {
                 ", \ningestData=" + ingestData +
                 ", \nauthenticationMode=" + authenticationMode +
                 ", \nwaitForUser=" + waitForUser +
+                ", \nignoreFirstRecord=" + ignoreFirstRecord +
                 ", \nwaitForIngestSeconds=" + waitForIngestSeconds +
                 ", \nbatchingPolicy='" + batchingPolicy + '\'' +
                 "}\n";
@@ -453,7 +460,8 @@ public class SampleApp {
 
             // Learn More: For more information about ingesting data to Kusto in Java, see:
             // https://docs.microsoft.com/azure/data-explorer/java-ingest-data
-            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName());
+            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName(),
+                    config.isIgnoreFirstRecord());
         }
 
         /*
@@ -493,15 +501,16 @@ public class SampleApp {
     /**
      * Ingest data from given source
      *
-     * @param data_source  Given data source
-     * @param dataFormat   Given data format
-     * @param ingestClient Client to ingest data
-     * @param databaseName DB name
-     * @param tableName    Table name
-     * @param mappingName  Desired mapping name
+     * @param data_source       Given data source
+     * @param dataFormat        Given data format
+     * @param ingestClient      Client to ingest data
+     * @param databaseName      DB name
+     * @param tableName         Table name
+     * @param mappingName       Desired mapping name
+     * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
      */
     private static void ingest_data(ConfigData data_source, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
-            String tableName, String mappingName) {
+            String tableName, String mappingName, boolean ignoreFirstRecord) {
         SourceType sourceType = data_source.getSourceType();
         String uri = data_source.getDataSourceUri();
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType.toString()));
@@ -515,10 +524,10 @@ public class SampleApp {
         // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
         switch (sourceType) {
             case LOCAL_FILE_SOURCE:
-                Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
                 break;
             case BLOB_SOURCE:
-                Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
                 break;
             default:
                 Utils.errorHandler(String.format("Unknown source '%s' for file '%s'%n", sourceType, uri));
