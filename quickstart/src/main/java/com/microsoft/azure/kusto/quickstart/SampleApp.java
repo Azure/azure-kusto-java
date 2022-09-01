@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -41,7 +41,7 @@ enum SourceType {
 }
 
 /**
- * AuthenticationModeOptions - represents the different options to autenticate to the system
+ * AuthenticationModeOptions - represents the different options to authenticate to the system
  */
 enum AuthenticationModeOptions {
     USER_PROMPT("UserPrompt"), MANAGED_IDENTITY("ManagedIdentity"), APP_KEY("AppKey"), APP_CERTIFICATE("AppCertificate");
@@ -375,7 +375,7 @@ public class SampleApp {
      * @param tableSchema  Table Schema
      */
     private static void alterMergeExistingTableToProvidedSchema(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        String command = String.format(".alter-merge table %s %s", tableName, tableSchema);
+        String command = String.format(".alter-merge table %s %s", StringUtils.normalizeEntityName(tableName), tableSchema);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -387,7 +387,7 @@ public class SampleApp {
      * @param tableName    Table name
      */
     private static void queryExistingNumberOfRows(Client kustoClient, String databaseName, String tableName) {
-        String command = String.format("%s | count", tableName);
+        String command = String.format("%s | count", StringUtils.normalizeEntityName(tableName));
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -399,7 +399,7 @@ public class SampleApp {
      * @param tableName    Table name
      */
     private static void queryFirstTwoRows(Client kustoClient, String databaseName, String tableName) {
-        String command = String.format("%s | take 2", tableName);
+        String command = String.format("%s | take 2", StringUtils.normalizeEntityName(tableName));
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -412,7 +412,7 @@ public class SampleApp {
      * @param tableSchema  Table Schema
      */
     private static void createNewTable(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        String command = String.format(".create table %s %s", tableName, tableSchema);
+        String command = String.format(".create table %s %s", StringUtils.normalizeEntityName(tableName), tableSchema);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -430,7 +430,7 @@ public class SampleApp {
          * the default ingestion policy to ingest data after at most 10 seconds. Tip 2: This is generally a one-time configuration. Tip 3: You can also skip the
          * batching for some files using the Flush-Immediately property, though this option should be used with care as it is inefficient.
          */
-        String command = String.format(".alter table %s policy ingestionbatching @'%s'", tableName, batchingPolicy);
+        String command = String.format(".alter table %s policy ingestionbatching @'%s'", StringUtils.normalizeEntityName(tableName), batchingPolicy);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
         // If it failed to alter the ingestion policy - it could be the result of insufficient permissions. The sample will still run,
         // though ingestion will be delayed for up to 5 minutes.
@@ -485,7 +485,7 @@ public class SampleApp {
         waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
         mappingName = StringUtils.isNotBlank(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
 
-        String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName,
+        String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", StringUtils.normalizeEntityName(tableName),
                 ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
         Utils.Queries.executeCommand(kustoClient, databaseName, mappingCommand);
     }
