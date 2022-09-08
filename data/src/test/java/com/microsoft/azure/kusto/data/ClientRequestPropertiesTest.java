@@ -39,7 +39,6 @@ class ClientRequestPropertiesTest {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a", 1);
         props.setOption("b", "hello");
-        props.setParameter("", "");
 
         Assertions.assertEquals(new ObjectMapper().readTree("{\"Options\": {\"a\":1, \"b\":\"hello\"}}").toString(), props.toString());
     }
@@ -50,7 +49,7 @@ class ClientRequestPropertiesTest {
         String properties = "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
         assert crp != null;
-        assert crp.toJson().get("Options").get("servertimeout").toString().equals("01:25:11.111");
+        assert crp.toJson().get("Options").get("servertimeout").asText().equals("01:25:11.111");
         assert crp.getTimeoutInMilliSec() != null;
         assert crp.getOption("Content-Encoding").equals("gzip");
         assert crp.getParameter("birthday").equals("datetime(1970-05-11)");

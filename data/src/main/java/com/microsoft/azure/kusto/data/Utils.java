@@ -185,7 +185,7 @@ class Utils {
                         message = apiError.getDescription();
                         isPermanent = apiError.isPermanent();
                     } else if (jsonObject.has("message")) {
-                        message = jsonObject.get("message").toString();
+                        message = jsonObject.get("message").asText();
                     }
                 } catch (JsonMappingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it

@@ -211,7 +211,9 @@ public class ClientRequestProperties implements Serializable {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
         }
         ObjectNode json = mapper.createObjectNode();
-        json.set(OPTIONS_KEY, optionsAsJSON);
+        if(!options.isEmpty()){
+            json.set(OPTIONS_KEY, optionsAsJSON);
+        }
         if (!parameters.isEmpty()) {
             json.set(PARAMETERS_KEY, mapper.valueToTree(this.parameters));
         }
@@ -235,14 +237,14 @@ public class ClientRequestProperties implements Serializable {
                     Iterator<String> optionsIt = optionsJson.fieldNames();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
-                        crp.setOption(optionName, optionsJson.get(optionName));
+                        crp.setOption(optionName, optionsJson.get(optionName).asText());
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
                     JsonNode parameters = jsonObj.get(propertyName);
                     Iterator<String> parametersIt = parameters.fieldNames();
                     while (parametersIt.hasNext()) {
                         String parameterName = parametersIt.next();
-                        crp.setParameter(parameterName, parameters.get(parameterName));
+                        crp.setParameter(parameterName, parameters.get(parameterName).asText());
                     }
                 }
             }
