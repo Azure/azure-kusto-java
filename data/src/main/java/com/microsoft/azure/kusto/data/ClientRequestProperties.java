@@ -211,7 +211,7 @@ public class ClientRequestProperties implements Serializable {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
         }
         ObjectNode json = mapper.createObjectNode();
-        if(!options.isEmpty()){
+        if (!options.isEmpty()) {
             json.set(OPTIONS_KEY, optionsAsJSON);
         }
         if (!parameters.isEmpty()) {

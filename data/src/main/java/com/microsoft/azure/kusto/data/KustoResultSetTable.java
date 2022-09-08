@@ -135,7 +135,7 @@ public class KustoResultSetTable {
                     if (obj.isNull()) {
                         rowVector.add(null);
                     } else {
-                        switch (rowAsJsonArray.get(j).getNodeType()){
+                        switch (rowAsJsonArray.get(j).getNodeType()) {
                             case STRING:
                                 rowVector.add(obj.asText());
                                 break;
@@ -143,15 +143,15 @@ public class KustoResultSetTable {
                                 rowVector.add(obj.asBoolean());
                                 break;
                             case NUMBER:
-                                if(obj.isInt()){
+                                if (obj.isInt()) {
                                     rowVector.add(obj.asInt());
                                 } else if (obj.isLong()) {
                                     rowVector.add(obj.asLong());
-                                } else if(obj.isBigDecimal()){
+                                } else if (obj.isBigDecimal()) {
                                     rowVector.add(obj.decimalValue());
-                                }else if(obj.isDouble()){
+                                } else if (obj.isDouble()) {
                                     rowVector.add(obj.asDouble());
-                                }else {
+                                } else {
                                     rowVector.add(obj);
                                 }
                                 break;
