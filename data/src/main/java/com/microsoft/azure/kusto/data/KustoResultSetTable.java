@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 
 import org.apache.commons.lang3.StringUtils;
@@ -136,7 +135,29 @@ public class KustoResultSetTable {
                     if (obj.isNull()) {
                         rowVector.add(null);
                     } else {
-                        rowVector.add(obj);
+                        switch (rowAsJsonArray.get(j).getNodeType()){
+                            case STRING:
+                                rowVector.add(obj.asText());
+                                break;
+                            case BOOLEAN:
+                                rowVector.add(obj.asBoolean());
+                                break;
+                            case NUMBER:
+                                if(obj.isInt()){
+                                    rowVector.add(obj.asInt());
+                                } else if (obj.isLong()) {
+                                    rowVector.add(obj.asLong());
+                                } else if(obj.isBigDecimal()){
+                                    rowVector.add(obj.decimalValue());
+                                }else if(obj.isDouble()){
+                                    rowVector.add(obj.asDouble());
+                                }else {
+                                    rowVector.add(obj);
+                                }
+                                break;
+                            default:
+                                rowVector.add(obj);
+                        }
                     }
                 }
                 values.add(rowVector);

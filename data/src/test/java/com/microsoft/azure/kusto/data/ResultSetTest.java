@@ -56,10 +56,10 @@ public class ResultSetTest {
         String durationAsKustoString = LocalTime.MIDNIGHT.plus(duration).toString();
         row1.add(true);
         row1.add(str);
-        row1.add(now.getNano());
-        row1.add(dec);
-        row1.add(objectMapper.createArrayNode());
-        row1.add(uuid.toString());
+        row1.add(String.valueOf(now));
+        row1.add(String.valueOf(dec));
+        row1.add(objectMapper.createObjectNode());
+        row1.add(String.valueOf(uuid));
         row1.add(i);
         row1.add(l);
         row1.add(BigDecimal.valueOf(d));
@@ -76,7 +76,7 @@ public class ResultSetTest {
                 "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
         KustoResultSetTable res = new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
                 "\"Columns\":" + columns + ",\"Rows\":" +
-                rows + "}"));
+                rows.toString() + "}"));
         res.next();
         assert res.getBooleanObject(0) == null;
         assert res.getString(1).equals("");
@@ -101,7 +101,7 @@ public class ResultSetTest {
         Assertions.assertEquals(sdf.format(new Date(now.getEpochSecond() * 1000)), res.getDate(2).toString());
 
         Assertions.assertEquals(res.getBigDecimal(3), dec);
-        Assertions.assertEquals(res.getJSONObject(4).toString(), objectMapper.createObjectNode().toString());
+        Assertions.assertEquals(res.getJSONObject(4), objectMapper.createObjectNode());
         Assertions.assertEquals(res.getUUID(5), uuid);
         Assertions.assertEquals(res.getIntegerObject(6), i);
         Assertions.assertEquals(res.getLongObject(7), l);
