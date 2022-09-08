@@ -277,5 +277,11 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <version>${fasterxml.jackson.core.version}</version>
         </dependency>
+        <!-- added this dependency since mvn dependency:tree failing with following error - Used undeclared dependencies found -->
+        <dependency>
+            <artifactId>jackson-core</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
     </dependencies>
 </project>
