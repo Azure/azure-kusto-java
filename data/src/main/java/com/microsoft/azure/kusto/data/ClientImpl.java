@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
@@ -16,8 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -309,22 +309,24 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-            throws DataClientException {
+            //throws DataClientException
+    {
         String jsonPayload;
-        try {
-            JSONObject json = new JSONObject()
+        //try {
+            ObjectNode json = new ObjectMapper().createObjectNode()
                     .put("db", database)
                     .put("csl", command);
+
 
             if (properties != null) {
                 json.put("properties", properties.toString());
             }
 
-            jsonPayload = json.toString();
-        } catch (JSONException e) {
+            jsonPayload = json.asText();
+        /*} catch (JSONException e) {
             throw new DataClientException(clusterEndpoint,
                     String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
-        }
+        }*/
 
         return jsonPayload;
     }

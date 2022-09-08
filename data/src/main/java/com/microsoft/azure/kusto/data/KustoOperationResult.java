@@ -3,9 +3,11 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.util.*;
 
@@ -25,6 +27,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private static final String FRAME_TYPE_PROPERTY_NAME = "FrameType";
     private final List<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
+
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
         if (version.contains("v2")) {
@@ -58,11 +62,18 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     }
 
     private void createFromV1Response(String response) throws KustoServiceQueryError {
-        JSONObject jsonObject = new JSONObject(response);
-        JSONArray jsonArray = jsonObject.getJSONArray(TABLES_LIST_PROPERTY_NAME);
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject table = jsonArray.getJSONObject(i);
-            resultTables.add(new KustoResultSetTable(table));
+        JsonNode jsonObject = null;
+        try {
+            jsonObject = objectMapper.readTree(response);
+            if (jsonObject.has(TABLES_LIST_PROPERTY_NAME) && jsonObject.get(TABLES_LIST_PROPERTY_NAME).isArray()) {
+                ArrayNode jsonArray = (ArrayNode) jsonObject.get(TABLES_LIST_PROPERTY_NAME);
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    JsonNode table = jsonArray.get(i);
+                    resultTables.add(new KustoResultSetTable(table));
+                }
+            }
+        } catch (JsonProcessingException e) {
+            throw new KustoServiceQueryError("Some error occured while parsing string to json ");
         }
 
         if (resultTables.size() <= 2) {
@@ -87,12 +98,19 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     }
 
     private void createFromV2Response(String response) throws KustoServiceQueryError {
-        JSONArray jsonArray = new JSONArray(response);
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject table = jsonArray.getJSONObject(i);
-            if (table.optString(FRAME_TYPE_PROPERTY_NAME).equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
-                resultTables.add(new KustoResultSetTable(table));
+        ArrayNode jsonArray;
+        try {
+            JsonNode jsonNode = objectMapper.readTree(response);
+            jsonArray = jsonNode.isArray()? (ArrayNode) jsonNode: null;
+            for (int i = 0; i < jsonArray.size(); i++) {
+                JsonNode table = jsonArray.get(i);
+                if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).toString().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
+                    resultTables.add(new KustoResultSetTable(table));
+                }
             }
+        } catch (JsonProcessingException e) {
+            throw new KustoServiceQueryError("Some error occured while parsing string to json ");
         }
+
     }
 }

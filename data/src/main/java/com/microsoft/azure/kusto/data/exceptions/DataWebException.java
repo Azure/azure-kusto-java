@@ -3,11 +3,18 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpResponse;
-import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
 
 public class DataWebException extends WebException {
     private OneApiError apiError = null;
+
+    private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public DataWebException(String message, HttpResponse httpResponse, Throwable cause) {
         super(message, httpResponse, cause);
@@ -23,7 +30,11 @@ public class DataWebException extends WebException {
 
     public OneApiError getApiError() {
         if (apiError == null) {
-            apiError = OneApiError.fromJsonObject(new JSONObject(getMessage()).getJSONObject("error"));
+            try {
+                apiError = OneApiError.fromJsonObject(new ObjectMapper().readTree(getMessage()).get("error"));
+            } catch (JsonProcessingException e) {
+                log.error("failed to parse error from message "+e.getMessage(),e);
+            }
         }
         return apiError;
     }

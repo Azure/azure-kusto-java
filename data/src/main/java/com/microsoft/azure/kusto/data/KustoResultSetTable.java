@@ -3,12 +3,15 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -37,6 +40,8 @@ public class KustoResultSetTable {
     private static final String ROWS_PROPERTY_NAME = "Rows";
     private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
     private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
+
+    private static final String EMPTY_STRING = "";
     private static DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
 
@@ -77,51 +82,57 @@ public class KustoResultSetTable {
         this.tableKind = tableKind;
     }
 
-    protected KustoResultSetTable(JSONObject jsonTable) throws KustoServiceQueryError {
-        tableName = jsonTable.optString(TABLE_NAME_PROPERTY_NAME);
-        tableId = jsonTable.optString(TABLE_ID_PROPERTY_NAME);
-        String tableKindString = jsonTable.optString(TABLE_KIND_PROPERTY_NAME);
+    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException {
+        tableName = jsonTable.has(TABLE_NAME_PROPERTY_NAME)?jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText():EMPTY_STRING;
+        tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME)?jsonTable.get(TABLE_ID_PROPERTY_NAME).asText():EMPTY_STRING;
+        String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME)?jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText():EMPTY_STRING;
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
-        JSONArray columnsJson = jsonTable.optJSONArray(COLUMNS_PROPERTY_NAME);
+        ArrayNode columnsJson = null;
+        if(jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY){
+            columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);
+        }
         if (columnsJson != null) {
-            columnsAsArray = new KustoResultColumn[columnsJson.length()];
-            for (int i = 0; i < columnsJson.length(); i++) {
-                JSONObject jsonCol = columnsJson.getJSONObject(i);
-                String columnType = jsonCol.optString(COLUMN_TYPE_PROPERTY_NAME);
+            columnsAsArray = new KustoResultColumn[columnsJson.size()];
+            for (int i = 0; i < columnsJson.size(); i++) {
+                JsonNode jsonCol = columnsJson.get(i);
+
+                String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME)?jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText():EMPTY_STRING;
                 if (columnType.equals("")) {
-                    columnType = jsonCol.optString(COLUMN_TYPE_SECOND_PROPERTY_NAME);
+                    columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME)?jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText():EMPTY_STRING;
                 }
-                KustoResultColumn col = new KustoResultColumn(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), columnType, i);
+                KustoResultColumn col = new KustoResultColumn(jsonCol.has(COLUMN_NAME_PROPERTY_NAME)?jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText():EMPTY_STRING, columnType, i);
                 columnsAsArray[i] = col;
-                columns.put(jsonCol.getString(COLUMN_NAME_PROPERTY_NAME), col);
+                columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME)?jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText():EMPTY_STRING, col);
             }
         }
 
-        JSONArray exceptions;
-        JSONArray jsonRows = jsonTable.optJSONArray(ROWS_PROPERTY_NAME);
+        ArrayNode exceptions;
+        ArrayNode jsonRows = null;
+        if(jsonTable.has(ROWS_PROPERTY_NAME) && jsonTable.get(ROWS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY){
+            jsonRows = (ArrayNode) jsonTable.get(ROWS_PROPERTY_NAME);
+        }
         if (jsonRows != null) {
             List<List<Object>> values = new ArrayList<>();
-            for (int i = 0; i < jsonRows.length(); i++) {
-                Object row = jsonRows.get(i);
-                if (row instanceof JSONObject) {
-                    exceptions = ((JSONObject) row).optJSONArray(EXCEPTIONS_PROPERTY_NAME);
+            for (int i = 0; i < jsonRows.size(); i++) {
+                JsonNode row = jsonRows.get(i);
+                if (jsonRows.get(i).getNodeType() == JsonNodeType.OBJECT ) {
+                    exceptions = row.has(EXCEPTIONS_PROPERTY_NAME)?((ArrayNode)row.get(EXCEPTIONS_PROPERTY_NAME)):null;
                     if (exceptions != null) {
-                        if (exceptions.length() == 1) {
-                            String message = exceptions.getString(0);
+                        if (exceptions.size() == 1) {
+                            String message = exceptions.get(0).asText();
                             throw new KustoServiceQueryError(message);
                         } else {
                             throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceQueryError(((JSONObject) row).getJSONArray(
-                                "OneApiErrors"), true, EXCEPTIONS_MESSAGE);
+                        throw new KustoServiceQueryError((ArrayNode) row.get("OneApiErrors"), true, EXCEPTIONS_MESSAGE);
                     }
                 }
-                JSONArray rowAsJsonArray = jsonRows.getJSONArray(i);
+                ArrayNode rowAsJsonArray = (ArrayNode) jsonRows.get(i);
                 List<Object> rowVector = new ArrayList<>();
-                for (int j = 0; j < rowAsJsonArray.length(); ++j) {
-                    Object obj = rowAsJsonArray.get(j);
-                    if (obj == JSONObject.NULL) {
+                for (int j = 0; j < rowAsJsonArray.size(); ++j) {
+                    JsonNode obj = rowAsJsonArray.get(j);
+                    if (obj.isNull()) {
                         rowVector.add(null);
                     } else {
                         rowVector.add(obj);
@@ -371,12 +382,12 @@ public class KustoResultSetTable {
         return get(columnName);
     }
 
-    public JSONObject getJSONObject(String colName) {
+    public JsonNode getJSONObject(String colName) {
         return getJSONObject(findColumn(colName));
     }
 
-    public JSONObject getJSONObject(int columnIndex) {
-        return (JSONObject) get(columnIndex);
+    public JsonNode getJSONObject(int columnIndex) {
+        return (JsonNode) get(columnIndex);
     }
 
     public UUID getUUID(int columnIndex) {

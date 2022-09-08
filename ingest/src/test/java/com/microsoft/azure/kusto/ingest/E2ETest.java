@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.ClientImpl;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -23,8 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -226,16 +227,18 @@ class E2ETest {
 
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
-                    JSONArray jsonArray = new JSONArray(result);
-                    JSONObject primaryResult = null;
-                    for (Object o : jsonArray) {
+                    JsonNode jsonNode = new ObjectMapper().readTree(result);
+                    ArrayNode jsonArray = jsonNode.isArray()? (ArrayNode) jsonNode : null;
+                    JsonNode primaryResult = null;
+                    assert jsonArray != null;
+                    for (JsonNode o : jsonArray) {
                         if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
-                            primaryResult = new JSONObject(o.toString());
+                            primaryResult = new ObjectMapper().readTree(o.toString());
                             break;
                         }
                     }
                     assertNotNull(primaryResult);
-                    actualRowsCount = (Integer) ((JSONArray) ((JSONArray) primaryResult.get("Rows")).get(0)).get(0) - currentCount;
+                    actualRowsCount = (primaryResult.get("Rows")).get(0).get(0).asInt() - currentCount;
                 } else {
                     KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
                     KustoResultSetTable mainTableResult = result.getPrimaryResults();

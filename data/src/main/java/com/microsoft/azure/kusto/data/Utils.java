@@ -3,10 +3,13 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
 
-import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -24,8 +27,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +84,7 @@ class Utils {
             }
         } catch (SocketTimeoutException e) {
             throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
-        } catch (JSONException | IOException e) {
+        } catch (IOException e) {
             throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
         }
         return null;
@@ -177,17 +178,21 @@ class Utils {
             boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
                 try {
-                    JSONObject jsonObject = new JSONObject(errorFromResponse);
+                    JsonNode jsonObject = new ObjectMapper().readTree(errorFromResponse);
                     if (jsonObject.has("error")) {
                         formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
                         OneApiError apiError = ((DataWebException) formattedException).getApiError();
                         message = apiError.getDescription();
                         isPermanent = apiError.isPermanent();
                     } else if (jsonObject.has("message")) {
-                        message = jsonObject.getString("message");
+                        message = jsonObject.get("message").toString();
                     }
-                } catch (JSONException ex) {
+                } catch (JsonMappingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
+                    LOGGER.error("json mapping error happened while parsing errorFromResponse"+e.getMessage(),e);
+                } catch (JsonProcessingException e) {
+                    // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
+                    LOGGER.error("json processing error happened while parsing errorFromResponse"+e.getMessage(),e);
                 }
             } else {
                 message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());

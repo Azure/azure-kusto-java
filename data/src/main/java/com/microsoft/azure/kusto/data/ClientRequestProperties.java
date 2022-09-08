@@ -3,6 +3,10 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.format.CslBoolFormat;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslIntFormat;
@@ -12,8 +16,6 @@ import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -190,9 +192,9 @@ public class ClientRequestProperties implements Serializable {
         options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
-    JSONObject toJson() {
-        try {
-            JSONObject optionsAsJSON = new JSONObject(this.options);
+    JsonNode toJson() {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode optionsAsJSON = mapper.valueToTree(this.options);
             Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
 
             if (timeoutObj != null) {
@@ -208,36 +210,36 @@ public class ClientRequestProperties implements Serializable {
                 }
                 optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
             }
-            JSONObject json = new JSONObject();
-            json.put(OPTIONS_KEY, optionsAsJSON);
-            json.put(PARAMETERS_KEY, new JSONObject(this.parameters));
+            ObjectNode json = mapper.createObjectNode();
+            json.set(OPTIONS_KEY, optionsAsJSON);
+            if(!parameters.isEmpty()){
+                json.set(PARAMETERS_KEY, mapper.valueToTree(this.parameters));
+            }
             return json;
-        } catch (JSONException e) {
-            return null;
-        }
     }
 
     public String toString() {
         return toJson().toString();
     }
 
-    public static ClientRequestProperties fromString(String json) throws JSONException {
+    public static ClientRequestProperties fromString(String json) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
-            JSONObject jsonObj = new JSONObject(json);
-            Iterator<String> it = jsonObj.keys();
+            JsonNode jsonObj = mapper.readTree(json);
+            Iterator<String> it = jsonObj.fieldNames();
             while (it.hasNext()) {
                 String propertyName = it.next();
                 if (propertyName.equals(OPTIONS_KEY)) {
-                    JSONObject optionsJson = (JSONObject) jsonObj.get(propertyName);
-                    Iterator<String> optionsIt = optionsJson.keys();
+                    JsonNode optionsJson = jsonObj.get(propertyName);
+                    Iterator<String> optionsIt = optionsJson.fieldNames();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
                         crp.setOption(optionName, optionsJson.get(optionName));
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
-                    JSONObject parameters = (JSONObject) jsonObj.get(propertyName);
-                    Iterator<String> parametersIt = parameters.keys();
+                    JsonNode parameters = jsonObj.get(propertyName);
+                    Iterator<String> parametersIt = parameters.fieldNames();
                     while (parametersIt.hasNext()) {
                         String parameterName = parametersIt.next();
                         crp.setParameter(parameterName, parameters.get(parameterName));

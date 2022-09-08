@@ -1,5 +1,8 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.UriUtils;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -11,7 +14,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONObject;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -126,19 +128,20 @@ public class CloudInfo {
         }
     }
 
-    private static CloudInfo parseCloudInfo(String content) {
-        JSONObject jsonObject = new JSONObject(content);
-        JSONObject innerObject = jsonObject.optJSONObject("AzureAD");
+    private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonObject = objectMapper.readTree(content);
+        JsonNode innerObject = jsonObject.has("AzureAD")?jsonObject.get("AzureAD"):null;
         if (innerObject == null) {
             return DEFAULT_CLOUD;
         }
         return new CloudInfo(
-                innerObject.getBoolean("LoginMfaRequired"),
-                innerObject.getString("LoginEndpoint"),
-                innerObject.getString("KustoClientAppId"),
-                innerObject.getString("KustoClientRedirectUri"),
-                innerObject.getString("KustoServiceResourceId"),
-                innerObject.getString("FirstPartyAuthorityUrl"));
+                innerObject.get("LoginMfaRequired").asBoolean(),
+                innerObject.get("LoginEndpoint").asText(),
+                innerObject.get("KustoClientAppId").asText(),
+                innerObject.get("KustoClientRedirectUri").asText(),
+                innerObject.get("KustoServiceResourceId").asText(),
+                innerObject.get("FirstPartyAuthorityUrl").asText());
     }
 
     @Override
