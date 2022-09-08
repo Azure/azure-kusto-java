@@ -228,7 +228,7 @@ class E2ETest {
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
                     JsonNode jsonNode = new ObjectMapper().readTree(result);
-                    ArrayNode jsonArray = jsonNode.isArray()? (ArrayNode) jsonNode : null;
+                    ArrayNode jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
                     JsonNode primaryResult = null;
                     assert jsonArray != null;
                     for (JsonNode o : jsonArray) {

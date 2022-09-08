@@ -101,7 +101,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         ArrayNode jsonArray;
         try {
             JsonNode jsonNode = objectMapper.readTree(response);
-            jsonArray = jsonNode.isArray()? (ArrayNode) jsonNode: null;
+            jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonNode table = jsonArray.get(i);
                 if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).toString().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {

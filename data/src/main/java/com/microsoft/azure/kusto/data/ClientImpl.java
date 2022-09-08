@@ -309,24 +309,23 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-            //throws DataClientException
+    // throws DataClientException
     {
         String jsonPayload;
-        //try {
-            ObjectNode json = new ObjectMapper().createObjectNode()
-                    .put("db", database)
-                    .put("csl", command);
+        // try {
+        ObjectNode json = new ObjectMapper().createObjectNode()
+                .put("db", database)
+                .put("csl", command);
 
+        if (properties != null) {
+            json.put("properties", properties.toString());
+        }
 
-            if (properties != null) {
-                json.put("properties", properties.toString());
-            }
-
-            jsonPayload = json.asText();
-        /*} catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint,
-                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
-        }*/
+        jsonPayload = json.asText();
+        /*
+         * } catch (JSONException e) { throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint,
+         * "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e); }
+         */
 
         return jsonPayload;
     }

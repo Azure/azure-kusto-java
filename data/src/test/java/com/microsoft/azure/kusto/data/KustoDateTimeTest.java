@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.Assertions;
@@ -57,7 +56,7 @@ public class KustoDateTimeTest {
         Integer rowNum = 0;
         while (res.next()) {
             Assertions.assertEquals(
-                    LocalDateTime.parse(rows.get(rowNum).get(0).toString(),dateTimeFormatter).getNano(),
+                    LocalDateTime.parse(rows.get(rowNum).get(0).toString(), dateTimeFormatter).getNano(),
                     res.getKustoDateTime(0).getNano());
             rowNum++;
         }

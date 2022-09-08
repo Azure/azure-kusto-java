@@ -83,12 +83,12 @@ public class KustoResultSetTable {
     }
 
     protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException {
-        tableName = jsonTable.has(TABLE_NAME_PROPERTY_NAME)?jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText():EMPTY_STRING;
-        tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME)?jsonTable.get(TABLE_ID_PROPERTY_NAME).asText():EMPTY_STRING;
-        String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME)?jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText():EMPTY_STRING;
+        tableName = jsonTable.has(TABLE_NAME_PROPERTY_NAME) ? jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText() : EMPTY_STRING;
+        tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME) ? jsonTable.get(TABLE_ID_PROPERTY_NAME).asText() : EMPTY_STRING;
+        String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME) ? jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText() : EMPTY_STRING;
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
         ArrayNode columnsJson = null;
-        if(jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY){
+        if (jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
             columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);
         }
         if (columnsJson != null) {
@@ -96,27 +96,28 @@ public class KustoResultSetTable {
             for (int i = 0; i < columnsJson.size(); i++) {
                 JsonNode jsonCol = columnsJson.get(i);
 
-                String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME)?jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText():EMPTY_STRING;
+                String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText() : EMPTY_STRING;
                 if (columnType.equals("")) {
-                    columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME)?jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText():EMPTY_STRING;
+                    columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
                 }
-                KustoResultColumn col = new KustoResultColumn(jsonCol.has(COLUMN_NAME_PROPERTY_NAME)?jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText():EMPTY_STRING, columnType, i);
+                KustoResultColumn col = new KustoResultColumn(
+                        jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, columnType, i);
                 columnsAsArray[i] = col;
-                columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME)?jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText():EMPTY_STRING, col);
+                columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, col);
             }
         }
 
         ArrayNode exceptions;
         ArrayNode jsonRows = null;
-        if(jsonTable.has(ROWS_PROPERTY_NAME) && jsonTable.get(ROWS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY){
+        if (jsonTable.has(ROWS_PROPERTY_NAME) && jsonTable.get(ROWS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
             jsonRows = (ArrayNode) jsonTable.get(ROWS_PROPERTY_NAME);
         }
         if (jsonRows != null) {
             List<List<Object>> values = new ArrayList<>();
             for (int i = 0; i < jsonRows.size(); i++) {
                 JsonNode row = jsonRows.get(i);
-                if (jsonRows.get(i).getNodeType() == JsonNodeType.OBJECT ) {
-                    exceptions = row.has(EXCEPTIONS_PROPERTY_NAME)?((ArrayNode)row.get(EXCEPTIONS_PROPERTY_NAME)):null;
+                if (jsonRows.get(i).getNodeType() == JsonNodeType.OBJECT) {
+                    exceptions = row.has(EXCEPTIONS_PROPERTY_NAME) ? ((ArrayNode) row.get(EXCEPTIONS_PROPERTY_NAME)) : null;
                     if (exceptions != null) {
                         if (exceptions.size() == 1) {
                             String message = exceptions.get(0).asText();

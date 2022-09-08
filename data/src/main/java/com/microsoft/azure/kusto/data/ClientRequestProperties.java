@@ -193,29 +193,29 @@ public class ClientRequestProperties implements Serializable {
     }
 
     JsonNode toJson() {
-            ObjectMapper mapper = new ObjectMapper();
-            ObjectNode optionsAsJSON = mapper.valueToTree(this.options);
-            Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode optionsAsJSON = mapper.valueToTree(this.options);
+        Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
 
-            if (timeoutObj != null) {
-                String timeoutString = "";
-                if (timeoutObj instanceof Long) {
-                    Duration duration = Duration.ofMillis((Long) timeoutObj);
-                    timeoutString = Utils.formatDurationAsTimespan(duration);
-                } else if (timeoutObj instanceof String) {
-                    timeoutString = (String) timeoutObj;
-                } else if (timeoutObj instanceof Integer) {
-                    Duration duration = Duration.ofMillis((Integer) timeoutObj);
-                    timeoutString = Utils.formatDurationAsTimespan(duration);
-                }
-                optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
+        if (timeoutObj != null) {
+            String timeoutString = "";
+            if (timeoutObj instanceof Long) {
+                Duration duration = Duration.ofMillis((Long) timeoutObj);
+                timeoutString = Utils.formatDurationAsTimespan(duration);
+            } else if (timeoutObj instanceof String) {
+                timeoutString = (String) timeoutObj;
+            } else if (timeoutObj instanceof Integer) {
+                Duration duration = Duration.ofMillis((Integer) timeoutObj);
+                timeoutString = Utils.formatDurationAsTimespan(duration);
             }
-            ObjectNode json = mapper.createObjectNode();
-            json.set(OPTIONS_KEY, optionsAsJSON);
-            if(!parameters.isEmpty()){
-                json.set(PARAMETERS_KEY, mapper.valueToTree(this.parameters));
-            }
-            return json;
+            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
+        }
+        ObjectNode json = mapper.createObjectNode();
+        json.set(OPTIONS_KEY, optionsAsJSON);
+        if (!parameters.isEmpty()) {
+            json.set(PARAMETERS_KEY, mapper.valueToTree(this.parameters));
+        }
+        return json;
     }
 
     public String toString() {

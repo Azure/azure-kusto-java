@@ -131,7 +131,7 @@ public class CloudInfo {
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode jsonObject = objectMapper.readTree(content);
-        JsonNode innerObject = jsonObject.has("AzureAD")?jsonObject.get("AzureAD"):null;
+        JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {
             return DEFAULT_CLOUD;
         }

@@ -39,7 +39,7 @@ class ClientRequestPropertiesTest {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a", 1);
         props.setOption("b", "hello");
-        props.setParameter("","");
+        props.setParameter("", "");
 
         Assertions.assertEquals(new ObjectMapper().readTree("{\"Options\": {\"a\":1, \"b\":\"hello\"}}").toString(), props.toString());
     }

@@ -19,7 +19,7 @@ public class KustoServiceQueryError extends Exception {
     public KustoServiceQueryError(ArrayNode jsonExceptions, boolean isOneApi, String message) {
         super(message);
         this.exceptions = new ArrayList<>();
-        for (int j = 0; jsonExceptions!=null && j < jsonExceptions.size(); j++) {
+        for (int j = 0; jsonExceptions != null && j < jsonExceptions.size(); j++) {
             if (isOneApi) {
                 this.exceptions.add(new DataWebException(jsonExceptions.get(j).toString()));
             } else {
