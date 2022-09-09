@@ -8,10 +8,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.util.*;
 
 public class KustoOperationResult implements Iterator<KustoResultSetTable> {
+
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final Map<String, WellKnownDataSet> tablesKindsMap = new HashMap<String, WellKnownDataSet>() {
         {
             put("QueryResult", WellKnownDataSet.PrimaryResult);
@@ -73,7 +78,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                 }
             }
         } catch (JsonProcessingException e) {
-            throw new KustoServiceQueryError("Some error occured while parsing string to json ");
+            log.error("Json processing error occured while parsing string to json with exception", e);
+            throw new KustoServiceQueryError("Json processing error occured while parsing string to json with exception " + e.getMessage());
         }
 
         if (resultTables.size() <= 2) {
@@ -104,12 +110,13 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
             for (int i = 0; i < jsonArray.size(); i++) {
                 JsonNode table = jsonArray.get(i);
-                if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).toString().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
+                if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
                     resultTables.add(new KustoResultSetTable(table));
                 }
             }
         } catch (JsonProcessingException e) {
-            throw new KustoServiceQueryError("Some error occured while parsing string to json ");
+            log.error("Json processing error occured while parsing string to json with exception", e);
+            throw new KustoServiceQueryError("Json processing error occured while parsing string to json with exception " + e.getMessage());
         }
 
     }
