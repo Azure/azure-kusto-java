@@ -232,7 +232,7 @@ class E2ETest {
                     JsonNode primaryResult = null;
                     assert jsonArray != null;
                     for (JsonNode o : jsonArray) {
-                        if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
+                        if (o != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
                             primaryResult = new ObjectMapper().readTree(o.toString());
                             break;
                         }

@@ -17,12 +17,12 @@ public class OneApiError {
 
     public static OneApiError fromJsonObject(JsonNode jsonObject) {
         return new OneApiError(
-                jsonObject.get("code").asText(),
-                jsonObject.get("message").asText(),
-                jsonObject.get("@message").asText(),
-                jsonObject.get("@type").asText(),
+                jsonObject.has("code") ? jsonObject.get("code").asText() : "",
+                jsonObject.has("message") ? jsonObject.get("message").asText() : "",
+                jsonObject.has("@message") ? jsonObject.get("@message").asText() : "",
+                jsonObject.has("@type") ? jsonObject.get("@type").asText() : "",
                 jsonObject.get("@context"),
-                jsonObject.get("@permanent").asBoolean());
+                jsonObject.has("@permanent") && jsonObject.get("@permanent").asBoolean());
     }
 
     private final String code;

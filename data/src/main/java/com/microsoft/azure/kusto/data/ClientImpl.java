@@ -321,7 +321,7 @@ public class ClientImpl implements Client, StreamingClient {
             json.put("properties", properties.toString());
         }
 
-        jsonPayload = json.asText();
+        jsonPayload = json.toString();
         /*
          * } catch (JSONException e) { throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint,
          * "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e); }
