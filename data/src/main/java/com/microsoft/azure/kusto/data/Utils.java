@@ -54,7 +54,7 @@ public class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    public static ObjectMapper getObjectMapper(){
+    public static ObjectMapper getObjectMapper() {
         return JsonMapper.builder().addModule(new JavaTimeModule()).addModule(new Jdk8Module()).build();
     }
 

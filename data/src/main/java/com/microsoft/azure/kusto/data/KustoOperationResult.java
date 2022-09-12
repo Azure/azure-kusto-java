@@ -115,7 +115,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             }
         } catch (JsonProcessingException jsonProcessingException) {
             log.error("Json processing error occured while parsing string to json with exception", jsonProcessingException);
-            throw new KustoServiceQueryError("Json processing error occurred while parsing string to json with exception " + jsonProcessingException.getMessage());
+            throw new KustoServiceQueryError(
+                    "Json processing error occurred while parsing string to json with exception " + jsonProcessingException.getMessage());
         } catch (NullPointerException nullPointerException) {
             log.error("Null pointer exception thrown due to invalid v2 response", nullPointerException);
             throw new KustoServiceQueryError("Null pointer exception thrown due to invalid v2 response " + nullPointerException.getMessage());

@@ -310,8 +310,7 @@ public class ClientImpl implements Client, StreamingClient {
         return headers;
     }
 
-    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-    {
+    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint) {
 
         ObjectNode json = objectMapper.createObjectNode()
                 .put("db", database)

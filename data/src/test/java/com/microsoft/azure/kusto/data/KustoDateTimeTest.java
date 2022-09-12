@@ -16,7 +16,7 @@ public class KustoDateTimeTest {
     private ObjectMapper mapper = null;
 
     @BeforeEach
-    void setup(){
+    void setup() {
     }
 
     @Test
