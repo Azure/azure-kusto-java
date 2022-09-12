@@ -24,7 +24,7 @@ import java.util.UUID;
 public class ResultSetTest {
     @Test
     void KustoResultSet() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
 
         ArrayNode rows = objectMapper.createArrayNode();
         ArrayNode row1 = objectMapper.createArrayNode();

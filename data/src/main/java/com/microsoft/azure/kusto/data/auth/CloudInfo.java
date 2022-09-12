@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.UriUtils;
 
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -129,7 +130,7 @@ public class CloudInfo {
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         JsonNode jsonObject = objectMapper.readTree(content);
         JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {

@@ -137,7 +137,7 @@ class ResourceManagerTest {
     }
 
     static KustoOperationResult generateIngestionAuthTokenResult() throws KustoServiceQueryError, IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = objectMapper.writeValueAsString(valuesList);
