@@ -33,7 +33,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final List<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
         if (version.contains("v2")) {
@@ -67,9 +67,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     }
 
     private void createFromV1Response(String response) throws KustoServiceQueryError {
-        JsonNode jsonObject = null;
         try {
-            jsonObject = objectMapper.readTree(response);
+            JsonNode jsonObject = objectMapper.readTree(response);
             if (jsonObject.has(TABLES_LIST_PROPERTY_NAME) && jsonObject.get(TABLES_LIST_PROPERTY_NAME).isArray()) {
                 ArrayNode jsonArray = (ArrayNode) jsonObject.get(TABLES_LIST_PROPERTY_NAME);
                 for (int i = 0; i < jsonArray.size(); i++) {
@@ -79,7 +78,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             }
         } catch (JsonProcessingException e) {
             log.error("Json processing error occured while parsing string to json with exception", e);
-            throw new KustoServiceQueryError("Json processing error occured while parsing string to json with exception " + e.getMessage());
+            throw new KustoServiceQueryError("Json processing error occurred while parsing string to json with exception " + e.getMessage());
         }
 
         if (resultTables.size() <= 2) {
@@ -108,16 +107,18 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         try {
             JsonNode jsonNode = objectMapper.readTree(response);
             jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
-            for (int i = 0; i < jsonArray.size(); i++) {
+            for (int i = 0; i < Objects.requireNonNull(jsonArray).size(); i++) {
                 JsonNode table = jsonArray.get(i);
                 if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
                     resultTables.add(new KustoResultSetTable(table));
                 }
             }
-        } catch (JsonProcessingException e) {
-            log.error("Json processing error occured while parsing string to json with exception", e);
-            throw new KustoServiceQueryError("Json processing error occured while parsing string to json with exception " + e.getMessage());
+        } catch (JsonProcessingException jsonProcessingException) {
+            log.error("Json processing error occured while parsing string to json with exception", jsonProcessingException);
+            throw new KustoServiceQueryError("Json processing error occurred while parsing string to json with exception " + jsonProcessingException.getMessage());
+        } catch (NullPointerException nullPointerException) {
+            log.error("Null pointer exception thrown due to invalid v2 response", nullPointerException);
+            throw new KustoServiceQueryError("Null pointer exception thrown due to invalid v2 response " + nullPointerException.getMessage());
         }
-
     }
 }

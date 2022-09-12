@@ -3,49 +3,57 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoField;
+import java.time.format.DateTimeFormatterBuilder;
 
 public class KustoDateTimeTest {
+
+    private ObjectMapper mapper = null;
+
+    @BeforeEach
+    void setup(){
+    }
+
     @Test
     void KustoResultSet() throws Exception {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = Utils.getObjectMapper();
+        DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
         ArrayNode rows = mapper.createArrayNode();
         ArrayNode row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.1Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.1Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.12Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.12Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.123Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.123Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.1234Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.1234Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.12345Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.12345Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.123456Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.123456Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.1234567Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.1234567Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.12345678Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.12345678Z").toString());
         rows.add(row);
         row = mapper.createArrayNode();
-        row.add(Instant.parse("2022-05-17T00:00:00.123456789Z").getNano());
+        row.add(Instant.parse("2022-05-17T00:00:00.123456789Z").toString());
         rows.add(row);
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"datetime\" } ]";
@@ -56,8 +64,8 @@ public class KustoDateTimeTest {
         Integer rowNum = 0;
         while (res.next()) {
             Assertions.assertEquals(
-                    LocalDateTime.parse(rows.get(rowNum).get(0).toString(), dateTimeFormatter).getNano(),
-                    res.getKustoDateTime(0).getNano());
+                    LocalDateTime.parse(rows.get(rowNum).get(0).toString(), kustoDateTimeFormatter),
+                    res.getKustoDateTime(0));
             rowNum++;
         }
     }

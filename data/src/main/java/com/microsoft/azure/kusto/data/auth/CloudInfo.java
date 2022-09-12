@@ -134,14 +134,16 @@ public class CloudInfo {
         JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {
             return DEFAULT_CLOUD;
+        }else{
+            return new CloudInfo(
+                    innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
+                    innerObject.has("LoginEndpoint")?innerObject.get("LoginEndpoint").asText():"",
+                    innerObject.has("KustoClientAppId")?innerObject.get("KustoClientAppId").asText():"",
+                    innerObject.has("KustoClientRedirectUri")?innerObject.get("KustoClientRedirectUri").asText():"",
+                    innerObject.has("KustoServiceResourceId")?innerObject.get("KustoServiceResourceId").asText():"",
+                    innerObject.has("FirstPartyAuthorityUrl")?innerObject.get("FirstPartyAuthorityUrl").asText():"");
         }
-        return new CloudInfo(
-                innerObject.get("LoginMfaRequired").asBoolean(),
-                innerObject.get("LoginEndpoint").asText(),
-                innerObject.get("KustoClientAppId").asText(),
-                innerObject.get("KustoClientRedirectUri").asText(),
-                innerObject.get("KustoServiceResourceId").asText(),
-                innerObject.get("FirstPartyAuthorityUrl").asText());
+
     }
 
     @Override

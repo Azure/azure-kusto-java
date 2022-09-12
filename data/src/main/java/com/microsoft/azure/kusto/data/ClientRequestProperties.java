@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.format.CslBoolFormat;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
@@ -193,8 +192,7 @@ public class ClientRequestProperties implements Serializable {
     }
 
     JsonNode toJson() {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode optionsAsJSON = mapper.valueToTree(this.options);
+        ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
 
         if (timeoutObj != null) {
@@ -210,12 +208,12 @@ public class ClientRequestProperties implements Serializable {
             }
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
         }
-        ObjectNode json = mapper.createObjectNode();
+        ObjectNode json = Utils.getObjectMapper().createObjectNode();
         if (!options.isEmpty()) {
             json.set(OPTIONS_KEY, optionsAsJSON);
         }
         if (!parameters.isEmpty()) {
-            json.set(PARAMETERS_KEY, mapper.valueToTree(this.parameters));
+            json.set(PARAMETERS_KEY, Utils.getObjectMapper().valueToTree(this.parameters));
         }
         return json;
     }
@@ -225,10 +223,9 @@ public class ClientRequestProperties implements Serializable {
     }
 
     public static ClientRequestProperties fromString(String json) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
-            JsonNode jsonObj = mapper.readTree(json);
+            JsonNode jsonObj = Utils.getObjectMapper().readTree(json);
             Iterator<String> it = jsonObj.fieldNames();
             while (it.hasNext()) {
                 String propertyName = it.next();

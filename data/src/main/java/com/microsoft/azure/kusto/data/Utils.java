@@ -7,6 +7,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
 
@@ -47,9 +50,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
-class Utils {
+public class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    public static ObjectMapper getObjectMapper(){
+        return JsonMapper.builder().addModule(new JavaTimeModule()).addModule(new Jdk8Module()).build();
+    }
 
     private Utils() {
         // Hide constructor, as this is a static utility class
@@ -178,7 +185,7 @@ class Utils {
             boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
                 try {
-                    JsonNode jsonObject = new ObjectMapper().readTree(errorFromResponse);
+                    JsonNode jsonObject = getObjectMapper().readTree(errorFromResponse);
                     if (jsonObject.has("error")) {
                         formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
                         OneApiError apiError = ((DataWebException) formattedException).getApiError();
@@ -189,10 +196,10 @@ class Utils {
                     }
                 } catch (JsonMappingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
-                    LOGGER.error("json mapping error happened while parsing errorFromResponse" + e.getMessage(), e);
+                    LOGGER.error("json mapping error happened while parsing errorFromResponse {} {}", e.getMessage(), e);
                 } catch (JsonProcessingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
-                    LOGGER.error("json processing error happened while parsing errorFromResponse" + e.getMessage(), e);
+                    LOGGER.error("json processing error happened while parsing errorFromResponse {} {}" + e.getMessage(), e);
                 }
             } else {
                 message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());

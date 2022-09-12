@@ -45,6 +45,8 @@ public class ClientImpl implements Client, StreamingClient {
     private final CloseableHttpClient httpClient;
     private boolean endpointValidated = false;
 
+    private ObjectMapper objectMapper = Utils.getObjectMapper();
+
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
     }
@@ -309,11 +311,9 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-    // throws DataClientException
     {
-        String jsonPayload;
-        // try {
-        ObjectNode json = new ObjectMapper().createObjectNode()
+
+        ObjectNode json = objectMapper.createObjectNode()
                 .put("db", database)
                 .put("csl", command);
 
@@ -321,13 +321,7 @@ public class ClientImpl implements Client, StreamingClient {
             json.put("properties", properties.toString());
         }
 
-        jsonPayload = json.toString();
-        /*
-         * } catch (JSONException e) { throw new DataClientException(clusterEndpoint, String.format(clusterEndpoint,
-         * "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e); }
-         */
-
-        return jsonPayload;
+        return json.toString();
     }
 
     private void addCommandHeaders(Map<String, String> headers) {

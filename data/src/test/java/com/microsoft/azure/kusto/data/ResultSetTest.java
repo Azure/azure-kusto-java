@@ -57,7 +57,7 @@ public class ResultSetTest {
         row1.add(true);
         row1.add(str);
         row1.add(String.valueOf(now));
-        row1.add(String.valueOf(dec));
+        row1.add(dec);
         row1.add(objectMapper.createObjectNode());
         row1.add(String.valueOf(uuid));
         row1.add(i);
@@ -76,7 +76,7 @@ public class ResultSetTest {
                 "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
         KustoResultSetTable res = new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
                 "\"Columns\":" + columns + ",\"Rows\":" +
-                rows.toString() + "}"));
+                rows + "}"));
         res.next();
         assert res.getBooleanObject(0) == null;
         assert res.getString(1).equals("");

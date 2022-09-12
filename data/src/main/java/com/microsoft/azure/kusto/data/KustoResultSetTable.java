@@ -41,7 +41,7 @@ public class KustoResultSetTable {
     private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private static final String EMPTY_STRING = "";
-    private static DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+    private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
 
     private final List<List<Object>> rows;
@@ -86,23 +86,23 @@ public class KustoResultSetTable {
         tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME) ? jsonTable.get(TABLE_ID_PROPERTY_NAME).asText() : EMPTY_STRING;
         String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME) ? jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText() : EMPTY_STRING;
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
-        ArrayNode columnsJson = null;
-        if (jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
-            columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);
-        }
-        if (columnsJson != null) {
-            columnsAsArray = new KustoResultColumn[columnsJson.size()];
-            for (int i = 0; i < columnsJson.size(); i++) {
-                JsonNode jsonCol = columnsJson.get(i);
 
-                String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText() : EMPTY_STRING;
-                if (columnType.equals("")) {
-                    columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
+        if (jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
+            ArrayNode columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);
+            if (columnsJson != null) {
+                columnsAsArray = new KustoResultColumn[columnsJson.size()];
+                for (int i = 0; i < columnsJson.size(); i++) {
+                    JsonNode jsonCol = columnsJson.get(i);
+
+                    String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText() : EMPTY_STRING;
+                    if (columnType.equals("")) {
+                        columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
+                    }
+                    KustoResultColumn col = new KustoResultColumn(
+                            jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, columnType, i);
+                    columnsAsArray[i] = col;
+                    columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, col);
                 }
-                KustoResultColumn col = new KustoResultColumn(
-                        jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, columnType, i);
-                columnsAsArray[i] = col;
-                columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, col);
             }
         }
 

@@ -10,7 +10,6 @@ import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -39,8 +38,9 @@ class ClientRequestPropertiesTest {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a", 1);
         props.setOption("b", "hello");
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        Assertions.assertEquals(new ObjectMapper().readTree("{\"Options\": {\"a\":1, \"b\":\"hello\"}}").toString(), props.toString());
+        Assertions.assertEquals(objectMapper.readTree("{\"Options\": {\"a\":1, \"b\":\"hello\"}}").toString(), props.toString());
     }
 
     @Test
