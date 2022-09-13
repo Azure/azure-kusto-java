@@ -3,8 +3,14 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URISyntaxException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;

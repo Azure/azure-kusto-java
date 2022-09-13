@@ -7,8 +7,10 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -43,6 +45,7 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
+    private boolean endpointValidated = false;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -139,14 +142,30 @@ public class ClientImpl implements Client, StreamingClient {
         command = command.trim();
         CommandType commandType = determineCommandType(command);
         long timeoutMs = determineTimeout(properties, commandType);
+        // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
+        Map<String, String> headers;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
                 commandType.getActivityTypeSuffix());
+
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
+        try {
+            validateEndpoint();
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        }
 
         return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+    }
+
+    private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
+        if (!endpointValidated) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
+                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
+            endpointValidated = true;
+        }
     }
 
     @Override
@@ -170,7 +189,8 @@ public class ClientImpl implements Client, StreamingClient {
         if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
+        Map<String, String> headers;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
                 CommandType.STREAMING_INGEST.getActivityTypeSuffix());
 
         Long timeoutMs = null;
@@ -188,11 +208,14 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
         try {
+            validateEndpoint();
+            String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
     }
 
@@ -220,10 +243,18 @@ public class ClientImpl implements Client, StreamingClient {
         long timeoutMs = determineTimeout(properties, commandType);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
+        Map<String, String> headers = null;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
                 commandType.getActivityTypeSuffix());
+
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
+
+        try {
+            validateEndpoint();
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        }
 
         return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
@@ -278,6 +309,8 @@ public class ClientImpl implements Client, StreamingClient {
             clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
         }
         headers.put("x-ms-client-request-id", clientRequestId);
+
+        headers.put("Connection", "Keep-Alive");
 
         UUID activityId = UUID.randomUUID();
         String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,

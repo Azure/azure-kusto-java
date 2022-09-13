@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -21,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public class CloudInfo {
+    private static final Map<String, CloudInfo> cache = new HashMap<>();
+
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
     public static final boolean DEFAULT_LOGIN_MFA_REQUIRED = false;
@@ -36,8 +37,6 @@ public class CloudInfo {
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
-
-    private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
@@ -191,6 +190,7 @@ public class CloudInfo {
             resourceUrl = resourceUrl.replace(".kusto.", ".kustomfa.");
         }
 
-        return UriUtils.setPathForUri(resourceUrl, ".default");
+        resourceUrl = StringUtils.appendIfMissing(resourceUrl, "/");
+        return resourceUrl + ".default";
     }
 }
