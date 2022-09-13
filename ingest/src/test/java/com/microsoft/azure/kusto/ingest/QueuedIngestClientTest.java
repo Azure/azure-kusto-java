@@ -33,8 +33,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.function.BiFunction;
 
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.EXPECTED_SERVICE_TYPE;
-import static com.microsoft.azure.kusto.ingest.QueuedIngestClientImpl.WRONG_ENDPOINT_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -331,30 +329,6 @@ class QueuedIngestClientTest {
         ingestFromStreamReceivedStream.read(streamContent, 0, len);
         String stringContent = new String(streamContent);
         assertEquals(stringContent, getSampleResultSetDump());
-    }
-
-    @Test
-    void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionServiceException() throws Exception {
-        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-        when(resourceManagerMock.retrieveServiceType()).thenReturn(EXPECTED_SERVICE_TYPE);
-
-        queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        assertThrows(IngestionServiceException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
-    }
-
-    @Test
-    void IngestFromFile_GivenIngestClientAndEngineEndpoint_ThrowsIngestionClientException() throws Exception {
-        doThrow(IngestionServiceException.class).when(resourceManagerMock).getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-        when(resourceManagerMock.retrieveServiceType()).thenReturn(ENDPOINT_SERVICE_TYPE_ENGINE);
-
-        queuedIngestClient.setConnectionDataSource("https://testendpoint.dev.kusto.windows.net");
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(testFilePath, 100);
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_ENGINE + "'",
-                EXPECTED_SERVICE_TYPE,
-                "https://ingest-testendpoint.dev.kusto.windows.net");
-        Exception exception = assertThrows(IngestionClientException.class, () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
-        assertEquals(expectedMessage, exception.getMessage());
     }
 
     @Test
