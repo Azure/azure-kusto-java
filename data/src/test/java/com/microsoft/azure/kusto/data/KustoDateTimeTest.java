@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -13,11 +12,6 @@ import java.time.format.DateTimeFormatterBuilder;
 
 public class KustoDateTimeTest {
 
-    private ObjectMapper mapper = null;
-
-    @BeforeEach
-    void setup() {
-    }
 
     @Test
     void KustoResultSet() throws Exception {

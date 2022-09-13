@@ -249,14 +249,10 @@ public class ManagedStreamingIngestClient implements IngestClient {
                             && e.getCause().getCause() != null
                             && e.getCause().getCause() instanceof DataWebException) {
                         DataWebException webException = (DataWebException) e.getCause().getCause();
-                        // try {
                         OneApiError oneApiError = webException.getApiError();
                         if (oneApiError.isPermanent()) {
                             throw e;
                         }
-                        /*
-                         * } catch (JsonProcessingException je) { log.error("Failed to parse json in exception, continuing.", je); }
-                         */
                     }
 
                     log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
