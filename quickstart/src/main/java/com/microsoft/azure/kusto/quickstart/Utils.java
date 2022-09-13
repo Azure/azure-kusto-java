@@ -192,15 +192,16 @@ public class Utils {
         /**
          * Creates a fitting KustoIngestionProperties object, to be used when executing ingestion commands
          *
-         * @param databaseName DB name
-         * @param tableName    Table name
-         * @param dataFormat   Given data format
-         * @param mappingName  Desired mapping name
+         * @param databaseName      DB name
+         * @param tableName         Table name
+         * @param dataFormat        Given data format
+         * @param mappingName       Desired mapping name
+         * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          * @return KustoIngestionProperties object
          */
         @NotNull
         protected static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat,
-                String mappingName) {
+                String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
             ingestionProperties.setDataFormat(dataFormat);
             // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
@@ -212,6 +213,7 @@ public class Utils {
             // We therefore set Flush-Immediately for the sake of the sample, but it generally shouldn't be used in practice.
             // Comment out the line below after running the sample the first few times.
             ingestionProperties.setFlushImmediately(true);
+            ingestionProperties.setIgnoreFirstRecord(ignoreFirstRecord);
 
             return ingestionProperties;
         }
@@ -219,16 +221,17 @@ public class Utils {
         /**
          * Ingest Data from a given file path
          *
-         * @param ingestClient Client to ingest data
-         * @param databaseName DB name
-         * @param tableName    Table name
-         * @param filePath     File path
-         * @param dataFormat   Given data format
-         * @param mappingName  Desired mapping name
+         * @param ingestClient      Client to ingest data
+         * @param databaseName      DB name
+         * @param tableName         Table name
+         * @param filePath          File path
+         * @param dataFormat        Given data format
+         * @param mappingName       Desired mapping name
+         * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath,
-                IngestionProperties.DataFormat dataFormat, String mappingName) {
-            IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
+                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+            IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length())
             // instead of the default below of 0.
@@ -250,16 +253,17 @@ public class Utils {
         /**
          * Ingest Data from a given file path
          *
-         * @param ingestClient Client to ingest data
-         * @param databaseName DB name
-         * @param tableName    Table name
-         * @param blobUrl      Blob Url
-         * @param dataFormat   Given data format
-         * @param mappingName  Desired mapping name
+         * @param ingestClient      Client to ingest data
+         * @param databaseName      DB name
+         * @param tableName         Table name
+         * @param blobUrl           Blob Url
+         * @param dataFormat        Given data format
+         * @param mappingName       Desired mapping name
+         * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl,
-                IngestionProperties.DataFormat dataFormat, String mappingName) {
-            IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName);
+                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+            IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0
             // Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
