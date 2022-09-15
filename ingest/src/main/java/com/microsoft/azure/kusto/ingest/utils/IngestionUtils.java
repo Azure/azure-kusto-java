@@ -10,7 +10,6 @@ import com.univocity.parsers.csv.CsvRoutines;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 
@@ -76,19 +75,5 @@ public class IngestionUtils {
         }
 
         return null;
-    }
-
-    public static String removeExtension(String filename) {
-        if (filename == null) {
-            return null;
-        }
-
-        int extensionPos = filename.lastIndexOf('.');
-        int lastDirSeparator = filename.lastIndexOf('\\');
-        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
-            return filename;
-        } else {
-            return filename.substring(0, extensionPos);
-        }
     }
 }

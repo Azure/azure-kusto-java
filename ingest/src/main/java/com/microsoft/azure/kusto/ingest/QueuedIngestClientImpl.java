@@ -262,7 +262,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         return String.format("%s__%s__%s__%s%s%s",
                 databaseName,
                 tableName,
-                IngestionUtils.removeExtension(fileName),
+                UriUtils.removeExtension(fileName),
                 UUID.randomUUID(),
                 dataFormat == null ? "" : "." + dataFormat,
                 compressionType == null ? "" : "." + compressionType);
