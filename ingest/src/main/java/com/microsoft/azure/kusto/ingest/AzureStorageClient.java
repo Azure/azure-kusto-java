@@ -3,10 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.HttpClient;
 import com.azure.core.util.BinaryData;
 import com.azure.data.tables.TableClient;
-import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -28,8 +26,8 @@ import java.util.zip.GZIPOutputStream;
 
 class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    static final int GZIP_BUFFER_SIZE = 16384;
-    static final int STREAM_BUFFER_SIZE = 16384;
+    private static final int GZIP_BUFFER_SIZE = 16384;
+    private static final int STREAM_BUFFER_SIZE = 16384;
 
     public AzureStorageClient() {
     }
@@ -72,7 +70,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(blob, "blob");
 
         try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
             copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
         }
     }
@@ -107,7 +105,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream();
+        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream(true);
         copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
         blobOutputStream.close();
     }
@@ -117,7 +115,7 @@ class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
-        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream())) {
+        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
             copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }
@@ -128,9 +126,5 @@ class AzureStorageClient {
         while ((length = inputStream.read(buffer)) > 0) {
             outputStream.write(buffer, 0, length);
         }
-    }
-
-    String getBlobPathWithSas(String blobSas, String blobName) {
-        return blobSas.concat(blobName);
     }
 }

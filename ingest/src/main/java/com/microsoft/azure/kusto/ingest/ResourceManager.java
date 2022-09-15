@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-import com.azure.core.http.policy.RetryOptions;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class ResourceManager implements Closeable {
     public static int UPLOAD_TIMEOUT_MINUTES = 10;
-    private RetryOptions queueRequestOptions = null;
+    private RequestRetryOptions queueRequestOptions = null;
 
     enum ResourceType {
         SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
@@ -131,7 +131,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionResources();
                     timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionResources.", e);
+                    log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
                     timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                 }
             }
@@ -144,7 +144,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionAuthToken();
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionAuthToken.", e);
+                    log.error("Error in refreshIngestionAuthToken." + e.getMessage(), e);
                     timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                 }
             }
@@ -166,11 +166,11 @@ class ResourceManager implements Closeable {
         return getResource(() -> this.statusTable);
     }
 
-    public QueueWithSas getFailedQueues() throws IngestionClientException, IngestionServiceException {
+    public QueueWithSas getFailedQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.failedIngestionsQueues);
     }
 
-    public QueueWithSas getSuccessfullQueues() throws IngestionClientException, IngestionServiceException {
+    public QueueWithSas getSuccessfulQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.successfulIngestionsQueues);
     }
 
@@ -189,7 +189,7 @@ class ResourceManager implements Closeable {
         return identityToken;
     }
 
-    public void setQueueRequestOptions(RetryOptions queueRequestOptions) {
+    public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
         this.queueRequestOptions = queueRequestOptions;
     }
 
@@ -261,7 +261,7 @@ class ResourceManager implements Closeable {
                 KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                 if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
                     KustoResultSetTable table = ingestionResourcesResults.next();
-                    // Add the received values to a new IngestionResources map
+                    // Add the received values to the new ingestion resources
                     while (table.next()) {
                         String resourceTypeName = table.getString(0);
                         String storageUrl = table.getString(1);
@@ -270,11 +270,11 @@ class ResourceManager implements Closeable {
                 }
                 log.info("Refreshing Ingestion Resources Finised");
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
             } catch (Throwable e) {
-                throw new IngestionClientException(e.getMessage());
+                throw new IngestionClientException(e.getMessage(), e);
             } finally {
                 ingestionResourcesLock.writeLock().unlock();
             }
@@ -296,11 +296,11 @@ class ResourceManager implements Closeable {
                     identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken" + e.getMessage(), e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken", e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken" + e.getMessage(), e);
             } catch (Throwable e) {
-                throw new IngestionClientException(e.getMessage());
+                throw new IngestionClientException(e.getMessage(), e);
             } finally {
                 authTokenLock.writeLock().unlock();
             }

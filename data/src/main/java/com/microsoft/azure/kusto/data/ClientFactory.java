@@ -48,7 +48,7 @@ public class ClientFactory {
      * @throws URISyntaxException if the cluster URL is invalid
      */
     public static Client createClient(ConnectionStringBuilder csb, CloseableHttpClient client) throws URISyntaxException {
-        return new ClientImpl(csb, client, true);
+        return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client, true);
     }
 
     /**

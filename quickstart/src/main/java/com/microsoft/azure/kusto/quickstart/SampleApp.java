@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -41,7 +41,7 @@ enum SourceType {
 }
 
 /**
- * AuthenticationModeOptions - represents the different options to autenticate to the system
+ * AuthenticationModeOptions - represents the different options to authenticate to the system
  */
 enum AuthenticationModeOptions {
     USER_PROMPT("UserPrompt"), MANAGED_IDENTITY("ManagedIdentity"), APP_KEY("AppKey"), APP_CERTIFICATE("AppCertificate");
@@ -152,12 +152,14 @@ class ConfigJson {
     private boolean queryData;
     private boolean ingestData;
     /// Recommended default: UserPrompt
-    /// Some of the auth modes require additional environment variables to be set in order to work (see usage in generate_connection_string function).
+    /// Some auth modes require additional environment variables to be set in order to work (see usage in generate_connection_string function).
     /// Managed Identity Authentication only works when running as an Azure service (webapp, function, etc.)
     private AuthenticationModeOptions authenticationMode;
     /// Recommended default: True
     /// Toggle to False to execute this script "unattended"
     private boolean waitForUser;
+    /// Ignores the first record in a "X-seperated value" type file
+    private boolean ignoreFirstRecord;
     /// Sleep time to allow for queued ingestion to complete.
     private int waitForIngestSeconds;
     /// Optional - Customized ingestion batching policy
@@ -215,6 +217,10 @@ class ConfigJson {
         return waitForUser;
     }
 
+    public boolean isIgnoreFirstRecord() {
+        return ignoreFirstRecord;
+    }
+
     public int getWaitForIngestSeconds() {
         return waitForIngestSeconds;
     }
@@ -239,6 +245,7 @@ class ConfigJson {
                 ", \ningestData=" + ingestData +
                 ", \nauthenticationMode=" + authenticationMode +
                 ", \nwaitForUser=" + waitForUser +
+                ", \nignoreFirstRecord=" + ignoreFirstRecord +
                 ", \nwaitForIngestSeconds=" + waitForIngestSeconds +
                 ", \nbatchingPolicy='" + batchingPolicy + '\'' +
                 "}\n";
@@ -375,7 +382,7 @@ public class SampleApp {
      * @param tableSchema  Table Schema
      */
     private static void alterMergeExistingTableToProvidedSchema(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        String command = String.format(".alter-merge table %s %s", tableName, tableSchema);
+        String command = String.format(".alter-merge table %s %s", StringUtils.normalizeEntityName(tableName), tableSchema);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -387,7 +394,7 @@ public class SampleApp {
      * @param tableName    Table name
      */
     private static void queryExistingNumberOfRows(Client kustoClient, String databaseName, String tableName) {
-        String command = String.format("%s | count", tableName);
+        String command = String.format("%s | count", StringUtils.normalizeEntityName(tableName));
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -399,7 +406,7 @@ public class SampleApp {
      * @param tableName    Table name
      */
     private static void queryFirstTwoRows(Client kustoClient, String databaseName, String tableName) {
-        String command = String.format("%s | take 2", tableName);
+        String command = String.format("%s | take 2", StringUtils.normalizeEntityName(tableName));
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -412,7 +419,7 @@ public class SampleApp {
      * @param tableSchema  Table Schema
      */
     private static void createNewTable(Client kustoClient, String databaseName, String tableName, String tableSchema) {
-        String command = String.format(".create table %s %s", tableName, tableSchema);
+        String command = String.format(".create table %s %s", StringUtils.normalizeEntityName(tableName), tableSchema);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
     }
 
@@ -430,7 +437,7 @@ public class SampleApp {
          * the default ingestion policy to ingest data after at most 10 seconds. Tip 2: This is generally a one-time configuration. Tip 3: You can also skip the
          * batching for some files using the Flush-Immediately property, though this option should be used with care as it is inefficient.
          */
-        String command = String.format(".alter table %s policy ingestionbatching @'%s'", tableName, batchingPolicy);
+        String command = String.format(".alter table %s policy ingestionbatching @'%s'", StringUtils.normalizeEntityName(tableName), batchingPolicy);
         Utils.Queries.executeCommand(kustoClient, databaseName, command);
         // If it failed to alter the ingestion policy - it could be the result of insufficient permissions. The sample will still run,
         // though ingestion will be delayed for up to 5 minutes.
@@ -453,7 +460,8 @@ public class SampleApp {
 
             // Learn More: For more information about ingesting data to Kusto in Java, see:
             // https://docs.microsoft.com/azure/data-explorer/java-ingest-data
-            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName());
+            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName(),
+                    config.isIgnoreFirstRecord());
         }
 
         /*
@@ -485,7 +493,7 @@ public class SampleApp {
         waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
         mappingName = StringUtils.isNotBlank(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
 
-        String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", tableName,
+        String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", StringUtils.normalizeEntityName(tableName),
                 ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
         Utils.Queries.executeCommand(kustoClient, databaseName, mappingCommand);
     }
@@ -493,15 +501,16 @@ public class SampleApp {
     /**
      * Ingest data from given source
      *
-     * @param data_source  Given data source
-     * @param dataFormat   Given data format
-     * @param ingestClient Client to ingest data
-     * @param databaseName DB name
-     * @param tableName    Table name
-     * @param mappingName  Desired mapping name
+     * @param data_source       Given data source
+     * @param dataFormat        Given data format
+     * @param ingestClient      Client to ingest data
+     * @param databaseName      DB name
+     * @param tableName         Table name
+     * @param mappingName       Desired mapping name
+     * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
      */
     private static void ingest_data(ConfigData data_source, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
-            String tableName, String mappingName) {
+            String tableName, String mappingName, boolean ignoreFirstRecord) {
         SourceType sourceType = data_source.getSourceType();
         String uri = data_source.getDataSourceUri();
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType.toString()));
@@ -515,10 +524,10 @@ public class SampleApp {
         // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
         switch (sourceType) {
             case LOCAL_FILE_SOURCE:
-                Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
                 break;
             case BLOB_SOURCE:
-                Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName);
+                Utils.Ingestion.ingestFromBlob(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
                 break;
             default:
                 Utils.errorHandler(String.format("Unknown source '%s' for file '%s'%n", sourceType, uri));

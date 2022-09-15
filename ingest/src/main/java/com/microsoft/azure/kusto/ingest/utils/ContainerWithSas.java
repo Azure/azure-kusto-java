@@ -25,4 +25,8 @@ public class ContainerWithSas {
     public BlobContainerClient getContainer() {
         return container;
     }
+
+    public String getEndpoint() {
+        return container.getBlobContainerUrl() + sas;
+    }
 }

@@ -3,9 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.policy.RetryOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -53,7 +53,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
-        this(csb, HttpClientFactory.create(properties));
+        this(csb, properties == null ? null : HttpClientFactory.create(properties));
     }
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
@@ -70,7 +70,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.azureStorageClient = azureStorageClient;
     }
 
-    public void setQueueRequestOptions(RetryOptions queueRequestOptions) {
+    public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
         this.resourceManager.setQueueRequestOptions(queueRequestOptions);
     }
 
@@ -131,6 +131,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         .getStatusTable();
                 IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
                 ingestionStatusInTable.setTableClient(statusTable.getTable());
+                ingestionStatusInTable.setTableConnectionString(statusTable.getUri());
                 ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
                 ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
                 ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);

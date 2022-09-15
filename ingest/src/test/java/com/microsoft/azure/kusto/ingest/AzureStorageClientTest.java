@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.ingest;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -41,8 +40,7 @@ class AzureStorageClientTest {
         testFile = new File(testFilePath);
         String testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
         testFileCompressed = new File(testFilePathCompressed);
-        blob = new BlobClientBuilder().endpoint("https://testcontosourl.com/storageUrl")
-                .buildClient();
+        blob = TestUtils.containerWithSasFromContainerName("storageUrl").getContainer().getBlobClient("bloby");
     }
 
     @BeforeEach

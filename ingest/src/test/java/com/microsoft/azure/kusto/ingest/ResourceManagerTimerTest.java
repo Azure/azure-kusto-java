@@ -26,11 +26,16 @@ public class ResourceManagerTimerTest {
     void TimerTest() throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError, IOException {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
+        class BooleanHolder {
+            boolean gotHere = false;
+        }
+        BooleanHolder booleanHolder = new BooleanHolder();
         when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
         when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
-            if (refreshTimestamps.size() != 1) {
+            booleanHolder.gotHere = true;
+            if (refreshTimestamps.size() == 2) {
                 throw new Exception();
             }
 
@@ -38,7 +43,11 @@ public class ResourceManagerTimerTest {
         });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
-        Thread.sleep(100);
+        int runtime = 0;
+        while (!booleanHolder.gotHere && runtime < 5000) {
+            Thread.sleep(100);
+            runtime += 100;
+        }
         assertEquals(1, refreshTimestamps.size());
         Thread.sleep(1100);
         assertEquals(2, refreshTimestamps.size());

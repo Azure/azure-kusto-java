@@ -26,7 +26,6 @@ public class TableWithSas {
         String[] parts = url.split("\\?");
         int tableNameIndex = parts[0].lastIndexOf('/');
         String tableName = parts[0].substring(tableNameIndex + 1);
-
         return new TableClientBuilder()
                 .endpoint(parts[0].substring(0, tableNameIndex))
                 .sasToken(parts[1])
