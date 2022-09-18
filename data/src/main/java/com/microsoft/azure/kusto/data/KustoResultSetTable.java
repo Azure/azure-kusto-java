@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 
 import org.apache.commons.lang3.StringUtils;
@@ -81,8 +82,13 @@ public class KustoResultSetTable {
         this.tableKind = tableKind;
     }
 
-    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException {
-        tableName = jsonTable.has(TABLE_NAME_PROPERTY_NAME) ? jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText() : EMPTY_STRING;
+    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException, JsonPropertyMissingException {
+        if (jsonTable.has(TABLE_NAME_PROPERTY_NAME)) {
+            tableName = jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText();
+        }
+        if (jsonTable.has(TABLE_ID_PROPERTY_NAME)) {
+            tableId = jsonTable.get(TABLE_ID_PROPERTY_NAME).asText();
+        }
         tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME) ? jsonTable.get(TABLE_ID_PROPERTY_NAME).asText() : EMPTY_STRING;
         String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME) ? jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText() : EMPTY_STRING;
         tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
@@ -98,10 +104,14 @@ public class KustoResultSetTable {
                     if (columnType.equals("")) {
                         columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
                     }
-                    KustoResultColumn col = new KustoResultColumn(
-                            jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, columnType, i);
-                    columnsAsArray[i] = col;
-                    columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, col);
+                    if (jsonCol.has(COLUMN_NAME_PROPERTY_NAME)) {
+                        KustoResultColumn col = new KustoResultColumn(
+                                jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, columnType, i);
+                        columnsAsArray[i] = col;
+                        columns.put(jsonCol.has(COLUMN_NAME_PROPERTY_NAME) ? jsonCol.get(COLUMN_NAME_PROPERTY_NAME).asText() : EMPTY_STRING, col);
+                    } else {
+                        throw new JsonPropertyMissingException("Column Name property is missing in the json response");
+                    }
                 }
             }
         }

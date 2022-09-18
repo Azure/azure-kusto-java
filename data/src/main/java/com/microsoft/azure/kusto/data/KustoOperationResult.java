@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,8 +76,10 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                     JsonNode table = jsonArray.get(i);
                     resultTables.add(new KustoResultSetTable(table));
                 }
+            } else {
+                throw new JsonPropertyMissingException("Tables Property missing from V1 response json");
             }
-        } catch (JsonProcessingException e) {
+        } catch (JsonProcessingException | JsonPropertyMissingException e) {
             log.error("Json processing error occured while parsing string to json with exception", e);
             throw new KustoServiceQueryError("Json processing error occurred while parsing string to json with exception " + e.getMessage());
         }
@@ -106,17 +109,20 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         ArrayNode jsonArray;
         try {
             JsonNode jsonNode = objectMapper.readTree(response);
-            jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
-            for (int i = 0; i < Objects.requireNonNull(jsonArray).size(); i++) {
-                JsonNode table = jsonArray.get(i);
-                if (table.has(FRAME_TYPE_PROPERTY_NAME) && table.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
-                    resultTables.add(new KustoResultSetTable(table));
+            if (jsonNode.isArray()) {
+                jsonArray = (ArrayNode) jsonNode;
+                for (JsonNode node : jsonArray) {
+                    if (node.has(FRAME_TYPE_PROPERTY_NAME) && node.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_NAME)) {
+                        resultTables.add(new KustoResultSetTable(node));
+                    }
                 }
+            } else {
+                throw new JsonPropertyMissingException("There is no array in the response which can be parsed");
             }
-        } catch (JsonProcessingException jsonProcessingException) {
-            log.error("Json processing error occured while parsing string to json with exception", jsonProcessingException);
+        } catch (JsonProcessingException | JsonPropertyMissingException jsonException) {
+            log.error("Json processing error occured while parsing string to json with exception", jsonException);
             throw new KustoServiceQueryError(
-                    "Json processing error occurred while parsing string to json with exception " + jsonProcessingException.getMessage());
+                    "Json processing error occurred while parsing string to json with exception " + jsonException.getMessage());
         } catch (NullPointerException nullPointerException) {
             log.error("Null pointer exception thrown due to invalid v2 response", nullPointerException);
             throw new KustoServiceQueryError("Null pointer exception thrown due to invalid v2 response " + nullPointerException.getMessage());
