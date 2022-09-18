@@ -1,8 +1,12 @@
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +32,7 @@ public class ResultSetTest {
         ArrayNode rows = objectMapper.createArrayNode();
         ArrayNode row1 = objectMapper.createArrayNode();
         ArrayNode row2 = objectMapper.createArrayNode();
+
         JsonNode nullObj = null;
         row2.add(nullObj);
         row2.add("");
@@ -109,5 +114,35 @@ public class ResultSetTest {
         Assertions.assertEquals(res.getTime(9), Time.valueOf(durationAsKustoString));
         Assertions.assertEquals(res.getLocalTime(9), LocalTime.parse(durationAsKustoString));
         Assertions.assertEquals(res.getShort(10), s1);
+
+    }
+
+    @Test
+    public void testException() {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
+
+        ArrayNode rows = objectMapper.createArrayNode();
+        ObjectNode row = objectMapper.createObjectNode();
+
+        ArrayNode exceptionNode = objectMapper.createArrayNode();
+        exceptionNode.add("Test exception");
+        row.putIfAbsent("Exceptions", exceptionNode);
+
+        rows.add(row);
+
+        String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" }, { \"ColumnName\": \"b\", " +
+                "\"ColumnType\": \"string\" }, { \"ColumnName\": \"c\", \"ColumnType\": \"datetime\" }, { " +
+                "\"ColumnName\": \"d\", \"ColumnType\": \"decimal\" }, { \"ColumnName\": \"e\", " +
+                "\"ColumnType\": \"dynamic\" }, { \"ColumnName\": \"f\", \"ColumnType\": \"guid\" }, { " +
+                "\"ColumnName\": \"g\", \"ColumnType\": \"int\" }, { \"ColumnName\": \"h\", \"ColumnType\": " +
+                "\"long\" }, { \"ColumnName\": \"i\", \"ColumnType\": \"real\" }, { \"ColumnName\": \"j\", " +
+                "\"ColumnType\": \"timespan\" },{ \"ColumnName\": \"k\", \"ColumnType\": \"short\" } ]";
+
+        Assertions.assertThrows(KustoServiceQueryError.class, () -> {
+            new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                    "\"Columns\":" + columns + ",\"Rows\":" +
+                    rows + "}"));
+        });
+
     }
 }
