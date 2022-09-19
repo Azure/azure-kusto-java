@@ -57,6 +57,8 @@ public class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to loose precision while auto deserialization to
+    // double value
     public static ObjectMapper getObjectMapper() {
         return JsonMapper.builder().addModule(new JavaTimeModule()).addModule(new Jdk8Module()).build().configure(
                 DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
