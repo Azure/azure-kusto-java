@@ -140,7 +140,7 @@ public class KustoResultSetTable {
                 }
                 ArrayNode rowAsJsonArray = (ArrayNode) jsonRows.get(i);
                 List<Object> rowVector = new ArrayList<>();
-                for (int j = 0; j < rowAsJsonArray.size(); ++j) {
+                for (int j = 0; j < rowAsJsonArray.size(); j++) {
                     JsonNode obj = rowAsJsonArray.get(j);
                     if (obj.isNull()) {
                         rowVector.add(null);
@@ -161,6 +161,10 @@ public class KustoResultSetTable {
                                     rowVector.add(obj.decimalValue());
                                 } else if (obj.isDouble()) {
                                     rowVector.add(obj.asDouble());
+                                } else if (obj.isShort()) {
+                                    rowVector.add(obj.shortValue());
+                                } else if (obj.isFloat()) {
+                                    rowVector.add(obj.floatValue());
                                 } else {
                                     rowVector.add(obj);
                                 }

@@ -1,11 +1,9 @@
 package com.microsoft.azure.kusto.data;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -57,6 +55,8 @@ public class ResultSetTest {
         long l = 100000000000L;
         double d = 1.1d;
         short s1 = 10;
+        float f1 = 15.0f;
+        BigDecimal bigDecimal = new BigDecimal("10.0003214134245341414141314134134101");
         String durationAsKustoString = LocalTime.MIDNIGHT.plus(duration).toString();
         row1.add(true);
         row1.add(str);
@@ -66,9 +66,11 @@ public class ResultSetTest {
         row1.add(String.valueOf(uuid));
         row1.add(i);
         row1.add(l);
-        row1.add(BigDecimal.valueOf(d));
+        row1.add(bigDecimal);
         row1.add(durationAsKustoString);
         row1.add(s1);
+        row1.add(f1);
+        row1.add(d);
         rows.add(row1);
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" }, { \"ColumnName\": \"b\", " +
@@ -93,7 +95,7 @@ public class ResultSetTest {
         assert res.getLongObject(7) == null;
         assert res.getDoubleObject(8) == null;
         assert res.getTime(9) == null;
-        assert res.getShortObject(9) == null;
+        assert res.getShortObject(10) == null;
 
         res.next();
         Assertions.assertTrue(res.getBooleanObject(0));
@@ -109,11 +111,13 @@ public class ResultSetTest {
         Assertions.assertEquals(res.getUUID(5), uuid);
         Assertions.assertEquals(res.getIntegerObject(6), i);
         Assertions.assertEquals(res.getLongObject(7), l);
-        Assertions.assertEquals(res.getDoubleObject(8), d);
+        Assertions.assertEquals(res.getBigDecimal(8), bigDecimal);
 
         Assertions.assertEquals(res.getTime(9), Time.valueOf(durationAsKustoString));
         Assertions.assertEquals(res.getLocalTime(9), LocalTime.parse(durationAsKustoString));
         Assertions.assertEquals(res.getShort(10), s1);
+        Assertions.assertEquals(res.getBigDecimal(11), BigDecimal.valueOf(f1));
+        Assertions.assertEquals(res.getBigDecimal(12), BigDecimal.valueOf(d));
 
     }
 
