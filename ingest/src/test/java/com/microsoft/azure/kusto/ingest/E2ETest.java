@@ -66,8 +66,8 @@ class E2ETest {
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static Client queryClient;
     private static StreamingClient streamingClient;
-    private static final String databaseName = System.getenv("TEST_DATABASE");
-    private static final String appId = System.getenv("APP_ID");
+    private static final String databaseName = System.getProperty("TEST_DATABASE");
+    private static final String appId = System.getProperty("APP_ID");
     private static String appKey;
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
     private static String principalFqn;
