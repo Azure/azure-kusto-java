@@ -37,17 +37,6 @@ public class IngestClientFactory {
     }
 
     /**
-     * Creates a new queued ingest client.
-     * @param csb connection string builder for the data management endpoint
-     * @param client HTTP Client to use for service and storage calls
-     * @return a new queued ingest client
-     * @throws URISyntaxException if the connection string is invalid
-     */
-    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient client) throws URISyntaxException {
-        return new QueuedIngestClientImpl(csb, client);
-    }
-
-    /**
      * Creates a new streaming ingest client, with default http client properties.
      * @param csb connection string builder for the engine endpoint
      * @return a new streaming ingest client
@@ -189,14 +178,14 @@ public class IngestClientFactory {
      * Creates a new ManagedStreamingIngestClient from a DM connection string.
      * This method infers the engine connection string from the DM connection string.
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * @param dmConnectionStringBuilder dm connection string builder
+     * @param connectionStringBuilder dm connection string builder
      * @param httpClient HTTP Client to use for service and storage calls
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder,
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
             @Nullable CloseableHttpClient httpClient)
             throws URISyntaxException {
-        return ManagedStreamingIngestClient.fromDmConnectionString(dmConnectionStringBuilder, httpClient);
+        return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient);
     }
 }
