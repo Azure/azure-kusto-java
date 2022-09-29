@@ -50,7 +50,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
-    public static final String EXPECTED_SERVICE_TYPE = "DataManagement";
+
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties));
