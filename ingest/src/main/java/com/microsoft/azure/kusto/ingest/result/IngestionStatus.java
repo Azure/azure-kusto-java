@@ -54,6 +54,7 @@ public class IngestionStatus {
 
     public void setIngestionSourceId(UUID id) {
         ingestionSourceId = id;
+        ingestionInfo.put("IngestionSourceId", id);
     }
 
     /// <summary>
@@ -216,7 +217,7 @@ public class IngestionStatus {
         ingestionStatus.setIngestionSourceId(ingestionSourceId == null ? null : (UUID) ingestionSourceId);
 
         ingestionStatus.setDatabase((String) tableEntity.getProperty("Database"));
-        ingestionStatus.setTable((String)tableEntity.getProperty("Table"));
+        ingestionStatus.setTable((String) tableEntity.getProperty("Table"));
 
         Object operationId = tableEntity.getProperty("OperationId");
         ingestionStatus.setOperationId(ingestionSourceId == null ? null : (UUID) operationId);

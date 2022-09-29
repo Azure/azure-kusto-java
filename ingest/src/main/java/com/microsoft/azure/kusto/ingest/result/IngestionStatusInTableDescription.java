@@ -5,13 +5,20 @@ package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
 
 public class IngestionStatusInTableDescription implements Serializable {
+    @JsonProperty
     private String tableConnectionString;
+
+    @JsonProperty
     private String partitionKey;
+
+    @JsonProperty
     private String rowKey;
+
     @JsonIgnore
     private TableClient tableClient;
 

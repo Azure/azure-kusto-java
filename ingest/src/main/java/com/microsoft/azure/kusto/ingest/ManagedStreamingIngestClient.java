@@ -151,7 +151,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-                                        @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);

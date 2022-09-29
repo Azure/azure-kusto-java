@@ -51,7 +51,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
 
-
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties));
     }
