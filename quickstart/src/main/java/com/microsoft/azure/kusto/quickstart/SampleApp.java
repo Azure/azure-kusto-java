@@ -22,7 +22,7 @@ import java.util.UUID;
  * SourceType - represents the type of files used for ingestion
  */
 enum SourceType {
-    LOCAL_FILE_SOURCE("localFileSource"), BLOB_SOURCE("blobSource");
+    LOCAL_FILE_SOURCE("localFileSource"), BLOB_SOURCE("blobSource"), NO_SOURCE("nosource");
 
     private final String source;
 
