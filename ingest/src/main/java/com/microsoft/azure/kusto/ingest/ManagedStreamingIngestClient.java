@@ -117,6 +117,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @deprecated - This method is slated to be private. Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      * instead.
+     * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
+     * @param queryEndpointConnectionStringBuilder - Endpoint for querying data, does not include "ingest-"
+     * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
@@ -161,6 +164,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
     /**
      * @deprecated - This method is slated to be private. Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
+     * @param resourceManager ingestion resources manager
+     * @param storageClient - storage utilities
+     * @param streamingClient - the streaming client
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,
