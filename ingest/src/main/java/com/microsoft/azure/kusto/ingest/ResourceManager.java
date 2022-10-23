@@ -346,7 +346,7 @@ class ResourceManager implements Closeable {
             return resourcesList.get(roundRobinIdx);
         }
 
-        boolean empty(){
+        boolean empty() {
             return this.resourcesList.size() == 0;
         }
     }

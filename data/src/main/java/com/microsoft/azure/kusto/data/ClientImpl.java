@@ -211,7 +211,7 @@ class ClientImpl implements Client, StreamingClient {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
 
-        try{
+        try {
             validateEndpoint();
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
