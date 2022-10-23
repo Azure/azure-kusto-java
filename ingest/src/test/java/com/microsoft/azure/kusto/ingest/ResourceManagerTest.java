@@ -49,12 +49,13 @@ class ResourceManagerTest {
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceQueryError, IOException {
+    static void setUp() throws DataClientException, DataServiceException, JSONException {
+        // Using answer so that we get a new result set with reset iterator
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                .thenReturn(generateIngestionResourcesResult());
+                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
 
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
+                .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
         resourceManager = new ResourceManager(clientMock, null);
     }

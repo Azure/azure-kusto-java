@@ -200,7 +200,7 @@ class ResourceManager implements Closeable {
         } catch (Exception ignore) {
         }
 
-        if (resource == null || resource.resourcesList.size() == 0) {
+        if (resource == null || resource.empty()) {
             refreshIngestionResources();
 
             // If the write lock is locked, then the read will wait here.
@@ -213,7 +213,7 @@ class ResourceManager implements Closeable {
             } finally {
                 ingestionResourcesLock.readLock().unlock();
             }
-            if (resource == null || resource.resourcesList.size() == 0) {
+            if (resource == null || resource.empty()) {
                 throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
                         (resource == null ? "" : resource.resourceType));
             }
@@ -259,8 +259,8 @@ class ResourceManager implements Closeable {
                 CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
                         () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                 KustoOperationResult ingestionResourcesResults = retryExecute.apply();
-                if (ingestionResourcesResults != null && ingestionResourcesResults.hasNext()) {
-                    KustoResultSetTable table = ingestionResourcesResults.next();
+                if (ingestionResourcesResults != null) {
+                    KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
                     // Add the received values to the new ingestion resources
                     while (table.next()) {
                         String resourceTypeName = table.getString(0);
@@ -344,6 +344,10 @@ class ResourceManager implements Closeable {
         T nextResource() {
             roundRobinIdx = (roundRobinIdx + 1) % resourcesList.size();
             return resourcesList.get(roundRobinIdx);
+        }
+
+        boolean empty(){
+            return this.resourcesList.size() == 0;
         }
     }
 }

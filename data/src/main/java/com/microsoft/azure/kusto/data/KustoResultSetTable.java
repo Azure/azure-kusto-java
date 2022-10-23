@@ -143,11 +143,15 @@ public class KustoResultSetTable {
     }
 
     public boolean next() {
-        boolean hasNext = rowIterator.hasNext();
+        boolean hasNext = hasNext();
         if (hasNext) {
             currentRow = rowIterator.next();
         }
         return hasNext;
+    }
+
+    public boolean hasNext() {
+        return rowIterator.hasNext();
     }
 
     public List<List<Object>> getData() {
