@@ -14,6 +14,7 @@ import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStr
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.ParseException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.json.JSONException;
@@ -142,7 +143,7 @@ class ClientImpl implements Client, StreamingClient {
         }
         command = command.trim();
         CommandType commandType = determineCommandType(command);
-        long timeoutMs = determineTimeout(properties, commandType);
+        long timeoutMs = determineTimeout(properties, commandType, clusterUrl);
         // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
@@ -196,7 +197,7 @@ class ClientImpl implements Client, StreamingClient {
 
         Long timeoutMs = null;
         if (properties != null) {
-            timeoutMs = properties.getTimeoutInMilliSec();
+            timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
             Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
                 Map.Entry<String, Object> pair = iterator.next();
@@ -209,7 +210,8 @@ class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-        try {
+
+        try{
             validateEndpoint();
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
@@ -241,7 +243,7 @@ class ClientImpl implements Client, StreamingClient {
         }
         command = command.trim();
         CommandType commandType = determineCommandType(command);
-        long timeoutMs = determineTimeout(properties, commandType);
+        long timeoutMs = determineTimeout(properties, commandType, clusterUrl);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
         Map<String, String> headers;
@@ -260,8 +262,13 @@ class ClientImpl implements Client, StreamingClient {
         return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
-    private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
-        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
+        Long timeoutMs = null;
+        try {
+            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        } catch (ParseException e) {
+            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
+        }
         if (timeoutMs == null) {
             if (commandType == CommandType.ADMIN_COMMAND) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;

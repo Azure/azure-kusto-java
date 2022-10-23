@@ -36,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.text.ParseException;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -247,7 +246,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -273,7 +272,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
@@ -445,7 +444,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -468,7 +467,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, ParseException {
+    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);

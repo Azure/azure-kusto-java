@@ -147,7 +147,7 @@ public class ClientRequestProperties implements Serializable {
         parameters.clear();
     }
 
-    public Long getTimeoutInMilliSec() {
+    public Long getTimeoutInMilliSec() throws ParseException {
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         Long timeout = null;
         if (timeoutObj instanceof Long) {

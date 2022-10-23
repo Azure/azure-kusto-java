@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
 
-import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

@@ -5,9 +5,7 @@ package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
-import java.text.ParseException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -19,7 +17,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws ParseException {
+    public List<IngestionStatus> getIngestionStatusCollection() {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             TableClient table = descriptor.getTableClient();

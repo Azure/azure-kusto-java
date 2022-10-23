@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.models.TableEntity;
 
-import java.text.ParseException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
