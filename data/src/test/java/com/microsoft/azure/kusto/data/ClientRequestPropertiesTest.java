@@ -40,7 +40,7 @@ class ClientRequestPropertiesTest {
         props.setOption("b", "hello");
         ObjectMapper objectMapper = Utils.getObjectMapper();
 
-        Assertions.assertEquals(objectMapper.readTree("{\"Options\": {\"a\":1, \"b\":\"hello\"}}").toString(), props.toString());
+        Assertions.assertEquals(objectMapper.readTree("{\"Options\":{\"a\":1,\"b\":\"hello\"},\"Parameters\":{}}").toString(), props.toString());
     }
 
     @Test
