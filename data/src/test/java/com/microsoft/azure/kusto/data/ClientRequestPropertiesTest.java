@@ -48,6 +48,7 @@ class ClientRequestPropertiesTest {
     void stringToProperties() throws JsonProcessingException {
         String properties = "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
+
         assert crp != null;
         assert crp.toJson().get("Options").get("servertimeout").asText().equals("01:25:11.111");
         assert crp.getTimeoutInMilliSec() != null;
