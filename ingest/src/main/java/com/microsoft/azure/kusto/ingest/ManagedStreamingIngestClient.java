@@ -17,7 +17,6 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,13 +280,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
                             && e.getCause().getCause() != null
                             && e.getCause().getCause() instanceof DataWebException) {
                         DataWebException webException = (DataWebException) e.getCause().getCause();
-                        try {
-                            OneApiError oneApiError = webException.getApiError();
-                            if (oneApiError.isPermanent()) {
-                                throw e;
-                            }
-                        } catch (JSONException je) {
-                            log.info("Failed to parse json in exception, continuing.", je);
+                        OneApiError oneApiError = webException.getApiError();
+                        if (oneApiError.isPermanent()) {
+                            throw e;
                         }
                     }
 
