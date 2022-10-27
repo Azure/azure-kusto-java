@@ -4,6 +4,9 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -21,8 +24,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -77,6 +78,7 @@ class E2ETest {
     private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
+    private ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
     public static void setUp() throws IOException {
@@ -226,16 +228,18 @@ class E2ETest {
 
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
-                    JSONArray jsonArray = new JSONArray(result);
-                    JSONObject primaryResult = null;
-                    for (Object o : jsonArray) {
-                        if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
-                            primaryResult = new JSONObject(o.toString());
+                    JsonNode jsonNode = objectMapper.readTree(result);
+                    ArrayNode jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
+                    JsonNode primaryResult = null;
+                    Assertions.assertNotNull(jsonArray, "JsonArray cant be null since we need to retrieve primary result values out of it. ");
+                    for (JsonNode o : jsonArray) {
+                        if (o != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
+                            primaryResult = objectMapper.readTree(o.toString());
                             break;
                         }
                     }
-                    assertNotNull(primaryResult);
-                    actualRowsCount = (Integer) ((JSONArray) ((JSONArray) primaryResult.get("Rows")).get(0)).get(0) - currentCount;
+                    Assertions.assertNotNull(primaryResult, "Primary result cant be null since we need the row count");
+                    actualRowsCount = (primaryResult.get("Rows")).get(0).get(0).asInt() - currentCount;
                 } else {
                     KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
                     KustoResultSetTable mainTableResult = result.getPrimaryResults();

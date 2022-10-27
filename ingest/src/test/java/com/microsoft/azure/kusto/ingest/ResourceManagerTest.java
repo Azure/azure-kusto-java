@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
@@ -14,7 +15,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
-import org.json.JSONException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class ResourceManagerTest {
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException, JSONException {
+    static void setUp() throws DataClientException, DataServiceException {
         // Using answer so that we get a new result set with reset iterator
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
@@ -130,7 +130,8 @@ class ResourceManagerTest {
                 resourceManager.getSuccessfulQueue().getEndpoint());
     }
 
-    static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionResourcesResult() throws KustoServiceQueryError, IOException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1_RES.getQueue().getQueueUrl() + QUEUE_1_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2_RES.getQueue().getQueueUrl() + QUEUE_2_RES.getSas()))));
@@ -139,7 +140,7 @@ class ResourceManagerTest {
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1_RES.getContainer().getBlobContainerUrl() + STORAGE_1_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2_RES.getContainer().getBlobContainerUrl() + STORAGE_2_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE_RES.getTable().getTableEndpoint() + "?sas"))));
-        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
+        String listAsJson = objectMapper.writeValueAsString(valuesList);
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
                 "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
                 "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
@@ -148,10 +149,11 @@ class ResourceManagerTest {
         return new KustoOperationResult(response, "v1");
     }
 
-    static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionAuthTokenResult() throws KustoServiceQueryError, IOException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
-        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
+        String listAsJson = objectMapper.writeValueAsString(valuesList);
 
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 +

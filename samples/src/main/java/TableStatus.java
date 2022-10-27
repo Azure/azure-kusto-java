@@ -3,6 +3,7 @@
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -46,7 +47,7 @@ public class TableStatus {
                 statuses = ingestionResult.getIngestionStatusCollection();
             }
 
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = Utils.getObjectMapper();
             JavaTimeModule module = new JavaTimeModule();
             module.addSerializer(Instant.class, new InstantSerializerWithMilliSecondPrecision());
             objectMapper.registerModule(module);

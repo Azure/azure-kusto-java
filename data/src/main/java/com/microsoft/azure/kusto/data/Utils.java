@@ -3,6 +3,14 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
 
@@ -23,8 +31,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,9 +51,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
-class Utils {
+public class Utils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to loose precision while auto deserialization to
+    // double value
+    public static ObjectMapper getObjectMapper() {
+        return JsonMapper.builder().addModule(new JavaTimeModule()).build().configure(
+                DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
+                        JsonNodeFactory.withExactBigDecimals(true));
+    }
 
     private Utils() {
         // Hide constructor, as this is a static utility class
@@ -82,7 +96,7 @@ class Utils {
             }
         } catch (SocketTimeoutException e) {
             throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
-        } catch (JSONException | IOException e) {
+        } catch (IOException e) {
             throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
         }
         return null;
@@ -176,17 +190,18 @@ class Utils {
             boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
                 try {
-                    JSONObject jsonObject = new JSONObject(errorFromResponse);
+                    JsonNode jsonObject = getObjectMapper().readTree(errorFromResponse);
                     if (jsonObject.has("error")) {
                         formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
                         OneApiError apiError = ((DataWebException) formattedException).getApiError();
                         message = apiError.getDescription();
                         isPermanent = apiError.isPermanent();
                     } else if (jsonObject.has("message")) {
-                        message = jsonObject.getString("message");
+                        message = jsonObject.get("message").asText();
                     }
-                } catch (JSONException ex) {
+                } catch (JsonProcessingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
+                    LOGGER.debug("json processing error happened while parsing errorFromResponse {} {}" + e.getMessage(), e);
                 }
             } else {
                 message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());

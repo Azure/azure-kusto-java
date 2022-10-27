@@ -1,7 +1,11 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.UriUtils;
 
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
@@ -11,7 +15,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONObject;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -126,19 +129,22 @@ public class CloudInfo {
         }
     }
 
-    private static CloudInfo parseCloudInfo(String content) {
-        JSONObject jsonObject = new JSONObject(content);
-        JSONObject innerObject = jsonObject.optJSONObject("AzureAD");
+    private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
+        JsonNode jsonObject = objectMapper.readTree(content);
+        JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {
             return DEFAULT_CLOUD;
+        } else {
+            return new CloudInfo(
+                    innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
+                    innerObject.has("LoginEndpoint") ? innerObject.get("LoginEndpoint").asText() : "",
+                    innerObject.has("KustoClientAppId") ? innerObject.get("KustoClientAppId").asText() : "",
+                    innerObject.has("KustoClientRedirectUri") ? innerObject.get("KustoClientRedirectUri").asText() : "",
+                    innerObject.has("KustoServiceResourceId") ? innerObject.get("KustoServiceResourceId").asText() : "",
+                    innerObject.has("FirstPartyAuthorityUrl") ? innerObject.get("FirstPartyAuthorityUrl").asText() : "");
         }
-        return new CloudInfo(
-                innerObject.getBoolean("LoginMfaRequired"),
-                innerObject.getString("LoginEndpoint"),
-                innerObject.getString("KustoClientAppId"),
-                innerObject.getString("KustoClientRedirectUri"),
-                innerObject.getString("KustoServiceResourceId"),
-                innerObject.getString("FirstPartyAuthorityUrl"));
+
     }
 
     @Override

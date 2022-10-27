@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>3.2.0</revision> <!-- CHANGE THIS and in quickstart's pom to adjust project version-->
+        <revision>3.3.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <!-- Use 1.0.6 for fasterxml v 2.12.x (good for databricks runtime 2.10.x) -->
@@ -46,7 +46,6 @@
         <msal4j.version>1.12.0</msal4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.15</httpcore.version>
-        <json.version>20201115</json.version>
         <fasterxml.jackson.core.version>2.13.3</fasterxml.jackson.core.version>
         <reactor-core.version>3.4.19</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>

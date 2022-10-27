@@ -132,7 +132,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                 tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
             }
 
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
             azureStorageClient.postMessageToQueue(
