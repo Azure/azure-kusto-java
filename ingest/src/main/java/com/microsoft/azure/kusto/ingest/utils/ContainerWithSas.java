@@ -7,7 +7,6 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import java.net.URISyntaxException;
 
-
 public class ContainerWithSas {
     private final String sas;
     private final BlobContainerClient container;

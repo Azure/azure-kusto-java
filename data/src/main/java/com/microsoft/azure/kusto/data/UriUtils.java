@@ -62,7 +62,7 @@ public class UriUtils {
     public static String[] getSasAndEndpointFromResourceURL(String url) throws URISyntaxException {
         String[] parts = url.split("\\?");
 
-        if (parts.length != 2){
+        if (parts.length != 2) {
             throw new URISyntaxException(url, "URL is missing the required SAS query");
         }
         return parts;
