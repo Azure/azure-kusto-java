@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
@@ -16,8 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -44,6 +44,8 @@ public class ClientImpl implements Client, StreamingClient {
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
     private boolean endpointValidated = false;
+
+    private ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -308,25 +310,17 @@ public class ClientImpl implements Client, StreamingClient {
         return headers;
     }
 
-    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint)
-            throws DataClientException {
-        String jsonPayload;
-        try {
-            JSONObject json = new JSONObject()
-                    .put("db", database)
-                    .put("csl", command);
+    private String generateCommandPayload(String database, String command, ClientRequestProperties properties, String clusterEndpoint) {
 
-            if (properties != null) {
-                json.put("properties", properties.toString());
-            }
+        ObjectNode json = objectMapper.createObjectNode()
+                .put("db", database)
+                .put("csl", command);
 
-            jsonPayload = json.toString();
-        } catch (JSONException e) {
-            throw new DataClientException(clusterEndpoint,
-                    String.format(clusterEndpoint, "Error executing command '%s' in database '%s'. Setting up request payload failed.", command, database), e);
+        if (properties != null) {
+            json.put("properties", properties.toString());
         }
 
-        return jsonPayload;
+        return json.toString();
     }
 
     private void addCommandHeaders(Map<String, String> headers) {

@@ -1,58 +1,63 @@
 package com.microsoft.azure.kusto.data;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 
 public class KustoDateTimeTest {
+
     @Test
     void KustoResultSet() throws Exception {
-        JSONArray rows = new JSONArray();
-        JSONArray row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.1Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.12Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.123Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.1234Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.12345Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.123456Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.1234567Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.12345678Z"));
-        rows.put(row);
-        row = new JSONArray();
-        row.put(Instant.parse("2022-05-17T00:00:00.123456789Z"));
-        rows.put(row);
+        ObjectMapper mapper = Utils.getObjectMapper();
+        DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
+        ArrayNode rows = mapper.createArrayNode();
+        ArrayNode row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.1Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.12Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.123Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.1234Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.12345Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.123456Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.1234567Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.12345678Z").toString());
+        rows.add(row);
+        row = mapper.createArrayNode();
+        row.add(Instant.parse("2022-05-17T00:00:00.123456789Z").toString());
+        rows.add(row);
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"datetime\" } ]";
-        KustoResultSetTable res = new KustoResultSetTable(new JSONObject("{\"TableName\":\"Table_0\"," +
+        KustoResultSetTable res = new KustoResultSetTable(mapper.createArrayNode().add("{\"TableName\":\"Table_0\"," +
                 "\"Columns\":" + columns + ",\"Rows\":" +
-                rows.toString() + "}"));
+                rows + "}"));
 
         Integer rowNum = 0;
         while (res.next()) {
             Assertions.assertEquals(
-                    LocalDateTime.ofInstant((Instant) ((JSONArray) rows.get(rowNum)).get(0), ZoneOffset.UTC),
+                    LocalDateTime.parse(rows.get(rowNum).get(0).toString(), kustoDateTimeFormatter),
                     res.getKustoDateTime(0));
             rowNum++;
         }

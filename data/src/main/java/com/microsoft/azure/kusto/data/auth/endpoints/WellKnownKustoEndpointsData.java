@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.Utils;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class WellKnownKustoEndpointsData {
     private static WellKnownKustoEndpointsData readInstance() {
         try {
             // Beautiful !
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = Utils.getObjectMapper();
             try (InputStream resourceAsStream = WellKnownKustoEndpointsData.class.getResourceAsStream(
                     "/WellKnownKustoEndpoints.json")) {
                 return objectMapper.readValue(resourceAsStream, WellKnownKustoEndpointsData.class);

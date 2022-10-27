@@ -308,7 +308,7 @@ public class SampleApp {
     private static ConfigJson loadConfigs() {
         File configFile = new File(".\\" + SampleApp.configFileName);
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
             mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
             return mapper.readValue(configFile, ConfigJson.class);
 
