@@ -6,12 +6,10 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.*;
@@ -60,7 +58,7 @@ public class Utils {
     // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to loose precision while auto deserialization to
     // double value
     public static ObjectMapper getObjectMapper() {
-        return JsonMapper.builder().addModule(new JavaTimeModule()).addModule(new Jdk8Module()).build().configure(
+        return JsonMapper.builder().addModule(new JavaTimeModule()).build().configure(
                 DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
                         JsonNodeFactory.withExactBigDecimals(true));
     }
