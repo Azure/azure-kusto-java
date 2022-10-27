@@ -14,10 +14,6 @@ public class IngestionClientException extends Exception {
         super(message);
     }
 
-    public IngestionClientException(String message, Exception exception) {
-        super(message, exception);
-    }
-
     public IngestionClientException(String message, Throwable throwable) {
         super(message, throwable);
     }

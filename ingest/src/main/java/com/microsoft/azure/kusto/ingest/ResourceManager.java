@@ -29,6 +29,7 @@ import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -222,7 +223,7 @@ class ResourceManager implements Closeable {
         return resource.nextResource();
     }
 
-    private void addIngestionResource(String resourceTypeName, String storageUrl) {
+    private void addIngestionResource(String resourceTypeName, String storageUrl) throws URISyntaxException {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         switch (resourceType) {
             case TEMP_STORAGE:
