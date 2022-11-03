@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -44,7 +45,7 @@ public class TableStatus {
                 statuses = ingestionResult.getIngestionStatusCollection();
             }
 
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = Utils.getObjectMapper();
             String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
             System.out.println(resultAsJson);
         } catch (Exception e) {
