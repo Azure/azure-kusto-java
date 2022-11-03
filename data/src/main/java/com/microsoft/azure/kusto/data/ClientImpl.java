@@ -16,16 +16,18 @@ import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStr
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.ParseException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public class ClientImpl implements Client, StreamingClient {
+class ClientImpl implements Client, StreamingClient {
     private static final String ADMIN_COMMANDS_PREFIX = ".";
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
@@ -43,6 +45,7 @@ public class ClientImpl implements Client, StreamingClient {
     private final String applicationNameForTracing;
     private final String userNameForTracing;
     private final CloseableHttpClient httpClient;
+    private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
 
     private ObjectMapper objectMapper = Utils.getObjectMapper();
@@ -52,10 +55,11 @@ public class ClientImpl implements Client, StreamingClient {
     }
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
-        this(csb, HttpClientFactory.getInstance().create(properties));
+        this(csb, HttpClientFactory.create(properties), false);
     }
 
-    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+    // Accepting a CloseableHttpClient so that we can create InputStream from response
+    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean leaveHttpClientOpen) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
@@ -91,6 +95,7 @@ public class ClientImpl implements Client, StreamingClient {
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
         this.httpClient = httpClient;
+        this.leaveHttpClientOpen = leaveHttpClientOpen;
     }
 
     @Override
@@ -140,7 +145,7 @@ public class ClientImpl implements Client, StreamingClient {
         }
         command = command.trim();
         CommandType commandType = determineCommandType(command);
-        long timeoutMs = determineTimeout(properties, commandType);
+        long timeoutMs = determineTimeout(properties, commandType, clusterUrl);
         // TODO save the uri once - no need to format everytime
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
@@ -194,7 +199,7 @@ public class ClientImpl implements Client, StreamingClient {
 
         Long timeoutMs = null;
         if (properties != null) {
-            timeoutMs = properties.getTimeoutInMilliSec();
+            timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
             Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
             while (iterator.hasNext()) {
                 Map.Entry<String, Object> pair = iterator.next();
@@ -207,6 +212,7 @@ public class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
+
         try {
             validateEndpoint();
             String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
@@ -239,10 +245,10 @@ public class ClientImpl implements Client, StreamingClient {
         }
         command = command.trim();
         CommandType commandType = determineCommandType(command);
-        long timeoutMs = determineTimeout(properties, commandType);
+        long timeoutMs = determineTimeout(properties, commandType, clusterUrl);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
-        Map<String, String> headers = null;
+        Map<String, String> headers;
         headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreaming",
                 commandType.getActivityTypeSuffix());
 
@@ -258,8 +264,13 @@ public class ClientImpl implements Client, StreamingClient {
         return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
-    private long determineTimeout(ClientRequestProperties properties, CommandType commandType) {
-        Long timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
+        Long timeoutMs = null;
+        try {
+            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        } catch (ParseException e) {
+            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
+        }
         if (timeoutMs == null) {
             if (commandType == CommandType.ADMIN_COMMAND) {
                 timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
@@ -330,5 +341,12 @@ public class ClientImpl implements Client, StreamingClient {
 
     public String getClusterUrl() {
         return clusterUrl;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (!leaveHttpClientOpen) {
+            httpClient.close();
+        }
     }
 }

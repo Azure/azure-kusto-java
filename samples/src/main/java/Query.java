@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import com.microsoft.azure.kusto.data.ClientImpl;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -28,7 +29,7 @@ public class Query {
                     .maxConnectionsTotal(40)
                     .build();
 
-            ClientImpl client = new ClientImpl(csb, properties);
+            Client client = ClientFactory.createClient(csb, properties);
 
             KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
