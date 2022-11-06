@@ -143,9 +143,8 @@ public class IngestionStatus {
 
     public String errorCodeString;
 
-    /// <summary>
-    /// In case of a failure - indicates the failure's error code. TODO: Deprecate next major version
-    /// </summary>
+    /** @deprecated This enum may be outdated compared to the error codes on the service. Use {@link #getErrorCode()} instead.
+     */
     public IngestionErrorCode errorCode;
 
     public String getErrorCode() {

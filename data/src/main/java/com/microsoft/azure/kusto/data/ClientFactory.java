@@ -4,7 +4,8 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 
 import java.net.URISyntaxException;
 

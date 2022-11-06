@@ -22,6 +22,7 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jetbrains.annotations.Nullable;

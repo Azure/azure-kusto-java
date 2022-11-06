@@ -27,8 +27,8 @@ import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.hc.core5.net.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

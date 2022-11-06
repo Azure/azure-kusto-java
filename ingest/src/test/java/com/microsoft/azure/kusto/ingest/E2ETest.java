@@ -11,6 +11,7 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
@@ -24,7 +25,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.core5.http.ParseException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -429,7 +429,7 @@ class E2ETest {
     }
 
     @Test
-    void testParameterizedQuery() throws DataServiceException, DataClientException, ParseException {
+    void testParameterizedQuery() throws DataServiceException, DataClientException, KustoParseException {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);

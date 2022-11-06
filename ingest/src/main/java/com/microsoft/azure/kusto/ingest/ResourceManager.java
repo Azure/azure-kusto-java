@@ -22,7 +22,8 @@ import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.Retry;
 import io.vavr.CheckedFunction0;
-import org.apache.http.impl.client.CloseableHttpClient;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;

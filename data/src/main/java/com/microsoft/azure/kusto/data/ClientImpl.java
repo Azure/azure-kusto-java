@@ -13,13 +13,12 @@ import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
+import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.http.ParseException;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.net.URIBuilder;
 
 import java.io.IOException;
@@ -271,7 +270,7 @@ class ClientImpl implements Client, StreamingClient {
         Long timeoutMs = null;
         try {
             timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
-        } catch (ParseException e) {
+        } catch (KustoParseException e) {
             throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
         }
         if (timeoutMs == null) {

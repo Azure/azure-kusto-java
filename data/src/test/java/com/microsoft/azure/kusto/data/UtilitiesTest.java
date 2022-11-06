@@ -2,9 +2,9 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.ProtocolVersion;
 import org.apache.hc.core5.http.message.BasicClassicHttpResponse;
 import org.apache.hc.core5.http.message.BasicHttpResponse;
@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 class UtilitiesTest {
     @Test
     @DisplayName("Convert millis to .Net timespan")
-    void convertMillisToTimespan() throws ParseException {
+    void convertMillisToTimespan() throws KustoParseException {
         Long timeout = TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2); // 40 minutes 2 seconds
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         clientRequestProperties.setTimeoutInMilliSec(timeout);

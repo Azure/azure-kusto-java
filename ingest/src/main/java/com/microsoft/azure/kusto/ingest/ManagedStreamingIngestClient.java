@@ -17,7 +17,8 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,83 +52,16 @@ public class ManagedStreamingIngestClient implements IngestClient {
     private final ExponentialRetry exponentialRetryTemplate;
 
     /**
-     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
-     * Creates a new ManagedStreamingIngestClient from a DM connection string, with default http client properties.
-     * This method infers the engine connection string from the DM connection string.
-     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * @param dmConnectionString dm connection string
-     * @return a new ManagedStreamingIngestClient
-     * @throws URISyntaxException if the connection string is invalid
-     */
-    public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
-        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null);
-    }
-
-    /**
-     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
-     * Creates a new ManagedStreamingIngestClient from a DM connection string.
-     * This method infers the engine connection string from the DM connection string.
-     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * @param dmConnectionString dm connection string
-     * @param properties additional properties to configure the http client
-     * @return a new ManagedStreamingIngestClient
-     * @throws URISyntaxException if the connection string is invalid
-     */
-    public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties)
-            throws URISyntaxException {
-        ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
-        engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
-    }
-
-    /**
-     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
-     * Creates a new ManagedStreamingIngestClient from an engine connection string, with default http client properties.
-     * This method infers the DM connection string from the engine connection string.
-     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * @param engineConnectionString engine connection string
-     * @return a new ManagedStreamingIngestClient
-     * @throws URISyntaxException if the connection string is invalid
-     */
-    public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
-        return fromEngineConnectionString(engineConnectionString, null);
-    }
-
-    /**
-     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
-     * Creates a new ManagedStreamingIngestClient from an engine connection string.
-     * This method infers the DM connection string from the engine connection string.
-     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * @param engineConnectionString engine connection string
-     * @param properties additional properties to configure the http client
-     * @return a new ManagedStreamingIngestClient
-     * @throws URISyntaxException if the connection string is invalid
-     */
-    public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties)
-            throws URISyntaxException {
-        ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
-        dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
-    }
-
-    /**
-     * @deprecated - This method is slated to be private. Use
-     * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
-     * instead.
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
      * @param queryEndpointConnectionStringBuilder - Endpoint for querying data, does not include "ingest-"
      * @throws URISyntaxException if the connection string is invalid
      */
-    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+    ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
-        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
+        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, (HttpClientProperties)null);
     }
 
     /**
-     * @deprecated - This method is slated to be private.  Use
-     * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, HttpClientProperties)} instead.
      * This constructor should only be used for advanced cases. If your endpoints are standard, or you do not know, use
      * {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)})} instead.
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
@@ -135,12 +69,21 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @param properties - Additional properties to configure the http client
      * @throws URISyntaxException if the connection string is invalid
      */
-    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+    ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder,
             @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+            @Nullable CloseableHttpClient cleint) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, cleint);
+        streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, cleint);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
@@ -152,29 +95,14 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+    ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable CloseableHttpClient client) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient);
-        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, client);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, client);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    /**
-     * @deprecated - This method is slated to be private. Use
-     * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
-     * @param resourceManager ingestion resources manager
-     * @param storageClient - storage utilities
-     * @param streamingClient - the streaming client
-     */
-    public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
-        log.info("Creating a new ManagedStreamingIngestClient from raw parts");
-        queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
-        streamingIngestClient = new StreamingIngestClient(streamingClient);
-        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
-    }
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,

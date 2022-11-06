@@ -3,7 +3,10 @@ package com.microsoft.azure.kusto.data.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.data.UriUtils;
+import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import org.apache.hc.client5.http.classic.HttpClient;
 import org.apache.hc.client5.http.classic.methods.HttpGet;

@@ -1,13 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.net.URIBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.lang.invoke.MethodHandles;
-import java.net.URISyntaxException;
 
 public abstract class IngestClientBase {
     static final String INGEST_PREFIX = "ingest-";
