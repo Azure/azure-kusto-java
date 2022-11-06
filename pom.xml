@@ -50,7 +50,7 @@
         <azure-storage.version>8.6.6</azure-storage.version>
         <azure-identity.version>1.5.2</azure-identity.version> <!-- Do not use 1.4.1, as it has a showstopping bug for us. Any version that includes https://github.com/Azure/azure-sdk-for-java/pull/25580 is OK -->
         <azure-core.version>1.21.0</azure-core.version>
-        <reactor-core.version>3.4.10</reactor-core.version>
+        <reactor-core.version>3.4.24</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <resilience4j.version>1.7.1</resilience4j.version>
         <io.vavr.version>0.10.4</io.vavr.version>
