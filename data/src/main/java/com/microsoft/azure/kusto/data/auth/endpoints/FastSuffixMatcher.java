@@ -69,6 +69,7 @@ public class FastSuffixMatcher {
 
     /**
      * Matches an input string to the list of match rules, and returns MatchResult accordingly.
+     * @param candidate - a string to match
      */
     public MatchResult match(String candidate) {
         Ensure.argIsNotNull(candidate, "candidate");

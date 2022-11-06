@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
+import java.io.File;
 import java.net.URISyntaxException;
 
 public class UriUtils {
@@ -43,5 +44,27 @@ public class UriUtils {
         }
 
         return false;
+    }
+
+    public static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf(File.separatorChar);
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
+    }
+
+    public static String[] getSasAndEndpointFromResourceURL(String url) throws URISyntaxException {
+        String[] parts = url.split("\\?");
+
+        if (parts.length != 2) {
+            throw new URISyntaxException(url, "URL is missing the required SAS query");
+        }
+        return parts;
     }
 }
