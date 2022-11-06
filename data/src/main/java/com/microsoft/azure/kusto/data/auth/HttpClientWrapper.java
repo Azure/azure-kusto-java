@@ -43,7 +43,7 @@ import reactor.core.publisher.Mono;
 public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpClient {
     private final HttpClient httpClient;
 
-    HttpClientWrapper(HttpClient httpClient) {
+    public HttpClientWrapper(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 

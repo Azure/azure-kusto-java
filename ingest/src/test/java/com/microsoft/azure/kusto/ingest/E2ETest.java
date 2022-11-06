@@ -3,10 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.ClientImpl;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -19,13 +19,12 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.ParseException;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -67,7 +66,8 @@ class E2ETest {
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
-    private static ClientImpl queryClient;
+    private static Client queryClient;
+    private static StreamingClient streamingClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
     private static String appKey;
@@ -79,6 +79,7 @@ class E2ETest {
     private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
+    private ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
     public static void setUp() throws IOException {
@@ -108,7 +109,8 @@ class E2ETest {
                 appKey, tenantId);
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
-            queryClient = new ClientImpl(engineCsb);
+            queryClient = ClientFactory.createClient(engineCsb);
+            streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
@@ -227,16 +229,18 @@ class E2ETest {
 
                 if (checkViaJson) {
                     String result = queryClient.executeToJsonResult(databaseName, String.format("%s | count", tableName));
-                    JSONArray jsonArray = new JSONArray(result);
-                    JSONObject primaryResult = null;
-                    for (Object o : jsonArray) {
-                        if (o.toString() != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
-                            primaryResult = new JSONObject(o.toString());
+                    JsonNode jsonNode = objectMapper.readTree(result);
+                    ArrayNode jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
+                    JsonNode primaryResult = null;
+                    Assertions.assertNotNull(jsonArray, "JsonArray cant be null since we need to retrieve primary result values out of it. ");
+                    for (JsonNode o : jsonArray) {
+                        if (o != null && o.toString().matches(".*\"TableKind\"\\s*:\\s*\"PrimaryResult\".*")) {
+                            primaryResult = objectMapper.readTree(o.toString());
                             break;
                         }
                     }
-                    assertNotNull(primaryResult);
-                    actualRowsCount = (Integer) ((JSONArray) ((JSONArray) primaryResult.get("Rows")).get(0)).get(0) - currentCount;
+                    Assertions.assertNotNull(primaryResult, "Primary result cant be null since we need the row count");
+                    actualRowsCount = (primaryResult.get("Rows")).get(0).get(0).asInt() - currentCount;
                 } else {
                     KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
                     KustoResultSetTable mainTableResult = result.getPrimaryResults();
@@ -262,7 +266,7 @@ class E2ETest {
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
-    private boolean isDatabasePrincipal(ClientImpl localQueryClient) {
+    private boolean isDatabasePrincipal(Client localQueryClient) {
         KustoOperationResult result = null;
         boolean found = false;
         try {
@@ -349,7 +353,7 @@ class E2ETest {
     private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
         try {
             IngestClientFactory.createStreamingIngestClient(engineCsb);
-            ClientImpl localEngineClient = new ClientImpl(engineCsb);
+            Client localEngineClient = ClientFactory.createClient(engineCsb);
             assertTrue(isDatabasePrincipal(localEngineClient));
             assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
         } catch (URISyntaxException ex) {
@@ -494,7 +498,7 @@ class E2ETest {
         stopWatch.reset();
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
-        try (InputStream is = queryClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
+        try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
                 BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
@@ -523,7 +527,7 @@ class E2ETest {
                 appKey, tenantId);
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
-        ClientImpl clientImpl = new ClientImpl(engineCsb, httpClientSpy);
+        Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);
 
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 1000";

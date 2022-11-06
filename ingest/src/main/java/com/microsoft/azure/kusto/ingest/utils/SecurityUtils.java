@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.ingest;
+package com.microsoft.azure.kusto.ingest.utils;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
@@ -19,7 +19,7 @@ public class SecurityUtils {
         // Hide constructor as this is a Utils class
     }
 
-    static String removeSecretsFromUrl(String url) {
+    public static String removeSecretsFromUrl(String url) {
         return url.split("[?]", 2)[0].split("[;]", 2)[0];
     }
 

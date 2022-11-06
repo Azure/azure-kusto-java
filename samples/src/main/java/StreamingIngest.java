@@ -12,7 +12,6 @@ import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -51,7 +50,7 @@ public class StreamingIngest {
         }
     }
 
-    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException, StorageException {
+    static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
 
         // Create Stream from string and Ingest
@@ -84,7 +83,7 @@ public class StreamingIngest {
         System.out.println(status.toString());
     }
 
-    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+    static void ingestFromFile() throws IngestionClientException, IngestionServiceException, URISyntaxException {
         IngestionProperties ingestionProperties = new IngestionProperties(database, table);
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
         // Ingest CSV file

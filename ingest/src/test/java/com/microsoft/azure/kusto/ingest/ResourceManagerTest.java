@@ -6,12 +6,15 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import org.json.JSONException;
+import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,8 +24,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -39,16 +40,24 @@ class ResourceManagerTest {
     private static final String STATUS_TABLE = "statusTable";
     private static final String FAILED_QUEUE = "failedQueue";
     private static final String SUCCESS_QUEUE = "successQueue";
+    private static final QueueWithSas QUEUE_1_RES = TestUtils.queueWithSasFromQueueName(QUEUE_1);
+    private static final QueueWithSas QUEUE_2_RES = TestUtils.queueWithSasFromQueueName(QUEUE_2);
+    private static final ContainerWithSas STORAGE_1_RES = TestUtils.containerWithSasFromContainerName(STORAGE_1);
+    private static final ContainerWithSas STORAGE_2_RES = TestUtils.containerWithSasFromContainerName(STORAGE_2);
+    private static final TableWithSas STATUS_TABLE_RES = TestUtils.tableWithSasFromTableName(STATUS_TABLE);
+    private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
+    private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
 
     @BeforeAll
-    static void setUp() throws DataClientException, DataServiceException, JSONException, KustoServiceQueryError, IOException {
+    static void setUp() throws DataClientException, DataServiceException {
+        // Using answer so that we get a new result set with reset iterator
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                .thenReturn(generateIngestionResourcesResult());
+                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
 
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
+                .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
-        resourceManager = new ResourceManager(clientMock);
+        resourceManager = new ResourceManager(clientMock, null);
     }
 
     @AfterAll
@@ -62,34 +71,36 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_TempStorage_VerifyRoundRobin()
+    void GetIngestionResource_TempStorage_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<String> availableStorages = new ArrayList<>(Arrays.asList(STORAGE_1, STORAGE_2));
+        List<String> availableStorages = new ArrayList<>(Arrays.asList(
+                STORAGE_1_RES.getEndpoint(), STORAGE_2_RES.getEndpoint()));
 
-        String storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-        int lastIndex = availableStorages.indexOf(storage);
+        ContainerWithSas storage = resourceManager.getTempStorage();
+        int lastIndex = availableStorages.indexOf(storage.getEndpoint());
 
         for (int i = 0; i < 10; i++) {
-            storage = resourceManager.getIngestionResource(ResourceManager.ResourceType.TEMP_STORAGE);
-            int currIdx = availableStorages.indexOf(storage);
+            storage = resourceManager.getTempStorage();
+            int currIdx = availableStorages.indexOf(storage.getEndpoint());
             assertEquals((lastIndex + 1) % availableStorages.size(), currIdx);
             lastIndex = currIdx;
         }
     }
 
     @Test
-    void GetIngestionResource_AggregationQueue_VerifyRoundRobin()
+    void GetIngestionResource_AggregationQueue_VerifyRoundRubin()
             throws IngestionServiceException, IngestionClientException {
-        List<String> availableQueues = new ArrayList<>(Arrays.asList(QUEUE_1, QUEUE_2));
+        List<String> availableQueues = new ArrayList<>(Arrays.asList(
+                TestUtils.queueWithSasFromQueueName(QUEUE_1).getEndpoint(), TestUtils.queueWithSasFromQueueName(QUEUE_2).getEndpoint()));
 
-        String queue = resourceManager
-                .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-        int lastIndex = availableQueues.indexOf(queue);
+        QueueWithSas queue = resourceManager
+                .getQueue();
+        int lastIndex = availableQueues.indexOf(queue.getEndpoint());
 
         for (int i = 0; i < 10; i++) {
             queue = resourceManager
-                    .getIngestionResource(ResourceManager.ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-            int currIdx = availableQueues.indexOf(queue);
+                    .getQueue();
+            int currIdx = availableQueues.indexOf(queue.getEndpoint());
             assertEquals((lastIndex + 1) % availableQueues.size(), currIdx);
             lastIndex = currIdx;
         }
@@ -99,36 +110,37 @@ class ResourceManagerTest {
     void GetIngestionResource_StatusTable_ReturnCorrectTable()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                STATUS_TABLE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.INGESTIONS_STATUS_TABLE));
+                STATUS_TABLE_RES.getUri(),
+                resourceManager.getStatusTable().getUri());
     }
 
     @Test
     void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                FAILED_QUEUE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.FAILED_INGESTIONS_QUEUE));
+                FAILED_QUEUE_RES.getEndpoint(),
+                resourceManager.getFailedQueue().getEndpoint());
     }
 
     @Test
     void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
-                SUCCESS_QUEUE,
-                resourceManager.getIngestionResource(ResourceManager.ResourceType.SUCCESSFUL_INGESTIONS_QUEUE));
+                SUCCESS_QUEUE_RES.getEndpoint(),
+                resourceManager.getSuccessfulQueue().getEndpoint());
     }
 
-    static KustoOperationResult generateIngestionResourcesResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionResourcesResult() throws KustoServiceQueryError, IOException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
-        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1))));
-        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2))));
-        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE))));
-        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
+        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_1_RES.getQueue().getQueueUrl() + QUEUE_1_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUE_2_RES.getQueue().getQueueUrl() + QUEUE_2_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE_RES.getQueue().getQueueUrl() + FAILED_QUEUE_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE_RES.getQueue().getQueueUrl() + SUCCESS_QUEUE_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_1_RES.getContainer().getBlobContainerUrl() + STORAGE_1_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGE_2_RES.getContainer().getBlobContainerUrl() + STORAGE_2_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE_RES.getTable().getTableEndpoint() + "?sas"))));
+        String listAsJson = objectMapper.writeValueAsString(valuesList);
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
                 "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
                 "\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
@@ -137,10 +149,11 @@ class ResourceManagerTest {
         return new KustoOperationResult(response, "v1");
     }
 
-    static KustoOperationResult generateIngestionAuthTokenResult() throws JSONException, KustoServiceQueryError, IOException {
+    static KustoOperationResult generateIngestionAuthTokenResult() throws KustoServiceQueryError, IOException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
-        String listAsJson = new ObjectMapper().writeValueAsString(valuesList);
+        String listAsJson = objectMapper.writeValueAsString(valuesList);
 
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"AuthorizationContext\",\"DataType\":\"String\",\"ColumnType\":\"string\"}],\"Rows\":"
                 +

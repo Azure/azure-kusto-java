@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
@@ -22,7 +22,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static QueuedIngestClient createClient(ConnectionStringBuilder csb) throws URISyntaxException {
-        return createClient(csb, null);
+        return createClient(csb, (HttpClientProperties) null);
     }
 
     /**
@@ -155,7 +155,7 @@ public class IngestClientFactory {
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder)
             throws URISyntaxException {
-        return createManagedStreamingIngestClientFromDmCsb(dmConnectionStringBuilder, null);
+        return createManagedStreamingIngestClientFromDmCsb(dmConnectionStringBuilder, (HttpClientProperties) null);
     }
 
     /**
@@ -172,5 +172,20 @@ public class IngestClientFactory {
             @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         return ManagedStreamingIngestClient.fromDmConnectionString(dmConnectionStringBuilder, properties);
+    }
+
+    /**
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
+     * @param connectionStringBuilder dm connection string builder
+     * @param httpClient HTTP Client to use for service and storage calls
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable CloseableHttpClient httpClient)
+            throws URISyntaxException {
+        return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient);
     }
 }
