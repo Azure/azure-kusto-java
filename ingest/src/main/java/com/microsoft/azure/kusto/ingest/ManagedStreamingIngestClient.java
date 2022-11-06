@@ -58,7 +58,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      */
     ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
-        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, (HttpClientProperties)null);
+        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, (HttpClientProperties) null);
     }
 
     /**
@@ -102,7 +102,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, client);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
-
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,

@@ -579,8 +579,9 @@ class ManagedStreamingIngestClientTest {
 
     @Test
     void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto" +
-                ".windows.net"));
+        ManagedStreamingIngestClient client = IngestClientFactory
+                .createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto" +
+                        ".windows.net"));
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
