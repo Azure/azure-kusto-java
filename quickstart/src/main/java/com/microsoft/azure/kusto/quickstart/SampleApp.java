@@ -22,7 +22,7 @@ import java.util.UUID;
  * SourceType - represents the type of files used for ingestion
  */
 enum SourceType {
-    LOCAL_FILE_SOURCE("localFileSource"), BLOB_SOURCE("blobSource");
+    LOCAL_FILE_SOURCE("localFileSource"), BLOB_SOURCE("blobSource"), NO_SOURCE("nosource");
 
     private final String source;
 
@@ -522,6 +522,8 @@ public class SampleApp {
 
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
         // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
+        // Note: No need to add "nosource" option as in that case the "ingestData" flag will be set to false, and it will be imppossible to reach this code
+        // segemnt.
         switch (sourceType) {
             case LOCAL_FILE_SOURCE:
                 Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);
