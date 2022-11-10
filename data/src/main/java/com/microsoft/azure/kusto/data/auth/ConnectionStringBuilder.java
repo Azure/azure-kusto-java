@@ -66,38 +66,12 @@ public class ConnectionStringBuilder {
     }
 
     private void initProcessNameForTracing() {
-        long pid = ProcessHandle.current().pid();
-        try {
-            String processNameFromPID = getProcessNameFromPID(Long.toString(pid));
-            ProcessHandle.Info info = ProcessHandle.current().info();
-            Path fileName = Path.of(info.command().orElse("")).getFileName();
-            String userId = info.user().orElse(null);
-            this.processNameForTracing = fileName.toString();
-            this.userNameForTracing = userId;
-        } catch (IOException | InterruptedException ignore) {
+        this.processNameForTracing = System.getProperty("sun.java.command");
+        this.userNameForTracing = System.getProperty("user.name");
+        if (processNameForTracing != null) {
+            String[] p = processNameForTracing.split(" ")[0].split("\\.");
+            processNameForTracing = p[p.length - 1];
         }
-    }
-
-    // TODO delete
-    // This is for java 8 - in java 11 we get the running command and take file name
-    private static String getProcessNameFromPID(String pid) throws IOException, InterruptedException {
-        Process p = null;
-        p = Runtime.getRuntime().exec("tasklist");
-
-        StringBuffer sbInput = new StringBuffer();
-        BufferedReader brInput = new BufferedReader(new InputStreamReader(p.getInputStream()));
-        String line;
-        String foundLine = "UNKNOWN";
-            while ((line = brInput.readLine()) != null) {
-                if (line.contains(pid)){
-                    foundLine = line;
-                }
-                sbInput.append(line + "\n");
-            }
-
-        p.waitFor();
-        p.destroy();
-        return foundLine.substring(0, foundLine.indexOf(" "));
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
