@@ -81,5 +81,4 @@ public interface IngestClient extends Closeable {
      */
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
-
 }

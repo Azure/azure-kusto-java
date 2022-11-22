@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
+import java.io.File;
 import java.net.URISyntaxException;
 
 public class UriUtils {
@@ -22,5 +23,48 @@ public class UriUtils {
 
     public static String setPathForUri(String uri, String path) throws URISyntaxException {
         return setPathForUri(uri, path, false);
+    }
+
+    public static boolean isLocalAddress(String host) {
+        if (host.equals("localhost")
+                || host.equals("127.0.0.1")
+                || host.equals("::1")
+                || host.equals("[::1]")) {
+            return true;
+        }
+
+        if (host.startsWith("127.") && host.length() <= 15 && host.length() >= 9) {
+            for (int i = 0; i < host.length(); i++) {
+                char c = host.charAt(i);
+                if (c != '.' && (c < '0' || c > '9')) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    public static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+        int extensionPos = filename.lastIndexOf('.');
+        int lastDirSeparator = filename.lastIndexOf(File.separatorChar);
+        if (extensionPos == -1 || lastDirSeparator > extensionPos) {
+            return filename;
+        } else {
+            return filename.substring(0, extensionPos);
+        }
+    }
+
+    public static String[] getSasAndEndpointFromResourceURL(String url) throws URISyntaxException {
+        String[] parts = url.split("\\?");
+
+        if (parts.length != 2) {
+            throw new URISyntaxException(url, "URL is missing the required SAS query");
+        }
+        return parts;
     }
 }

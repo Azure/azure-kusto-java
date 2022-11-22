@@ -29,7 +29,7 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
                     System.getProperty("appId"),
                     System.getProperty("appKey"),
                     System.getProperty("appTenant"));
-ClientImpl client = new ClientImpl(csb);
+Client client = ClientFactory.createClient(csb);
 ```
 
 If you'd like to tweak the underlying HTTP client used to make the requests, build an HTTP client properties object
@@ -49,7 +49,7 @@ HttpClientProperties properties = HttpClientProperties.builder()
         .maxConnectionsTotal(40)
         .build();
 
-ClientImpl client = new ClientImpl(csb, properties);
+Client client = ClientFactory.createClient(csb, properties);
 ```
 
 2. Execute query

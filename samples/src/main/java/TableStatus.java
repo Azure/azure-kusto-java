@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -12,6 +14,7 @@ import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
+import java.time.Instant;
 import java.util.List;
 
 import static com.microsoft.azure.kusto.ingest.IngestionProperties.IngestionReportMethod.QUEUE_AND_TABLE;
@@ -44,8 +47,12 @@ public class TableStatus {
                 statuses = ingestionResult.getIngestionStatusCollection();
             }
 
-            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectMapper objectMapper = Utils.getObjectMapper();
+            JavaTimeModule module = new JavaTimeModule();
+            module.addSerializer(Instant.class, new InstantSerializerWithMilliSecondPrecision());
+            objectMapper.registerModule(module);
             String resultAsJson = objectMapper.writeValueAsString(statuses.get(0));
+
             System.out.println(resultAsJson);
         } catch (Exception e) {
             e.printStackTrace();

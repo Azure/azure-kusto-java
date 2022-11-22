@@ -3,12 +3,13 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.BlobInputStream;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -18,13 +19,6 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobInputStream;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,16 +39,11 @@ import java.sql.ResultSetMetaData;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.WRONG_ENDPOINT_MESSAGE;
-import static com.microsoft.azure.kusto.ingest.StreamingIngestClient.EXPECTED_SERVICE_TYPE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -257,7 +246,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_JsonNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
@@ -283,7 +272,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromStream_AvroNoMappingReference_IngestionSucceeds()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
@@ -349,27 +338,6 @@ class StreamingIngestClientTest {
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class));
-    }
-
-    @Test
-    void IngestFromFile_GivenStreamingIngestClientAndDmEndpoint_ThrowsIngestionClientException() throws Exception {
-        DataServiceException dataClientException = new DataServiceException("some cluster", "Error in post request. status 404",
-                new DataWebException("Error in post request", new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), 404, "Not found"))),
-                true);
-        doThrow(dataClientException).when(streamingClientMock).executeStreamingIngest(eq(ingestionProperties.getDatabaseName()),
-                eq(ingestionProperties.getTableName()), any(), isNull(), any(), isNull(), eq(false));
-        when(streamingClientMock.execute(Commands.VERSION_SHOW_COMMAND)).thenReturn(new KustoOperationResult(
-                "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"BuildVersion\",\"DataType\":\"String\"},{\"ColumnName\":\"BuildTime\",\"DataType\":\"DateTime\"},{\"ColumnName\":\"ServiceType\",\"DataType\":\"String\"},{\"ColumnName\":\"ProductVersion\",\"DataType\":\"String\"}],\"Rows\":[[\"1.0.0.0\",\"2000-01-01T00:00:00Z\",\"DataManagement\",\"PrivateBuild.yischoen.YISCHOEN-OP7070.2020-09-07 12-09-22\"]]}]}",
-                "v1"));
-
-        streamingIngestClient.setConnectionDataSource("https://ingest-testendpoint.dev.kusto.windows.net");
-        String path = resourcesDirectory + "testdata.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
-        String expectedMessage = String.format(WRONG_ENDPOINT_MESSAGE + ", which is likely '%s'.", "is '" + ENDPOINT_SERVICE_TYPE_DM + "'",
-                EXPECTED_SERVICE_TYPE,
-                "https://testendpoint.dev.kusto.windows.net");
-        Exception exception = assertThrows(IngestionClientException.class, () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
-        assertEquals(expectedMessage, exception.getMessage());
     }
 
     @Test
@@ -476,7 +444,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromFile_JsonNoMappingReference_IngestionSuccess()
-            throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+            throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -499,7 +467,7 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException, StorageException {
+    void IngestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -519,17 +487,15 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromBlob() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
-
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 1000);
+        when(blobProperties.getBlobSize()).thenReturn((long) 1000);
 
         BlobInputStream blobInputStream = mock(BlobInputStream.class);
         when(blobInputStream.read(any(byte[].class))).thenReturn(10).thenReturn(-1);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
@@ -631,19 +597,18 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Unexpected Storage error when ingesting a blob."));
+        assertTrue(ingestionClientException.getMessage().contains("Exception trying to read blob metadata"));
     }
 
     @Test
-    void IngestFromBlob_EmptyBlob_IngestClientException() throws Exception {
-        CloudBlockBlob cloudBlockBlob = mock(CloudBlockBlob.class);
+    void IngestFromBlob_EmptyBlob_IngestClientException() {
+        BlobClient cloudBlockBlob = mock(BlobClient.class);
         String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
 
         BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getLength()).thenReturn((long) 0);
+        when(blobProperties.getBlobSize()).thenReturn((long) 0);
 
-        doNothing().when(cloudBlockBlob).downloadAttributes();
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
 
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,

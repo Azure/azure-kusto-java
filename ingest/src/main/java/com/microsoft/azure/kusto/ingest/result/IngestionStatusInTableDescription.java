@@ -3,23 +3,31 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
+import com.azure.data.tables.TableClient;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.io.Serializable;
 
 public class IngestionStatusInTableDescription implements Serializable {
+    @JsonProperty
     private String tableConnectionString;
+
+    @JsonProperty
     private String partitionKey;
+
+    @JsonProperty
     private String rowKey;
 
-    public String getTableConnectionString() {
-        return tableConnectionString;
+    @JsonIgnore
+    private TableClient tableClient;
+
+    public String getPartitionKey() {
+        return partitionKey;
     }
 
     public void setTableConnectionString(String tableConnectionString) {
         this.tableConnectionString = tableConnectionString;
-    }
-
-    public String getPartitionKey() {
-        return partitionKey;
     }
 
     public void setPartitionKey(String partitionKey) {
@@ -32,5 +40,13 @@ public class IngestionStatusInTableDescription implements Serializable {
 
     public void setRowKey(String rowKey) {
         this.rowKey = rowKey;
+    }
+
+    public TableClient getTableClient() {
+        return tableClient;
+    }
+
+    public void setTableClient(TableClient tableClient) {
+        this.tableClient = tableClient;
     }
 }
