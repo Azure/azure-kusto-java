@@ -58,7 +58,7 @@ public class ConnectionStringBuilder {
     }
 
     private void initProcessNameForTracing() {
-        this.processNameForTracing = UriUtils.extractExecutedFileNameFromSystemProperties();
+        this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         this.userNameForTracing = System.getProperty("user.name");
     }
 

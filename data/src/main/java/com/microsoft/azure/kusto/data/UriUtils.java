@@ -68,8 +68,8 @@ public class UriUtils {
         return parts;
     }
 
-    public static String extractExecutedFileNameFromSystemProperties() {
-        String processNameForTracing = System.getProperty("sun.java.command");
+    public static String stripFileNameFromCommandLine(String cmdLine) {
+        String processNameForTracing = cmdLine;
 
         if (processNameForTracing != null) {
             String[] splitCommand = processNameForTracing.split(" ")[0].split("\\.");
