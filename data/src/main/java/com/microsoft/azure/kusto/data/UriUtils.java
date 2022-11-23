@@ -55,7 +55,7 @@ public class UriUtils {
         if (extensionPos == -1 || lastDirSeparator > extensionPos) {
             return filename;
         } else {
-            return filename.substring(0, extensionPos);
+            return filename.substring(lastDirSeparator + 1, extensionPos);
         }
     }
 
@@ -70,11 +70,16 @@ public class UriUtils {
 
     public static String extractExecutedFileNameFromSystemProperties() {
         String processNameForTracing = System.getProperty("sun.java.command");
+
         if (processNameForTracing != null) {
             String[] splitCommand = processNameForTracing.split(" ")[0].split("\\.");
             processNameForTracing = splitCommand[splitCommand.length - 1];
             if (processNameForTracing.equalsIgnoreCase("jar") && splitCommand.length > 1) {
                 processNameForTracing = splitCommand[splitCommand.length - 2];
+            }
+            int lastDirSeparator = processNameForTracing.lastIndexOf(File.separatorChar);
+            if (lastDirSeparator > 0) {
+                processNameForTracing = processNameForTracing.substring(lastDirSeparator + 1);
             }
         }
 

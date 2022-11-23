@@ -134,6 +134,18 @@ class UtilitiesTest {
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
     }
 
+    @Test
+    @DisplayName("Remove extension")
+    void removeExtensionFromFileName() {
+        Assertions.assertEquals("fileName", UriUtils.removeExtension("fileName.csv"));
+    }
+
+    @Test
+    @DisplayName("Assert get running file name doesn't throw")
+    void getRunningFileName() {
+        Assertions.assertDoesNotThrow(UriUtils::extractExecutedFileNameFromSystemProperties);
+    }
+
     @NotNull
     private BasicHttpResponse getBasicHttpResponse(int statusCode) {
         BasicHttpResponse basicHttpResponse = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), statusCode, "Some Error"));
