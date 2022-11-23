@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.microsoft.azure.kusto.data.UriUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.security.PrivateKey;
@@ -57,12 +58,8 @@ public class ConnectionStringBuilder {
     }
 
     private void initProcessNameForTracing() {
-        this.processNameForTracing = System.getProperty("sun.java.command");
+        this.processNameForTracing = UriUtils.extractExecutedFileNameFromSystemProperties();
         this.userNameForTracing = System.getProperty("user.name");
-        if (processNameForTracing != null) {
-            String[] p = processNameForTracing.split(" ")[0].split("\\.");
-            processNameForTracing = p[p.length - 1];
-        }
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {

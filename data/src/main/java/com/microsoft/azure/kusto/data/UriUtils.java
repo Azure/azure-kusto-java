@@ -67,4 +67,17 @@ public class UriUtils {
         }
         return parts;
     }
+
+    public static String extractExecutedFileNameFromSystemProperties() {
+        String processNameForTracing = System.getProperty("sun.java.command");
+        if (processNameForTracing != null) {
+            String[] splitCommand = processNameForTracing.split(" ")[0].split("\\.");
+            processNameForTracing = splitCommand[splitCommand.length - 1];
+            if (processNameForTracing.equalsIgnoreCase("jar") && splitCommand.length > 1) {
+                processNameForTracing = splitCommand[splitCommand.length - 2];
+            }
+        }
+
+        return processNameForTracing;
+    }
 }
