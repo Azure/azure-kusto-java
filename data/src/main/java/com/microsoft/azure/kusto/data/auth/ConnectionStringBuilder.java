@@ -58,7 +58,9 @@ public class ConnectionStringBuilder {
     }
 
     private void initProcessNameForTracing() {
+        // sun.java.command holds the cmd line used to invoke the running application
         this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
+        // user.name is used by jvm to hold the user name
         this.userNameForTracing = System.getProperty("user.name");
     }
 
