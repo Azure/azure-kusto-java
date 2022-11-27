@@ -72,12 +72,17 @@ public class UriUtils {
     // Given a cmd line used to run the java app, this method strips out the file name running
     // i.e: "home/user/someFile.jar -arg1 val" -> someFile
     public static String stripFileNameFromCommandLine(String cmdLine) {
-        String processNameForTracing = cmdLine;
+        try {
+            String processNameForTracing = cmdLine;
 
-        if (processNameForTracing != null) {
-            processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
+            if (processNameForTracing != null) {
+                processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
+            }
+
+            return processNameForTracing;
+        } catch (Exception e) {
+            return null;
         }
 
-        return processNameForTracing;
     }
 }
