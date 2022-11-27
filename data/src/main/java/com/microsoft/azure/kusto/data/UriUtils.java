@@ -5,6 +5,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 
 public class UriUtils {
     private UriUtils() {
@@ -74,15 +75,7 @@ public class UriUtils {
         String processNameForTracing = cmdLine;
 
         if (processNameForTracing != null) {
-            String[] splitCommand = processNameForTracing.split(" ")[0].split("\\.");
-            processNameForTracing = splitCommand[splitCommand.length - 1];
-            if (processNameForTracing.equalsIgnoreCase("jar") && splitCommand.length > 1) {
-                processNameForTracing = splitCommand[splitCommand.length - 2];
-            }
-            int lastDirSeparator = processNameForTracing.lastIndexOf(File.separatorChar);
-            if (lastDirSeparator > 0) {
-                processNameForTracing = processNameForTracing.substring(lastDirSeparator + 1);
-            }
+            processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
         }
 
         return processNameForTracing;
