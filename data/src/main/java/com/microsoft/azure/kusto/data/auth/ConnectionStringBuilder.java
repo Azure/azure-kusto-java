@@ -3,14 +3,9 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
+import com.microsoft.azure.kusto.data.UriUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.net.URISyntaxException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -39,6 +34,7 @@ public class ConnectionStringBuilder {
     private String clientVersionForTracing;
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
+    private String processNameForTracing = null;
 
     private ConnectionStringBuilder(String clusterUrl) {
         this.clusterUrl = clusterUrl;
@@ -58,6 +54,14 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.clientVersionForTracing = null;
         this.applicationNameForTracing = null;
+        this.initProcessNameForTracing();
+    }
+
+    private void initProcessNameForTracing() {
+        // sun.java.command holds the cmd line used to invoke the running application
+        this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
+        // user.name is used by jvm to hold the user name
+        this.userNameForTracing = System.getProperty("user.name");
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -78,6 +82,7 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = other.userNameForTracing;
         this.clientVersionForTracing = other.clientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
+        this.processNameForTracing = other.processNameForTracing;
     }
 
     public String getClusterUrl() {
@@ -153,7 +158,7 @@ public class ConnectionStringBuilder {
     }
 
     public String getApplicationNameForTracing() {
-        return applicationNameForTracing;
+        return applicationNameForTracing == null ? this.processNameForTracing : applicationNameForTracing;
     }
 
     public void setApplicationNameForTracing(String applicationNameForTracing) {
