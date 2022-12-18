@@ -16,7 +16,7 @@ public class HeaderTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
         Map<String, String> headers = client.extractTracingHeaders(new ClientRequestProperties());
-        Assertions.assertEquals("com.intellij.rt.junit.JUnitStarter", headers.get("x-ms-app"));
+        Assertions.assertNotNull(headers.get("x-ms-app"));
         Assertions.assertNotNull(headers.get("x-ms-user"));
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client"));
     }
