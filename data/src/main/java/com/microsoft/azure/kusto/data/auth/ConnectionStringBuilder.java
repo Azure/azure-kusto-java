@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.UriUtils;
+import com.microsoft.azure.kusto.data.Utils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.security.PrivateKey;
@@ -35,6 +36,7 @@ public class ConnectionStringBuilder {
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
     private String processNameForTracing = null;
+    private String sdkVersion;
 
     private ConnectionStringBuilder(String clusterUrl) {
         this.clusterUrl = clusterUrl;
@@ -54,14 +56,20 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.clientVersionForTracing = null;
         this.applicationNameForTracing = null;
-        this.initProcessNameForTracing();
+        this.InitTracingParams();
     }
 
-    private void initProcessNameForTracing() {
+    private void InitTracingParams() {
         // sun.java.command holds the cmd line used to invoke the running application
         this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         // user.name is used by jvm to hold the user name
         this.userNameForTracing = System.getProperty("user.name");
+
+        this.sdkVersion = "Kusto.Java.Client";
+        String version = Utils.getPackageVersion();
+        if (StringUtils.isNotBlank(version)) {
+            this.sdkVersion += ":" + version;
+        }
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -145,28 +153,59 @@ public class ConnectionStringBuilder {
         return useUserPromptAuth;
     }
 
+    /** Gets the username for tracing.
+     * By default, it is the username of the current process as returned by the system property "user.name".
+     * @return The username for tracing.
+     */
     public String getUserNameForTracing() {
         return userNameForTracing;
     }
 
+    /** Sets the username for tracing.
+     * @param userNameForTracing The username for tracing.
+     */
     public void setUserNameForTracing(String userNameForTracing) {
         this.userNameForTracing = userNameForTracing;
     }
 
+    /** Gets the client version for tracing.
+     * By default it is the version of the Kusto Java SDK.
+     * @return The client version for tracing.
+     */
     public String getClientVersionForTracing() {
-        return clientVersionForTracing;
+        return clientVersionForTracing == null ? this.sdkVersion : clientVersionForTracing;
     }
 
+    /** @deprecated Use {@link #appendClientVersionForTracing(String)} instead, since it is more clear.
+     * Sets the client version for tracing.
+     * This appends the given version to the Kusto Java SDK version.
+     * @param clientVersionForTracing The client version for tracing.
+     */
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        appendClientVersionForTracing(clientVersionForTracing);
+    }
+
+    /** @deprecated Use {@link #appendClientVersionForTracing(String) instead.}
+     * Appends the client version for tracing.
+     * @param clientVersionForTracing The client version for tracing.
+     */
+    public void appendClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = this.getClientVersionForTracing() + "[" + clientVersionForTracing + "]";
+    }
+
+    /** Gets the application name for tracing purposes.
+     * By default, it is the name of the current process as returned by the system property "sun.java.command".
+     * @return The application name for tracing purposes.
+     */
     public String getApplicationNameForTracing() {
         return applicationNameForTracing == null ? this.processNameForTracing : applicationNameForTracing;
     }
 
+    /** Sets the application name for tracing purposes.
+     * @param applicationNameForTracing The application name for tracing purposes.
+     */
     public void setApplicationNameForTracing(String applicationNameForTracing) {
         this.applicationNameForTracing = applicationNameForTracing;
-    }
-
-    public void setClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = clientVersionForTracing;
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
