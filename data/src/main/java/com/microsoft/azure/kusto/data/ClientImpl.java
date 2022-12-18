@@ -293,13 +293,19 @@ class ClientImpl implements Client, StreamingClient {
         Map<String, String> headers = new HashMap<>();
 
         String version = properties.getVersion() == null ? clientVersionForTracing : properties.getVersion();
-        headers.put("x-ms-client-version", version);
+        if (StringUtils.isNotBlank(version)) {
+            headers.put("x-ms-client-version", version);
+        }
 
         String app = properties.getApplication() == null ? applicationNameForTracing : properties.getApplication();
-        headers.put("x-ms-app", app);
+        if (StringUtils.isNotBlank(app)) {
+            headers.put("x-ms-app", app);
+        }
 
         String user = properties.getUser() == null ? userNameForTracing : properties.getUser();
-        headers.put("x-ms-user", user);
+        if (StringUtils.isNotBlank(user)) {
+            headers.put("x-ms-user", user);
+        }
 
         if (aadAuthenticationHelper != null) {
             headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
