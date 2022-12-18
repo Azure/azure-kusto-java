@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
  */
 public class ClientRequestProperties implements Serializable {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+    public static final String OPTION_CLIENT_REQUEST_ID = "ClientRequestId";
     /*
      * Matches valid Kusto Timespans: Optionally negative, optional number of days followed by a period, optionally up to 24 as hours followed by a colon,
      * followed by up to 59 minutes (required), followed by up to 59 seconds (required), followed by optional subseconds prepended by a period. For example:
@@ -50,10 +51,6 @@ public class ClientRequestProperties implements Serializable {
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
     static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
-    private String _clientRequestId;
-    private String _application;
-    private String _user;
-    private String _version;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
@@ -251,65 +248,11 @@ public class ClientRequestProperties implements Serializable {
     }
 
     public String getClientRequestId() {
-        return _clientRequestId;
+        return (String) getOption(OPTION_CLIENT_REQUEST_ID);
     }
 
     public void setClientRequestId(String clientRequestId) {
-        _clientRequestId = clientRequestId;
-    }
-
-    /**
-     * Gets the application name for tracing purposes.
-     * Overrides the application name set in the connection string.
-     * @return The application name.
-     */
-    public String getApplication() {
-        return _application;
-    }
-
-    /**
-     * Sets the application name for tracing purposes.
-     * Overrides the application name set in the connection string.
-     * @param application The application name.
-     */
-    public void setApplication(String application) {
-        _application = application;
-    }
-
-    /**
-     * Gets the application version for tracing purposes.
-     * Overrides the application version set in the connection string.
-     * @return The application version.
-     */
-    public String getUser() {
-        return _user;
-    }
-
-    /**
-     * Sets the application username for tracing purposes.
-     * Overrides the application username set in the connection string.
-     * @param user The application username.
-     */
-    public void setUser(String user) {
-        _user = user;
-    }
-
-    /**
-     * Gets the application username for tracing purposes.
-     * Overrides the application username set in the connection string.
-     * @return The application username.
-     */
-    public String getVersion() {
-        return _version;
-    }
-
-    /**
-     * Sets the application version for tracing purposes.
-     * Overrides the application version set in the connection string.
-     * @param version The application version.
-     */
-    public void setVersion(String version) {
-        _version = version;
+        setOption(OPTION_CLIENT_REQUEST_ID, clientRequestId);
     }
 
     Iterator<HashMap.Entry<String, Object>> getOptions() {

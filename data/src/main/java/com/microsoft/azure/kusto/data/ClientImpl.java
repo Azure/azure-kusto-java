@@ -89,7 +89,9 @@ class ClientImpl implements Client, StreamingClient {
         if (StringUtils.isNotBlank(version)) {
             clientVersionForTracing += ":" + version;
         }
-
+        if (StringUtils.isNotBlank(csb.getClientVersionForTracing())) {
+            clientVersionForTracing += "[" + csb.getClientVersionForTracing() + "]";
+        }
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
         this.httpClient = httpClient;
@@ -291,16 +293,13 @@ class ClientImpl implements Client, StreamingClient {
             String activityTypeSuffix)
             throws DataServiceException, DataClientException {
         Map<String, String> headers = new HashMap<>();
-
-        String version = properties.getVersion() == null ? clientVersionForTracing : properties.getVersion();
-        headers.put("x-ms-client-version", version);
-
-        String app = properties.getApplication() == null ? applicationNameForTracing : properties.getApplication();
-        headers.put("x-ms-app", app);
-
-        String user = properties.getUser() == null ? userNameForTracing : properties.getUser();
-        headers.put("x-ms-user", user);
-
+        headers.put("x-ms-client-version", clientVersionForTracing);
+        if (applicationNameForTracing != null) {
+            headers.put("x-ms-app", applicationNameForTracing);
+        }
+        if (userNameForTracing != null) {
+            headers.put("x-ms-user-id", userNameForTracing);
+        }
         if (aadAuthenticationHelper != null) {
             headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
         }
