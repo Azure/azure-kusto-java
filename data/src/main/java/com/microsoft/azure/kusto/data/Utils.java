@@ -253,6 +253,9 @@ public class Utils {
 
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
         request.addHeader(HttpHeaders.ACCEPT, "application/json");
+
+        String KUSTO_API_VERSION = "2019-02-13";
+        request.addHeader("x-ms-version", KUSTO_API_VERSION);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             request.addHeader(entry.getKey(), entry.getValue());
         }
@@ -276,7 +279,7 @@ public class Utils {
         }
     }
 
-    static String getPackageVersion() {
+    public static String getPackageVersion() {
         try {
             Properties props = new Properties();
             try (InputStream versionFileStream = Utils.class.getResourceAsStream("/app.properties")) {
