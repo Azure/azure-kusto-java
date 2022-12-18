@@ -185,12 +185,11 @@ public class ConnectionStringBuilder {
         appendClientVersionForTracing(clientVersionForTracing);
     }
 
-    /** @deprecated Use {@link #appendClientVersionForTracing(String) instead.}
-     * Appends the client version for tracing.
+    /** Appends the client version for tracing.
      * @param clientVersionForTracing The client version for tracing.
      */
     public void appendClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = this.getClientVersionForTracing() + "[" + clientVersionForTracing + "]";
+        this.clientVersionForTracing = getClientVersionForTracing() + "[" + clientVersionForTracing + "]";
     }
 
     /** Gets the application name for tracing purposes.

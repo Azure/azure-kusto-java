@@ -84,12 +84,7 @@ class ClientImpl implements Client, StreamingClient {
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
-        clientVersionForTracing = "Kusto.Java.Client";
-        String version = Utils.getPackageVersion();
-        if (StringUtils.isNotBlank(version)) {
-            clientVersionForTracing += ":" + version;
-        }
-
+        clientVersionForTracing = csb.getClientVersionForTracing();
         applicationNameForTracing = csb.getApplicationNameForTracing();
         userNameForTracing = csb.getUserNameForTracing();
         this.httpClient = httpClient;
@@ -290,6 +285,33 @@ class ClientImpl implements Client, StreamingClient {
             String clientRequestIdPrefix,
             String activityTypeSuffix)
             throws DataServiceException, DataClientException {
+
+        Map<String, String> headers = extractTracingHeaders(properties);
+
+        if (aadAuthenticationHelper != null) {
+            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+        }
+
+        String clientRequestId;
+        if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {
+            clientRequestId = properties.getClientRequestId();
+        } else {
+            clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
+        }
+
+        headers.put("x-ms-client-request-id", clientRequestId);
+
+        headers.put("Connection", "Keep-Alive");
+
+        UUID activityId = UUID.randomUUID();
+        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
+                activityId, activityId, activityId, clientRequestId);
+        headers.put("x-ms-activitycontext", activityContext);
+
+        return headers;
+    }
+
+    Map<String, String> extractTracingHeaders(ClientRequestProperties properties) {
         Map<String, String> headers = new HashMap<>();
 
         String version = properties.getVersion() == null ? clientVersionForTracing : properties.getVersion();
@@ -306,24 +328,6 @@ class ClientImpl implements Client, StreamingClient {
         if (StringUtils.isNotBlank(user)) {
             headers.put("x-ms-user", user);
         }
-
-        if (aadAuthenticationHelper != null) {
-            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
-        }
-        String clientRequestId;
-        if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {
-            clientRequestId = properties.getClientRequestId();
-        } else {
-            clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
-        }
-        headers.put("x-ms-client-request-id", clientRequestId);
-
-        headers.put("Connection", "Keep-Alive");
-
-        UUID activityId = UUID.randomUUID();
-        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
-                activityId, activityId, activityId, clientRequestId);
-        headers.put("x-ms-activitycontext", activityContext);
 
         return headers;
     }
