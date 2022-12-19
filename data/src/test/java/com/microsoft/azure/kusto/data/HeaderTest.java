@@ -12,7 +12,7 @@ import java.util.Map;
 public class HeaderTest {
 
     @Test
-    public void testHeadersDefault() throws URISyntaxException, DataServiceException, DataClientException {
+    public void testHeadersDefault() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
         Map<String, String> headers = client.extractTracingHeaders(new ClientRequestProperties());
@@ -22,7 +22,7 @@ public class HeaderTest {
     }
 
     @Test
-    public void testHeadersWithCustomCsb() throws URISyntaxException, DataServiceException, DataClientException {
+    public void testHeadersWithCustomCsb() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         csb.setApplicationNameForTracing("testApp");
         csb.setUserNameForTracing("testUser");
@@ -36,7 +36,7 @@ public class HeaderTest {
     }
 
     @Test
-    public void testHeadersWithCustomCsbAndClientRequestProperties() throws URISyntaxException, DataServiceException, DataClientException {
+    public void testHeadersWithCustomCsbAndClientRequestProperties() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         csb.setApplicationNameForTracing("testApp");
         csb.setUserNameForTracing("testUser");
