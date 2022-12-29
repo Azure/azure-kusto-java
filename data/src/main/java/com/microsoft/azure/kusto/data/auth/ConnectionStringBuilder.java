@@ -263,7 +263,7 @@ public class ConnectionStringBuilder {
         // make an array
         List<Pair<String, String>> additionalFieldsList = new ArrayList<>();
         additionalFieldsList.add(Pair.of("Kusto." + name, version));
-        additionalFieldsList.add(Pair.of("App.{" + (appName == null ? getApplicationNameForTracing() : appName) + "}", appVersion));
+        additionalFieldsList.add(Pair.of("App.{" + (appName == null ? getApplicationNameForTracing() : appName) + "}", appVersion == null ? "[none]" : appVersion));
         if (additionalFields != null) {
             additionalFieldsList.addAll(Arrays.asList(additionalFields));
         }
