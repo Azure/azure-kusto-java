@@ -80,11 +80,11 @@ public class ConnectionStringBuilder {
         if (StringUtils.isBlank(user)) {
             user = System.getenv("USERNAME");
             String domain = System.getenv("USERDOMAIN");
-            if (StringUtils.isNotBlank(domain)) {
+            if (StringUtils.isNotBlank(domain) && StringUtils.isNotBlank(user)) {
                 user = domain + "\\" + user;
             }
         }
-        return user;
+        return StringUtils.isNotBlank(user) ? user : "[none]";
     }
 
     private static String getVersion() {
