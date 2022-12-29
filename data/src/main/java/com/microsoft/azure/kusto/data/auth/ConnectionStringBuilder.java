@@ -68,16 +68,28 @@ public class ConnectionStringBuilder {
         // sun.java.command holds the cmd line used to invoke the running application
         this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         // user.name is used by jvm to hold the user name
-        this.userNameForTracing = System.getProperty("user.name");
+        this.userNameForTracing = getOsUser();
 
         this.sdkVersion = buildHeaderFormat(
                 Pair.of("Kusto.Java.Client", Utils.getPackageVersion()),
                 Pair.of(getRuntime(), getVersion()));
     }
 
+    private static String getOsUser() {
+        String user = System.getProperty("user.name");
+        if (StringUtils.isBlank(user)) {
+            user = System.getenv("USERNAME");
+            String domain = System.getenv("USERDOMAIN");
+            if (StringUtils.isNotBlank(domain)) {
+                user = domain + "\\" + user;
+            }
+        }
+        return user;
+    }
+
     private static String getVersion() {
         String version = System.getProperty("java.version");
-        if (version == null) {
+        if (StringUtils.isBlank(version)) {
             return "UnknownVersion";
         }
         return version;
@@ -85,13 +97,13 @@ public class ConnectionStringBuilder {
 
     private static String getRuntime() {
         String runtime = System.getProperty("java.runtime.name");
-        if (runtime == null) {
+        if (StringUtils.isBlank(runtime)) {
             runtime = System.getProperty("java.vm.name");
         }
-        if (runtime == null) {
+        if (StringUtils.isBlank(runtime)) {
             runtime =  System.getProperty("java.vendor");
         }
-        if (runtime == null) {
+        if (StringUtils.isBlank(runtime)) {
             runtime = "UnknownRuntime";
         }
 
