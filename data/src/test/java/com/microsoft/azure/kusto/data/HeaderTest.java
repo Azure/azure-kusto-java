@@ -63,7 +63,7 @@ public class HeaderTest {
         Assertions.assertEquals("[none]", headers.get("x-ms-user"));
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
 
-        Assertions.assertEquals("Kusto.myConnector:{myVersion}", headers.get("x-ms-app"));
+        Assertions.assertTrue(headers.get("x-ms-app").startsWith("Kusto.myConnector:{myVersion}"));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class HeaderTest {
         Assertions.assertTrue(headers.get("x-ms-user").length() > 0);
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
 
-        Assertions.assertEquals("Kusto.myConnector:{myVersion}", headers.get("x-ms-app"));
+        Assertions.assertTrue(headers.get("x-ms-app").startsWith("Kusto.myConnector:{myVersion}"));
     }
 
     @Test
