@@ -316,7 +316,7 @@ class ClientImpl implements Client, StreamingClient {
 
         properties = properties == null ? new ClientRequestProperties() : properties;
 
-        String version = properties.getVersion() == null ? clientVersionForTracing : properties.getVersion();
+        String version = clientVersionForTracing;
         if (StringUtils.isNotBlank(version)) {
             headers.put("x-ms-client-version", version);
         }

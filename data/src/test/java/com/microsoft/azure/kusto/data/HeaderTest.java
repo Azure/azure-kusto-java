@@ -1,8 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +31,7 @@ public class HeaderTest {
         Assertions.assertEquals("testApp", headers.get("x-ms-app"));
         Assertions.assertEquals("testUser", headers.get("x-ms-user"));
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client"));
-        Assertions.assertTrue(headers.get("x-ms-client-version").endsWith("[testVersion]"));
+        Assertions.assertTrue(headers.get("x-ms-client-version").endsWith("|testVersion"));
     }
 
     @Test
@@ -45,11 +44,53 @@ public class HeaderTest {
         ClientRequestProperties crp = new ClientRequestProperties();
         crp.setApplication("crpApp");
         crp.setUser("crpUser");
-        crp.setVersion("crpVersion");
 
         Map<String, String> headers = client.extractTracingHeaders(crp);
         Assertions.assertEquals("crpApp", headers.get("x-ms-app"));
         Assertions.assertEquals("crpUser", headers.get("x-ms-user"));
-        Assertions.assertEquals("crpVersion", headers.get("x-ms-client-version"));
+        Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client"));
+        Assertions.assertTrue(headers.get("x-ms-client-version").endsWith("|testVersion"));
+    }
+
+    @Test
+    public void testSetConnectorNameAndVersion() throws URISyntaxException {
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
+        csb.setConnectorDetails("myConnector", "myVersion", false, null, null, null);
+        ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
+        ClientRequestProperties crp = new ClientRequestProperties();
+
+        Map<String, String> headers = client.extractTracingHeaders(crp);
+        Assertions.assertEquals("[none]", headers.get("x-ms-user"));
+        Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
+
+        Assertions.assertEquals("Kusto.myConnector:{myVersion}", headers.get("x-ms-app"));
+    }
+
+    @Test
+    public void testSetConnectorNoAppVersion() throws URISyntaxException {
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
+        csb.setConnectorDetails("myConnector", "myVersion", true, "myApp", null, null);
+        ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
+        ClientRequestProperties crp = new ClientRequestProperties();
+
+        Map<String, String> headers = client.extractTracingHeaders(crp);
+        Assertions.assertTrue(headers.get("x-ms-user").length() > 0);
+        Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
+
+        Assertions.assertEquals("Kusto.myConnector:{myVersion}", headers.get("x-ms-app"));
+    }
+
+    @Test
+    public void testSetConnectorFull() throws URISyntaxException {
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
+        csb.setConnectorDetails("myConnector", "myVersion", true, "myUser", "myApp", "myAppVersion", Pair.of("myField", "myValue"));
+        ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
+        ClientRequestProperties crp = new ClientRequestProperties();
+
+        Map<String, String> headers = client.extractTracingHeaders(crp);
+        Assertions.assertEquals("myUser", headers.get("x-ms-user"));
+        Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
+
+        Assertions.assertEquals("Kusto.myConnector:{myVersion}|App.{myApp}:{myAppVersion}|myField:{myValue}", headers.get("x-ms-app"));
     }
 }

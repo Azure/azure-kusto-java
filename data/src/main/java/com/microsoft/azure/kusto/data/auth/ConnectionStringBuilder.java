@@ -6,11 +6,16 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.Utils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 public class ConnectionStringBuilder {
     private String clusterUrl;
@@ -65,11 +70,32 @@ public class ConnectionStringBuilder {
         // user.name is used by jvm to hold the user name
         this.userNameForTracing = System.getProperty("user.name");
 
-        this.sdkVersion = "Kusto.Java.Client";
-        String version = Utils.getPackageVersion();
-        if (StringUtils.isNotBlank(version)) {
-            this.sdkVersion += ":" + version;
+        this.sdkVersion = buildHeaderFormat(
+                Pair.of("Kusto.Java.Client", Utils.getPackageVersion()),
+                Pair.of(getRuntime(), getVersion()));
+    }
+
+    private static String getVersion() {
+        String version = System.getProperty("java.version");
+        if (version == null) {
+            return "UnknownVersion";
         }
+        return version;
+    }
+
+    private static String getRuntime() {
+        String runtime = System.getProperty("java.runtime.name");
+        if (runtime == null) {
+            runtime = System.getProperty("java.vm.name");
+        }
+        if (runtime == null) {
+            runtime =  System.getProperty("java.vendor");
+        }
+        if (runtime == null) {
+            runtime = "UnknownRuntime";
+        }
+
+        return runtime;
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -153,70 +179,108 @@ public class ConnectionStringBuilder {
         return useUserPromptAuth;
     }
 
-    /** Gets the username for tracing.
+    /**
+     * Gets the username for tracing.
      * By default, it is the username of the current process as returned by the system property "user.name".
+     *
      * @return The username for tracing.
      */
     public String getUserNameForTracing() {
         return userNameForTracing;
     }
 
-    /** Sets the username for tracing.
+    /**
+     * Sets the username for tracing.
+     *
      * @param userNameForTracing The username for tracing.
      */
     public void setUserNameForTracing(String userNameForTracing) {
         this.userNameForTracing = userNameForTracing;
     }
 
-    /** Gets the client version for tracing.
+    /**
+     * Gets the client version for tracing.
      * By default it is the version of the Kusto Java SDK.
+     *
      * @return The client version for tracing.
      */
     public String getClientVersionForTracing() {
         return clientVersionForTracing == null ? this.sdkVersion : clientVersionForTracing;
     }
 
-    /** @deprecated Use {@link #appendClientVersionForTracing(String)} instead, since it is more clear.
+    /**
+     * @param clientVersionForTracing The client version for tracing.
+     * @deprecated Use {@link #appendClientVersionForTracing(String)} instead, since it is more clear.
      * Sets the client version for tracing.
      * This appends the given version to the Kusto Java SDK version.
-     * @param clientVersionForTracing The client version for tracing.
      */
     public void setClientVersionForTracing(String clientVersionForTracing) {
         appendClientVersionForTracing(clientVersionForTracing);
     }
 
-    /** Appends the client version for tracing.
+    /**
+     * Appends the client version for tracing.
+     *
      * @param clientVersionForTracing The client version for tracing.
      */
     public void appendClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = getClientVersionForTracing() + "[" + clientVersionForTracing + "]";
+        this.clientVersionForTracing = getClientVersionForTracing() + "|" + clientVersionForTracing;
     }
 
-    /** Gets the application name for tracing purposes.
+    /**
+     * Gets the application name for tracing purposes.
      * By default, it is the name of the current process as returned by the system property "sun.java.command".
+     *
      * @return The application name for tracing purposes.
      */
     public String getApplicationNameForTracing() {
         return applicationNameForTracing == null ? this.processNameForTracing : applicationNameForTracing;
     }
 
-    /** Sets the application name for tracing purposes.
+    /**
+     * Sets the application name for tracing purposes.
+     *
      * @param applicationNameForTracing The application name for tracing purposes.
      */
     public void setApplicationNameForTracing(String applicationNameForTracing) {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
+    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName, @Nullable String appVersion, Pair<String, String>... additionalFields) {
+        // make an array
+        List<Pair<String, String>> additionalFieldsList = new ArrayList<>();
+        additionalFieldsList.add(Pair.of("Kusto." + name, version));
+        additionalFieldsList.add(Pair.of("App.{" + (appName == null ? getApplicationNameForTracing() : appName) + "}", appVersion));
+        if (additionalFields != null) {
+            additionalFieldsList.addAll(Arrays.asList(additionalFields));
+        }
+
+        setApplicationNameForTracing(buildHeaderFormat(additionalFieldsList.toArray(new Pair[0])));
+
+        if (sendUser) {
+            setUserNameForTracing(overrideUser == null ? getUserNameForTracing() : overrideUser);
+        } else {
+            setUserNameForTracing("[none]");
+        }
+    }
+
+    private static String buildHeaderFormat(Pair<String, String>... args) {
+        return Arrays.stream(args).filter(arg -> StringUtils.isNotBlank(arg.getKey()) && StringUtils.isNotBlank(arg.getValue()))
+                .map(arg -> arg.getKey() + ":{" + arg.getValue().replaceAll("[\\r\\n\\s{}|]+", "_") + "}")
+                .collect(Collectors.joining("|"));
+    }
+
+
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-            String applicationClientId,
-            String applicationKey) {
+                                                                              String applicationClientId,
+                                                                              String applicationKey) {
         return createWithAadApplicationCredentials(clusterUrl, applicationClientId, applicationKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-            String applicationClientId,
-            String applicationKey,
-            String authorityId) {
+                                                                              String applicationClientId,
+                                                                              String applicationKey,
+                                                                              String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -270,17 +334,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-            String applicationClientId,
-            X509Certificate x509Certificate,
-            PrivateKey privateKey) {
+                                                                              String applicationClientId,
+                                                                              X509Certificate x509Certificate,
+                                                                              PrivateKey privateKey) {
         return createWithAadApplicationCertificate(clusterUrl, applicationClientId, x509Certificate, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-            String applicationClientId,
-            X509Certificate x509Certificate,
-            PrivateKey privateKey,
-            String authorityId) {
+                                                                              String applicationClientId,
+                                                                              X509Certificate x509Certificate,
+                                                                              PrivateKey privateKey,
+                                                                              String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -303,17 +367,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-            String applicationClientId,
-            List<X509Certificate> x509CertificateChain,
-            PrivateKey privateKey) {
+                                                                                               String applicationClientId,
+                                                                                               List<X509Certificate> x509CertificateChain,
+                                                                                               PrivateKey privateKey) {
         return createWithAadApplicationCertificateSubjectNameIssuer(clusterUrl, applicationClientId, x509CertificateChain, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-            String applicationClientId,
-            List<X509Certificate> x509CertificateChain,
-            PrivateKey privateKey,
-            String authorityId) {
+                                                                                               String applicationClientId,
+                                                                                               List<X509Certificate> x509CertificateChain,
+                                                                                               PrivateKey privateKey,
+                                                                                               String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }

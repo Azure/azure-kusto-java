@@ -53,7 +53,6 @@ public class ClientRequestProperties implements Serializable {
     private String _clientRequestId;
     private String _application;
     private String _user;
-    private String _version;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
@@ -292,24 +291,6 @@ public class ClientRequestProperties implements Serializable {
      */
     public void setUser(String user) {
         _user = user;
-    }
-
-    /**
-     * Gets the application username for tracing purposes.
-     * Overrides the application username set in the connection string.
-     * @return The application username.
-     */
-    public String getVersion() {
-        return _version;
-    }
-
-    /**
-     * Sets the application version for tracing purposes.
-     * Overrides the application version set in the connection string.
-     * @param version The application version.
-     */
-    public void setVersion(String version) {
-        _version = version;
     }
 
     Iterator<HashMap.Entry<String, Object>> getOptions() {
