@@ -101,7 +101,7 @@ public class ConnectionStringBuilder {
             runtime = System.getProperty("java.vm.name");
         }
         if (StringUtils.isBlank(runtime)) {
-            runtime =  System.getProperty("java.vendor");
+            runtime = System.getProperty("java.vendor");
         }
         if (StringUtils.isBlank(runtime)) {
             runtime = "UnknownRuntime";
@@ -258,7 +258,8 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
-    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName, @Nullable String appVersion, Pair<String, String>... additionalFields) {
+    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
+            @Nullable String appVersion, Pair<String, String>... additionalFields) {
         // make an array
         List<Pair<String, String>> additionalFieldsList = new ArrayList<>();
         additionalFieldsList.add(Pair.of("Kusto." + name, version));
@@ -282,17 +283,16 @@ public class ConnectionStringBuilder {
                 .collect(Collectors.joining("|"));
     }
 
-
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              String applicationKey) {
+            String applicationClientId,
+            String applicationKey) {
         return createWithAadApplicationCredentials(clusterUrl, applicationClientId, applicationKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              String applicationKey,
-                                                                              String authorityId) {
+            String applicationClientId,
+            String applicationKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -346,17 +346,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              X509Certificate x509Certificate,
-                                                                              PrivateKey privateKey) {
+            String applicationClientId,
+            X509Certificate x509Certificate,
+            PrivateKey privateKey) {
         return createWithAadApplicationCertificate(clusterUrl, applicationClientId, x509Certificate, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              X509Certificate x509Certificate,
-                                                                              PrivateKey privateKey,
-                                                                              String authorityId) {
+            String applicationClientId,
+            X509Certificate x509Certificate,
+            PrivateKey privateKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -379,17 +379,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-                                                                                               String applicationClientId,
-                                                                                               List<X509Certificate> x509CertificateChain,
-                                                                                               PrivateKey privateKey) {
+            String applicationClientId,
+            List<X509Certificate> x509CertificateChain,
+            PrivateKey privateKey) {
         return createWithAadApplicationCertificateSubjectNameIssuer(clusterUrl, applicationClientId, x509CertificateChain, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-                                                                                               String applicationClientId,
-                                                                                               List<X509Certificate> x509CertificateChain,
-                                                                                               PrivateKey privateKey,
-                                                                                               String authorityId) {
+            String applicationClientId,
+            List<X509Certificate> x509CertificateChain,
+            PrivateKey privateKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
