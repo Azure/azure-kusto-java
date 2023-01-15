@@ -49,7 +49,8 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
 
     @Override
     public String getHeaderValue(String s) {
-        return response.getFirstHeader(s).getValue();
+        Header firstHeader = response.getFirstHeader(s);
+        return firstHeader != null ? firstHeader.getValue() : null;
     }
 
     @Override

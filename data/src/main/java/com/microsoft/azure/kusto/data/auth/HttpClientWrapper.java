@@ -4,29 +4,23 @@ import com.azure.core.http.HttpRequest;
 import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
-
 import org.apache.http.Header;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpTrace;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.*;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.message.BasicHeader;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.nio.charset.StandardCharsets;
-
-import reactor.core.publisher.Mono;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * This class wraps both of the azure http client interfaces - IHttpClient and HttpClient to use our apache http client.
@@ -35,6 +29,8 @@ import reactor.core.publisher.Mono;
  * IHttpClient is asynchronous, so we need to be more clever about integrating it with the synchronous apache client.
  */
 public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpClient {
+
+    private static final Executor EXECUTOR = Executors.newCachedThreadPool();
     private final HttpClient httpClient;
 
     public HttpClientWrapper(HttpClient httpClient) {
@@ -78,12 +74,11 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         }
         // Translating the headers
 
-        request.setHeaders(httpRequest.getHeaders().stream().map(h -> new BasicHeader(h.getName(), h.getValue())).toArray(Header[]::new));
+        request.setHeaders(httpRequest.getHeaders().stream().filter(h -> isNotContentLength(h.getName())).map(h -> new BasicHeader(h.getName(), h.getValue())).toArray(Header[]::new));
 
         // Setting the request's body/entity
 
         // This empty operation
-        Mono before = Mono.empty();
         if (request instanceof HttpEntityEnclosingRequest) {
             HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
             PipedOutputStream osPipe = new PipedOutputStream();
@@ -94,29 +89,47 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
                 // This should never happen
             }
 
-            // This creates the Mono (similar to a future) that will be used to write the body, we will have
-            before = Mono.from(httpRequest.getBody().map(buf -> {
+            EXECUTOR.execute(() -> {
+                httpRequest.getBody().publishOn(Schedulers.boundedElastic()).map(buf -> {
+                            try {
+                                if (buf.hasArray()) {
+                                    osPipe.write(buf.array(), buf.position(), buf.remaining());
+                                } else {
+                                    byte[] bytes = new byte[buf.remaining()];
+                                    buf.get(bytes);
+                                    osPipe.write(bytes);
+                                }
+                            } catch (IOException e) {
+                                return false;
+                            }
+                            return true;
+                        }
+                ).blockLast();
                 try {
-                    // Ignore the warning saying it's a blocking operation - since we are controlling both pipes, it shouldn't be
-                    osPipe.write(buf.array());
+                    osPipe.close();
                 } catch (IOException e) {
-                    // If this happens there's not much we can do here
+                    // This should never happen
                 }
-                return buf;
-            }));
+            });
 
-            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe));
+            String contentLength = httpRequest.getHeaders().getValue("Content-Length");
+            String contentType = httpRequest.getHeaders().getValue("Content-Type");
+            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe, contentLength == null ? -1 : Long.parseLong(contentLength), contentType == null ? null : ContentType.parse(contentType)));
         }
 
         // The types of the Monos are different, but we ignore the results anyway (since we only care about the input stream) so this is fine.
-        return before.flatMap(a -> Mono.create(monoSink -> {
+        return Mono.create(monoSink -> {
             try {
                 org.apache.http.HttpResponse response = httpClient.execute(request);
                 monoSink.success(new HttpResponseWrapper(httpRequest, response));
             } catch (IOException e) {
                 monoSink.error(e);
             }
-        }));
+        });
+    }
+
+    private static boolean isNotContentLength(String name) {
+        return !name.equalsIgnoreCase("content-length");
     }
 
     // Implementation of the synchronous HttpClient
