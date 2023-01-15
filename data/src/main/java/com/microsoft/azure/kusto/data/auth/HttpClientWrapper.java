@@ -74,7 +74,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         }
         // Translating the headers
 
-        request.setHeaders(httpRequest.getHeaders().stream().filter(h -> isNotContentLength(h.getName())).map(h -> new BasicHeader(h.getName(), h.getValue())).toArray(Header[]::new));
+        request.setHeaders(httpRequest.getHeaders().stream().filter(h -> isNotContentLength(h.getName())).map(h -> new BasicHeader(h.getName(), h.getValue()))
+                .toArray(Header[]::new));
 
         // Setting the request's body/entity
 
@@ -91,20 +92,19 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
             EXECUTOR.execute(() -> {
                 httpRequest.getBody().publishOn(Schedulers.boundedElastic()).map(buf -> {
-                            try {
-                                if (buf.hasArray()) {
-                                    osPipe.write(buf.array(), buf.position(), buf.remaining());
-                                } else {
-                                    byte[] bytes = new byte[buf.remaining()];
-                                    buf.get(bytes);
-                                    osPipe.write(bytes);
-                                }
-                            } catch (IOException e) {
-                                return false;
-                            }
-                            return true;
+                    try {
+                        if (buf.hasArray()) {
+                            osPipe.write(buf.array(), buf.position(), buf.remaining());
+                        } else {
+                            byte[] bytes = new byte[buf.remaining()];
+                            buf.get(bytes);
+                            osPipe.write(bytes);
                         }
-                ).blockLast();
+                    } catch (IOException e) {
+                        return false;
+                    }
+                    return true;
+                }).blockLast();
                 try {
                     osPipe.close();
                 } catch (IOException e) {
@@ -114,7 +114,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
 
             String contentLength = httpRequest.getHeaders().getValue("Content-Length");
             String contentType = httpRequest.getHeaders().getValue("Content-Type");
-            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe, contentLength == null ? -1 : Long.parseLong(contentLength), contentType == null ? null : ContentType.parse(contentType)));
+            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe, contentLength == null ? -1 : Long.parseLong(contentLength),
+                    contentType == null ? null : ContentType.parse(contentType)));
         }
 
         // The types of the Monos are different, but we ignore the results anyway (since we only care about the input stream) so this is fine.
@@ -152,7 +153,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         }
         // Translating the headers
 
-        request.setHeaders(httpRequest.headers().entrySet().stream().filter(h -> isNotContentLength(h.getKey())).map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
+        request.setHeaders(httpRequest.headers().entrySet().stream().filter(h -> isNotContentLength(h.getKey()))
+                .map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
 
         // Setting the request's body/entity
         if (request instanceof HttpEntityEnclosingRequest) {
