@@ -61,18 +61,18 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.clientVersionForTracing = null;
         this.applicationNameForTracing = null;
-        this.InitTracingParams();
+        this.initTracingParams();
     }
 
-    private void InitTracingParams() {
+    private void initTracingParams() {
         // sun.java.command holds the cmd line used to invoke the running application
         this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         // user.name is used by jvm to hold the user name
         this.userNameForTracing = getOsUser();
 
-        this.sdkVersion = buildHeaderFormat(
+        this.sdkVersion = formatHeader(
                 Pair.of("Kusto.Java.Client", Utils.getPackageVersion()),
-                Pair.of(getRuntime(), getVersion()));
+                Pair.of(getRuntime(), getJavaVersion()));
     }
 
     private static String getOsUser() {
@@ -87,7 +87,7 @@ public class ConnectionStringBuilder {
         return StringUtils.isNotBlank(user) ? user : "[none]";
     }
 
-    private static String getVersion() {
+    private static String getJavaVersion() {
         String version = System.getProperty("java.version");
         if (StringUtils.isBlank(version)) {
             return "UnknownVersion";
@@ -258,6 +258,16 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
+    /** Sets the application name and username for Kusto connectors.
+     * @param name The name of the connector/application.
+     * @param version The version of the connector/application.
+     * @param sendUser True if the user should be sent to Kusto, otherwise "[none]" will be sent.
+     * @param overrideUser The user to send to Kusto, or null to use the current user.
+     * @param appName The app hosting the connector, or null to use the current process name.
+     * @param appVersion The version of the app hosting the connector, or null to use "[none]".
+     * @param additionalFields Additional fields to trace.
+     * Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
+     */
     public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
             @Nullable String appVersion, Pair<String, String>... additionalFields) {
         // make an array
@@ -269,7 +279,7 @@ public class ConnectionStringBuilder {
             additionalFieldsList.addAll(Arrays.asList(additionalFields));
         }
 
-        setApplicationNameForTracing(buildHeaderFormat(additionalFieldsList.toArray(new Pair[0])));
+        setApplicationNameForTracing(formatHeader(additionalFieldsList.toArray(new Pair[0])));
 
         if (sendUser) {
             setUserNameForTracing(overrideUser == null ? getUserNameForTracing() : overrideUser);
@@ -278,7 +288,12 @@ public class ConnectionStringBuilder {
         }
     }
 
-    private static String buildHeaderFormat(Pair<String, String>... args) {
+    /**
+     * Formats the given fields into a string that can be used as a header.
+     * @param args The fields to format.
+     * @return The formatted string, for example: "field1:{value1}|field2:{value2}"
+     */
+    private static String formatHeader(Pair<String, String>... args) {
         return Arrays.stream(args).filter(arg -> StringUtils.isNotBlank(arg.getKey()) && StringUtils.isNotBlank(arg.getValue()))
                 .map(arg -> arg.getKey() + ":{" + arg.getValue().replaceAll("[\\r\\n\\s{}|]+", "_") + "}")
                 .collect(Collectors.joining("|"));

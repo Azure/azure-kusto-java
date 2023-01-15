@@ -50,9 +50,9 @@ public class ClientRequestProperties implements Serializable {
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
     static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
-    private String _clientRequestId;
-    private String _application;
-    private String _user;
+    private String clientRequestId;
+    private String application;
+    private String user;
 
     public ClientRequestProperties() {
         parameters = new HashMap<>();
@@ -250,11 +250,11 @@ public class ClientRequestProperties implements Serializable {
     }
 
     public String getClientRequestId() {
-        return _clientRequestId;
+        return clientRequestId;
     }
 
     public void setClientRequestId(String clientRequestId) {
-        _clientRequestId = clientRequestId;
+        this.clientRequestId = clientRequestId;
     }
 
     /**
@@ -263,7 +263,7 @@ public class ClientRequestProperties implements Serializable {
      * @return The application name.
      */
     public String getApplication() {
-        return _application;
+        return application;
     }
 
     /**
@@ -272,7 +272,7 @@ public class ClientRequestProperties implements Serializable {
      * @param application The application name.
      */
     public void setApplication(String application) {
-        _application = application;
+        this.application = application;
     }
 
     /**
@@ -281,7 +281,7 @@ public class ClientRequestProperties implements Serializable {
      * @return The application version.
      */
     public String getUser() {
-        return _user;
+        return user;
     }
 
     /**
@@ -290,7 +290,7 @@ public class ClientRequestProperties implements Serializable {
      * @param user The application username.
      */
     public void setUser(String user) {
-        _user = user;
+        this.user = user;
     }
 
     Iterator<HashMap.Entry<String, Object>> getOptions() {
