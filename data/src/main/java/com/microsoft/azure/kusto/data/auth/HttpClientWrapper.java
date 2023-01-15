@@ -152,7 +152,7 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         }
         // Translating the headers
 
-        request.setHeaders(httpRequest.headers().entrySet().stream().map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
+        request.setHeaders(httpRequest.headers().entrySet().stream().filter(h -> isNotContentLength(h.getKey())).map(h -> new BasicHeader(h.getKey(), h.getValue())).toArray(Header[]::new));
 
         // Setting the request's body/entity
         if (request instanceof HttpEntityEnclosingRequest) {
