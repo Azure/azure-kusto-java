@@ -315,12 +315,12 @@ class ClientImpl implements Client, StreamingClient {
             headers.put("x-ms-client-version", version);
         }
 
-        String app = (properties != null && properties.getApplication() == null) ? clientDetails.getApplicationForTracing() : properties.getApplication();
+        String app = (properties == null || properties.getApplication() == null) ? clientDetails.getApplicationForTracing() : properties.getApplication();
         if (StringUtils.isNotBlank(app)) {
             headers.put("x-ms-app", app);
         }
 
-        String user = (properties != null && properties.getUser() == null) ? clientDetails.getUserNameForTracing() : properties.getUser();
+        String user = (properties == null || properties.getUser() == null) ? clientDetails.getUserNameForTracing() : properties.getUser();
         if (StringUtils.isNotBlank(user)) {
             headers.put("x-ms-user", user);
         }
