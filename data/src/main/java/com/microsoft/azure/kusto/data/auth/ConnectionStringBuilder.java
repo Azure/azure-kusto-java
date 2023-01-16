@@ -204,7 +204,6 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
-
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
             String applicationClientId,
             String applicationKey) {
@@ -388,7 +387,7 @@ public class ConnectionStringBuilder {
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
     public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
-                                    @Nullable String appVersion, Pair<String, String>... additionalFields) {
+            @Nullable String appVersion, Pair<String, String>... additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();

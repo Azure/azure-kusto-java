@@ -52,11 +52,9 @@ public class ClientDetails {
         protected String initialize() {
             return formatHeader(Arrays.asList(
                     Pair.of("Kusto.Java.Client", Utils.getPackageVersion()),
-                    Pair.of(String.format("Runtime.%s", escapeField(getRuntime())), getJavaVersion()))
-            );
+                    Pair.of(String.format("Runtime.%s", escapeField(getRuntime())), getJavaVersion())));
         }
     };
-
 
     /**
      * Formats the given fields into a string that can be used as a header.
@@ -74,7 +72,6 @@ public class ClientDetails {
         return String.format("{%s}", field.replaceAll("[\\r\\n\\s{}|]+", "_"));
     }
 
-
     /**
      * Sets the application name and username for Kusto connectors.
      *
@@ -88,7 +85,7 @@ public class ClientDetails {
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
     public static ClientDetails fromConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
-                                                     @Nullable String appVersion, Pair<String, String>... additionalFields) {
+            @Nullable String appVersion, Pair<String, String>... additionalFields) {
         // make an array
         List<Pair<String, String>> additionalFieldsList = new ArrayList<>();
         additionalFieldsList.add(Pair.of("Kusto." + name, version));
