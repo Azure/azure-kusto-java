@@ -99,7 +99,13 @@ class E2ETest {
                 tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
-            ingestClient = IngestClientFactory.createClient(dmCsb);
+            ingestClient = IngestClientFactory.createClient(dmCsb, HttpClientProperties.builder()
+                    .keepAlive(true)
+                    .maxKeepAliveTime(120)
+                    .maxIdleTime(60)
+                    .maxConnectionsPerRoute(50)
+                    .maxConnectionsTotal(50)
+                    .build());
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
