@@ -41,9 +41,7 @@ class ClientImpl implements Client, StreamingClient {
     public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
-    private String clientVersionForTracing;
-    private final String applicationNameForTracing;
-    private final String userNameForTracing;
+    private ClientDetails clientDetails;
     private final CloseableHttpClient httpClient;
     private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
@@ -84,9 +82,7 @@ class ClientImpl implements Client, StreamingClient {
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
-        clientVersionForTracing = csb.getClientVersionForTracing();
-        applicationNameForTracing = csb.getApplicationNameForTracing();
-        userNameForTracing = csb.getUserNameForTracing();
+        clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
         this.httpClient = httpClient;
         this.leaveHttpClientOpen = leaveHttpClientOpen;
     }
@@ -314,19 +310,17 @@ class ClientImpl implements Client, StreamingClient {
     Map<String, String> extractTracingHeaders(ClientRequestProperties properties) {
         Map<String, String> headers = new HashMap<>();
 
-        properties = properties == null ? new ClientRequestProperties() : properties;
-
-        String version = clientVersionForTracing;
+        String version = clientDetails.getClientVersionForTracing();
         if (StringUtils.isNotBlank(version)) {
             headers.put("x-ms-client-version", version);
         }
 
-        String app = properties.getApplication() == null ? applicationNameForTracing : properties.getApplication();
+        String app = (properties != null && properties.getApplication() == null) ? clientDetails.getApplicationForTracing() : properties.getApplication();
         if (StringUtils.isNotBlank(app)) {
             headers.put("x-ms-app", app);
         }
 
-        String user = properties.getUser() == null ? userNameForTracing : properties.getUser();
+        String user = (properties != null && properties.getUser() == null) ? clientDetails.getUserNameForTracing() : properties.getUser();
         if (StringUtils.isNotBlank(user)) {
             headers.put("x-ms-user", user);
         }

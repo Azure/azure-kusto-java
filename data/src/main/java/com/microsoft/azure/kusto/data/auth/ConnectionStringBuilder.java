@@ -3,19 +3,15 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 public class ConnectionStringBuilder {
     private String clusterUrl;
@@ -37,11 +33,9 @@ public class ConnectionStringBuilder {
     private boolean useManagedIdentityAuth;
     private boolean useUserPromptAuth;
     private String userNameForTracing;
-    private String clientVersionForTracing;
+    private String appendedClientVersionForTracing;
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
-    private String processNameForTracing = null;
-    private String sdkVersion;
 
     private ConnectionStringBuilder(String clusterUrl) {
         this.clusterUrl = clusterUrl;
@@ -59,55 +53,8 @@ public class ConnectionStringBuilder {
         this.useManagedIdentityAuth = false;
         this.useUserPromptAuth = false;
         this.userNameForTracing = null;
-        this.clientVersionForTracing = null;
+        this.appendedClientVersionForTracing = null;
         this.applicationNameForTracing = null;
-        this.initTracingParams();
-    }
-
-    private void initTracingParams() {
-        // sun.java.command holds the cmd line used to invoke the running application
-        this.processNameForTracing = UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
-        // user.name is used by jvm to hold the user name
-        this.userNameForTracing = getOsUser();
-
-        this.sdkVersion = formatHeader(
-                Pair.of("Kusto.Java.Client", Utils.getPackageVersion()),
-                Pair.of(getRuntime(), getJavaVersion()));
-    }
-
-    private static String getOsUser() {
-        String user = System.getProperty("user.name");
-        if (StringUtils.isBlank(user)) {
-            user = System.getenv("USERNAME");
-            String domain = System.getenv("USERDOMAIN");
-            if (StringUtils.isNotBlank(domain) && StringUtils.isNotBlank(user)) {
-                user = domain + "\\" + user;
-            }
-        }
-        return StringUtils.isNotBlank(user) ? user : "[none]";
-    }
-
-    private static String getJavaVersion() {
-        String version = System.getProperty("java.version");
-        if (StringUtils.isBlank(version)) {
-            return "UnknownVersion";
-        }
-        return version;
-    }
-
-    private static String getRuntime() {
-        String runtime = System.getProperty("java.runtime.name");
-        if (StringUtils.isBlank(runtime)) {
-            runtime = System.getProperty("java.vm.name");
-        }
-        if (StringUtils.isBlank(runtime)) {
-            runtime = System.getProperty("java.vendor");
-        }
-        if (StringUtils.isBlank(runtime)) {
-            runtime = "UnknownRuntime";
-        }
-
-        return runtime;
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -126,9 +73,8 @@ public class ConnectionStringBuilder {
         this.useManagedIdentityAuth = other.useManagedIdentityAuth;
         this.useUserPromptAuth = other.useUserPromptAuth;
         this.userNameForTracing = other.userNameForTracing;
-        this.clientVersionForTracing = other.clientVersionForTracing;
+        this.appendedClientVersionForTracing = other.appendedClientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
-        this.processNameForTracing = other.processNameForTracing;
     }
 
     public String getClusterUrl() {
@@ -217,7 +163,7 @@ public class ConnectionStringBuilder {
      * @return The client version for tracing.
      */
     public String getClientVersionForTracing() {
-        return clientVersionForTracing == null ? this.sdkVersion : clientVersionForTracing;
+        return appendedClientVersionForTracing;
     }
 
     /**
@@ -236,7 +182,7 @@ public class ConnectionStringBuilder {
      * @param clientVersionForTracing The client version for tracing.
      */
     public void appendClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = getClientVersionForTracing() + "|" + clientVersionForTracing;
+        this.appendedClientVersionForTracing = clientVersionForTracing;
     }
 
     /**
@@ -246,7 +192,7 @@ public class ConnectionStringBuilder {
      * @return The application name for tracing purposes.
      */
     public String getApplicationNameForTracing() {
-        return applicationNameForTracing == null ? this.processNameForTracing : applicationNameForTracing;
+        return applicationNameForTracing;
     }
 
     /**
@@ -258,46 +204,6 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = applicationNameForTracing;
     }
 
-    /** Sets the application name and username for Kusto connectors.
-     * @param name The name of the connector/application.
-     * @param version The version of the connector/application.
-     * @param sendUser True if the user should be sent to Kusto, otherwise "[none]" will be sent.
-     * @param overrideUser The user to send to Kusto, or null to use the current user.
-     * @param appName The app hosting the connector, or null to use the current process name.
-     * @param appVersion The version of the app hosting the connector, or null to use "[none]".
-     * @param additionalFields Additional fields to trace.
-     * Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
-     */
-    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
-            @Nullable String appVersion, Pair<String, String>... additionalFields) {
-        // make an array
-        List<Pair<String, String>> additionalFieldsList = new ArrayList<>();
-        additionalFieldsList.add(Pair.of("Kusto." + name, version));
-        additionalFieldsList
-                .add(Pair.of("App.{" + (appName == null ? getApplicationNameForTracing() : appName) + "}", appVersion == null ? "[none]" : appVersion));
-        if (additionalFields != null) {
-            additionalFieldsList.addAll(Arrays.asList(additionalFields));
-        }
-
-        setApplicationNameForTracing(formatHeader(additionalFieldsList.toArray(new Pair[0])));
-
-        if (sendUser) {
-            setUserNameForTracing(overrideUser == null ? getUserNameForTracing() : overrideUser);
-        } else {
-            setUserNameForTracing("[none]");
-        }
-    }
-
-    /**
-     * Formats the given fields into a string that can be used as a header.
-     * @param args The fields to format.
-     * @return The formatted string, for example: "field1:{value1}|field2:{value2}"
-     */
-    private static String formatHeader(Pair<String, String>... args) {
-        return Arrays.stream(args).filter(arg -> StringUtils.isNotBlank(arg.getKey()) && StringUtils.isNotBlank(arg.getValue()))
-                .map(arg -> arg.getKey() + ":{" + arg.getValue().replaceAll("[\\r\\n\\s{}|]+", "_") + "}")
-                .collect(Collectors.joining("|"));
-    }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
             String applicationClientId,
@@ -467,5 +373,24 @@ public class ConnectionStringBuilder {
         csb.managedIdentityClientId = managedIdentityClientId;
         csb.useManagedIdentityAuth = true;
         return csb;
+    }
+
+    /**
+     * Sets the application name and username for Kusto connectors.
+     *
+     * @param name             The name of the connector/application.
+     * @param version          The version of the connector/application.
+     * @param sendUser         True if the user should be sent to Kusto, otherwise "[none]" will be sent.
+     * @param overrideUser     The user to send to Kusto, or null zvto use the current user.
+     * @param appName          The app hosting the connector, or null to use the current process name.
+     * @param appVersion       The version of the app hosting the connector, or null to use "[none]".
+     * @param additionalFields Additional fields to trace.
+     *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
+     */
+    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
+                                    @Nullable String appVersion, Pair<String, String>... additionalFields) {
+        ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
+        applicationNameForTracing = clientDetails.getApplicationForTracing();
+        userNameForTracing = clientDetails.getUserNameForTracing();
     }
 }
