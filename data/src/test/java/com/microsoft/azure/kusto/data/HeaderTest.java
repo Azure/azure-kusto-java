@@ -101,7 +101,8 @@ public class HeaderTest {
     @Test
     public void testWew() throws URISyntaxException, DataServiceException, DataClientException, InterruptedException {
         Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net"));
-        KustoOperationResult data = client.execute("fastbatchinge2e", "datatable (a:int) [1000]| extend x = tostring(range(1.0, 100000, 1))| extend y = todynamic(range(1.0, 100000, 1))");
+        KustoOperationResult data = client.execute("fastbatchinge2e",
+                "datatable (a:int) [1000]| extend x = tostring(range(1.0, 100000, 1))| extend y = todynamic(range(1.0, 100000, 1))");
         KustoResultSetTable primaryResults = data.getPrimaryResults();
 
         for (int rowNum = 1; primaryResults.next(); rowNum++) {
