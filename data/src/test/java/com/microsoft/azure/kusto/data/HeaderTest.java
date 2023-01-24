@@ -97,29 +97,4 @@ public class HeaderTest {
 
         Assertions.assertEquals("Kusto.myConnector:{myVersion}|App.{myApp}:{myAppVersion}|myField:{myValue}", headers.get("x-ms-app"));
     }
-
-    @Test
-    public void testWew() throws URISyntaxException, DataServiceException, DataClientException, InterruptedException {
-        Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net"));
-        KustoOperationResult data = client.execute("fastbatchinge2e",
-                "datatable (a:int) [1000]| extend x = tostring(range(1.0, 100000, 1))| extend y = todynamic(range(1.0, 100000, 1))");
-        KustoResultSetTable primaryResults = data.getPrimaryResults();
-
-        for (int rowNum = 1; primaryResults.next(); rowNum++) {
-            KustoResultColumn[] columns = primaryResults.getColumns();
-            List<Object> currentRow = primaryResults.getCurrentRow();
-            System.out.printf("Record %s%n", rowNum);
-
-            for (int j = 0; j < currentRow.size(); j++) {
-                Object cell = currentRow.get(j);
-                System.out.printf("Column: '%s' of type '%s', Value: '%s'%n", columns[j].getColumnName(), columns[j].getColumnType(),
-                        cell == null ? "[null]" : cell);
-            }
-
-            System.out.println();
-        }
-
-        Thread.sleep(100000);
-
-    }
 }
