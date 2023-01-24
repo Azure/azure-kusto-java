@@ -1,15 +1,11 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.Map;
 
 public class HeaderTest {
