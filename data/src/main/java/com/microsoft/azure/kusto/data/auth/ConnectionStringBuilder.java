@@ -168,20 +168,11 @@ public class ConnectionStringBuilder {
 
     /**
      * @param clientVersionForTracing The client version for tracing.
-     * @deprecated Use {@link #appendClientVersionForTracing(String)} instead, since it is more clear.
+     * @deprecated This field will be reserved to only the version of the Kusto Java SDK in the future. Use {@link #setApplicationNameForTracing(String)} instead.
      * Sets the client version for tracing.
      * This appends the given version to the Kusto Java SDK version.
      */
     public void setClientVersionForTracing(String clientVersionForTracing) {
-        appendClientVersionForTracing(clientVersionForTracing);
-    }
-
-    /**
-     * Appends the client version for tracing.
-     *
-     * @param clientVersionForTracing The client version for tracing.
-     */
-    public void appendClientVersionForTracing(String clientVersionForTracing) {
         this.appendedClientVersionForTracing = clientVersionForTracing;
     }
 
