@@ -370,15 +370,15 @@ public class ConnectionStringBuilder {
      *
      * @param name             The name of the connector/application.
      * @param version          The version of the connector/application.
-     * @param sendUser         True if the user should be sent to Kusto, otherwise "[none]" will be sent.
-     * @param overrideUser     The user to send to Kusto, or null zvto use the current user.
      * @param appName          The app hosting the connector, or null to use the current process name.
      * @param appVersion       The version of the app hosting the connector, or null to use "[none]".
+     * @param sendUser         True if the user should be sent to Kusto, otherwise "[none]" will be sent.
+     * @param overrideUser     The user to send to Kusto, or null zvto use the current user.
      * @param additionalFields Additional fields to trace.
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
-    public void setConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
-            @Nullable String appVersion, Pair<String, String>... additionalFields) {
+    public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser, @Nullable String overrideUser,
+                                    Pair<String, String>... additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();

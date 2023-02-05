@@ -55,7 +55,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNameAndVersion() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", false, null, null, null);
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, false, null);
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
         ClientRequestProperties crp = new ClientRequestProperties();
 
@@ -69,7 +69,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNoAppVersion() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", true, "myApp", null, null);
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, true, "myApp");
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
         ClientRequestProperties crp = new ClientRequestProperties();
 
@@ -83,7 +83,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorFull() throws URISyntaxException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", true, "myUser", "myApp", "myAppVersion", Pair.of("myField", "myValue"));
+        csb.setConnectorDetails("myConnector", "myVersion", "myApp", "myAppVersion", true, "myUser", Pair.of("myField", "myValue"));
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
         ClientRequestProperties crp = new ClientRequestProperties();
 
