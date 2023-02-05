@@ -377,8 +377,9 @@ public class ConnectionStringBuilder {
      * @param additionalFields Additional fields to trace.
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
-    public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser, @Nullable String overrideUser,
-                                    Pair<String, String>... additionalFields) {
+    public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser,
+            @Nullable String overrideUser,
+            Pair<String, String>... additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();
