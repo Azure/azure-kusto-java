@@ -75,7 +75,7 @@ mvn clean compile exec:java -Dexec.mainClass="Query" \
 ## Advanced Query Sample
 
 This sample shows some more advanced options available when querying data, like using query parameters to guard against injection attacks and extracting individual values from the query results.   
-[Sample Code](src/main/java/Query.java)
+[Sample Code for Advanced Query](src/main/java/AdvancedQuery.java)
 
 ### Prerequisites
 
