@@ -488,7 +488,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromBlob() throws Exception {
         BlobClient cloudBlockBlob = mock(BlobClient.class);
-        String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
+        String blobPath = "https://kustotest.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
         BlobProperties blobProperties = mock(BlobProperties.class);
         when(blobProperties.getBlobSize()).thenReturn((long) 1000);
@@ -591,7 +591,7 @@ class StreamingIngestClientTest {
 
     @Test
     void IngestFromBlob_BlobNotFound_IngestionClientException() {
-        String path = "https://storageaccount.blob.core.windows.net/container/blob.csv";
+        String path = "https://kustotest.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo(path);
 
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
@@ -603,7 +603,7 @@ class StreamingIngestClientTest {
     @Test
     void IngestFromBlob_EmptyBlob_IngestClientException() {
         BlobClient cloudBlockBlob = mock(BlobClient.class);
-        String blobPath = "https://storageaccount.blob.core.windows.net/container/blob.csv";
+        String blobPath = "https://kustotest.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
 
         BlobProperties blobProperties = mock(BlobProperties.class);
