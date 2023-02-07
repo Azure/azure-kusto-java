@@ -143,12 +143,12 @@ public class ClientDetails {
 
     private String applicationForTracing;
     private String userNameForTracing;
-    private String appendedClientVersionForTesting;
+    private String appendedClientVersionForTracing;
 
     public ClientDetails(String applicationForTracing, String userNameForTracing, String appendedClientVersionForTracing) {
         this.applicationForTracing = applicationForTracing;
         this.userNameForTracing = userNameForTracing;
-        this.appendedClientVersionForTesting = appendedClientVersionForTracing;
+        this.appendedClientVersionForTracing = appendedClientVersionForTracing;
     }
 
     public String getApplicationForTracing() {
@@ -160,7 +160,7 @@ public class ClientDetails {
     }
 
     public String getClientVersionForTracing() {
-        return unpackLazy(defaultVersion) + (appendedClientVersionForTesting == null ? "" : "|" + appendedClientVersionForTesting);
+        return unpackLazy(defaultVersion) + (appendedClientVersionForTracing == null ? "" : "|" + appendedClientVersionForTracing);
     }
 
 }
