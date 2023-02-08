@@ -37,6 +37,9 @@ class ClientImpl implements Client, StreamingClient {
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
+    private static final String CLIENT_VERSION_HEADER = "x-ms-client-version";
+    private static final String APP_HEADER = "x-ms-app";
+    private static final String USER_HEADER = "x-ms-user";
     public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
@@ -312,17 +315,17 @@ class ClientImpl implements Client, StreamingClient {
 
         String version = clientDetails.getClientVersionForTracing();
         if (StringUtils.isNotBlank(version)) {
-            headers.put("x-ms-client-version", version);
+            headers.put(CLIENT_VERSION_HEADER, version);
         }
 
         String app = (properties == null || properties.getApplication() == null) ? clientDetails.getApplicationForTracing() : properties.getApplication();
         if (StringUtils.isNotBlank(app)) {
-            headers.put("x-ms-app", app);
+            headers.put(APP_HEADER, app);
         }
 
         String user = (properties == null || properties.getUser() == null) ? clientDetails.getUserNameForTracing() : properties.getUser();
         if (StringUtils.isNotBlank(user)) {
-            headers.put("x-ms-user", user);
+            headers.put(USER_HEADER, user);
         }
 
         return headers;

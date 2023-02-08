@@ -16,22 +16,12 @@ import java.util.stream.Collectors;
 public class ClientDetails {
 
     public static final String NONE = "[none]";
-
-    private static String unpackLazy(ConcurrentInitializer<String> s) {
-        try {
-            return s.get();
-        } catch (ConcurrentException e) {
-            return NONE;
-        }
-    }
-
     private static ConcurrentInitializer<String> defaultApplication = new LazyInitializer<>() {
         @Override
         protected String initialize() {
             return UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         }
     };
-
     private static ConcurrentInitializer<String> defaultUser = new LazyInitializer<>() {
         @Override
         protected String initialize() {
@@ -43,10 +33,9 @@ public class ClientDetails {
                     user = domain + "\\" + user;
                 }
             }
-            return StringUtils.isNotBlank(user) ? user : "[none]";
+            return StringUtils.isNotBlank(user) ? user : NONE;
         }
     };
-
     private static ConcurrentInitializer<String> defaultVersion = new LazyInitializer<>() {
         @Override
         protected String initialize() {
@@ -55,6 +44,23 @@ public class ClientDetails {
                     Pair.of(String.format("Runtime.%s", escapeField(getRuntime())), getJavaVersion())));
         }
     };
+    private String applicationForTracing;
+    private String userNameForTracing;
+    private String appendedClientVersionForTracing;
+
+    public ClientDetails(String applicationForTracing, String userNameForTracing, String appendedClientVersionForTracing) {
+        this.applicationForTracing = applicationForTracing;
+        this.userNameForTracing = userNameForTracing;
+        this.appendedClientVersionForTracing = appendedClientVersionForTracing;
+    }
+
+    private static String unpackLazy(ConcurrentInitializer<String> s) {
+        try {
+            return s.get();
+        } catch (ConcurrentException e) {
+            return NONE;
+        }
+    }
 
     /**
      * Formats the given fields into a string that can be used as a header.
@@ -63,7 +69,7 @@ public class ClientDetails {
      * @return The formatted string, for example: "field1:{value1}|field2:{value2}"
      */
     private static String formatHeader(Collection<Pair<String, String>> args) {
-        return args.stream().filter(arg -> org.apache.commons.lang3.StringUtils.isNotBlank(arg.getKey()) && StringUtils.isNotBlank(arg.getValue()))
+        return args.stream().filter(arg -> StringUtils.isNotBlank(arg.getKey()) && StringUtils.isNotBlank(arg.getValue()))
                 .map(arg -> String.format("%s:%s", arg.getKey(), escapeField(arg.getValue())))
                 .collect(Collectors.joining("|"));
     }
@@ -139,16 +145,6 @@ public class ClientDetails {
         }
 
         return runtime;
-    }
-
-    private String applicationForTracing;
-    private String userNameForTracing;
-    private String appendedClientVersionForTracing;
-
-    public ClientDetails(String applicationForTracing, String userNameForTracing, String appendedClientVersionForTracing) {
-        this.applicationForTracing = applicationForTracing;
-        this.userNameForTracing = userNameForTracing;
-        this.appendedClientVersionForTracing = appendedClientVersionForTracing;
     }
 
     public String getApplicationForTracing() {
