@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.ingest.result;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
 
-import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
