@@ -7,11 +7,15 @@ import com.azure.data.tables.TableClient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 
 public class IngestionStatusInTableDescription implements Serializable {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     @JsonProperty
     private String tableConnectionString;
 
@@ -21,6 +25,7 @@ public class IngestionStatusInTableDescription implements Serializable {
     @JsonProperty
     private String rowKey;
 
+    @JsonIgnore
     private transient TableClient tableClient;
 
     public String getTableConnectionString() {
@@ -52,6 +57,7 @@ public class IngestionStatusInTableDescription implements Serializable {
             try {
                 tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
             } catch (URISyntaxException uriSyntaxException) {
+                log.error("TableConnectionString could not be parsed as URI reference.",uriSyntaxException);
                 return null;
             }
         }
