@@ -6,8 +6,10 @@ package com.microsoft.azure.kusto.ingest.result;
 import com.azure.data.tables.TableClient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
 import java.io.Serializable;
+import java.net.URISyntaxException;
 
 public class IngestionStatusInTableDescription implements Serializable {
     @JsonProperty
@@ -22,15 +24,16 @@ public class IngestionStatusInTableDescription implements Serializable {
     @JsonIgnore
     private transient TableClient tableClient;
 
-    @JsonIgnore
-    private String tableUri;
-
     public String getPartitionKey() {
         return partitionKey;
     }
 
     public void setTableConnectionString(String tableConnectionString) {
         this.tableConnectionString = tableConnectionString;
+    }
+
+    public String getTableConnectionString() {
+        return this.tableConnectionString;
     }
 
     public void setPartitionKey(String partitionKey) {
@@ -45,16 +48,11 @@ public class IngestionStatusInTableDescription implements Serializable {
         this.rowKey = rowKey;
     }
 
-    public TableClient getTableClient() {
+    public TableClient getTableClient() throws URISyntaxException {
+        if (tableClient == null) {
+            tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+        }
         return tableClient;
-    }
-
-    public void setTableUri(String tableUri) {
-        this.tableUri = tableUri;
-    }
-
-    public String getTableUri(){
-        return this.tableUri;
     }
 
     public void setTableClient(TableClient tableClient) {

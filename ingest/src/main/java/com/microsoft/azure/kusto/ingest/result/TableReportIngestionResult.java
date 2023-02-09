@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
 import java.net.URISyntaxException;
 import java.util.LinkedList;
@@ -23,9 +22,6 @@ public class TableReportIngestionResult implements IngestionResult {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             TableClient table = descriptor.getTableClient();
-            if (table == null) {
-                table = TableWithSas.TableClientFromUrl(descriptor.getTableUri(), null);
-            }
             TableEntity entity = table.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey());
             results.add(IngestionStatus.fromEntity(entity));
         }
