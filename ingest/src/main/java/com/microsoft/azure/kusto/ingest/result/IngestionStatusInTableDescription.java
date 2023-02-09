@@ -20,7 +20,10 @@ public class IngestionStatusInTableDescription implements Serializable {
     private String rowKey;
 
     @JsonIgnore
-    private TableClient tableClient;
+    private transient TableClient tableClient;
+
+    @JsonIgnore
+    private String tableUri;
 
     public String getPartitionKey() {
         return partitionKey;
@@ -44,6 +47,14 @@ public class IngestionStatusInTableDescription implements Serializable {
 
     public TableClient getTableClient() {
         return tableClient;
+    }
+
+    public void setTableUri(String tableUri) {
+        this.tableUri = tableUri;
+    }
+
+    public String getTableUri(){
+        return this.tableUri;
     }
 
     public void setTableClient(TableClient tableClient) {

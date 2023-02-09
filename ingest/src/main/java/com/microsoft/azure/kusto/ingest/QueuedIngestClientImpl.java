@@ -128,6 +128,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                 ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
                 ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
                 ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);
+                ingestionStatusInTable.setTableUri(statusTable.getUri());
                 azureStorageClient.azureTableInsertEntity(statusTable.getTable(), new TableEntity(id, id).setProperties(status.getEntityProperties()));
                 tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
             }
