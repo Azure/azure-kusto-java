@@ -27,7 +27,6 @@ import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

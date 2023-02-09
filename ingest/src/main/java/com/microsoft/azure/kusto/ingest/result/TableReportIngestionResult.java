@@ -18,7 +18,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException {
+    public List<IngestionStatus> getIngestionStatusCollection() {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             TableClient table = descriptor.getTableClient();

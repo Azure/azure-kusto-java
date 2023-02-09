@@ -21,19 +21,18 @@ public class IngestionStatusInTableDescription implements Serializable {
     @JsonProperty
     private String rowKey;
 
-    @JsonIgnore
     private transient TableClient tableClient;
 
-    public String getPartitionKey() {
-        return partitionKey;
+    public String getTableConnectionString() {
+        return this.tableConnectionString;
     }
 
     public void setTableConnectionString(String tableConnectionString) {
         this.tableConnectionString = tableConnectionString;
     }
 
-    public String getTableConnectionString() {
-        return this.tableConnectionString;
+    public String getPartitionKey() {
+        return partitionKey;
     }
 
     public void setPartitionKey(String partitionKey) {
@@ -48,10 +47,15 @@ public class IngestionStatusInTableDescription implements Serializable {
         this.rowKey = rowKey;
     }
 
-    public TableClient getTableClient() throws URISyntaxException {
+    public TableClient getTableClient() {
         if (tableClient == null) {
-            tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+            try {
+                tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+            } catch (URISyntaxException uriSyntaxException) {
+                return null;
+            }
         }
+
         return tableClient;
     }
 
