@@ -254,6 +254,7 @@ public class Utils {
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
         request.addHeader(HttpHeaders.ACCEPT, "application/json");
 
+        // TODO - maybe save this in a resouce
         String KUSTO_API_VERSION = "2019-02-13";
         request.addHeader("x-ms-version", KUSTO_API_VERSION);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
