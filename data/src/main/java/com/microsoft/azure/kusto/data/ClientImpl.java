@@ -37,13 +37,14 @@ class ClientImpl implements Client, StreamingClient {
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
+    public static final String CLIENT_VERSION_HEADER = "x-ms-client-version";
+    public static final String APP_HEADER = "x-ms-app";
+    public static final String USER_HEADER = "x-ms-user";
     public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
-    private String clientVersionForTracing;
-    private final String applicationNameForTracing;
-    private final String userNameForTracing;
+    private ClientDetails clientDetails;
     private final CloseableHttpClient httpClient;
     private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
@@ -84,16 +85,7 @@ class ClientImpl implements Client, StreamingClient {
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
-        clientVersionForTracing = "Kusto.Java.Client";
-        String version = Utils.getPackageVersion();
-        if (StringUtils.isNotBlank(version)) {
-            clientVersionForTracing += ":" + version;
-        }
-        if (StringUtils.isNotBlank(csb.getClientVersionForTracing())) {
-            clientVersionForTracing += "[" + csb.getClientVersionForTracing() + "]";
-        }
-        applicationNameForTracing = csb.getApplicationNameForTracing();
-        userNameForTracing = csb.getUserNameForTracing();
+        clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
         this.httpClient = httpClient;
         this.leaveHttpClientOpen = leaveHttpClientOpen;
     }
@@ -292,23 +284,20 @@ class ClientImpl implements Client, StreamingClient {
             String clientRequestIdPrefix,
             String activityTypeSuffix)
             throws DataServiceException, DataClientException {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("x-ms-client-version", clientVersionForTracing);
-        if (applicationNameForTracing != null) {
-            headers.put("x-ms-app", applicationNameForTracing);
-        }
-        if (userNameForTracing != null) {
-            headers.put("x-ms-user-id", userNameForTracing);
-        }
+
+        Map<String, String> headers = extractTracingHeaders(properties);
+
         if (aadAuthenticationHelper != null) {
             headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
         }
+
         String clientRequestId;
         if (properties != null && StringUtils.isNotBlank(properties.getClientRequestId())) {
             clientRequestId = properties.getClientRequestId();
         } else {
             clientRequestId = String.format("%s;%s", clientRequestIdPrefix, UUID.randomUUID());
         }
+
         headers.put("x-ms-client-request-id", clientRequestId);
 
         headers.put("Connection", "Keep-Alive");
@@ -317,6 +306,27 @@ class ClientImpl implements Client, StreamingClient {
         String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s", JAVA_INGEST_ACTIVITY_TYPE_PREFIX, activityTypeSuffix,
                 activityId, activityId, activityId, clientRequestId);
         headers.put("x-ms-activitycontext", activityContext);
+
+        return headers;
+    }
+
+    Map<String, String> extractTracingHeaders(ClientRequestProperties properties) {
+        Map<String, String> headers = new HashMap<>();
+
+        String version = clientDetails.getClientVersionForTracing();
+        if (StringUtils.isNotBlank(version)) {
+            headers.put(CLIENT_VERSION_HEADER, version);
+        }
+
+        String app = (properties == null || properties.getApplication() == null) ? clientDetails.getApplicationForTracing() : properties.getApplication();
+        if (StringUtils.isNotBlank(app)) {
+            headers.put(APP_HEADER, app);
+        }
+
+        String user = (properties == null || properties.getUser() == null) ? clientDetails.getUserNameForTracing() : properties.getUser();
+        if (StringUtils.isNotBlank(user)) {
+            headers.put(USER_HEADER, user);
+        }
 
         return headers;
     }
