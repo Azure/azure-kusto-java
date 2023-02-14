@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>4.0.2</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>4.0.3</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <!-- Use 1.0.6 for fasterxml v 2.12.x (good for databricks runtime 2.10.x) -->
