@@ -96,7 +96,8 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties properties, String dataFormat, String mappingName) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties properties,
+            String dataFormat, String mappingName) throws DataServiceException, DataClientException {
         if (blobUrl == null) {
             throw new IllegalArgumentException("The provided blobUrl is null.");
         }

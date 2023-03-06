@@ -120,7 +120,7 @@ class ManagedStreamingIngestClientTest {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob",
                 MAX_STREAMING_SIZE_BYTES + 1);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals( OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
+        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
     }
 
     @Test
@@ -547,9 +547,8 @@ class ManagedStreamingIngestClientTest {
     void IngestFromBlob_IngestOverBlobLimit_QueuedFallback() throws Exception {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
 
-
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://blobPath.blob.core.windows.net/container/blob",MAX_STREAMING_SIZE_BYTES + 1);
+                "https://blobPath.blob.core.windows.net/container/blob", MAX_STREAMING_SIZE_BYTES + 1);
         managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
         verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),

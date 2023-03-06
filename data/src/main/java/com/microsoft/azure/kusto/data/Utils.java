@@ -67,7 +67,8 @@ public class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, String blobUrl, long timeoutMs, Map<String, String> headers,
+    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, String blobUrl, long timeoutMs,
+            Map<String, String> headers,
             boolean leaveOpen)
             throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);

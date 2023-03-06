@@ -203,9 +203,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
-                                   IngestionProperties ingestionProperties,
-                                   BlobClient cloudBlockBlob,
-                                   @Nullable String clientRequestId)
+            IngestionProperties ingestionProperties,
+            BlobClient cloudBlockBlob,
+            @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
         try {
@@ -233,8 +233,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     dataFormat.getKustoValue(),
                     ingestionProperties.getIngestionMapping().getIngestionMappingReference());
         } catch (DataClientException e) {
-        log.error(e.getMessage(), e);
-        throw new IngestionClientException(e.getMessage(), e);
+            log.error(e.getMessage(), e);
+            throw new IngestionClientException(e.getMessage(), e);
         } catch (DataServiceException e) {
             log.error(e.getMessage(), e);
             throw new IngestionServiceException(e.getMessage(), e);

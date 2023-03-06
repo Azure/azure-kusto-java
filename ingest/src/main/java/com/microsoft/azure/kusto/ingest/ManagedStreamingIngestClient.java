@@ -77,7 +77,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-                                                                      @Nullable HttpClientProperties properties)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
@@ -108,7 +108,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-                                                                          @Nullable HttpClientProperties properties)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
@@ -124,7 +124,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
     }
 
@@ -139,8 +139,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)})} instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+            @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties);
@@ -148,7 +148,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-                                 @Nullable HttpClientProperties properties) throws URISyntaxException {
+            @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties);
@@ -156,7 +156,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-                                        @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
@@ -172,8 +172,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-                                        AzureStorageClient storageClient,
-                                        StreamingClient streamingClient) {
+            AzureStorageClient storageClient,
+            StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -181,9 +181,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
-                                 AzureStorageClient storageClient,
-                                 StreamingClient streamingClient,
-                                 ExponentialRetry retryTemplate) {
+            AzureStorageClient storageClient,
+            StreamingClient streamingClient,
+            ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
