@@ -31,9 +31,11 @@ public class StreamingIngest {
     public static void main(String[] args) {
         try {
             // ingest-
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://avdvircluster.westeurope.dev.kusto.windows.net");
-            // ConnectionStringBuilder csb= ConnectionStringBuilder.createWithUserPrompt("http://localhost:8000");
-
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    System.getProperty("clusterPath"), // "https://<cluster>.kusto.windows.net"
+                    System.getProperty("app-id"),
+                    System.getProperty("appKey"),
+                    System.getProperty("tenant"));
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(csb);
 
             database = System.getProperty("dbName");
@@ -46,18 +48,6 @@ public class StreamingIngest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static void ingestFromBlob() throws IngestionClientException, IngestionServiceException, URISyntaxException {
-        IngestionProperties ingestionProperties = new IngestionProperties(database, table);
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://sparkwesteu.blob.core.windows.net/perftest/line.csv?sv=2020-08-04&st=2023-02-20T13%3A46%3A35Z&se=2024-02-21T13%3A46%3A00Z&sr=b&sp=r&sig=2OC%2FKt1jyv8tz6yGh103Toqap336PQY7ZLpBTu4QhVM%3D");
-
-        // Create Stream from string and Ingest
-        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
-        System.out.println(status.toString());
-
     }
 
     static void ingestFromStream() throws IngestionClientException, IngestionServiceException, FileNotFoundException, URISyntaxException {
