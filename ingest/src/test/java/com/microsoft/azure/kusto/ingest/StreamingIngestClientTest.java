@@ -499,7 +499,7 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob).getIngestionStatusCollection()
+        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob, null).getIngestionStatusCollection()
                 .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
@@ -612,7 +612,7 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
 
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob),
+                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob, null),
                 "Expected IngestionClientException to be thrown, but it didn't");
         assertTrue(ingestionClientException.getMessage().contains("Empty blob."));
     }

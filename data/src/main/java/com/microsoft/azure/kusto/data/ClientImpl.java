@@ -96,6 +96,56 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
+    public KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties properties, String dataFormat, String mappingName) throws DataServiceException, DataClientException {
+        if (blobUrl == null) {
+            throw new IllegalArgumentException("The provided blobUrl is null.");
+        }
+        if (StringUtils.isBlank(databaseName)) {
+            throw new IllegalArgumentException("Parameter database is empty.");
+        }
+        if (StringUtils.isBlank(tableName)) {
+            throw new IllegalArgumentException("Parameter table is empty.");
+        }
+        if (StringUtils.isBlank(dataFormat)) {
+            throw new IllegalArgumentException("Parameter dataFormat is empty.");
+        }
+        String clusterEndpoint = String.format(CommandType.STREAMING_INGEST.getEndpoint(), clusterUrl, databaseName, tableName, dataFormat);
+
+        if (!StringUtils.isEmpty(mappingName)) {
+            clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
+        }
+
+        clusterEndpoint = clusterEndpoint.concat("&sourceKind=uri");
+        Map<String, String> headers;
+        headers = generateIngestAndCommandHeaders(properties, "KJC.executeStreamingIngest",
+                CommandType.STREAMING_INGEST.getActivityTypeSuffix());
+
+        Long timeoutMs = null;
+        if (properties != null) {
+            timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Object> pair = iterator.next();
+                headers.put(pair.getKey(), pair.getValue().toString());
+            }
+        }
+
+        if (timeoutMs == null) {
+            timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+        }
+
+        try {
+            validateEndpoint();
+            String response = Utils.post(httpClient, clusterEndpoint, null, null, blobUrl, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+            return new KustoOperationResult(response, "v1");
+        } catch (KustoServiceQueryError e) {
+            throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
+        } catch (KustoClientInvalidConnectionStringException e) {
+            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        }
+    }
+
+    @Override
     public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
         return execute(database, command, null);
     }
@@ -142,18 +192,19 @@ class ClientImpl implements Client, StreamingClient {
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
 
         Map<String, String> headers;
-        headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
-                commandType.getActivityTypeSuffix());
 
-        addCommandHeaders(headers);
-        String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
         try {
+            headers = generateIngestAndCommandHeaders(properties, "KJC.execute",
+                    commandType.getActivityTypeSuffix());
             validateEndpoint();
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
 
-        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        addCommandHeaders(headers);
+        String jsonPayload = generateCommandPayload(database, command, properties, clusterEndpoint);
+
+        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
     }
 
     private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
@@ -207,7 +258,7 @@ class ClientImpl implements Client, StreamingClient {
 
         try {
             validateEndpoint();
-            String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+            String response = Utils.post(httpClient, clusterEndpoint, null, stream, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);

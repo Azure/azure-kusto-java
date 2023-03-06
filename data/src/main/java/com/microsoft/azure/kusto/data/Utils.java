@@ -67,13 +67,13 @@ public class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, long timeoutMs, Map<String, String> headers,
+    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, String blobUrl, long timeoutMs, Map<String, String> headers,
             boolean leaveOpen)
             throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
         try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
-            HttpPost request = setupHttpPostRequest(url, payload, stream, headers);
+            HttpPost request = setupHttpPostRequest(url, payload, stream, blobUrl, headers);
             int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             request.setConfig(requestConfig);
@@ -124,7 +124,7 @@ public class Utils {
          */
         CloseableHttpResponse httpResponse = null;
         try {
-            HttpPost httpPost = setupHttpPostRequest(uri, payload, null, headers);
+            HttpPost httpPost = setupHttpPostRequest(uri, payload, null, null, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             httpPost.setConfig(requestConfig);
@@ -243,12 +243,19 @@ public class Utils {
         return activityId;
     }
 
-    private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, Map<String, String> headers) {
+    private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, String blobUrl, Map<String, String> headers) {
         HttpPost request = new HttpPost(uri);
 
         // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
-        HttpEntity requestEntity = (stream == null) ? new StringEntity(payload, ContentType.APPLICATION_JSON)
-                : new InputStreamEntity(new UncloseableStream(stream));
+        HttpEntity requestEntity;
+        if (blobUrl != null) {
+            requestEntity = new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
+        } else if (stream == null) {
+            requestEntity = new StringEntity(payload, ContentType.APPLICATION_JSON);
+        } else {
+            requestEntity = new InputStreamEntity(new UncloseableStream(stream));
+        }
+
         request.setEntity(requestEntity);
 
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
