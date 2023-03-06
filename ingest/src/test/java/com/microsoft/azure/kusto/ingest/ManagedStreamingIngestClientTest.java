@@ -41,6 +41,7 @@ import java.sql.ResultSetMetaData;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient.MAX_STREAMING_SIZE_BYTES;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyCompressedStreamContent;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -116,23 +117,24 @@ class ManagedStreamingIngestClientTest {
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob",
+                MAX_STREAMING_SIZE_BYTES + 1);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
+        assertEquals( OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
     }
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(result.getIngestionStatusesLength(), 0);
+        assertNotEquals(0, result.getIngestionStatusesLength());
     }
 
     @Test
     void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         assertThrows(
                 IllegalArgumentException.class,
                 () -> managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, null));
@@ -148,8 +150,8 @@ class ManagedStreamingIngestClientTest {
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
-                100);
+                "http://blobPath.blob.core.windows.net/container/blob",
+                MAX_STREAMING_SIZE_BYTES + 1);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ArgumentCaptor<TableEntity> captor = ArgumentCaptor.forClass(TableEntity.class);
@@ -158,7 +160,7 @@ class ManagedStreamingIngestClientTest {
 
         verify(azureStorageClientMock, atLeast(1)).azureTableInsertEntity(any(), captor.capture());
         assert (IngestionStatus.fromEntity(captor.getValue()).getIngestionSourcePath())
-                .equals("https://storage.table.core.windows.net/ingestionsstatus20190505");
+                .equals("http://blobPath.blob.core.windows.net/container/blob");
     }
 
     @Test
@@ -542,6 +544,19 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
+    void IngestFromBlob_IngestOverBlobLimit_QueuedFallback() throws Exception {
+        ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+
+
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
+                "https://blobPath.blob.core.windows.net/container/blob",MAX_STREAMING_SIZE_BYTES + 1);
+        managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+
+        verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+                clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
+    }
+
+    @Test
     void CreateManagedStreamingIngestClient_WithDefaultCtor_WithQueryUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
                 "://testendpoint.dev.kusto.windows.net"));
@@ -600,11 +615,15 @@ class ManagedStreamingIngestClientTest {
     }
 
     private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID) {
+        verifyClientRequestId(count, expectedUUID, "ingestFromStream");
+    }
+
+    private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID, String method) {
         String clientRequestId = clientRequestPropertiesCaptor.getValue().getClientRequestId();
         assertNotNull(clientRequestId);
         String[] values = clientRequestId.split(";");
         assertEquals(3, values.length);
-        assertEquals("KJC.executeManagedStreamingIngest", values[0]);
+        assertEquals("KJC.executeManagedStreamingIngest.ingestFromStream", values[0]);
         assertDoesNotThrow(() -> {
             UUID actual = UUID.fromString(values[1]);
             if (expectedUUID != null) {
