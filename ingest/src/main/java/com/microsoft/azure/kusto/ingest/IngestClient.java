@@ -3,6 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -12,6 +15,8 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import java.io.Closeable;
+import java.util.HashMap;
+import java.util.Map;
 
 public interface IngestClient extends Closeable {
 
@@ -28,8 +33,27 @@ public interface IngestClient extends Closeable {
      * @see FileSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException; //should this be default because it is new
+
+    default IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException{
+
+        // trace ingestFromFile
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromFile", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromFile", "complete");
+        kustoTracer.setAttributes(attributes, span);
+
+        IngestionResult ingestionResult;
+        try {
+            ingestionResult = ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
+    }
 
     /**
      * <p>Ingest data from a blob storage into Kusto database.</p>
@@ -44,8 +68,26 @@ public interface IngestClient extends Closeable {
      * @see BlobSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
+
+    default IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException{
+
+        // trace ingestFromBlob
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromBlob", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromBlob", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        IngestionResult ingestionResult;
+        try{
+            ingestionResult = ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
+    }
 
     /**
      * <p>Ingest data from a Result Set into Kusto database.</p>
@@ -63,8 +105,26 @@ public interface IngestClient extends Closeable {
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
+
+    default IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException{
+
+        // trace ingestFromResultSet
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromResultSet", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromResultSet", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        IngestionResult ingestionResult;
+        try{
+            ingestionResult = ingestFromResultSetImpl(resultSetSourceInfo, ingestionProperties);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
+    }
 
     /**
      * <p>Ingest data from an input stream, into Kusto database.</p>
@@ -79,6 +139,24 @@ public interface IngestClient extends Closeable {
      * @see StreamSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
+
+    default IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException{
+
+        // trace ingestFromStream
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromStream", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromStream", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        IngestionResult ingestionResult;
+        try{
+            ingestionResult = ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
+    }
 }

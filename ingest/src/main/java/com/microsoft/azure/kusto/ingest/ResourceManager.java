@@ -5,6 +5,8 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -13,8 +15,10 @@ import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
@@ -245,8 +249,20 @@ class ResourceManager implements Closeable {
                 throw new IllegalStateException("Unexpected value: " + resourceType);
         }
     }
-
-    private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
+    private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionResources
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("getIngestionResource", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("getIngestionResource", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        try {
+            refreshIngestionResourcesImpl();
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+    }
+    private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
@@ -269,7 +285,7 @@ class ResourceManager implements Closeable {
                         addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
-                log.info("Refreshing Ingestion Resources Finised");
+                log.info("Refreshing Ingestion Resources Finished");
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
             } catch (DataClientException e) {
@@ -281,8 +297,20 @@ class ResourceManager implements Closeable {
             }
         }
     }
-
-    private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
+    private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionAuthToken
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("getIdentityToken", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("getIdentityToken", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        try {
+            refreshIngestionAuthTokenImpl();
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+    }
+    private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");

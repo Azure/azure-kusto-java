@@ -27,7 +27,7 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    public String acquireAccessToken() throws DataClientException {
+    String acquireAccessTokenInner() throws DataClientException {
         try {
             return tokenProvider.apply(httpClient);
         } catch (Exception e) {

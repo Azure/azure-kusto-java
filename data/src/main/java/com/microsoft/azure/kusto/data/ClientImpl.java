@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
@@ -14,6 +16,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.ParseException;
@@ -110,17 +113,26 @@ class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        String response = executeToJsonResult(database, command, properties);
-
         CommandType commandType = determineCommandType(command);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+        // trace execute
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan(commandType.getActivityTypeSuffix(), Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(commandType.getActivityTypeSuffix(), "complete");
+        kustoTracer.setAttributes(attributes, span);
+        String response = executeToJsonResult(database, command, properties);
         try {
-            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
-        } catch (KustoServiceQueryError e) {
-            throw new DataServiceException(clusterEndpoint,
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
-        } catch (Exception e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+            try {
+                return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+            } catch (KustoServiceQueryError e) {
+                throw new DataServiceException(clusterEndpoint,
+                        "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+            } catch (Exception e) {
+                throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            }
+        } finally {
+            kustoTracer.endSpan(null, span, null);
         }
     }
 
@@ -160,8 +172,17 @@ class ClientImpl implements Client, StreamingClient {
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
-
-        return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        // trace execution
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("executeToJsonResult", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("executeToJsonResult", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        try {
+            return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
     }
 
     private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
@@ -212,15 +233,23 @@ class ClientImpl implements Client, StreamingClient {
         if (timeoutMs == null) {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
-
+        // trace executeStreamingIngest
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("executeStreamingIngest", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("executeStreamingIngest", "complete");
+        kustoTracer.setAttributes(attributes, span);
         try {
             validateEndpoint();
-            String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+            String response;
+            response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
         }
     }
 
@@ -260,8 +289,19 @@ class ClientImpl implements Client, StreamingClient {
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
-
-        return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        // trace httpCall
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("executeStreamingQuery", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("executeStreamingQuery", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        InputStream inputStream;
+        try {
+            inputStream = Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return inputStream;
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {

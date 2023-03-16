@@ -3,12 +3,15 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +40,21 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
-        if (version.contains("v2")) {
-            createFromV2Response(response);
-        } else {
-            createFromV1Response(response);
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("KustoOperationResult.processingResponse", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("processingResponse", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        try {
+            if (version.contains("v2")) {
+                createFromV2Response(response);
+            } else {
+                createFromV1Response(response);
+            }
+            it = resultTables.iterator();
+        } finally {
+            kustoTracer.endSpan(null, span, null);
         }
-        it = resultTables.iterator();
     }
 
     public List<KustoResultSetTable> getResultTables() {

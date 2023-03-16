@@ -3,12 +3,15 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -27,7 +30,6 @@ import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -40,9 +42,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
@@ -76,7 +76,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
@@ -134,9 +134,18 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
-
-            azureStorageClient.postMessageToQueue(
-                    resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+            // trace postMessageToQueue
+            KustoTracer kustoTracer = KustoTracer.getInstance();
+            Context span = kustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("postMessageToQueue", "complete");
+            kustoTracer.setAttributes(attributes, span);
+            try {
+                azureStorageClient.postMessageToQueue(
+                        resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+            } finally {
+                kustoTracer.endSpan(null, span, null);
+            }
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
                     : new IngestionStatusResult(status);
@@ -150,7 +159,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
@@ -174,8 +183,18 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
-            azureStorageClient.uploadLocalFileToBlob(file, blobName,
-                    container.getContainer(), shouldCompress);
+            // trace uploadLocalFileToBlob
+            KustoTracer kustoTracer = KustoTracer.getInstance();
+            Context span = kustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("uploadLocalFileToBlob", "complete");
+            kustoTracer.setAttributes(attributes, span);
+            try {
+                azureStorageClient.uploadLocalFileToBlob(file, blobName,
+                        container.getContainer(), shouldCompress);
+            } finally {
+                kustoTracer.endSpan(null, span, null);
+            }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
@@ -193,7 +212,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
@@ -219,12 +238,21 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
-
-            azureStorageClient.uploadStreamToBlob(
-                    streamSourceInfo.getStream(),
-                    blobName,
-                    container.getContainer(),
-                    shouldCompress);
+            // trace uploadStreamToBlob
+            KustoTracer kustoTracer = KustoTracer.getInstance();
+            Context span = kustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("uploadStreamToBlob", "complete");
+            kustoTracer.setAttributes(attributes, span);
+            try {
+                azureStorageClient.uploadStreamToBlob(
+                        streamSourceInfo.getStream(),
+                        blobName,
+                        container.getContainer(),
+                        shouldCompress);
+            } finally {
+                kustoTracer.endSpan(null, span, null);
+            }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                     blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
@@ -259,7 +287,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");

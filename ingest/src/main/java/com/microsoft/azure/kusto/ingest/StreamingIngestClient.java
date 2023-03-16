@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -10,6 +12,7 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -31,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -68,7 +73,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -86,7 +91,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         log.warn("Ingesting from blob using the StreamingIngestClient is not recommended, consider using the IngestClient instead.");
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
@@ -97,7 +102,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         try {
             BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
-            return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient);
+            return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, blobClient);
         } catch (IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
             log.error(msg, e);
@@ -110,7 +115,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
@@ -130,12 +135,28 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
-        return ingestFromStream(streamSourceInfo, ingestionProperties, null);
+        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, null);
+    }
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromStream
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromStream", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromStream", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        IngestionResult ingestionResult;
+        try {
+            ingestionResult = ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
     }
 
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
+    private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -202,8 +223,23 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         }
         return inputStream;
     }
-
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromBlob
+        KustoTracer kustoTracer = KustoTracer.getInstance();
+        Context span = kustoTracer.startSpan("ingestFromBlob", Context.NONE, ProcessKind.PROCESS);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("ingestFromBlob", "complete");
+        kustoTracer.setAttributes(attributes, span);
+        IngestionResult ingestionResult;
+        try{
+            ingestionResult = ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
+        } finally {
+            kustoTracer.endSpan(null, span, null);
+        }
+        return ingestionResult;
+    }
+    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
             throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
         try {

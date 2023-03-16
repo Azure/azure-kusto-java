@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,6 +9,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -95,7 +98,19 @@ public class CloudInfo {
                     HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
                     request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
-                    HttpResponse response = localHttpClient.execute(request);
+
+                    // trace CloudInfo.httpCall
+                    KustoTracer kustoTracer = KustoTracer.getInstance();
+                    Context span = kustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS);
+                    Map<String, String> attributes = new HashMap<>();
+                    attributes.put("acquire token", "complete");
+                    kustoTracer.setAttributes(attributes, span);
+                    HttpResponse response;
+                    try {
+                        response = localHttpClient.execute(request);
+                    } finally {
+                        kustoTracer.endSpan(null, span, null);
+                    }
                     try {
                         int statusCode = response.getStatusLine().getStatusCode();
                         if (statusCode == 200) {

@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
@@ -7,6 +9,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +17,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -56,7 +61,18 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     public String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
-            accessTokenResult = acquireNewAccessToken();
+
+            // trace acquireNewAccessToken
+            KustoTracer kustoTracer = KustoTracer.getInstance();
+            Context span = kustoTracer.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS);
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("cloud info", "complete");
+            kustoTracer.setAttributes(attributes, span);
+            try {
+                accessTokenResult = acquireNewAccessToken();
+            } finally {
+                kustoTracer.endSpan(null, span, null);
+            }
         }
         return accessTokenResult.accessToken();
     }
