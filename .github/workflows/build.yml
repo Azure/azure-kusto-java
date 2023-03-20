@@ -58,8 +58,8 @@ jobs:
       - run: |
           version=${{ steps.get_version.outputs.VERSION }}
           mkdir staging
-          for f in data/target/*.jar; do mv "$f" "staging/kusto-data-$version.jar"; done
-          for f in ingest/target/*.jar; do mv "$f" "staging/kusto-ingest-$version.jar"; done 
+          cp data/target/*.jar staging
+          cp ingest/target/*.jar staging
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
