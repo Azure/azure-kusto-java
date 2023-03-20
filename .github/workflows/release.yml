@@ -39,7 +39,6 @@ jobs:
           cp quickstart/target/*.jar staging
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
-          cp quickstart/.flattened-pom.xml staging/kusto-quickstart-$version.pom
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
         name: Uploading to Azure storage
         with:
