@@ -27,13 +27,13 @@ jobs:
 #          echo "M2_HOME=/usr/share/apache-maven-3.8.4" | tee -a /etc/environment
       - uses: actions/checkout@v2
       - name: Setup java ${{ matrix.java }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
           cache: 'maven'
       - name: Run the Maven verify phase
-        run: mvn --batch-mode --update-snapshots formatter:validate verify
+        run: mvn -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn --batch-mode --update-snapshots formatter:validate verify
         env:
           DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
@@ -51,3 +51,8 @@ jobs:
             ingest/target/surefire-reports/*.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+      - run: mkdir staging && cp target/*.jar staging
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Package
+          path: staging
