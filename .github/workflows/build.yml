@@ -58,21 +58,15 @@ jobs:
       - run: |
           version=${{ steps.get_version.outputs.VERSION }}
           mkdir staging
-          for f in data/target/*.jar; do mv "$f" "kusto-data-$version.jar"; done
-          for f in ingest/target/*.jar; do mv "$f" "kusto-ingest-$version.jar"; done 
+          for f in data/target/*.jar; do mv "$f" "staging/kusto-data-$version.jar"; done
+          for f in ingest/target/*.jar; do mv "$f" "staging/kusto-ingest-$version.jar"; done 
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
-      - uses: bacongobbler/azure-blob-storage-upload@main
-        #if: success() && github.ref == 'refs/heads/master'
+      - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
+        name: Uploading to Azure storage...
         with:
-          source_dir: staging
-          container_name: ${{ secrets.AZURE_STORAGE_CONTAINER }}
-          account_name: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-          sas_token: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
-          extra_args: '--destination-path kusto/java/test/${{ steps.get_version.outputs.VERSION }}/'
-          # WARNING: this will overwrite existing blobs in your blob storage
-          overwrite: 'false'
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Package
-          path: staging
+          connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING}}
+          container_name: ${{ secrets.AZURE_STORAGE_CONTAINER}}
+          source_folder: staging
+          destination_folder: kusto/java/test/${{ steps.get_version.outputs.VERSION }}
+          delete_if_exists: true
