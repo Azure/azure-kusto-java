@@ -48,17 +48,25 @@ jobs:
           destination_folder: kusto/java/${{ steps.get_version.outputs.VERSION }}
           delete_if_exists: true
       - name: Trigger pipelines release
-        uses: Azure/pipelines@v1.2
+        uses: jacopocarlini/azure-pipelines@v1.3
         with:
           azure-devops-project-url: '${{ secrets.AZURE_PIPELINES_RELEASE_REPO }}'
           azure-devops-token: '${{ secrets.AZURE_PIPELINES_PAT }}'
           azure-pipeline-name: 'java - partner-release'
-          azure-pipeline-variables:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
-      - name: Get files in staging
-        run: echo ::set-output name=FILES::$(find staging -type f)
+          azure-template-parameters:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
       - name: Github Release
         uses: docker://antonyurchenko/git-release:latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: ${{ steps.get_files_in_staging.outputs.FILES }}
+          args: |
+            kusto-data-${{ steps.get_version.outputs.VERSION }}.jar
+            kusto-data-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
+            kusto-data-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
+            kusto-data-${{ steps.get_version.outputs.VERSION }}-sources.jar
+            kusto-data-${{ steps.get_version.outputs.VERSION }}.pom
+            kusto-ingest-${{ steps.get_version.outputs.VERSION }}.jar
+            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
+            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
+            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
+            kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
