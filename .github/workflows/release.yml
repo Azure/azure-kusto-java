@@ -6,5 +6,60 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  deploy:
+  release:
     runs-on: ubuntu-latest
+    name: Java 11
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup java 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: 11
+          cache: 'maven'
+      - name: Run the Maven verify phase
+        run: mvn -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn --batch-mode --update-snapshots -Dmaven.test.skip=true verify
+        env:
+          DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
+          ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
+          TEST_DATABASE: e2e
+          APP_ID: ${{ secrets.APP_ID }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+          CI_EXECUTION: 1
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+      - name: Move artifacts to staging
+        run: |
+          version=${{ steps.get_version.outputs.VERSION }}
+          mkdir staging
+          cp data/target/*.jar staging
+          cp ingest/target/*.jar staging
+          cp quickstart/target/*.jar staging
+          cp data/.flattened-pom.xml staging/kusto-data-$version.pom
+          cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
+          cp quickstart/.flattened-pom.xml staging/kusto-quickstart-$version.pom
+      - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
+        name: Uploading to Azure storage
+        with:
+          connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING}}
+          container_name: ${{ secrets.AZURE_STORAGE_CONTAINER}}
+          source_folder: staging
+          destination_folder: kusto/java/${{ steps.get_version.outputs.VERSION }}
+          delete_if_exists: true
+      - name: Trigger pipelines release
+        uses: Azure/pipelines@v1
+        with:
+          azure-devops-project-url: '${{ secrets.AZURE_PIPELINES_RELEASE_REPO }}'
+          azure-pipeline-name: 'java - partner-release'
+          azure-devops-token: '${{ secrets.AZURE_DEVOPS_TOKEN }}'
+          azure-pipeline-variables:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
+      - name: Get files in staging
+        run: echo ::set-output name=FILES::$(find staging -type f)
+      - name: Github Release
+        uses: docker://antonyurchenko/git-release:latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ steps.get_files_in_staging.outputs.FILES }}
