@@ -27,7 +27,7 @@ jobs:
 #          echo "M2_HOME=/usr/share/apache-maven-3.8.4" | tee -a /etc/environment
       - uses: actions/checkout@v2
       - name: Setup java ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v2
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
