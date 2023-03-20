@@ -60,13 +60,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: |
-            kusto-data-${{ steps.get_version.outputs.VERSION }}.jar
-            kusto-data-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
-            kusto-data-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
-            kusto-data-${{ steps.get_version.outputs.VERSION }}-sources.jar
-            kusto-data-${{ steps.get_version.outputs.VERSION }}.pom
-            kusto-ingest-${{ steps.get_version.outputs.VERSION }}.jar
-            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
-            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
-            kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
-            kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
+            staging/kusto-data-${{ steps.get_version.outputs.VERSION }}.jar
+            staging/kusto-data-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
+            staging/kusto-data-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
+            staging/kusto-data-${{ steps.get_version.outputs.VERSION }}-sources.jar
+            staging/kusto-data-${{ steps.get_version.outputs.VERSION }}.pom
+            staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.jar
+            staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-jar-with-dependencies.jar
+            staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
+            staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
+            staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
