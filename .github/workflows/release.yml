@@ -48,7 +48,7 @@ jobs:
           destination_folder: kusto/java/${{ steps.get_version.outputs.VERSION }}
           delete_if_exists: true
       - name: Trigger pipelines release
-        uses: Azure/pipelines@v1
+        uses: Azure/pipelines@v1.2
         with:
           azure-devops-project-url: '${{ secrets.AZURE_PIPELINES_RELEASE_REPO }}'
           azure-pipeline-name: 'java - partner-release'
