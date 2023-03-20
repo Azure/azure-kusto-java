@@ -51,8 +51,8 @@ jobs:
         uses: Azure/pipelines@v1.2
         with:
           azure-devops-project-url: '${{ secrets.AZURE_PIPELINES_RELEASE_REPO }}'
+          azure-devops-token: '${{ secrets.AZURE_PIPELINES_PAT }}'
           azure-pipeline-name: 'java - partner-release'
-          azure-devops-token: '${{ secrets.AZURE_DEVOPS_TOKEN }}'
           azure-pipeline-variables:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
       - name: Get files in staging
         run: echo ::set-output name=FILES::$(find staging -type f)
