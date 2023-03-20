@@ -51,7 +51,7 @@ jobs:
             ingest/target/surefire-reports/*.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
-      - run: mkdir staging && cp target/*.jar staging
+      - run: mkdir staging && cp **/*.jar staging
       - uses: actions/upload-artifact@v3
         with:
           name: Package
