@@ -52,13 +52,25 @@ jobs:
             ingest/target/surefire-reports/*.xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
       - run: |
-          version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          version=${{ steps.get_version.outputs.VERSION }}
           mkdir staging
-          for f in data/*.jar; do mv "$f" "kusto-data-$version.jar"; done
-          for f in ingest/*.jar; do mv "$f" "kusto-ingest-$version.jar"; done 
-          cp data/.flattened-pom staging/kusto-data-$version.pom
-          cp ingest/.flattened-pom staging/kusto-ingest-$version.pom
+          for f in data/target/*.jar; do mv "$f" "kusto-data-$version.jar"; done
+          for f in ingest/target/*.jar; do mv "$f" "kusto-ingest-$version.jar"; done 
+          cp data/target/.flattened-pom staging/kusto-data-$version.pom
+          cp ingest/target/.flattened-pom staging/kusto-ingest-$version.pom
+      - uses: bacongobbler/azure-blob-storage-upload@main
+        with:
+          source_dir: staging
+          container_name: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+          account_name: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          sas_token: ${{ secrets.AZURE_STORAGE_SAS_TOKEN }}
+          extra_args: '--destination-path kusto/java/test/${{ steps.get_version.outputs.VERSION }}/'
+          # WARNING: this will overwrite existing blobs in your blob storage
+          overwrite: 'false'
       - uses: actions/upload-artifact@v3
         with:
           name: Package
