@@ -60,8 +60,8 @@ jobs:
           mkdir staging
           for f in data/target/*.jar; do mv "$f" "kusto-data-$version.jar"; done
           for f in ingest/target/*.jar; do mv "$f" "kusto-ingest-$version.jar"; done 
-          cp data/target/.flattened-pom.xml staging/kusto-data-$version.pom
-          cp ingest/target/.flattened-pom.xml staging/kusto-ingest-$version.pom
+          cp data/.flattened-pom.xml staging/kusto-data-$version.pom
+          cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
       - uses: bacongobbler/azure-blob-storage-upload@main
         #if: success() && github.ref == 'refs/heads/master'
         with:
