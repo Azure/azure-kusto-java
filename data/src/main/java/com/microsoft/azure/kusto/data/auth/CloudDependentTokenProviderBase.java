@@ -33,15 +33,11 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("CloudInfo.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS);
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("cloud info", "complete");
-        kustoTracer.setAttributes(attributes, span);
+        Context span = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
         try {
             initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
         initialized = true;
     }

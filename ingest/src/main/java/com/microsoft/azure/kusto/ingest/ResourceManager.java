@@ -251,15 +251,13 @@ class ResourceManager implements Closeable {
     }
     private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionResources
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("getIngestionResource", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("getIngestionResource", "complete");
-        kustoTracer.setAttributes(attributes, span);
+        Context span = KustoTracer.startSpan("ResourceManager.refreshIngestionResource", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
             refreshIngestionResourcesImpl();
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
     private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
@@ -299,15 +297,13 @@ class ResourceManager implements Closeable {
     }
     private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionAuthToken
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("getIdentityToken", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("getIdentityToken", "complete");
-        kustoTracer.setAttributes(attributes, span);
+        Context span = KustoTracer.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
             refreshIngestionAuthTokenImpl();
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
     private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {

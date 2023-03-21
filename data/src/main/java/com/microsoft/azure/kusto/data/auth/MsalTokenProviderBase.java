@@ -32,7 +32,6 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     private final String authorityId;
     protected String aadAuthorityUrl;
     private String firstPartyAuthorityUrl;
-
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
         this.authorityId = authorityId;
@@ -63,15 +62,13 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         if (accessTokenResult == null) {
 
             // trace acquireNewAccessToken
-            KustoTracer kustoTracer = KustoTracer.getInstance();
-            Context span = kustoTracer.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS);
             Map<String, String> attributes = new HashMap<>();
-            attributes.put("cloud info", "complete");
-            kustoTracer.setAttributes(attributes, span);
+            attributes.put("authentication_method", getAuthMethodForTracing());
+            Context span = KustoTracer.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS, attributes);
             try {
                 accessTokenResult = acquireNewAccessToken();
             } finally {
-                kustoTracer.endSpan(null, span, null);
+                KustoTracer.endSpan(null, span, null);
             }
         }
         return accessTokenResult.accessToken();

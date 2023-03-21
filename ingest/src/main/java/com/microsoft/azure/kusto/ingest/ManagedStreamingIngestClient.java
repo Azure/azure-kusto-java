@@ -41,7 +41,7 @@ import java.util.UUID;
  * <p>
  * Note that {@code ingestFromBlob} behaves differently from the other methods - since a blob already exists it makes more sense to enqueue it rather than downloading and streaming it, thus ManagedStreamingIngestClient skips the streaming retries and sends it directly to the queued client.
  */
-public class ManagedStreamingIngestClient implements IngestClient {
+public class ManagedStreamingIngestClient extends IngestClientBase implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;

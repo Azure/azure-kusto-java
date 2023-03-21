@@ -100,16 +100,12 @@ public class CloudInfo {
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
 
                     // trace CloudInfo.httpCall
-                    KustoTracer kustoTracer = KustoTracer.getInstance();
-                    Context span = kustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS);
-                    Map<String, String> attributes = new HashMap<>();
-                    attributes.put("acquire token", "complete");
-                    kustoTracer.setAttributes(attributes, span);
+                    Context span = KustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null);
                     HttpResponse response;
                     try {
                         response = localHttpClient.execute(request);
                     } finally {
-                        kustoTracer.endSpan(null, span, null);
+                        KustoTracer.endSpan(null, span, null);
                     }
                     try {
                         int statusCode = response.getStatusLine().getStatusCode();

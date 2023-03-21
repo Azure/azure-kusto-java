@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.font.EAttribute;
 
 public abstract class TokenProviderBase {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -28,19 +29,16 @@ public abstract class TokenProviderBase {
     public String acquireAccessToken() throws DataServiceException, DataClientException{
 
         // trace GetToken
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("TokenProvider.acquireAccessToken", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("acquire token", "complete");
-        kustoTracer.setAttributes(attributes, span);
-        String accessToken;
+        attributes.put("authentication_method", getAuthMethodForTracing());
+        Context span = KustoTracer.startSpan("TokenProvider.acquireAccessToken", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
-            accessToken = acquireAccessTokenInner();
+            return acquireAccessTokenInner();
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
-        return accessToken;
     }
 
     abstract String acquireAccessTokenInner() throws DataServiceException, DataClientException;
+    protected abstract String getAuthMethodForTracing();
 }

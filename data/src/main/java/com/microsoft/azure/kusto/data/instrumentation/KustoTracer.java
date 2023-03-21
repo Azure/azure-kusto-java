@@ -13,31 +13,29 @@ import java.util.Map;
 public class KustoTracer {
     private static final boolean IS_TRACING_DISABLED = Configuration.getGlobalConfiguration().get(Configuration.PROPERTY_AZURE_TRACING_DISABLED, false);
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static  Tracer tracer;
-    private static KustoTracer instance = new KustoTracer(null);
+    private static Tracer tracer;
     private static volatile boolean initialized = false;
 
-    private KustoTracer(Tracer tracer){
-        KustoTracer.tracer = IS_TRACING_DISABLED ? null : tracer;
-    }
+
 
     public static void initializeTracer(Tracer tracer){
         if (!KustoTracer.initialized){
             synchronized (KustoTracer.class){
                 if (!KustoTracer.initialized){
-                    instance = new KustoTracer(tracer);
+                    KustoTracer.tracer = IS_TRACING_DISABLED ? null : tracer;
                     initialized = true;
                 }
             }
         }
     }
-    public static KustoTracer getInstance(){return instance;}
 
-    public Context startSpan(String spanName, Context context, ProcessKind kind) {
-        return tracer == null ? context : tracer.start(spanName, context, kind);
+    public static Context startSpan(String spanName, Context context, ProcessKind kind, Map<String, String> attributes) {
+        Context span = tracer == null ? context : tracer.start(spanName, context, kind);
+        setAttributes(attributes, span);
+        return span;
     }
 
-    public void endSpan(Throwable throwable, Context span, AutoCloseable scope) {
+    public static void endSpan(Throwable throwable, Context span, AutoCloseable scope) {
         if (tracer != null) {
             String errorCondition = "success";
             if (throwable != null) {
@@ -54,10 +52,9 @@ public class KustoTracer {
             }
         }
     }
-    public void setAttributes(Map<String, String> attributes, Context span){
-        attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
+    public static void setAttributes(Map<String, String> attributes, Context span){
+        if (attributes != null){
+            attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
+        }
     }
-//    public void getCurrentSpan(){
-//        return tracer.
-//    }
 }

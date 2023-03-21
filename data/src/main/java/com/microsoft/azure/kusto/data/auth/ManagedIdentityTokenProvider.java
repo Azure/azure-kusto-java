@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.net.URISyntaxException;
 
 public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBase {
+    public static final String MANAGED_IDENTITY_TOKEN_PROVIDER = "ManagedIdentityTokenProvider";
     private final String managedIdentityClientId;
     private ManagedIdentityCredential managedIdentityCredential;
     private TokenRequestContext tokenRequestContext;
@@ -45,5 +46,10 @@ public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBas
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);
         }
         return accessToken.getToken();
+    }
+
+    @Override
+    protected String getAuthMethodForTracing() {
+        return MANAGED_IDENTITY_TOKEN_PROVIDER;
     }
 }

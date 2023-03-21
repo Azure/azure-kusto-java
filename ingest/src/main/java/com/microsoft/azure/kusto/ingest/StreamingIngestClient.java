@@ -36,6 +36,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -43,6 +44,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private final StreamingClient streamingClient;
+    String connectionDataSource;
 
     StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
@@ -142,18 +144,15 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("ingestFromStream", Context.NONE, ProcessKind.PROCESS);
+
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromStream", "complete");
-        kustoTracer.setAttributes(attributes, span);
-        IngestionResult ingestionResult;
+        Context span = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
-            ingestionResult = ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
+            return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
-        return ingestionResult;
     }
 
     private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
@@ -226,18 +225,14 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("ingestFromBlob", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromBlob", "complete");
-        kustoTracer.setAttributes(attributes, span);
-        IngestionResult ingestionResult;
-        try{
-            ingestionResult = ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
+        Context span = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+        try {
+            return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
-        return ingestionResult;
     }
     private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
             throws IngestionClientException, IngestionServiceException {

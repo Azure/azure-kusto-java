@@ -40,11 +40,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("KustoOperationResult.processingResponse", Context.NONE, ProcessKind.PROCESS);
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("processingResponse", "complete");
-        kustoTracer.setAttributes(attributes, span);
+
+        Context span = KustoTracer.startSpan("KustoOperationResult.createFromResponse", Context.NONE, ProcessKind.PROCESS, null);
         try {
             if (version.contains("v2")) {
                 createFromV2Response(response);
@@ -53,7 +50,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             }
             it = resultTables.iterator();
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
 

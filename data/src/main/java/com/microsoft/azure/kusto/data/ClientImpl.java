@@ -115,13 +115,11 @@ class ClientImpl implements Client, StreamingClient {
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         CommandType commandType = determineCommandType(command);
         // trace execute
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan(commandType.getActivityTypeSuffix(), Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put(commandType.getActivityTypeSuffix(), "complete");
-        kustoTracer.setAttributes(attributes, span);
-        String response = executeToJsonResult(database, command, properties);
+        Context span = KustoTracer.startSpan(commandType.getActivityTypeSuffix().concat(".execute"), Context.NONE, ProcessKind.PROCESS, attributes);
         try {
+            String response = executeToJsonResult(database, command, properties);
             String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
             try {
                 return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
@@ -132,7 +130,7 @@ class ClientImpl implements Client, StreamingClient {
                 throw new DataClientException(clusterEndpoint, e.getMessage(), e);
             }
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
 
@@ -173,15 +171,13 @@ class ClientImpl implements Client, StreamingClient {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
         // trace execution
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("executeToJsonResult", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("executeToJsonResult", "complete");
-        kustoTracer.setAttributes(attributes, span);
+        Context span = KustoTracer.startSpan("ClientImpl.executeToJsonResult", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
             return Utils.post(httpClient, clusterEndpoint, jsonPayload, null, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
 
@@ -234,22 +230,19 @@ class ClientImpl implements Client, StreamingClient {
             timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
         }
         // trace executeStreamingIngest
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("executeStreamingIngest", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("executeStreamingIngest", "complete");
-        kustoTracer.setAttributes(attributes, span);
+        Context span = KustoTracer.startSpan("ClientImpl.executeStreamingIngest", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
             validateEndpoint();
-            String response;
-            response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+            String response = Utils.post(httpClient, clusterEndpoint, null, stream, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
     }
 
@@ -290,18 +283,14 @@ class ClientImpl implements Client, StreamingClient {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
         // trace httpCall
-        KustoTracer kustoTracer = KustoTracer.getInstance();
-        Context span = kustoTracer.startSpan("executeStreamingQuery", Context.NONE, ProcessKind.PROCESS);
         Map<String, String> attributes = new HashMap<>();
         attributes.put("executeStreamingQuery", "complete");
-        kustoTracer.setAttributes(attributes, span);
-        InputStream inputStream;
+        Context span = KustoTracer.startSpan("ClientImpl.executeStreamingQuery", Context.NONE, ProcessKind.PROCESS, attributes);
         try {
-            inputStream = Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
+            return Utils.postToStreamingOutput(httpClient, clusterEndpoint, jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
         } finally {
-            kustoTracer.endSpan(null, span, null);
+            KustoTracer.endSpan(null, span, null);
         }
-        return inputStream;
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {

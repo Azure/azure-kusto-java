@@ -50,6 +50,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
+    String connectionDataSource;
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties));
@@ -135,16 +136,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
             // trace postMessageToQueue
-            KustoTracer kustoTracer = KustoTracer.getInstance();
-            Context span = kustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS);
             Map<String, String> attributes = new HashMap<>();
             attributes.put("postMessageToQueue", "complete");
-            kustoTracer.setAttributes(attributes, span);
+            Context span = KustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes);
             try {
                 azureStorageClient.postMessageToQueue(
                         resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
             } finally {
-                kustoTracer.endSpan(null, span, null);
+                KustoTracer.endSpan(null, span, null);
             }
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
@@ -184,16 +183,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadLocalFileToBlob
-            KustoTracer kustoTracer = KustoTracer.getInstance();
-            Context span = kustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS);
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadLocalFileToBlob", "complete");
-            kustoTracer.setAttributes(attributes, span);
+            Context span = KustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
             try {
                 azureStorageClient.uploadLocalFileToBlob(file, blobName,
                         container.getContainer(), shouldCompress);
             } finally {
-                kustoTracer.endSpan(null, span, null);
+                KustoTracer.endSpan(null, span, null);
             }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
@@ -239,11 +236,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadStreamToBlob
-            KustoTracer kustoTracer = KustoTracer.getInstance();
-            Context span = kustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS);
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadStreamToBlob", "complete");
-            kustoTracer.setAttributes(attributes, span);
+            Context span = KustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
             try {
                 azureStorageClient.uploadStreamToBlob(
                         streamSourceInfo.getStream(),
@@ -251,7 +246,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         container.getContainer(),
                         shouldCompress);
             } finally {
-                kustoTracer.endSpan(null, span, null);
+                KustoTracer.endSpan(null, span, null);
             }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(

@@ -283,8 +283,10 @@ public class SampleApp {
     private static boolean waitForUser;
 
     public static void main(String[] args) {
-        KustoTracer kustoTracer =  createKustoTracer();
-        Context span = kustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS);
+        createKustoTracer();
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("step 1", "complete");
+        Context span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes);
 
         System.out.println("Kusto sample app is starting...");
 
@@ -294,9 +296,6 @@ public class SampleApp {
         if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
             waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
         }
-        Map<String, String> attributes = new HashMap<String, String>();
-        attributes.put("step 1", "complete");
-        kustoTracer.setAttributes(attributes, span);
         try {
             IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
                     config.getAuthenticationMode()));
@@ -314,16 +313,17 @@ public class SampleApp {
 
         } catch (URISyntaxException e) {
             Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
+        } finally {
+            KustoTracer.endSpan(null, span, null);
         }
 
         System.out.println("\nKusto sample app done");
-        kustoTracer.endSpan(null, span, null);
+
     }
 
-    private static KustoTracer createKustoTracer() {
+    private static void createKustoTracer() {
         enableDistributedTracing();
         KustoTracer.initializeTracer(new OpenTelemetryTracer());
-        return KustoTracer.getInstance();
     }
 
     private static void enableDistributedTracing() {
