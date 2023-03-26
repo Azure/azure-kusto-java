@@ -5,6 +5,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 
 public class UriUtils {
     private UriUtils() {
@@ -55,7 +56,7 @@ public class UriUtils {
         if (extensionPos == -1 || lastDirSeparator > extensionPos) {
             return filename;
         } else {
-            return filename.substring(0, extensionPos);
+            return filename.substring(lastDirSeparator + 1, extensionPos);
         }
     }
 
@@ -66,5 +67,22 @@ public class UriUtils {
             throw new URISyntaxException(url, "URL is missing the required SAS query");
         }
         return parts;
+    }
+
+    // Given a cmd line used to run the java app, this method strips out the file name running
+    // i.e: "home/user/someFile.jar -arg1 val" -> someFile
+    public static String stripFileNameFromCommandLine(String cmdLine) {
+        try {
+            String processNameForTracing = cmdLine;
+
+            if (processNameForTracing != null) {
+                processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
+            }
+
+            return processNameForTracing;
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 }

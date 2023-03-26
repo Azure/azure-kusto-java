@@ -6,13 +6,13 @@ on:
   push:
     branches: [ master ]
   pull_request:
-
+    branches: [ '**' ]
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: ['8']
+        java: ['11']
     name: Java ${{ matrix.java }}
     steps:
 #      Uncomment to run locally with "act"
@@ -27,7 +27,7 @@ jobs:
 #          echo "M2_HOME=/usr/share/apache-maven-3.8.4" | tee -a /etc/environment
       - uses: actions/checkout@v2
       - name: Setup java ${{ matrix.java }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}

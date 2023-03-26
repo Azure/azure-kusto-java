@@ -6,10 +6,16 @@ package com.microsoft.azure.kusto.ingest.result;
 import com.azure.data.tables.TableClient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.net.URISyntaxException;
 
 public class IngestionStatusInTableDescription implements Serializable {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     @JsonProperty
     private String tableConnectionString;
 
@@ -20,14 +26,18 @@ public class IngestionStatusInTableDescription implements Serializable {
     private String rowKey;
 
     @JsonIgnore
-    private TableClient tableClient;
+    private transient TableClient tableClient;
 
-    public String getPartitionKey() {
-        return partitionKey;
+    public String getTableConnectionString() {
+        return this.tableConnectionString;
     }
 
     public void setTableConnectionString(String tableConnectionString) {
         this.tableConnectionString = tableConnectionString;
+    }
+
+    public String getPartitionKey() {
+        return partitionKey;
     }
 
     public void setPartitionKey(String partitionKey) {
@@ -43,6 +53,15 @@ public class IngestionStatusInTableDescription implements Serializable {
     }
 
     public TableClient getTableClient() {
+        if (tableClient == null) {
+            try {
+                tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+            } catch (URISyntaxException uriSyntaxException) {
+                log.error("TableConnectionString could not be parsed as URI reference.", uriSyntaxException);
+                return null;
+            }
+        }
+
         return tableClient;
     }
 

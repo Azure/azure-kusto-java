@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -132,6 +133,19 @@ class UtilitiesTest {
         Assertions.assertEquals("Http StatusCode='http/1.1 401 Some Error', ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
+    }
+
+    @Test
+    @DisplayName("Remove extension")
+    void removeExtensionFromFileName() {
+        Assertions.assertEquals("fileName", UriUtils.removeExtension("fileName.csv"));
+    }
+
+    @Test
+    @DisplayName("Assert file name extracted from some cmd line")
+    void extractFileNameFromCommandLine() {
+        String cmdLine = Path.of(" home", "user", "someFile.jar").toString() + " -arg1 val";
+        Assertions.assertEquals(UriUtils.stripFileNameFromCommandLine(cmdLine), "someFile.jar");
     }
 
     @NotNull

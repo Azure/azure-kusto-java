@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>3.3.0</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>4.0.4</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <!-- Use 1.0.6 for fasterxml v 2.12.x (good for databricks runtime 2.10.x) -->
@@ -42,7 +42,7 @@
         <!-- Compile dependencies -->
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <commons-lang3.version>3.11</commons-lang3.version>
-        <commons-text.version>1.9</commons-text.version>
+        <commons-text.version>1.10.0</commons-text.version>
         <msal4j.version>1.12.0</msal4j.version>
         <httpclient.version>4.5.13</httpclient.version>
         <httpcore.version>4.4.15</httpcore.version>
@@ -66,7 +66,7 @@
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
         <junit.version>5.8.2</junit.version>
-        <mockito.version>4.1.0</mockito.version>
+        <mockito.version>4.5.1</mockito.version>
         <jacoco.version>0.8.7</jacoco.version>
     </properties>
 
