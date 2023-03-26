@@ -57,4 +57,21 @@ public class KustoTracer {
             attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
         }
     }
+
+    public static class KustoSpan implements AutoCloseable{
+        private final Context span;
+        private Throwable throwable;
+        public KustoSpan(Context span) {
+            this.span = span;
+        }
+
+        @Override
+        public void close() {
+            endSpan(throwable, span, null);
+        }
+
+        public void addException(Exception e) {
+            throwable = e;
+        }
+    }
 }

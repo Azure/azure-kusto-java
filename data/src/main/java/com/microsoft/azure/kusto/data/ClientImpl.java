@@ -16,7 +16,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
+import com.microsoft.azure.kusto.data.instrumentation.KustoTracer.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;

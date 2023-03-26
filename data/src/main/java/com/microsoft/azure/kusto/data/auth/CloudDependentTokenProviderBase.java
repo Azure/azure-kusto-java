@@ -8,12 +8,9 @@ import com.azure.core.util.tracing.ProcessKind;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.http.client.HttpClient;
 
@@ -34,7 +31,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        KustoSpan kustoSpan = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
+        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
         try (kustoSpan)
         {
             initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));

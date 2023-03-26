@@ -12,7 +12,6 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -37,7 +36,6 @@ import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -148,7 +146,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromStream", "complete");
-        KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
+        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
         try (kustoSpan) {
             return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
         } catch(IngestionClientException | IngestionServiceException e) {
@@ -229,7 +227,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         // trace ingestFromBlob
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromBlob", "complete");
-        KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
         try (kustoSpan){
             return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
         } catch (IngestionServiceException | IngestionClientException e){

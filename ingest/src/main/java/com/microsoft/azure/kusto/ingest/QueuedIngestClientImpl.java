@@ -11,7 +11,6 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -139,7 +138,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace postMessageToQueue
             Map<String, String> attributes = new HashMap<>();
             attributes.put("postMessageToQueue", "complete");
-            try (KustoSpan kustoSpan = KustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try (KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes)) {
                 azureStorageClient.postMessageToQueue(
                         resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
             }
@@ -183,7 +182,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace uploadLocalFileToBlob
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadLocalFileToBlob", "complete");
-            KustoSpan kustoSpan = KustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+            KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
             try (kustoSpan) {
                 azureStorageClient.uploadLocalFileToBlob(file, blobName,
                         container.getContainer(), shouldCompress);
@@ -237,7 +236,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace uploadStreamToBlob
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadStreamToBlob", "complete");
-            KustoSpan kustoSpan = KustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+            KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
             try (kustoSpan){
                 azureStorageClient.uploadStreamToBlob(
                         streamSourceInfo.getStream(),

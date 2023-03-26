@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -287,7 +286,7 @@ public class SampleApp {
         createKustoTracer();
         Map<String, String> attributes = new HashMap<>();
         attributes.put("step 1", "complete");
-        try (KustoSpan span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes)) {
+        try (KustoTracer.KustoSpan span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes)) {
 
             System.out.println("Kusto sample app is starting...");
 

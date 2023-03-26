@@ -9,7 +9,6 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -65,7 +64,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
             // trace acquireNewAccessToken
             Map<String, String> attributes = new HashMap<>();
             attributes.put("authentication_method", getAuthMethodForTracing());
-            KustoSpan kustoSpan = KustoTracer.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS, attributes);
+            KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS, attributes);
             try (kustoSpan){
                 accessTokenResult = acquireNewAccessToken();
             } catch (DataServiceException | DataClientException e) {

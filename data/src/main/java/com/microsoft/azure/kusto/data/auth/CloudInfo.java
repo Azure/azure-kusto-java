@@ -9,12 +9,10 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
@@ -103,7 +101,7 @@ public class CloudInfo {
 
                     // trace CloudInfo.httpCall
                     HttpResponse response;
-                    KustoSpan kustoSpan = KustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null);
+                    KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null);
                     try (kustoSpan) {
                         response = localHttpClient.execute(request);
                     } catch (IOException e){
