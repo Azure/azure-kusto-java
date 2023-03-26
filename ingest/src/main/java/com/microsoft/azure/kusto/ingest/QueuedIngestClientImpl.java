@@ -11,6 +11,7 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -138,12 +139,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace postMessageToQueue
             Map<String, String> attributes = new HashMap<>();
             attributes.put("postMessageToQueue", "complete");
-            Context span = KustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes);
-            try {
+            try (KustoSpan kustoSpan = KustoTracer.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes)) {
                 azureStorageClient.postMessageToQueue(
                         resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
-            } finally {
-                KustoTracer.endSpan(null, span, null);
             }
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
@@ -185,12 +183,13 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace uploadLocalFileToBlob
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadLocalFileToBlob", "complete");
-            Context span = KustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
-            try {
+            KustoSpan kustoSpan = KustoTracer.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+            try (kustoSpan) {
                 azureStorageClient.uploadLocalFileToBlob(file, blobName,
                         container.getContainer(), shouldCompress);
-            } finally {
-                KustoTracer.endSpan(null, span, null);
+            } catch (IOException e){
+                kustoSpan.addException(e);
+                throw e;
             }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
@@ -238,15 +237,16 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             // trace uploadStreamToBlob
             Map<String, String> attributes = new HashMap<>();
             attributes.put("uploadStreamToBlob", "complete");
-            Context span = KustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
-            try {
+            KustoSpan kustoSpan = KustoTracer.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+            try (kustoSpan){
                 azureStorageClient.uploadStreamToBlob(
                         streamSourceInfo.getStream(),
                         blobName,
                         container.getContainer(),
                         shouldCompress);
-            } finally {
-                KustoTracer.endSpan(null, span, null);
+            } catch (IOException | URISyntaxException e){
+                kustoSpan.addException(e);
+                throw e;
             }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(

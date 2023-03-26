@@ -34,7 +34,7 @@
     <properties>
         <revision>3.3.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <!-- Use 1.0.6 for fasterxml v 2.12.x (good for databricks runtime 2.10.x) -->
         <azure-bom-version>1.2.4</azure-bom-version>
 

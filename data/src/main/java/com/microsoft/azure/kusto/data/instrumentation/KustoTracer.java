@@ -29,10 +29,10 @@ public class KustoTracer {
         }
     }
 
-    public static Context startSpan(String spanName, Context context, ProcessKind kind, Map<String, String> attributes) {
+    public static KustoSpan startSpan(String spanName, Context context, ProcessKind kind, Map<String, String> attributes) {
         Context span = tracer == null ? context : tracer.start(spanName, context, kind);
         setAttributes(attributes, span);
-        return span;
+        return new KustoSpan(span);
     }
 
     public static void endSpan(Throwable throwable, Context span, AutoCloseable scope) {

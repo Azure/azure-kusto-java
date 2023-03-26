@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.util.Context;
 import com.azure.core.util.tracing.ProcessKind;
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -39,16 +40,17 @@ public abstract class IngestClientBase implements IngestClient{
             throws IngestionClientException, IngestionServiceException; //should this be default because it is new
 
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException{
+            throws IngestionClientException, IngestionServiceException {
 
         // trace ingestFromFile
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromFile", "complete");
-        Context span = KustoTracer.startSpan("IngestClientBase.ingestFromFile", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("IngestClientBase.ingestFromFile", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan) {
             return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e) {
+            kustoSpan.addException(e);
+            throw e;
         }
     }
 
@@ -74,11 +76,12 @@ public abstract class IngestClientBase implements IngestClient{
         // trace ingestFromBlob
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromBlob", "complete");
-        Context span = KustoTracer.startSpan("IngestClientBase.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
-        try{
+        KustoSpan kustoSpan = KustoTracer.startSpan("IngestClientBase.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan){
             return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e){
+            kustoSpan.addException(e);
+            throw e;
         }
     }
 
@@ -107,11 +110,12 @@ public abstract class IngestClientBase implements IngestClient{
         // trace ingestFromResultSet
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromResultSet", "complete");
-        Context span = KustoTracer.startSpan("IngestClientBase.ingestFromResultSet", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("IngestClientBase.ingestFromResultSet", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan){
             return ingestFromResultSetImpl(resultSetSourceInfo, ingestionProperties);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e){
+            kustoSpan.addException(e);
+            throw e;
         }
     }
 
@@ -137,11 +141,12 @@ public abstract class IngestClientBase implements IngestClient{
         // trace ingestFromStream
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromStream", "complete");
-        Context span = KustoTracer.startSpan("IngestClientBase.", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("IngestClientBase.", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan){
             return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e){
+            kustoSpan.addException(e);
+            throw e;
         }
     }
 }

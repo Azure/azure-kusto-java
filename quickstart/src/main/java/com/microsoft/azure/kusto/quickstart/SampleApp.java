@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
@@ -286,39 +287,37 @@ public class SampleApp {
         createKustoTracer();
         Map<String, String> attributes = new HashMap<>();
         attributes.put("step 1", "complete");
-        Context span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (KustoSpan span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes)) {
 
-        System.out.println("Kusto sample app is starting...");
+            System.out.println("Kusto sample app is starting...");
 
-        ConfigJson config = loadConfigs();
-        waitForUser = config.isWaitForUser();
+            ConfigJson config = loadConfigs();
+            waitForUser = config.isWaitForUser();
 
-        if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
-            waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
-        }
-        try {
-            IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
-                    config.getAuthenticationMode()));
-            Client kustoClient = ClientFactory
-                    .createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
-
-            preIngestionQuerying(config, kustoClient);
-
-            if (config.isIngestData()) {
-                ingestion(config, kustoClient, ingestClient);
+            if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
+                waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
             }
-            if (config.isQueryData()) {
-                postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
+            try {
+                IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
+                        config.getAuthenticationMode()));
+                Client kustoClient = ClientFactory
+                        .createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
+
+                preIngestionQuerying(config, kustoClient);
+
+                if (config.isIngestData()) {
+                    ingestion(config, kustoClient, ingestClient);
+                }
+                if (config.isQueryData()) {
+                    postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
+                }
+
+            } catch (URISyntaxException e) {
+                Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
             }
 
-        } catch (URISyntaxException e) {
-            Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+            System.out.println("\nKusto sample app done");
         }
-
-        System.out.println("\nKusto sample app done");
-
     }
 
     private static void createKustoTracer() {

@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import org.apache.http.client.HttpClient;
 
@@ -33,11 +34,13 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        Context span = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
+        try (kustoSpan)
+        {
             initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (DataClientException | DataServiceException e){
+            kustoSpan.addException(e);
+            throw e;
         }
         initialized = true;
     }

@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -147,11 +148,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromStream", "complete");
-        Context span = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan) {
             return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch(IngestionClientException | IngestionServiceException e) {
+            kustoSpan.addException(e);
+            throw e;
         }
     }
 
@@ -227,11 +229,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         // trace ingestFromBlob
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromBlob", "complete");
-        Context span = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan){
             return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionServiceException | IngestionClientException e){
+            kustoSpan.addException(e);
+            throw e;
         }
     }
     private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)

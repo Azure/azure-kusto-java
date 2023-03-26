@@ -15,6 +15,7 @@ import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.instrumentation.KustoSpan;
 import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -253,11 +254,12 @@ class ResourceManager implements Closeable {
         // trace refreshIngestionResources
         Map<String, String> attributes = new HashMap<>();
         attributes.put("getIngestionResource", "complete");
-        Context span = KustoTracer.startSpan("ResourceManager.refreshIngestionResource", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("ResourceManager.refreshIngestionResource", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan) {
             refreshIngestionResourcesImpl();
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e){
+            kustoSpan.addException(e);
+            throw e;
         }
     }
     private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
@@ -299,11 +301,12 @@ class ResourceManager implements Closeable {
         // trace refreshIngestionAuthToken
         Map<String, String> attributes = new HashMap<>();
         attributes.put("getIdentityToken", "complete");
-        Context span = KustoTracer.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS, attributes);
-        try {
+        KustoSpan kustoSpan = KustoTracer.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS, attributes);
+        try (kustoSpan){
             refreshIngestionAuthTokenImpl();
-        } finally {
-            KustoTracer.endSpan(null, span, null);
+        } catch (IngestionClientException | IngestionServiceException e) {
+            kustoSpan.addException(e);
+            throw e;
         }
     }
     private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {
