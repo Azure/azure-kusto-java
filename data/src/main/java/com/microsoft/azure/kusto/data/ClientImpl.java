@@ -171,7 +171,7 @@ class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-                                                       String streamFormat, String mappingName, boolean leaveOpen)
+            String streamFormat, String mappingName, boolean leaveOpen)
             throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
@@ -183,7 +183,7 @@ class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult executeStreamingIngestFromBlob(String database, String table, String blobUrl, ClientRequestProperties properties,
-                                                               String dataFormat, String mappingName)
+            String dataFormat, String mappingName)
             throws DataServiceException, DataClientException {
         if (blobUrl == null) {
             throw new IllegalArgumentException("The provided blobUrl is null.");
@@ -194,7 +194,8 @@ class ClientImpl implements Client, StreamingClient {
         return executeStreamingIngestImpl(clusterEndpoint, null, blobUrl, properties, false);
     }
 
-    private KustoOperationResult executeStreamingIngestImpl(String clusterEndpoint, InputStream stream, String blobUrl, ClientRequestProperties properties, boolean leaveOpen)
+    private KustoOperationResult executeStreamingIngestImpl(String clusterEndpoint, InputStream stream, String blobUrl, ClientRequestProperties properties,
+            boolean leaveOpen)
             throws DataServiceException, DataClientException {
         boolean isStreamSource = stream != null;
         Map<String, String> headers = generateIngestAndCommandHeaders(properties,
@@ -209,9 +210,8 @@ class ClientImpl implements Client, StreamingClient {
             validateEndpoint();
 
             // We use UncloseableStream to prevent HttpClient From closing it
-            AbstractHttpEntity entity = isStreamSource ?
-                    new InputStreamEntity(new UncloseableStream(stream)) :
-                    new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
+            AbstractHttpEntity entity = isStreamSource ? new InputStreamEntity(new UncloseableStream(stream))
+                    : new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
             String response = Utils.post(httpClient, clusterEndpoint, entity, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
@@ -237,7 +237,6 @@ class ClientImpl implements Client, StreamingClient {
 
         return timeoutMs;
     }
-
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {
         if (StringUtils.isBlank(database)) {
@@ -322,8 +321,8 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     private Map<String, String> generateIngestAndCommandHeaders(ClientRequestProperties properties,
-                                                                String clientRequestIdPrefix,
-                                                                String activityTypeSuffix)
+            String clientRequestIdPrefix,
+            String activityTypeSuffix)
             throws DataServiceException, DataClientException {
 
         Map<String, String> headers = extractTracingHeaders(properties);

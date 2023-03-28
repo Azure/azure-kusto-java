@@ -20,6 +20,9 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
+import com.microsoft.azure.kusto.ingest.utils.KustoCheckedFunction;
+import io.vavr.CheckedFunction0;
+import io.vavr.CheckedRunnable;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -240,36 +243,13 @@ public class ManagedStreamingIngestClient implements IngestClient {
             return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
 
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
-
-        UUID finalSourceId = sourceId;
-        IngestionResult result = retry.execute(currentAttempt -> {
-            try {
-                String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromBlob;%s;%d", finalSourceId, currentAttempt);
-                return streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, clientRequestId);
-            } catch (Exception e) {
-                if (e instanceof IngestionServiceException
-                        && e.getCause() != null
-                        && e.getCause() instanceof DataServiceException
-                        && e.getCause().getCause() != null
-                        && e.getCause().getCause() instanceof DataWebException) {
-                    DataWebException webException = (DataWebException) e.getCause().getCause();
-                    OneApiError oneApiError = webException.getApiError();
-                    if (oneApiError.isPermanent()) {
-                        throw e;
-                    }
-                }
-
-                log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
-            }
-            return null;
-        });
-
-        if (result != null) {
-            return result;
+        try {
+            return ingestWithRetries((String cid) -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, cid)
+                    , () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties)
+                    , () -> {}, sourceId, "ingestFromBlob");
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
-
-        return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
     }
 
     @Override
@@ -331,51 +311,74 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
 
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
-
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
-
-        UUID finalSourceId = sourceId;
-        try {
-            IngestionResult result = retry.execute(currentAttempt -> {
-                try {
-                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromStream;%s;%d", finalSourceId, currentAttempt);
-                    return streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, clientRequestId);
-                } catch (Exception e) {
-                    if (e instanceof IngestionServiceException
-                            && e.getCause() != null
-                            && e.getCause() instanceof DataServiceException
-                            && e.getCause().getCause() != null
-                            && e.getCause().getCause() instanceof DataWebException) {
-                        DataWebException webException = (DataWebException) e.getCause().getCause();
-                        OneApiError oneApiError = webException.getApiError();
-                        if (oneApiError.isPermanent()) {
-                            throw e;
-                        }
-                    }
-
-                    log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
-
-                    try {
-                        managedSourceInfo.getStream().reset();
-                    } catch (IOException ioException) {
-                        throw new IngestionClientException("Failed to reset stream", ioException);
-                    }
-                }
-                return null;
-            });
-
-            if (result != null) {
-                return result;
+        CheckedRunnable onRetry = () ->
+        {
+            try {
+                managedSourceInfo.getStream().reset();
+            } catch (IOException ioException) {
+                throw new IngestionClientException("Failed to reset stream", ioException);
             }
+        };
 
-            return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
+        try {
+             return ingestWithRetries(
+                     (String cid) -> streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, cid),
+                     () -> queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties),
+                     onRetry,
+                     sourceId,
+                     "ingestFromStream");
+        } catch (Throwable e) {
+            throw new IngestionClientException("Failed to ingest stream", e);
         } finally {
             try {
                 managedSourceInfo.getStream().close();
-            } catch (IOException e) {
+            } catch(IOException e){
                 log.warn("Failed to close byte stream", e);
             }
         }
+    }
+
+    private IngestionResult ingestWithRetries(KustoCheckedFunction<String, IngestionResult> streamOp,
+                                              CheckedFunction0<IngestionResult> queueFallbackOp,
+                                              CheckedRunnable reset,
+                                              UUID sourceId,
+                                              String nameForTraces) throws Throwable {
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+
+        IngestionResult result = retry.execute(currentAttempt -> {
+            try {
+                String clientRequestId = String.format("KJC.executeManagedStreamingIngest.%s;%s;%d", nameForTraces, sourceId, currentAttempt);
+                return streamOp.apply(clientRequestId);
+            } catch (Exception e) {
+                if (e instanceof IngestionServiceException
+                        && e.getCause() != null
+                        && e.getCause() instanceof DataServiceException
+                        && e.getCause().getCause() != null
+                        && e.getCause().getCause() instanceof DataWebException) {
+                    DataWebException webException = (DataWebException) e.getCause().getCause();
+                    OneApiError oneApiError = webException.getApiError();
+                    if (oneApiError.isPermanent()) {
+                        throw e;
+                    }
+                }
+
+                log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
+
+                try {
+                    reset.run();
+                } catch (Throwable ex) {
+                    throw new RuntimeException(ex);
+                }
+
+            }
+            return null;
+        });
+
+        if (result != null) {
+            return result;
+        }
+
+        return queueFallbackOp.apply();
     }
 
     @Override
