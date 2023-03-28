@@ -3,10 +3,18 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.CommandType;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -18,8 +26,8 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -40,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -542,4 +551,26 @@ class E2ETest {
 
         Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
     }
+
+    @Test
+    void testNoRedirects() throws Exception {
+        List<Integer> redirectCodes = Arrays.asList(301, 302, 303, 307, 308);
+        CloudInfo.manuallyAddToCache("https://fake.kusto.windows.net", CloudInfo.DEFAULT_CLOUD);
+        try (Client client =
+                ClientFactory.createClient(ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://fake.kusto.windows.net/", "token"))) {
+            for (int code : redirectCodes) {
+                // Change CommandType.QUERY enum with reflection
+                Field endpoint = CommandType.QUERY.getClass().getDeclaredField("endpoint");
+                endpoint.setAccessible(true);
+                endpoint.set(CommandType.QUERY, "https://httpstat.us/" + code);
+                try {
+                    client.execute("db", "table");
+                    Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertEquals(code, e.getStatusCode());
+                }
+            }
+        }
+    }
+
 }
