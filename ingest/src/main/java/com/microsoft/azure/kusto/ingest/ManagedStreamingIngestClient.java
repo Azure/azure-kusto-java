@@ -244,9 +244,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
 
         try {
-            return ingestWithRetries((String cid) -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, cid)
-                    , () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties)
-                    , () -> {}, sourceId, "ingestFromBlob");
+            return ingestWithRetries((String cid) -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, cid),
+                    () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties), () -> {
+                    }, sourceId, "ingestFromBlob");
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -311,8 +311,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
 
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
-        CheckedRunnable onRetry = () ->
-        {
+        CheckedRunnable onRetry = () -> {
             try {
                 managedSourceInfo.getStream().reset();
             } catch (IOException ioException) {
@@ -321,28 +320,28 @@ public class ManagedStreamingIngestClient implements IngestClient {
         };
 
         try {
-             return ingestWithRetries(
-                     (String cid) -> streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, cid),
-                     () -> queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties),
-                     onRetry,
-                     sourceId,
-                     "ingestFromStream");
+            return ingestWithRetries(
+                    (String cid) -> streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, cid),
+                    () -> queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties),
+                    onRetry,
+                    sourceId,
+                    "ingestFromStream");
         } catch (Throwable e) {
             throw new IngestionClientException("Failed to ingest stream", e);
         } finally {
             try {
                 managedSourceInfo.getStream().close();
-            } catch(IOException e){
+            } catch (IOException e) {
                 log.warn("Failed to close byte stream", e);
             }
         }
     }
 
     private IngestionResult ingestWithRetries(KustoCheckedFunction<String, IngestionResult> streamOp,
-                                              CheckedFunction0<IngestionResult> queueFallbackOp,
-                                              CheckedRunnable reset,
-                                              UUID sourceId,
-                                              String nameForTraces) throws Throwable {
+            CheckedFunction0<IngestionResult> queueFallbackOp,
+            CheckedRunnable reset,
+            UUID sourceId,
+            String nameForTraces) throws Throwable {
         ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
 
         IngestionResult result = retry.execute(currentAttempt -> {
