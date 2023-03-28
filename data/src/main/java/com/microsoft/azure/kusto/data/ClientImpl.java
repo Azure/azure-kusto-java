@@ -158,7 +158,7 @@ class ClientImpl implements Client, StreamingClient {
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties);
         StringEntity requestEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
-        return Utils.post(httpClient, clusterEndpoint, requestEntity, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, false);
+        return Utils.post(httpClient, clusterEndpoint, requestEntity, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
     }
 
     private void validateEndpoint() throws DataServiceException, KustoClientInvalidConnectionStringException {
@@ -212,7 +212,7 @@ class ClientImpl implements Client, StreamingClient {
             AbstractHttpEntity entity = isStreamSource ?
                     new InputStreamEntity(new UncloseableStream(stream)) :
                     new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
-            String response = Utils.post(httpClient, clusterEndpoint, entity, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, leaveOpen);
+            String response = Utils.post(httpClient, clusterEndpoint, entity, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers);
             return new KustoOperationResult(response, "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);

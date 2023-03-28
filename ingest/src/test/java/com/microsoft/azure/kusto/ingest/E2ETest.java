@@ -271,284 +271,284 @@ class E2ETest {
         currentCount += actualRowsCount;
         assertEquals(expectedRowsCount, actualRowsCount);
     }
-//
-//    @Test
-//    void testShowPrincipals() {
-//        boolean found = isDatabasePrincipal(queryClient);
-//        Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
-//    }
-//
-//    private boolean isDatabasePrincipal(Client localQueryClient) {
-//        KustoOperationResult result = null;
-//        boolean found = false;
-//        try {
-//            result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
-//            // result = localQueryClient.execute(databaseName, String.format(".show version"));
-//        } catch (Exception ex) {
-//            Assertions.fail("Failed to execute show database principals command", ex);
-//        }
-//        KustoResultSetTable mainTableResultSet = result.getPrimaryResults();
-//        while (mainTableResultSet.next()) {
-//            if (mainTableResultSet.getString("PrincipalFQN").equals(principalFqn)) {
-//                found = true;
-//            }
-//        }
-//        return found;
-//    }
-//
-//    @ParameterizedTest
-//    @ValueSource(booleans = {true, false})
-//    void testIngestFromFile(boolean isManaged) {
-//        for (TestDataItem item : dataForTests) {
-//            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
-//            try {
-//                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
-//            } catch (Exception ex) {
-//                Assertions.fail(ex);
-//            }
-//            assertRowCount(item.rows, false);
-//        }
-//    }
-//
-//    @ParameterizedTest
-//    @ValueSource(booleans = {true, false})
-//    void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
-//        for (TestDataItem item : dataForTests) {
-//            InputStream stream = new FileInputStream(item.file);
-//            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-//            if (item.file.getPath().endsWith(".gz")) {
-//                streamSourceInfo.setCompressionType(CompressionType.gz);
-//            }
-//            try {
-//                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
-//            } catch (Exception ex) {
-//                Assertions.fail(ex);
-//            }
-//            assertRowCount(item.rows, true);
-//        }
-//    }
-//
-//    @Test
-//    void testStreamingIngestFromFile() {
-//        for (TestDataItem item : dataForTests) {
-//            if (item.testOnstreamingIngestion) {
-//                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
-//                try {
-//                    streamingIngestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
-//                } catch (Exception ex) {
-//                    Assertions.fail(ex);
-//                }
-//                assertRowCount(item.rows, false);
-//            }
-//        }
-//    }
-//
-//    @Test
-//    void testStreamingIngestFromStream() throws FileNotFoundException {
-//        for (TestDataItem item : dataForTests) {
-//            if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
-//                InputStream stream = new FileInputStream(item.file);
-//                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-//                if (item.file.getPath().endsWith(".gz")) {
-//                    streamSourceInfo.setCompressionType(CompressionType.gz);
-//                }
-//                try {
-//                    streamingIngestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
-//                } catch (Exception ex) {
-//                    Assertions.fail(ex);
-//                }
-//                assertRowCount(item.rows, true);
-//            }
-//        }
-//    }
-//
-//    private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
-//        try {
-//            IngestClientFactory.createStreamingIngestClient(engineCsb);
-//            Client localEngineClient = ClientFactory.createClient(engineCsb);
-//            assertTrue(isDatabasePrincipal(localEngineClient));
-//            assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
-//        } catch (URISyntaxException ex) {
-//            Assertions.fail("Failed to create query and streamingIngest client", ex);
-//            return false;
-//        }
-//        return true;
-//    }
-//
-//    @Test
-//    void testCreateWithUserPrompt() {
-//        Assumptions.assumeTrue(IsManualExecution());
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null,
-//                System.getenv("USERNAME_HINT"));
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCreateWithDeviceAuthentication() {
-//        Assumptions.assumeTrue(IsManualExecution());
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
-//        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PUBLIC_X509CER_FILE_LOC")));
-//        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
-//        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
-//        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer,
-//                privateKey, "microsoft.onmicrosoft.com");
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCreateWithAadApplicationCredentials() {
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-//                appKey, tenantId);
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCreateWithAadAccessTokenAuthentication() {
-//        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
-//        String token = System.getenv("TOKEN");
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCreateWithAadTokenProviderAuthentication() {
-//        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
-//        Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"),
-//                tokenProviderCallable);
-//        assertTrue(canAuthenticate(engineCsb));
-//    }
-//
-//    @Test
-//    void testCloudInfoWithCluster() throws DataServiceException {
-//        String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
-//        CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
-//        assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
-//        assertNotNull(cloudInfo);
-//        assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
-//    }
-//
-//    @Test
-//    void testCloudInfoWith404() throws DataServiceException {
-//        String fakeClusterUrl = "https://www.microsoft.com/";
-//        assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
-//    }
-//
-//    @Test
-//    void testParameterizedQuery() throws DataServiceException, DataClientException {
-//        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
-//        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
-//        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
-//
-//        TestDataItem item = new TestDataItem() {
-//            {
-//                file = new File(resourcesPath, "dataset.csv");
-//                rows = 10;
-//                ingestionProperties = ingestionPropertiesWithoutMapping;
-//            }
-//        };
-//
-//        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
-//        try {
-//            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
-//        } catch (Exception ex) {
-//            Assertions.fail(ex);
-//        }
-//        assertRowCount(item.rows, false);
-//
-//        ClientRequestProperties crp = new ClientRequestProperties();
-//        crp.setParameter("xdoubleParam", 2.0002);
-//        crp.setParameter("xboolParam", false);
-//        crp.setParameter("xint16Param", 2);
-//        crp.setParameter("xint64Param", 2L);
-//        crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
-//        crp.setParameter("xtextParam", "Two");
-//        crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
-//
-//        String query = String.format(
-//                "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
-//                tableName);
-//        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
-//        KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
-//        mainTableResult.next();
-//        String results = mainTableResult.getString(13);
-//        assertEquals("Two", results);
-//    }
-//
-//    @Test
-//    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
-//        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-//        String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
-//        StopWatch stopWatch = new StopWatch();
-//
-//        // Standard approach - API converts json to KustoOperationResult
-//        stopWatch.start();
-//        KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
-//        stopWatch.stop();
-//        long timeConvertedToJavaObj = stopWatch.getTime();
-//        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(),
-//                timeConvertedToJavaObj);
-//
-//        // Specialized use case - API returns raw json for performance
-//        stopWatch.reset();
-//        stopWatch.start();
-//        String jsonResult = queryClient.executeToJsonResult(databaseName, query, clientRequestProperties);
-//        stopWatch.stop();
-//        long timeRawJson = stopWatch.getTime();
-//        System.out.printf("Raw json result size='%s' returned in '%s'ms%n", jsonResult.length(), timeRawJson);
-//
-//        // Depends on many transient factors, but is ~15% cheaper when there are many records
-//        // assertTrue(timeRawJson < timeConvertedToJavaObj);
-//
-//        // Specialized use case - API streams raw json for performance
-//        stopWatch.reset();
-//        stopWatch.start();
-//        // The InputStream *must* be closed by the caller to prevent memory leaks
-//        try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
-//             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
-//            StringBuilder streamedResult = new StringBuilder();
-//            char[] buffer = new char[65536];
-//            String streamedLine;
-//            long prevTime = 0;
-//            int count = 0;
-//            while ((br.read(buffer)) > -1) {
-//                count++;
-//                streamedLine = String.valueOf(buffer);
-//                streamedResult.append(streamedLine);
-//                streamedResult.append("\n");
-//                long currTime = stopWatch.getTime();
-//                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", streamedLine.length(), (currTime - prevTime));
-//                prevTime = currTime;
-//            }
-//            stopWatch.stop();
-//            long timeStreaming = stopWatch.getTime();
-//            System.out.printf("Streamed raw json of length '%s' in '%s'ms, using '%s' streamed segments%n", streamedResult.length(), timeStreaming, count);
-//            assertTrue(count > 0);
-//        }
-//    }
-//
-//    @Test
-//    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
-//        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-//                appKey, tenantId);
-//        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-//        CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
-//        Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);
-//
-//        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-//        String query = tableName + " | take 1000";
-//
-//        clientImpl.execute(databaseName, query, clientRequestProperties);
-//        clientImpl.execute(databaseName, query, clientRequestProperties);
-//
-//        Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
-//    }
+
+    @Test
+    void testShowPrincipals() {
+        boolean found = isDatabasePrincipal(queryClient);
+        Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
+    }
+
+    private boolean isDatabasePrincipal(Client localQueryClient) {
+        KustoOperationResult result = null;
+        boolean found = false;
+        try {
+            result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
+            // result = localQueryClient.execute(databaseName, String.format(".show version"));
+        } catch (Exception ex) {
+            Assertions.fail("Failed to execute show database principals command", ex);
+        }
+        KustoResultSetTable mainTableResultSet = result.getPrimaryResults();
+        while (mainTableResultSet.next()) {
+            if (mainTableResultSet.getString("PrincipalFQN").equals(principalFqn)) {
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromFile(boolean isManaged) {
+        for (TestDataItem item : dataForTests) {
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+            try {
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
+            } catch (Exception ex) {
+                Assertions.fail(ex);
+            }
+            assertRowCount(item.rows, false);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
+        for (TestDataItem item : dataForTests) {
+            InputStream stream = new FileInputStream(item.file);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+            if (item.file.getPath().endsWith(".gz")) {
+                streamSourceInfo.setCompressionType(CompressionType.gz);
+            }
+            try {
+                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
+            } catch (Exception ex) {
+                Assertions.fail(ex);
+            }
+            assertRowCount(item.rows, true);
+        }
+    }
+
+    @Test
+    void testStreamingIngestFromFile() {
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                try {
+                    streamingIngestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
+            }
+        }
+    }
+
+    @Test
+    void testStreamingIngestFromStream() throws FileNotFoundException {
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
+                InputStream stream = new FileInputStream(item.file);
+                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+                if (item.file.getPath().endsWith(".gz")) {
+                    streamSourceInfo.setCompressionType(CompressionType.gz);
+                }
+                try {
+                    streamingIngestClient.ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, true);
+            }
+        }
+    }
+
+    private boolean canAuthenticate(ConnectionStringBuilder engineCsb) {
+        try {
+            IngestClientFactory.createStreamingIngestClient(engineCsb);
+            Client localEngineClient = ClientFactory.createClient(engineCsb);
+            assertTrue(isDatabasePrincipal(localEngineClient));
+            assertTrue(isDatabasePrincipal(localEngineClient)); // Hit cache
+        } catch (URISyntaxException ex) {
+            Assertions.fail("Failed to create query and streamingIngest client", ex);
+            return false;
+        }
+        return true;
+    }
+
+    @Test
+    void testCreateWithUserPrompt() {
+        Assumptions.assumeTrue(IsManualExecution());
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null,
+                System.getenv("USERNAME_HINT"));
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithDeviceAuthentication() {
+        Assumptions.assumeTrue(IsManualExecution());
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadApplicationCertificate() throws GeneralSecurityException, IOException {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PUBLIC_X509CER_FILE_LOC")));
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("PRIVATE_PKCS8_FILE_LOC")));
+        X509Certificate cer = SecurityUtils.getPublicCertificate(System.getenv("PUBLIC_X509CER_FILE_LOC"));
+        PrivateKey privateKey = SecurityUtils.getPrivateKey(System.getenv("PRIVATE_PKCS8_FILE_LOC"));
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCertificate(System.getenv("ENGINE_CONNECTION_STRING"), appId, cer,
+                privateKey, "microsoft.onmicrosoft.com");
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadApplicationCredentials() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadAccessTokenAuthentication() {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
+        String token = System.getenv("TOKEN");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(System.getenv("ENGINE_CONNECTION_STRING"), token);
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithAadTokenProviderAuthentication() {
+        Assumptions.assumeTrue(StringUtils.isNotBlank(System.getenv("TOKEN")));
+        Callable<String> tokenProviderCallable = () -> System.getenv("TOKEN");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(System.getenv("ENGINE_CONNECTION_STRING"),
+                tokenProviderCallable);
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCloudInfoWithCluster() throws DataServiceException {
+        String clusterUrl = System.getenv("ENGINE_CONNECTION_STRING");
+        CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
+        assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
+        assertNotNull(cloudInfo);
+        assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
+    }
+
+    @Test
+    void testCloudInfoWith404() throws DataServiceException {
+        String fakeClusterUrl = "https://www.microsoft.com/";
+        assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
+    }
+
+    @Test
+    void testParameterizedQuery() throws DataServiceException, DataClientException {
+        IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithoutMapping.setFlushImmediately(true);
+        ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
+
+        TestDataItem item = new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        };
+
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        try {
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+        } catch (Exception ex) {
+            Assertions.fail(ex);
+        }
+        assertRowCount(item.rows, false);
+
+        ClientRequestProperties crp = new ClientRequestProperties();
+        crp.setParameter("xdoubleParam", 2.0002);
+        crp.setParameter("xboolParam", false);
+        crp.setParameter("xint16Param", 2);
+        crp.setParameter("xint64Param", 2L);
+        crp.setParameter("xdateParam", new CslDateTimeFormat("2016-01-01T01:01:01.0000000Z").getValue()); // Or can pass LocalDateTime
+        crp.setParameter("xtextParam", "Two");
+        crp.setParameter("xtimeParam", new CslTimespanFormat("-00:00:02.0020002").getValue()); // Or can pass Duration
+
+        String query = String.format(
+                "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
+                tableName);
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
+        KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
+        mainTableResult.next();
+        String results = mainTableResult.getString(13);
+        assertEquals("Two", results);
+    }
+
+    @Test
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
+        StopWatch stopWatch = new StopWatch();
+
+        // Standard approach - API converts json to KustoOperationResult
+        stopWatch.start();
+        KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeConvertedToJavaObj = stopWatch.getTime();
+        System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(),
+                timeConvertedToJavaObj);
+
+        // Specialized use case - API returns raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        String jsonResult = queryClient.executeToJsonResult(databaseName, query, clientRequestProperties);
+        stopWatch.stop();
+        long timeRawJson = stopWatch.getTime();
+        System.out.printf("Raw json result size='%s' returned in '%s'ms%n", jsonResult.length(), timeRawJson);
+
+        // Depends on many transient factors, but is ~15% cheaper when there are many records
+        // assertTrue(timeRawJson < timeConvertedToJavaObj);
+
+        // Specialized use case - API streams raw json for performance
+        stopWatch.reset();
+        stopWatch.start();
+        // The InputStream *must* be closed by the caller to prevent memory leaks
+        try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            StringBuilder streamedResult = new StringBuilder();
+            char[] buffer = new char[65536];
+            String streamedLine;
+            long prevTime = 0;
+            int count = 0;
+            while ((br.read(buffer)) > -1) {
+                count++;
+                streamedLine = String.valueOf(buffer);
+                streamedResult.append(streamedLine);
+                streamedResult.append("\n");
+                long currTime = stopWatch.getTime();
+                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", streamedLine.length(), (currTime - prevTime));
+                prevTime = currTime;
+            }
+            stopWatch.stop();
+            long timeStreaming = stopWatch.getTime();
+            System.out.printf("Streamed raw json of length '%s' in '%s'ms, using '%s' streamed segments%n", streamedResult.length(), timeStreaming, count);
+            assertTrue(count > 0);
+        }
+    }
+
+    @Test
+    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
+        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
+        CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
+        Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);
+
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        String query = tableName + " | take 1000";
+
+        clientImpl.execute(databaseName, query, clientRequestProperties);
+        clientImpl.execute(databaseName, query, clientRequestProperties);
+
+        Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
+    }
 
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {

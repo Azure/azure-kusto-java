@@ -69,8 +69,7 @@ public class Utils {
     }
 
     static String post(CloseableHttpClient httpClient, String urlStr, AbstractHttpEntity requestEntity, long timeoutMs,
-                       Map<String, String> headers,
-                       boolean leaveOpen)
+                       Map<String, String> headers)
             throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
