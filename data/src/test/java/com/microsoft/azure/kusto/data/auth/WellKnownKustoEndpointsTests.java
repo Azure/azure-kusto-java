@@ -131,6 +131,7 @@ public class WellKnownKustoEndpointsTests {
                 "https://kustowwqgogzpseg6o.eastus2.kusto.windows.net",
                 "https://kustor3gjpwqum3olw.canadacentral.kusto.windows.net",
                 "https://dflskfdslfkdslkdsfldfs.westeurope.kusto.data.microsoft.com",
+                "https://dflskfdslfkdslkdsfldfs.z7.kusto.fabric.microsoft.com",
         }) {
             {
                 validateEndpoint(c, DEFAULT_PUBLIC_LOGIN_URL);
@@ -142,14 +143,20 @@ public class WellKnownKustoEndpointsTests {
                 validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
 
+            String[] specialUrls = new String[] {
+                    "synapse",
+                    "kusto.data.microsoft.com",
+                    "kusto.fabric.microsoft.com",
+            };
+
             // Test MFA endpoints
-            if (!c.contains("synapse") && !c.contains("data.microsoft.com")) {
+            if (Arrays.stream(specialUrls).noneMatch(c::contains)) {
                 String clusterName = c.replace(".kusto.", ".kustomfa.");
                 validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
 
             // Test dev endpoints
-            if (!c.contains("synapse") && !c.contains("data.microsoft.com")) {
+            if (Arrays.stream(specialUrls).noneMatch(c::contains)) {
                 String clusterName = c.replace(".kusto.", ".kustodev.");
                 validateEndpoint(clusterName, DEFAULT_PUBLIC_LOGIN_URL);
             }
