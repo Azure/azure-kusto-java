@@ -240,7 +240,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throw new IngestionServiceException(e.getMessage(), e);
         }
 
-        log.debug("Stream was ingested successfully.");
+        log.debug("Blob was ingested successfully.");
         IngestionStatus ingestionStatus = new IngestionStatus();
         ingestionStatus.status = OperationStatus.Succeeded;
         ingestionStatus.table = ingestionProperties.getTableName();

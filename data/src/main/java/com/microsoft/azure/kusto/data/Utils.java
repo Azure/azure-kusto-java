@@ -25,6 +25,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.EofSensorInputStream;
+import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
@@ -67,14 +68,14 @@ public class Utils {
         // Hide constructor, as this is a static utility class
     }
 
-    static String post(CloseableHttpClient httpClient, String urlStr, String payload, InputStream stream, String blobUrl, long timeoutMs,
-            Map<String, String> headers,
-            boolean leaveOpen)
+    static String post(CloseableHttpClient httpClient, String urlStr, AbstractHttpEntity requestEntity, long timeoutMs,
+                       Map<String, String> headers,
+                       boolean leaveOpen)
             throws DataServiceException, DataClientException {
         URI url = parseUriFromUrlString(urlStr);
 
-        try (InputStream ignored = (stream != null && !leaveOpen) ? stream : null) {
-            HttpPost request = setupHttpPostRequest(url, payload, stream, blobUrl, headers);
+        try {
+            HttpPost request = setupHttpPostRequest(url, requestEntity, headers);
             int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             request.setConfig(requestConfig);
@@ -125,7 +126,8 @@ public class Utils {
          */
         CloseableHttpResponse httpResponse = null;
         try {
-            HttpPost httpPost = setupHttpPostRequest(uri, payload, null, null, headers);
+            StringEntity requestEntity = new StringEntity(payload, ContentType.APPLICATION_JSON);
+            HttpPost httpPost = setupHttpPostRequest(uri, requestEntity, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
             RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
             httpPost.setConfig(requestConfig);
@@ -244,19 +246,10 @@ public class Utils {
         return activityId;
     }
 
-    private static HttpPost setupHttpPostRequest(URI uri, String payload, InputStream stream, String blobUrl, Map<String, String> headers) {
+    private static HttpPost setupHttpPostRequest(URI uri, AbstractHttpEntity requestEntity, Map<String, String> headers) {
         HttpPost request = new HttpPost(uri);
 
-        // Request parameters and other properties. We use UncloseableStream to prevent HttpClient From closing it
-        HttpEntity requestEntity;
-        if (blobUrl != null) {
-            requestEntity = new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
-        } else if (stream == null) {
-            requestEntity = new StringEntity(payload, ContentType.APPLICATION_JSON);
-        } else {
-            requestEntity = new InputStreamEntity(new UncloseableStream(stream));
-        }
-
+        // Request parameters and other properties
         request.setEntity(requestEntity);
 
         request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
