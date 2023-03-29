@@ -555,9 +555,8 @@ class E2ETest {
     @Test
     void testNoRedirects() throws Exception {
         List<Integer> redirectCodes = Arrays.asList(301, 302, 303, 307, 308);
-        CloudInfo.manuallyAddToCache("https://fake.kusto.windows.net", CloudInfo.DEFAULT_CLOUD);
         try (Client client = ClientFactory
-                .createClient(ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://fake.kusto.windows.net/", "token"))) {
+                .createClient(ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://help.kusto.windows.net/", "token"))) {
             for (int code : redirectCodes) {
                 // Change CommandType.QUERY enum with reflection
                 Field endpoint = CommandType.QUERY.getClass().getDeclaredField("endpoint");
@@ -569,8 +568,7 @@ class E2ETest {
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertEquals(code, e.getStatusCode());
-                }
-                finally {
+                } finally {
                     endpoint.set(CommandType.QUERY, original);
                 }
             }
