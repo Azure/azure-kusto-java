@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.CommandType;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
@@ -17,6 +16,8 @@ import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
+import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
@@ -553,26 +554,53 @@ class E2ETest {
     }
 
     @Test
-    void testNoRedirects() throws Exception {
-        List<Integer> redirectCodes = Arrays.asList(301, 302, 303, 307, 308);
-        try (Client client = ClientFactory
-                .createClient(ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://help.kusto.windows.net/", "token"))) {
-            for (int code : redirectCodes) {
-                // Change CommandType.QUERY enum with reflection
-                Field endpoint = CommandType.QUERY.getClass().getDeclaredField("endpoint");
-                endpoint.setAccessible(true);
-                Object original = endpoint.get(CommandType.QUERY);
-                endpoint.set(CommandType.QUERY, "https://httpstat.us/" + code);
+    void testNoRedirectsCloudFail() {
+        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
+        redirectCodes.parallelStream().map(code -> {
+            try (Client client = ClientFactory.createClient(
+                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"))) {
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
-                    Assertions.assertEquals(code, e.getStatusCode());
-                } finally {
-                    endpoint.set(CommandType.QUERY, original);
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertTrue(e.getMessage().contains("metadata"));
                 }
+            } catch (Exception e) {
+                return e;
             }
-        }
+            return null;
+        }).forEach(e -> {
+            if (e != null) {
+                Assertions.fail(e);
+            }
+        });
+    }
+
+    @Test
+    void testNoRedirectsClientFail() {
+        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
+        redirectCodes.parallelStream().map(code -> {
+            try (Client client = ClientFactory.createClient(
+                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"))) {
+                try {
+                    client.execute("db", "table");
+                    Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertFalse(e.getMessage().contains("metadata"));
+                }
+            } catch (Exception e) {
+                return e;
+            }
+            return null;
+        }).forEach(e -> {
+            if (e != null) {
+                Assertions.fail(e);
+            }
+        });
     }
 
 }

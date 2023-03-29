@@ -3,16 +3,16 @@ package com.microsoft.azure.kusto.data.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.HttpClientFactory;
 import com.microsoft.azure.kusto.data.UriUtils;
-
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -90,9 +90,9 @@ public class CloudInfo {
             CloudInfo result;
 
             try {
-                HttpClient localHttpClient = givenHttpClient == null ? HttpClients.createSystem() : givenHttpClient;
+                HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
                 try {
-                    HttpGet request = new HttpGet(UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT));
+                    HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
                     request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
                     HttpResponse response = localHttpClient.execute(request);
