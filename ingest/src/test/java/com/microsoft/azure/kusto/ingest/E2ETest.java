@@ -562,12 +562,16 @@ class E2ETest {
                 // Change CommandType.QUERY enum with reflection
                 Field endpoint = CommandType.QUERY.getClass().getDeclaredField("endpoint");
                 endpoint.setAccessible(true);
+                Object original = endpoint.get(CommandType.QUERY);
                 endpoint.set(CommandType.QUERY, "https://httpstat.us/" + code);
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertEquals(code, e.getStatusCode());
+                }
+                finally {
+                    endpoint.set(CommandType.QUERY, original);
                 }
             }
         }
