@@ -37,7 +37,8 @@ public class HttpClientFactory {
                 .setMaxConnTotal(properties.maxConnectionTotal())
                 .setMaxConnPerRoute(properties.maxConnectionRoute())
                 .evictExpiredConnections()
-                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
+                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS)
+                .disableRedirectHandling();
 
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
