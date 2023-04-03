@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,18 +40,22 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
-
-        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("KustoOperationResult.createFromResponse", Context.NONE, ProcessKind.PROCESS, null);
-        try (kustoSpan){
-            if (version.contains("v2")) {
-                createFromV2Response(response);
-            } else {
-                createFromV1Response(response);
+        it = resultTables.iterator();
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("KustoOperationResult.createFromRespons", Context.NONE, ProcessKind.PROCESS, null)) {
+            try {
+                KustoOperationResultImpl(response, version);
+            } catch (KustoServiceQueryError e) {
+                span.addException(e);
+                throw e;
             }
-            it = resultTables.iterator();
-        } catch (KustoServiceQueryError e) {
-            kustoSpan.addException(e);
-            throw e;
+        }
+    }
+
+    private void KustoOperationResultImpl(String response, String version) throws KustoServiceQueryError {
+        if (version.contains("v2")) {
+            createFromV2Response(response);
+        } else {
+            createFromV1Response(response);
         }
     }
 

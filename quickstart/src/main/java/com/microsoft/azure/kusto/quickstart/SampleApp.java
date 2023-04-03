@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -284,11 +284,9 @@ public class SampleApp {
 
     public static void main(String[] args) {
         createKustoTracer();
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("step 1", "complete");
-        try (KustoTracer.KustoSpan span = KustoTracer.startSpan("SampleApp", Context.NONE, ProcessKind.PROCESS, attributes)) {
+        System.out.println("Kusto sample app is starting...");
 
-            System.out.println("Kusto sample app is starting...");
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("SampleApp.main", Context.NONE, ProcessKind.PROCESS, null)) {
 
             ConfigJson config = loadConfigs();
             waitForUser = config.isWaitForUser();
@@ -315,13 +313,13 @@ public class SampleApp {
                 Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
             }
 
-            System.out.println("\nKusto sample app done");
         }
+        System.out.println("\nKusto sample app done");
     }
 
     private static void createKustoTracer() {
         enableDistributedTracing();
-        KustoTracer.initializeTracer(new OpenTelemetryTracer());
+        DistributedTracing.initializeTracer(new OpenTelemetryTracer());
     }
 
     private static void enableDistributedTracing() {

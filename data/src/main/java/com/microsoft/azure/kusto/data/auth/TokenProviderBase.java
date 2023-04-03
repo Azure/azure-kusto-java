@@ -9,7 +9,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,12 +30,13 @@ public abstract class TokenProviderBase {
         // trace GetToken
         Map<String, String> attributes = new HashMap<>();
         attributes.put("authentication_method", getAuthMethodForTracing());
-        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("TokenProvider.acquireAccessToken", Context.NONE, ProcessKind.PROCESS, attributes);
-        try (kustoSpan){
-            return acquireAccessTokenInner();
-        } catch (DataServiceException | DataClientException e){
-            kustoSpan.addException(e);
-            throw e;
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("TokenProvider.acquireAccessToken", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try {
+                return acquireAccessTokenInner();
+            } catch (DataServiceException | DataClientException e) {
+                span.addException(e);
+                throw e;
+            }
         }
     }
 

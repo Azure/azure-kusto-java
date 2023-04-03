@@ -11,7 +11,7 @@ import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import org.apache.http.client.HttpClient;
 
 import org.jetbrains.annotations.NotNull;
@@ -31,13 +31,13 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null);
-        try (kustoSpan)
-        {
-            initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
-        } catch (DataClientException | DataServiceException e){
-            kustoSpan.addException(e);
-            throw e;
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null)) {
+            try {
+                initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
+            } catch (DataClientException | DataServiceException e) {
+                span.addException(e);
+                throw e;
+            }
         }
         initialized = true;
     }

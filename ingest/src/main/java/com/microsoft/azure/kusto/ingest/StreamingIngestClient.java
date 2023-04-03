@@ -12,7 +12,7 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -146,12 +146,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromStream", "complete");
-        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes);
-        try (kustoSpan) {
-            return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
-        } catch(IngestionClientException | IngestionServiceException e) {
-            kustoSpan.addException(e);
-            throw e;
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try {
+                return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                span.addException(e);
+                throw e;
+            }
         }
     }
 
@@ -227,12 +228,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         // trace ingestFromBlob
         Map<String, String> attributes = new HashMap<>();
         attributes.put("ingestFromBlob", "complete");
-        KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes);
-        try (kustoSpan){
-            return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
-        } catch (IngestionServiceException | IngestionClientException e){
-            kustoSpan.addException(e);
-            throw e;
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try {
+                return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
+            } catch (IngestionServiceException | IngestionClientException e) {
+                span.addException(e);
+                throw e;
+            }
         }
     }
     private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)

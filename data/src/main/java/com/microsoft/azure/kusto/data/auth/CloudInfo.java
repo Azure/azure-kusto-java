@@ -9,7 +9,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.KustoTracer;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -101,12 +101,13 @@ public class CloudInfo {
 
                     // trace CloudInfo.httpCall
                     HttpResponse response;
-                    KustoTracer.KustoSpan kustoSpan = KustoTracer.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null);
-                    try (kustoSpan) {
-                        response = localHttpClient.execute(request);
-                    } catch (IOException e){
-                        kustoSpan.addException(e);
-                        throw e;
+                    try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null)) {
+                        try {
+                            response = localHttpClient.execute(request);
+                        } catch (IOException e) {
+                            span.addException(e);
+                            throw e;
+                        }
                     }
                     try {
                         int statusCode = response.getStatusLine().getStatusCode();

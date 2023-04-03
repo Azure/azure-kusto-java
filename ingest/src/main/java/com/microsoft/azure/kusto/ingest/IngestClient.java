@@ -29,7 +29,7 @@ public interface IngestClient extends Closeable {
      * @see IngestionProperties
      */
     IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException; //should this be default because it is new
+            throws IngestionClientException, IngestionServiceException;
 
     /**
      * <p>Ingest data from a blob storage into Kusto database.</p>
@@ -81,5 +81,4 @@ public interface IngestClient extends Closeable {
      */
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
-
 }
