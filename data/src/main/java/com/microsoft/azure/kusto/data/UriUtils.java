@@ -26,6 +26,11 @@ public class UriUtils {
         return setPathForUri(uri, path, false);
     }
 
+    public static String appendPathToUri(String uri, String path) throws URISyntaxException {
+        String existing = new URIBuilder(uri).getPath();
+        return setPathForUri(uri, StringUtils.appendIfMissing(existing == null ? "" : existing, "/") + path);
+    }
+
     public static boolean isLocalAddress(String host) {
         if (host.equals("localhost")
                 || host.equals("127.0.0.1")
