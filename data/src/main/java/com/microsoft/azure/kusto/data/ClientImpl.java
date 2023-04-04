@@ -307,6 +307,13 @@ class ClientImpl implements Client, StreamingClient {
                 activityId, activityId, activityId, clientRequestId);
         headers.put("x-ms-activitycontext", activityContext);
 
+        // replace non-ascii characters in header values with '?'
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            String value = entry.getValue();
+            if (value != null) {
+                entry.setValue(value.replaceAll("[^\\x00-\\x7F]", "?"));
+            }
+        }
         return headers;
     }
 
