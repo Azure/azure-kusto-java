@@ -297,7 +297,7 @@ public class Utils {
         int nanos = duration.getNano();
         long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
         long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
-        long secs = seconds % TimeUnit.HOURS.toSeconds(1);
+        long secs = seconds % TimeUnit.MINUTES.toSeconds(1);
         long days = TimeUnit.SECONDS.toDays(seconds);
         String positive = String.format(
                 "%02d.%02d:%02d:%02d.%.3s",

@@ -196,20 +196,10 @@ public class ClientRequestProperties implements Serializable {
     JsonNode toJson() {
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
-
         if (timeoutObj != null) {
-            String timeoutString = "";
-            if (timeoutObj instanceof Long) {
-                Duration duration = Duration.ofMillis((Long) timeoutObj);
-                timeoutString = Utils.formatDurationAsTimespan(duration);
-            } else if (timeoutObj instanceof String) {
-                timeoutString = (String) timeoutObj;
-            } else if (timeoutObj instanceof Integer) {
-                Duration duration = Duration.ofMillis((Integer) timeoutObj);
-                timeoutString = Utils.formatDurationAsTimespan(duration);
-            }
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
+            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
         }
+
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
         json.set(PARAMETERS_KEY, Utils.getObjectMapper().valueToTree(this.parameters));
@@ -295,5 +285,19 @@ public class ClientRequestProperties implements Serializable {
 
     Iterator<HashMap.Entry<String, Object>> getOptions() {
         return options.entrySet().iterator();
+    }
+
+    String getTimeoutAsString(Object timeoutObj){
+        String timeoutString = "";
+        if (timeoutObj instanceof Long) {
+            Duration duration = Duration.ofMillis((Long) timeoutObj);
+            timeoutString = Utils.formatDurationAsTimespan(duration);
+        } else if (timeoutObj instanceof String) {
+            timeoutString = (String) timeoutObj;
+        } else if (timeoutObj instanceof Integer) {
+            Duration duration = Duration.ofMillis((Integer) timeoutObj);
+            timeoutString = Utils.formatDurationAsTimespan(duration);
+        }
+        return timeoutString;
     }
 }
