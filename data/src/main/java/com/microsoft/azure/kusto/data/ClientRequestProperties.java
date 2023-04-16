@@ -287,7 +287,7 @@ public class ClientRequestProperties implements Serializable {
         return options.entrySet().iterator();
     }
 
-    String getTimeoutAsString(Object timeoutObj){
+    String getTimeoutAsString(Object timeoutObj) {
         String timeoutString = "";
         if (timeoutObj instanceof Long) {
             Duration duration = Duration.ofMillis((Long) timeoutObj);
