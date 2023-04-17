@@ -39,10 +39,10 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private final StreamingClient streamingClient;
 
-    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
-        csbWithEndpoint.setClusterUrl(getQueryEndpoint(csbWithEndpoint.getClusterUrl()));
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getQueryEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
         this.streamingClient = ClientFactory.createStreamingClient(csbWithEndpoint, properties);
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }

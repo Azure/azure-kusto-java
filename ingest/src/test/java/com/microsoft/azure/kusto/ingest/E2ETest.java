@@ -92,21 +92,20 @@ class E2ETest {
 
     @BeforeAll
     public static void setUp() throws IOException {
-        appKey = System.getenv("APP_KEY");
-        if (appKey == null) {
-            String secretPath = System.getProperty("SecretPath");
-            if (secretPath == null) {
-                throw new IllegalArgumentException("SecretPath is not set");
-            }
-            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
-        }
+//        appKey = System.getenv("APP_KEY");
+//        if (appKey == null) {
+//            String secretPath = System.getProperty("SecretPath");
+//            if (secretPath == null) {
+//                throw new IllegalArgumentException("SecretPath is not set");
+//            }
+//            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
+//        }
 
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey,
-                tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net/");
         dmCsb.setUserNameForTracing("testUser");
         try {
             ingestClient = IngestClientFactory.createClient(dmCsb, HttpClientProperties.builder()
@@ -115,13 +114,12 @@ class E2ETest {
                     .maxIdleTime(60)
                     .maxConnectionsPerRoute(50)
                     .maxConnectionsTotal(50)
-                    .build());
+                    .build(),true);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net/");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = ClientFactory.createClient(engineCsb);
