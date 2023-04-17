@@ -326,6 +326,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
                     onRetry,
                     sourceId,
                     "ingestFromStream");
+        } catch (IngestionServiceException | IngestionClientException e) {
+            throw e;
         } catch (Throwable e) {
             throw new IngestionClientException("Failed to ingest stream", e);
         } finally {
