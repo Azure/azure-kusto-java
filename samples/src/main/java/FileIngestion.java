@@ -17,16 +17,17 @@ import java.io.ByteArrayOutputStream;
 public class FileIngestion {
     public static void main(String[] args) {
         try {
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
-            try (IngestClient client = IngestClientFactory.createClient(csb)) {
-                IngestionProperties ingestionProperties = new IngestionProperties(System.getProperty("dbName"),
-                        System.getProperty("tableName"));
-                ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
+            // TableClient tableClient =
+            // TableWithSas.TableClientFromUrl("https://5s8kstrldruthruth01.blob.core.windows.net/20230313-ingestdata-e5c334ee145d4b4-0?sv=2018-03-28&sr=c&sig=QshIuU9ZZ1jvcgcPMnHcr0EvCwO9sxZbvAUaAtI%3D&st=2023-03-13T13%3A16%3A57Z&se=2023-03-17T14%3A16%3A57Z&sp=rw",
+            // null);
+            // tableClient.createEntity(new TableEntity("123", "123"));
 
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://ruthruth.eastus.kusto.windows.net");
+            try (IngestClient client = IngestClientFactory.createClient(csb)) {
+                IngestionProperties ingestionProperties = new IngestionProperties("db2", "TestTable");
+                ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
+                ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\data\\a.csv", 0);
                 IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
                 ByteArrayOutputStream st = new ByteArrayOutputStream();
                 st.write("asd,2".getBytes());

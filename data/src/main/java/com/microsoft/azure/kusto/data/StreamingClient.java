@@ -58,4 +58,7 @@ public interface StreamingClient extends Closeable {
      * @throws DataServiceException An exception returned from the service
      */
     KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
+
+    KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
+            String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
 }
