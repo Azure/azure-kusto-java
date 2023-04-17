@@ -3,12 +3,21 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
+import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
@@ -24,6 +33,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -119,6 +129,7 @@ class E2ETest {
 
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
                 appKey, tenantId);
+        engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = ClientFactory.createClient(engineCsb);
@@ -551,9 +562,57 @@ class E2ETest {
     }
 
     @Test
+    void testNoRedirectsCloudFail() {
+        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
+        redirectCodes.parallelStream().map(code -> {
+            try (Client client = ClientFactory.createClient(
+                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"))) {
+                try {
+                    client.execute("db", "table");
+                    Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertTrue(e.getMessage().contains("metadata"));
+                }
+            } catch (Exception e) {
+                return e;
+            }
+            return null;
+        }).forEach(e -> {
+            if (e != null) {
+                Assertions.fail(e);
+            }
+        });
+    }
+
+    @Test
+    void testNoRedirectsClientFail() {
+        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
+        redirectCodes.parallelStream().map(code -> {
+            try (Client client = ClientFactory.createClient(
+                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"))) {
+                try {
+                    client.execute("db", "table");
+                    Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertFalse(e.getMessage().contains("metadata"));
+                }
+            } catch (Exception e) {
+                return e;
+            }
+            return null;
+        }).forEach(e -> {
+            if (e != null) {
+                Assertions.fail(e);
+            }
+        });
+    }
+
+    @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
         ResourceManager resourceManager = new ResourceManager(dmCslClient, null);
         ContainerWithSas container = resourceManager.getTempStorage();
         AzureStorageClient azureStorageClient = new AzureStorageClient();
@@ -577,6 +636,5 @@ class E2ETest {
                 assertRowCount(item.rows, false);
             }
         }
-
     }
 }
