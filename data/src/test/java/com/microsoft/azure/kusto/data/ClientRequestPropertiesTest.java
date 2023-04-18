@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_SERVER_TIMEOUT;
+
 class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test set/get timeout")
@@ -30,6 +32,9 @@ class ClientRequestPropertiesTest {
 
         props.setTimeoutInMilliSec(expected);
         Assertions.assertEquals(expected, props.getTimeoutInMilliSec());
+
+        Object timeoutObj = props.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertEquals("00.01:40:00.0", props.getTimeoutAsString(timeoutObj));
     }
 
     @Test
@@ -55,6 +60,12 @@ class ClientRequestPropertiesTest {
         assert crp.getOption("Content-Encoding").equals("gzip");
         assert crp.getParameter("birthday").equals("datetime(1970-05-11)");
         assert crp.getParameter("courses").equals("dynamic(['Java', 'C++'])");
+
+        Long timeoutMilli = 200000L;
+        crp = new ClientRequestProperties();
+        crp.setTimeoutInMilliSec(timeoutMilli);
+        crp = ClientRequestProperties.fromString(crp.toString());
+        assert crp.getTimeoutInMilliSec().equals(timeoutMilli);
     }
 
     @Test
