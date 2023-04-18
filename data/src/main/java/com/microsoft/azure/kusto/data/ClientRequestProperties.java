@@ -175,7 +175,7 @@ public class ClientRequestProperties implements Serializable {
         }
         long millis = 0;
         String days = matcher.group(2);
-        if (days != null && !days.equals("0")) {
+        if (days != null && !days.equals("0") && !days.equals("00")) {
             return MAX_TIMEOUT_MS;
         }
 
