@@ -85,7 +85,7 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return USER_PROMPT_TOKEN_PROVIDER;
     }
 }

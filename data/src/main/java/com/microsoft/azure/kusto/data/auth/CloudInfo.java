@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -25,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class CloudInfo {
+public class CloudInfo implements TraceableAttributes {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
@@ -200,6 +201,12 @@ public class CloudInfo {
 
     public String getKustoServiceResourceId() {
         return kustoServiceResourceId;
+    }
+
+    @Override
+    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+        attributes.put("resource", kustoServiceResourceId);
+        return attributes;
     }
 
     public String getFirstPartyAuthorityUrl() {

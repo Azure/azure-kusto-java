@@ -8,6 +8,7 @@ import com.azure.core.util.tracing.ProcessKind;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,7 +34,9 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         // trace retrieveCloudInfo
         try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null)) {
             try {
-                initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
+                CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient);
+                span.setAttributes(cloudInfo.addTraceAttributes(new HashMap<>()));
+                initializeWithCloudInfo(cloudInfo);
             } catch (DataClientException | DataServiceException e) {
                 span.addException(e);
                 throw e;

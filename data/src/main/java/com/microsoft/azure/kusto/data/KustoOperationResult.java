@@ -40,7 +40,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("KustoOperationResult.createFromRespons", Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("KustoOperationResult.createFromResponse", Context.NONE, ProcessKind.PROCESS, null)) {
             try {
                 KustoOperationResultImpl(response, version);
             } catch (KustoServiceQueryError e) {

@@ -34,7 +34,7 @@ public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBas
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return APPLICATION_KEY_TOKEN_PROVIDER;
     }
 }

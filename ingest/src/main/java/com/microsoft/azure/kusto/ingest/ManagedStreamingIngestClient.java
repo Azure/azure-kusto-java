@@ -46,6 +46,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
+    public static final String MANAGED_STREAMING_INGEST_CLIENT = "ManagedStreamingIngestClient";
     final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
@@ -325,6 +326,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
                 log.warn("Failed to close byte stream", e);
             }
         }
+    }
+
+    @Override
+    protected String getClientType() {
+        return MANAGED_STREAMING_INGEST_CLIENT;
     }
 
     @Override

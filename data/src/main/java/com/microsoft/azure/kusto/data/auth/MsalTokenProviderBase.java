@@ -60,11 +60,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     public String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
-
             // trace acquireNewAccessToken
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put("authentication_method", getAuthMethodForTracing());
-            try (DistributedTracing.Span span = DistributedTracing.startSpan("MsalTokenProviderBase.acquireNewAccessToken", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireNewAccessToken"), Context.NONE, ProcessKind.PROCESS, null)) {
                 try {
                     accessTokenResult = acquireNewAccessToken();
                 } catch (DataServiceException | DataClientException e) {

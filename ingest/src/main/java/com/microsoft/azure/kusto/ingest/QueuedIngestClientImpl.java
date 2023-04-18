@@ -48,6 +48,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
+    public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
@@ -136,11 +137,12 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
             // trace postMessageToQueue
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put("postMessageToQueue", "complete");
-            try (DistributedTracing.Span span = DistributedTracing.startSpan("postMessageToQueue", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("postMessageToQueue"), Context.NONE, ProcessKind.PROCESS, null)) {
                 azureStorageClient.postMessageToQueue(
                         resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+                Map<String, String> attributes = new HashMap<>();
+                attributes.put("queue", resourceManager.getQueue().getQueue().getQueueName());
+                span.setAttributes(attributes);
             }
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
@@ -180,12 +182,13 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadLocalFileToBlob
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put("uploadLocalFileToBlob", "complete");
-            try (DistributedTracing.Span span = DistributedTracing.startSpan("uploadLocalFileToBlob", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("uploadLocalFileToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
                 try {
                     azureStorageClient.uploadLocalFileToBlob(file, blobName,
                             container.getContainer(), shouldCompress);
+                    Map<String, String> attributes = new HashMap<>();
+                    attributes.put("container", container.getContainer().getBlobContainerName());
+                    span.setAttributes(attributes);
                 } catch (IOException e) {
                     span.addException(e);
                     throw e;
@@ -235,15 +238,16 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadStreamToBlob
-            Map<String, String> attributes = new HashMap<>();
-            attributes.put("uploadStreamToBlob", "complete");
-            try (DistributedTracing.Span span = DistributedTracing.startSpan("uploadStreamToBlob", Context.NONE, ProcessKind.PROCESS, attributes)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("uploadStreamToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
                 try {
                     azureStorageClient.uploadStreamToBlob(
                             streamSourceInfo.getStream(),
                             blobName,
                             container.getContainer(),
                             shouldCompress);
+                    Map<String, String> attributes = new HashMap<>();
+                    attributes.put("container", container.getContainer().getBlobContainerName());
+                    span.setAttributes(attributes);
                 } catch (IOException | URISyntaxException e) {
                     span.addException(e);
                     throw e;
@@ -265,6 +269,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IngestionServiceException e) {
             throw e;
         }
+    }
+
+    @Override
+    protected String getClientType() {
+        return QUEUED_INGEST_CLIENT_IMPL;
     }
 
     private long estimateFileRawSize(String filePath, boolean isCompressible) {

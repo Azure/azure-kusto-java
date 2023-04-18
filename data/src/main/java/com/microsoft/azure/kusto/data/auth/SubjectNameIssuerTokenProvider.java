@@ -34,7 +34,7 @@ public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProvider
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return SUBJECT_NAME_ISSUER_TOKEN_PROVIDER;
     }
 }

@@ -36,7 +36,7 @@ public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenPro
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return APPLICATION_CERTIFICATE_TOKEN_PROVIDER;
     }
 }

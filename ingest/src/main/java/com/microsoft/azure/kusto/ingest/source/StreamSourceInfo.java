@@ -4,12 +4,14 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-public class StreamSourceInfo extends AbstractSourceInfo {
+public class StreamSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
 
     private InputStream stream;
     private boolean leaveOpen = false;
@@ -73,5 +75,11 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     @Override
     public String toString() {
         return String.format("Stream with SourceId: %s", getSourceId());
+    }
+
+    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+        attributes.put("resource", "stream");
+        attributes.put("sourceId", getSourceId().toString());
+        return attributes;
     }
 }

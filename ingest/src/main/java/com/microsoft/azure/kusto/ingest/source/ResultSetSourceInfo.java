@@ -3,14 +3,17 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+
 import java.sql.ResultSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
  * Represents the ResultSet source information used for ingestion.
  */
-public class ResultSetSourceInfo extends AbstractSourceInfo {
+public class ResultSetSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
 
     private ResultSet resultSet;
 
@@ -60,5 +63,11 @@ public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     public void validate() {
         // nothing to validate as of now.
+    }
+
+    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+        attributes.put("resource", "resultSet");
+        attributes.put("sourceId", getSourceId().toString());
+        return attributes;
     }
 }

@@ -22,7 +22,7 @@ public class AccessTokenTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return ACCESS_TOKEN_TOKEN_PROVIDER;
     }
 }

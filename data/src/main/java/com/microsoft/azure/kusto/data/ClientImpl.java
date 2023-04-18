@@ -107,7 +107,7 @@ class ClientImpl implements Client, StreamingClient {
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         CommandType commandType = determineCommandType(command);
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(commandType.getActivityTypeSuffix().concat(".execute"), Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(commandType.getActivityTypeSuffix().concat(".execute"), Context.NONE, ProcessKind.PROCESS, getExecuteTraceAttributes(database, properties))) {
             try {
                 return executeImpl(database, command, properties, commandType);
             } catch (DataClientException | DataServiceException e) {
@@ -115,6 +115,16 @@ class ClientImpl implements Client, StreamingClient {
                 throw e;
             }
         }
+    }
+
+    private Map<String, String> getExecuteTraceAttributes(String database, ClientRequestProperties properties) {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cluster", clusterUrl);
+        attributes.put("database", database);
+        if (properties != null){
+            return properties.addTraceAttributes(attributes);
+        }
+        return attributes;
     }
 
     @NotNull

@@ -37,7 +37,7 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return CALLBACK_TOKEN_PROVIDER;
     }
 }

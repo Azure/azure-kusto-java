@@ -68,7 +68,7 @@ public class DistributedTracing {
             throwable = e;
         }
 
-        private void setAttributes(Map<String, String> attributes){
+        public void setAttributes(Map<String, String> attributes){
             if (attributes != null){
                 attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
             }

@@ -42,6 +42,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
+    private static final String STREAMING_INGEST_CLIENT = "StreamingIngestClient";
     private final StreamingClient streamingClient;
     String connectionDataSource;
 
@@ -140,13 +141,16 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             throws IngestionClientException, IngestionServiceException {
         return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, null);
     }
+
+    @Override
+    protected String getClientType() {
+        return STREAMING_INGEST_CLIENT;
+    }
+
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
-
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("ingestFromStream", "complete");
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("StreamingIngestClient.ingestFromStream", Context.NONE, ProcessKind.PROCESS, attributes)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS, getIngestionTraceAttributes(streamSourceInfo,ingestionProperties))) {
             try {
                 return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
             } catch (IngestionClientException | IngestionServiceException e) {
@@ -226,9 +230,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("ingestFromBlob", "complete");
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("StreamingIngestClient.ingestFromBlob", Context.NONE, ProcessKind.PROCESS, attributes)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS, getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
             try {
                 return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob);
             } catch (IngestionServiceException | IngestionClientException e) {

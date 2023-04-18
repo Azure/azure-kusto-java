@@ -30,7 +30,7 @@ public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
     }
 
     @Override
-    protected String getAuthMethodForTracing() {
+    protected String getAuthMethod() {
         return DEVICE_AUTH_TOKEN_PROVIDER;
     }
 }
