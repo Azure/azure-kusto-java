@@ -176,7 +176,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         }
         long millis = 0;
         String days = matcher.group(2);
-        if (days != null && !days.equals("0")) {
+        if (days != null && !days.equals("0") && !days.equals("00")) {
             return MAX_TIMEOUT_MS;
         }
 
@@ -197,20 +197,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     JsonNode toJson() {
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
-
         if (timeoutObj != null) {
-            String timeoutString = "";
-            if (timeoutObj instanceof Long) {
-                Duration duration = Duration.ofMillis((Long) timeoutObj);
-                timeoutString = Utils.formatDurationAsTimespan(duration);
-            } else if (timeoutObj instanceof String) {
-                timeoutString = (String) timeoutObj;
-            } else if (timeoutObj instanceof Integer) {
-                Duration duration = Duration.ofMillis((Integer) timeoutObj);
-                timeoutString = Utils.formatDurationAsTimespan(duration);
-            }
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, timeoutString);
+            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
         }
+
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
         json.set(PARAMETERS_KEY, Utils.getObjectMapper().valueToTree(this.parameters));
@@ -301,5 +291,18 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
         attributes.put("clientRequestId", getClientRequestId());
         return attributes;
+    }
+    String getTimeoutAsString(Object timeoutObj) {
+        String timeoutString = "";
+        if (timeoutObj instanceof Long) {
+            Duration duration = Duration.ofMillis((Long) timeoutObj);
+            timeoutString = Utils.formatDurationAsTimespan(duration);
+        } else if (timeoutObj instanceof String) {
+            timeoutString = (String) timeoutObj;
+        } else if (timeoutObj instanceof Integer) {
+            Duration duration = Duration.ofMillis((Integer) timeoutObj);
+            timeoutString = Utils.formatDurationAsTimespan(duration);
+        }
+        return timeoutString;
     }
 }
