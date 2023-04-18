@@ -39,6 +39,7 @@
         <azure-bom-version>1.2.4</azure-bom-version>
 
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
+        <!-- Ideally, versions below should align with latest databricks runtime dependency versions -->
         <!-- Compile dependencies -->
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
