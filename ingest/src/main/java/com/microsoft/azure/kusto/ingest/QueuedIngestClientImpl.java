@@ -227,7 +227,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress);
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                    blobPath, 0); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
+                    blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {

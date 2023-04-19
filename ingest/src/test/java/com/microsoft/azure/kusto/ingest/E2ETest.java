@@ -24,9 +24,14 @@ import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+
+import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -49,7 +54,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -60,6 +64,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -76,6 +81,7 @@ class E2ETest {
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static Client queryClient;
+    private static Client dmCslClient;
     private static StreamingClient streamingClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
@@ -91,35 +97,39 @@ class E2ETest {
     private ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
-    public static void setUp() throws IOException {
-//        appKey = System.getenv("APP_KEY");
-//        if (appKey == null) {
-//            String secretPath = System.getProperty("SecretPath");
-//            if (secretPath == null) {
-//                throw new IllegalArgumentException("SecretPath is not set");
-//            }
-//            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
-//        }
+    public static void setUp() throws IOException, URISyntaxException {
+        appKey = System.getenv("APP_KEY");
+        if (appKey == null) {
+            String secretPath = System.getProperty("SecretPath");
+            if (secretPath == null) {
+                throw new IllegalArgumentException("SecretPath is not set");
+            }
+            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
+        }
 
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net/");
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey,
+                tenantId);
         dmCsb.setUserNameForTracing("testUser");
         try {
+            dmCslClient = ClientFactory.createClient(dmCsb);
             ingestClient = IngestClientFactory.createClient(dmCsb, HttpClientProperties.builder()
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
                     .maxIdleTime(60)
                     .maxConnectionsPerRoute(50)
                     .maxConnectionsTotal(50)
-                    .build(),true);
+                    .build());
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt("https://sdkse2etest.eastus.kusto.windows.net/");
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
+        engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = ClientFactory.createClient(engineCsb);
@@ -601,4 +611,30 @@ class E2ETest {
         });
     }
 
+    @Test
+    void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
+        ResourceManager resourceManager = new ResourceManager(dmCslClient, null);
+        ContainerWithSas container = resourceManager.getTempStorage();
+        AzureStorageClient azureStorageClient = new AzureStorageClient();
+
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                String blobName = String.format("%s__%s.%s.gz",
+                        "testStreamingIngestFromBlob",
+                        UUID.randomUUID(),
+                        item.ingestionProperties.getDataFormat());
+
+                String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+
+                azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
+                        container.getContainer(), !item.file.getName().endsWith(".gz"));
+                try {
+                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
+            }
+        }
+    }
 }

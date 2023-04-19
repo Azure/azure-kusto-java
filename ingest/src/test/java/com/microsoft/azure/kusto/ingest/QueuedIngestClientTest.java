@@ -86,14 +86,14 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
     }
 
     @Test
     void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -102,7 +102,7 @@ class QueuedIngestClientTest {
 
     @Test
     void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("http://blobPath.com", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, null));
