@@ -32,6 +32,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     private final String authorityId;
     protected String aadAuthorityUrl;
     private String firstPartyAuthorityUrl;
+
     MsalTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
         this.authorityId = authorityId;
@@ -61,7 +62,8 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             // trace acquireNewAccessToken
-            try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireNewAccessToken"), Context.NONE, ProcessKind.PROCESS, null)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireNewAccessToken"), Context.NONE,
+                    ProcessKind.PROCESS, null)) {
                 try {
                     accessTokenResult = acquireNewAccessToken();
                 } catch (DataServiceException | DataClientException e) {

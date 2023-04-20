@@ -292,6 +292,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         attributes.put("clientRequestId", getClientRequestId());
         return attributes;
     }
+
     String getTimeoutAsString(Object timeoutObj) {
         String timeoutString = "";
         if (timeoutObj instanceof Long) {

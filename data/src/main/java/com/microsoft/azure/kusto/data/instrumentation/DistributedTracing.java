@@ -15,7 +15,7 @@ public class DistributedTracing {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static Tracer tracer;
     private static volatile boolean initialized = false;
-    
+
     public static void initializeTracer(Tracer tracer) {
         if (!DistributedTracing.initialized) {
             synchronized (DistributedTracing.class) {
@@ -32,13 +32,14 @@ public class DistributedTracing {
         return new Span(span, attributes);
     }
 
-    public static class Span implements AutoCloseable{
+    public static class Span implements AutoCloseable {
         private final Context span;
         private Throwable throwable;
+
         private Span(Context span, Map<String, String> attributes) {
             this.span = span;
             setAttributes(attributes);
-            }
+        }
 
         @Override
         public void close() {
@@ -55,8 +56,8 @@ public class DistributedTracing {
             throwable = e;
         }
 
-        public void setAttributes(Map<String, String> attributes){
-            if (attributes != null){
+        public void setAttributes(Map<String, String> attributes) {
+            if (attributes != null) {
                 attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
             }
         }

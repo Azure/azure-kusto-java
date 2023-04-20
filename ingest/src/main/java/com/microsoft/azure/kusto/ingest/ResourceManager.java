@@ -248,6 +248,7 @@ class ResourceManager implements Closeable {
                 throw new IllegalStateException("Unexpected value: " + resourceType);
         }
     }
+
     private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionResources
         Map<String, String> attributes = new HashMap<>();
@@ -261,6 +262,7 @@ class ResourceManager implements Closeable {
             }
         }
     }
+
     private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
@@ -296,11 +298,13 @@ class ResourceManager implements Closeable {
             }
         }
     }
+
     private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionAuthToken
         Map<String, String> attributes = new HashMap<>();
         attributes.put("getIdentityToken", "complete");
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS,
+                null)) {
             try {
                 refreshIngestionAuthTokenImpl();
             } catch (IngestionClientException | IngestionServiceException e) {
@@ -309,6 +313,7 @@ class ResourceManager implements Closeable {
             }
         }
     }
+
     private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {
         if (authTokenLock.writeLock().tryLock()) {
             try {

@@ -32,7 +32,8 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS,
+                null)) {
             try {
                 CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient);
                 span.setAttributes(cloudInfo.addTraceAttributes(new HashMap<>()));

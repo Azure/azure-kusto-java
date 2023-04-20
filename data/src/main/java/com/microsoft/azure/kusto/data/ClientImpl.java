@@ -111,7 +111,8 @@ class ClientImpl implements Client, StreamingClient {
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         CommandType commandType = determineCommandType(command);
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(commandType.getActivityTypeSuffix().concat(".execute"), Context.NONE, ProcessKind.PROCESS, getExecuteTraceAttributes(database, properties))) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(commandType.getActivityTypeSuffix().concat(".execute"), Context.NONE,
+                ProcessKind.PROCESS, getExecuteTraceAttributes(database, properties))) {
             try {
                 return executeImpl(database, command, properties, commandType);
             } catch (DataClientException | DataServiceException e) {
@@ -125,14 +126,15 @@ class ClientImpl implements Client, StreamingClient {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("cluster", clusterUrl);
         attributes.put("database", database);
-        if (properties != null){
+        if (properties != null) {
             return properties.addTraceAttributes(attributes);
         }
         return attributes;
     }
 
     @NotNull
-    private KustoOperationResult executeImpl(String database, String command, ClientRequestProperties properties, CommandType commandType) throws DataServiceException, DataClientException {
+    private KustoOperationResult executeImpl(String database, String command, ClientRequestProperties properties, CommandType commandType)
+            throws DataServiceException, DataClientException {
         String response = executeToJsonResult(database, command, properties);
         String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
         try {
@@ -278,7 +280,6 @@ class ClientImpl implements Client, StreamingClient {
 
         return timeoutMs;
     }
-
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {
         if (StringUtils.isBlank(database)) {

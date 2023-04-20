@@ -149,7 +149,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS, getIngestionTraceAttributes(streamSourceInfo,ingestionProperties))) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties))) {
             try {
                 return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
             } catch (IngestionClientException | IngestionServiceException e) {
@@ -233,7 +234,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS, getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
             try {
                 return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob, clientRequestId);
             } catch (IngestionServiceException | IngestionClientException e) {
@@ -242,7 +244,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             }
         }
     }
-    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob, @Nullable String clientRequestId)
+
+    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob,
+            @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
         try {

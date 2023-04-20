@@ -24,10 +24,12 @@ public abstract class TokenProviderBase {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
         this.httpClient = httpClient;
     }
-    public String acquireAccessToken() throws DataServiceException, DataClientException{
+
+    public String acquireAccessToken() throws DataServiceException, DataClientException {
 
         // trace GetToken
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireAccessToken"), Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireAccessToken"), Context.NONE, ProcessKind.PROCESS,
+                null)) {
             try {
                 return acquireAccessTokenInner();
             } catch (DataServiceException | DataClientException e) {

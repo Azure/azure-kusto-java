@@ -47,7 +47,8 @@ public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBas
     @Override
     public String acquireAccessTokenImpl() throws DataServiceException {
         // trace acquireNewAccessToken
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireAccessTokenImpl"), Context.NONE, ProcessKind.PROCESS, null)) {
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireAccessTokenImpl"), Context.NONE, ProcessKind.PROCESS,
+                null)) {
             try {
                 AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
                 if (accessToken == null) {
