@@ -182,7 +182,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadLocalFileToBlob
-            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("uploadLocalFileToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".uploadLocalFileToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
                 try {
                     azureStorageClient.uploadLocalFileToBlob(file, blobName,
                             container.getContainer(), shouldCompress);
@@ -238,7 +238,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
             // trace uploadStreamToBlob
-            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("uploadStreamToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".uploadStreamToBlob"), Context.NONE, ProcessKind.PROCESS, null)) {
                 try {
                     azureStorageClient.uploadStreamToBlob(
                             streamSourceInfo.getStream(),

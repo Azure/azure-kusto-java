@@ -38,9 +38,6 @@ public class DistributedTracing {
         private Throwable throwable;
         private Span(Context span, Map<String, String> attributes) {
             this.span = span;
-            Map<String, String> map = new HashMap<>();
-            map.put("thread", String.valueOf(ProcessHandle.current().pid()));
-            setAttributes(map);
             setAttributes(attributes);
             }
 
@@ -51,15 +48,6 @@ public class DistributedTracing {
                 if (throwable != null) {
                     errorCondition = throwable.getLocalizedMessage();
                 }
-    //                try {
-    //                    if (scope != null) {
-    //                        scope.close();
-    //                    }
-    //                } catch (Exception e) {
-    //                    log.warn("Can't close scope", e);
-    //                } finally {
-    //
-    //                }
                 tracer.end(errorCondition, throwable, span);
             }
         }
