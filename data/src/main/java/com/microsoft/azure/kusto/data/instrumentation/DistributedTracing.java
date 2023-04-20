@@ -57,7 +57,7 @@ public class DistributedTracing {
         }
 
         public void setAttributes(Map<String, String> attributes) {
-            if (attributes != null) {
+            if (tracer != null && attributes != null) {
                 attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
             }
         }
