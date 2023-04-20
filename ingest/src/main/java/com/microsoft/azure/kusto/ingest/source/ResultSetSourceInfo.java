@@ -67,7 +67,10 @@ public class ResultSetSourceInfo extends AbstractSourceInfo implements Traceable
 
     public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
         attributes.put("resource", "resultSet");
-        attributes.put("sourceId", getSourceId().toString());
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
         return attributes;
     }
 }

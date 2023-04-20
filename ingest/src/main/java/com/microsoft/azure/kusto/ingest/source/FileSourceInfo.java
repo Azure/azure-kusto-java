@@ -49,7 +49,10 @@ public class FileSourceInfo extends AbstractSourceInfo implements TraceableAttri
 
     public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
         attributes.put("resource", filePath);
-        attributes.put("sourceId", getSourceId().toString());
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
         return attributes;
     }
 }

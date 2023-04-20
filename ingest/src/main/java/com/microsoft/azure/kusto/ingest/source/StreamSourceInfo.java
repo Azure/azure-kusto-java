@@ -79,7 +79,10 @@ public class StreamSourceInfo extends AbstractSourceInfo implements TraceableAtt
 
     public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
         attributes.put("resource", "stream");
-        attributes.put("sourceId", getSourceId().toString());
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
         return attributes;
     }
 }
