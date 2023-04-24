@@ -5,10 +5,13 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.util.BinaryData;
 import com.azure.data.tables.TableClient;
+import com.azure.data.tables.implementation.models.TableServiceErrorException;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.models.QueueStorageException;
 import com.microsoft.azure.kusto.data.Ensure;
 
 import org.apache.commons.codec.binary.Base64;
@@ -32,7 +35,7 @@ class AzureStorageClient {
     public AzureStorageClient() {
     }
 
-    void postMessageToQueue(QueueClient queueClient, String content) {
+    void postMessageToQueue(QueueClient queueClient, String content) throws QueueStorageException {
         // Ensure
         Ensure.argIsNotNull(queueClient, "queueClient");
         Ensure.stringIsNotBlank(content, "content");
@@ -41,15 +44,15 @@ class AzureStorageClient {
         queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
     }
 
-    public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException {
+    public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException, TableServiceErrorException {
         Ensure.argIsNotNull(tableClient, "tableClient");
-        Ensure.argIsNotNull(tableEntity, "tableEntity");
+        Ensure.argIsNotNull(tableClient, "tableEntity");
 
         tableClient.createEntity(tableEntity);
     }
 
     void uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
-            throws IOException {
+            throws IOException, BlobStorageException {
         log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, container.getBlobContainerUrl());
 
         // Ensure
@@ -65,7 +68,7 @@ class AzureStorageClient {
         }
     }
 
-    void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException {
+    void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException, BlobStorageException {
         Ensure.fileExists(sourceFile, "sourceFile");
         Ensure.argIsNotNull(blob, "blob");
 
@@ -75,7 +78,7 @@ class AzureStorageClient {
         }
     }
 
-    void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException {
+    void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(blobClient, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
@@ -84,7 +87,7 @@ class AzureStorageClient {
     }
 
     void uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
-            throws IOException, URISyntaxException {
+            throws IOException, URISyntaxException, BlobStorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
 
         // Ensure
@@ -100,7 +103,7 @@ class AzureStorageClient {
         }
     }
 
-    void uploadStream(InputStream inputStream, BlobClient blob) throws IOException {
+    void uploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
@@ -110,7 +113,7 @@ class AzureStorageClient {
         blobOutputStream.close();
     }
 
-    void compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException {
+    void compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
