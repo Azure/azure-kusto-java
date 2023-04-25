@@ -46,7 +46,7 @@ class AzureStorageClient {
 
     public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException, TableServiceErrorException {
         Ensure.argIsNotNull(tableClient, "tableClient");
-        Ensure.argIsNotNull(tableClient, "tableEntity");
+        Ensure.argIsNotNull(tableEntity, "tableEntity");
 
         tableClient.createEntity(tableEntity);
     }
