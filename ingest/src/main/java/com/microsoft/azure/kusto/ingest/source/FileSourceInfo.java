@@ -3,11 +3,14 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+
+import java.util.Map;
 import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
-public class FileSourceInfo extends AbstractSourceInfo {
+public class FileSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
 
     private String filePath;
 
@@ -42,5 +45,14 @@ public class FileSourceInfo extends AbstractSourceInfo {
 
     public void validate() {
         stringIsNotBlank(filePath, "filePath");
+    }
+
+    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+        attributes.put("resource", filePath);
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
+        return attributes;
     }
 }

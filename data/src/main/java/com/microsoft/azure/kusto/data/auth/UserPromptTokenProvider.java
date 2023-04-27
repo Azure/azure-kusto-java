@@ -26,6 +26,7 @@ import java.util.concurrent.TimeoutException;
 public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
     private static final int USER_PROMPT_TIMEOUT_MS = 120 * 1000;
     private static final URI redirectUri;
+    public static final String USER_PROMPT_TOKEN_PROVIDER = "UserPromptTokenProvider";
 
     static {
         URI tmp;
@@ -81,5 +82,10 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
                 return accountSet.iterator().next();
             }
         }
+    }
+
+    @Override
+    protected String getAuthMethod() {
+        return USER_PROMPT_TOKEN_PROVIDER;
     }
 }

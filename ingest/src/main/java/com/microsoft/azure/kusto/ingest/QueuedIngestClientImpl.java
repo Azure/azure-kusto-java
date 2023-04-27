@@ -3,12 +3,15 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -39,16 +42,16 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
+    public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
+    String connectionDataSource;
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties));
@@ -75,7 +78,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
@@ -133,9 +136,15 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
-
-            azureStorageClient.postMessageToQueue(
-                    resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+            // trace postMessageToQueue
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat("postMessageToQueue"), Context.NONE, ProcessKind.PROCESS,
+                    null)) {
+                azureStorageClient.postMessageToQueue(
+                        resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+                Map<String, String> attributes = new HashMap<>();
+                attributes.put("queue", resourceManager.getQueue().getQueue().getQueueName());
+                span.setAttributes(attributes);
+            }
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
                     : new IngestionStatusResult(status);
@@ -149,7 +158,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
@@ -173,8 +182,20 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
             ContainerWithSas container = resourceManager.getTempStorage();
-            azureStorageClient.uploadLocalFileToBlob(file, blobName,
-                    container.getContainer(), shouldCompress);
+            // trace uploadLocalFileToBlob
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".uploadLocalFileToBlob"), Context.NONE,
+                    ProcessKind.PROCESS, null)) {
+                try {
+                    azureStorageClient.uploadLocalFileToBlob(file, blobName,
+                            container.getContainer(), shouldCompress);
+                    Map<String, String> attributes = new HashMap<>();
+                    attributes.put("container", container.getContainer().getBlobContainerName());
+                    span.setAttributes(attributes);
+                } catch (IOException e) {
+                    span.addException(e);
+                    throw e;
+                }
+            }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
@@ -192,7 +213,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
@@ -218,12 +239,23 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
             ContainerWithSas container = resourceManager.getTempStorage();
-
-            azureStorageClient.uploadStreamToBlob(
-                    streamSourceInfo.getStream(),
-                    blobName,
-                    container.getContainer(),
-                    shouldCompress);
+            // trace uploadStreamToBlob
+            try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".uploadStreamToBlob"), Context.NONE, ProcessKind.PROCESS,
+                    null)) {
+                try {
+                    azureStorageClient.uploadStreamToBlob(
+                            streamSourceInfo.getStream(),
+                            blobName,
+                            container.getContainer(),
+                            shouldCompress);
+                    Map<String, String> attributes = new HashMap<>();
+                    attributes.put("container", container.getContainer().getBlobContainerName());
+                    span.setAttributes(attributes);
+                } catch (IOException | URISyntaxException e) {
+                    span.addException(e);
+                    throw e;
+                }
+            }
             String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                     blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
@@ -242,6 +274,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         }
     }
 
+    @Override
+    protected String getClientType() {
+        return QUEUED_INGEST_CLIENT_IMPL;
+    }
+
     private long estimateFileRawSize(String filePath, boolean isCompressible) {
         long fileSize = new File(filePath).length();
         return (IngestionUtils.getCompression(filePath) != null || !isCompressible) ? fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
@@ -258,7 +295,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    public IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");

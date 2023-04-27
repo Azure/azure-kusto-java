@@ -3,12 +3,16 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import org.apache.http.client.HttpClient;
 
 import org.jetbrains.annotations.NotNull;
@@ -27,8 +31,18 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         if (initialized) {
             return;
         }
-
-        initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
+        // trace retrieveCloudInfo
+        try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS,
+                null)) {
+            try {
+                CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient);
+                span.setAttributes(cloudInfo.addTraceAttributes(new HashMap<>()));
+                initializeWithCloudInfo(cloudInfo);
+            } catch (DataClientException | DataServiceException e) {
+                span.addException(e);
+                throw e;
+            }
+        }
         initialized = true;
     }
 
@@ -41,7 +55,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
+    String acquireAccessTokenInner() throws DataServiceException, DataClientException {
         initialize();
         return acquireAccessTokenImpl();
     }

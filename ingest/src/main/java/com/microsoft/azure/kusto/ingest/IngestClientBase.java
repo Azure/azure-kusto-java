@@ -1,12 +1,20 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.azure.core.util.Context;
+import com.azure.core.util.tracing.ProcessKind;
+import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import com.microsoft.azure.kusto.ingest.source.*;
 
-public abstract class IngestClientBase {
+import java.util.HashMap;
+import java.util.Map;
+
+public abstract class IngestClientBase implements IngestClient {
     static final String INGEST_PREFIX = "ingest-";
     static final String PROTOCOL_SUFFIX = "://";
-
-    String connectionDataSource;
 
     static boolean shouldCompress(CompressionType sourceCompressionType, IngestionProperties.DataFormat dataFormat) {
         return (sourceCompressionType == null) && (dataFormat == null || dataFormat.isCompressible());
@@ -28,4 +36,128 @@ public abstract class IngestClientBase {
         }
     }
 
+    protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException;
+
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromFile
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromFile"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(fileSourceInfo, ingestionProperties))) {
+            try {
+                return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                span.addException(e);
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * <p>Ingest data from a blob storage into Kusto database.</p>
+     * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto database,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param blobSourceInfo      The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see BlobSourceInfo
+     * @see IngestionProperties
+     */
+    protected abstract IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException;
+
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromBlob
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
+            try {
+                return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                span.addException(e);
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * <p>Ingest data from a Result Set into Kusto database.</p>
+     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
+     * according to the properties mentioned in {@code ingestionProperties}
+     * <p>
+     * Ingesting from ResultSet is equivalent to ingesting from a csv stream.
+     * The DataFormat should be empty or set to "csv", and the mapping, should it be provided, should be csv mapping.
+     *
+     * @param resultSetSourceInfo The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see ResultSetSourceInfo
+     * @see IngestionProperties
+     */
+    protected abstract IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException;
+
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromResultSet
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromResultSet"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(resultSetSourceInfo, ingestionProperties))) {
+            try {
+                return ingestFromResultSetImpl(resultSetSourceInfo, ingestionProperties);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                span.addException(e);
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * <p>Ingest data from an input stream, into Kusto database.</p>
+     * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto database,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param streamSourceInfo    The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see StreamSourceInfo
+     * @see IngestionProperties
+     */
+    protected abstract IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException;
+
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+            throws IngestionClientException, IngestionServiceException {
+        // trace ingestFromStream
+        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS,
+                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties))) {
+            try {
+                return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
+            } catch (IngestionClientException | IngestionServiceException e) {
+                span.addException(e);
+                throw e;
+            }
+        }
+    }
+
+    protected Map<String, String> getIngestionTraceAttributes(TraceableAttributes sourceInfo, TraceableAttributes ingestionProperties) {
+        Map<String, String> attributes = new HashMap<>();
+        if (sourceInfo != null) {
+            attributes = sourceInfo.addTraceAttributes(attributes);
+        }
+        if (ingestionProperties != null) {
+            attributes = ingestionProperties.addTraceAttributes(attributes);
+        }
+        return attributes;
+    }
+
+    protected String getClientType() {
+        return "IngestClientBase";
+    }
 }

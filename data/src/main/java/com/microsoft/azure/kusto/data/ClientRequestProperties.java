@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
 
@@ -36,7 +37,7 @@ import java.util.regex.Pattern;
  * For a complete list of available client request properties
  * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
-public class ClientRequestProperties implements Serializable {
+public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
     /*
      * Matches valid Kusto Timespans: Optionally negative, optional number of days followed by a period, optionally up to 24 as hours followed by a colon,
@@ -285,6 +286,11 @@ public class ClientRequestProperties implements Serializable {
 
     Iterator<HashMap.Entry<String, Object>> getOptions() {
         return options.entrySet().iterator();
+    }
+
+    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+        attributes.put("clientRequestId", getClientRequestId());
+        return attributes;
     }
 
     String getTimeoutAsString(Object timeoutObj) {
