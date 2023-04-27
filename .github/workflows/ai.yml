@@ -53,3 +53,12 @@ jobs:
             !**/generated/**
             !**/vendor/**
             !**/ai.yml
+          summarize_release_notes: |
+            Create concise release notes in `markdown` format for this pull request in the following format:
+            ```
+            ### Added
+            ### Changed
+            ### Fixed
+            ```
+            Keep your response within 50-100 words. Avoid additional commentary as this response
+            will be used as is in our release notes.
