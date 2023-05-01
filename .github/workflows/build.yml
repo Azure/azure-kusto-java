@@ -43,7 +43,7 @@ jobs:
           TENANT_ID: ${{ secrets.TENANT_ID }}
           CI_EXECUTION: 1
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+        uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
