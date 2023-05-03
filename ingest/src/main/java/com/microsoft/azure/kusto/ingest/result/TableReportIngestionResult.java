@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.TableClient;
+import com.azure.data.tables.implementation.models.TableServiceErrorException;
 import com.azure.data.tables.models.TableEntity;
 
 import java.util.LinkedList;
@@ -17,7 +18,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() {
+    public List<IngestionStatus> getIngestionStatusCollection() throws TableServiceErrorException {
         List<IngestionStatus> results = new LinkedList<>();
         for (IngestionStatusInTableDescription descriptor : descriptors) {
             TableClient table = descriptor.getTableClient();

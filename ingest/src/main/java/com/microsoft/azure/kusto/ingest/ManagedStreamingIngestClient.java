@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
@@ -232,7 +233,14 @@ public class ManagedStreamingIngestClient implements IngestClient {
 
         BlobClient blobClient = blobClientBuilder.buildClient();
         if (blobSourceInfo.getRawSizeInBytes() <= 0) {
-            blobSourceInfo.setRawSizeInBytes(blobClient.getProperties().getBlobSize());
+            try {
+                blobSourceInfo.setRawSizeInBytes(blobClient.getProperties().getBlobSize());
+            } catch (BlobStorageException e) {
+                throw new IngestionServiceException(
+                        blobSourceInfo.getBlobPath(),
+                        "Failed getting blob properties: " + e.getMessage(),
+                        e);
+            }
         }
 
         if (blobSourceInfo.getRawSizeInBytes() > MAX_STREAMING_SIZE_BYTES) {

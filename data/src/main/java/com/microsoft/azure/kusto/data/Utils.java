@@ -203,7 +203,7 @@ public class Utils {
                     }
                 } catch (JsonProcessingException e) {
                     // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
-                    LOGGER.debug("json processing error happened while parsing errorFromResponse {} {}" + e.getMessage(), e);
+                    LOGGER.debug("json processing error happened while parsing errorFromResponse {}" + e.getMessage(), e);
                 }
             } else {
                 message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
