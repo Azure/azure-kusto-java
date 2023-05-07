@@ -14,10 +14,7 @@ import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
@@ -32,7 +29,9 @@ import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.sql.Blob;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
@@ -78,7 +77,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                      @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
@@ -109,7 +108,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                          @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
@@ -125,7 +124,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
     }
 
@@ -140,8 +139,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)})} instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties);
@@ -149,7 +148,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                 @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties);
@@ -157,7 +156,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+                                        @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
@@ -173,8 +172,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -182,9 +181,9 @@ public class ManagedStreamingIngestClient implements IngestClient {
     }
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient,
-            ExponentialRetry retryTemplate) {
+                                 AzureStorageClient storageClient,
+                                 StreamingClient streamingClient,
+                                 ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -221,11 +220,6 @@ public class ManagedStreamingIngestClient implements IngestClient {
         blobSourceInfo.validate();
         ingestionProperties.validate();
 
-        UUID sourceId = blobSourceInfo.getSourceId();
-        if (sourceId == null) {
-            sourceId = UUID.randomUUID();
-        }
-
         BlobClientBuilder blobClientBuilder = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath());
         if (httpClient != null) {
             blobClientBuilder.httpClient((HttpClient) httpClient);
@@ -248,13 +242,24 @@ public class ManagedStreamingIngestClient implements IngestClient {
             return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
 
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+        IngestionResult result = streamWithRetries(blobSourceInfo, ingestionProperties, blobClient);
+        if (result != null) {
+            return result;
+        }
+        return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+    }
 
-        UUID finalSourceId = sourceId;
-        IngestionResult result = retry.execute(currentAttempt -> {
+    private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient) throws IngestionClientException, IngestionServiceException {
+        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+        return retry.execute(currentAttempt -> {
             try {
-                String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromBlob;%s;%d", finalSourceId, currentAttempt);
-                return streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, clientRequestId);
+                if (blobClient != null) {
+                    String clientRequestId = String.format("KJC.executeManagedStreamingIngestFromBlob;%s;%d", sourceInfo.getSourceId(), currentAttempt);
+                    return streamingIngestClient.ingestFromBlob((BlobSourceInfo) sourceInfo, ingestionProperties, blobClient, clientRequestId);
+                } else {
+                    String clientRequestId = String.format("KJC.executeManagedStreamingIngestFromStream;%s;%d", sourceInfo.getSourceId(), currentAttempt);
+                    return streamingIngestClient.ingestFromStream((StreamSourceInfo) sourceInfo, ingestionProperties, clientRequestId);
+                }
             } catch (Exception e) {
                 if (e instanceof IngestionServiceException
                         && e.getCause() != null
@@ -267,17 +272,19 @@ public class ManagedStreamingIngestClient implements IngestClient {
                         throw e;
                     }
                 }
-
                 log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
+
+                if (sourceInfo instanceof StreamSourceInfo) {
+                    try {
+                        ((StreamSourceInfo) sourceInfo).getStream().reset();
+                    } catch (IOException ioException) {
+                        throw new IngestionClientException("Failed to reset stream", ioException);
+                    }
+                }
+
             }
             return null;
         });
-
-        if (result != null) {
-            return result;
-        }
-
-        return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
     }
 
     @Override
@@ -339,39 +346,8 @@ public class ManagedStreamingIngestClient implements IngestClient {
         }
 
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
-
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
-
-        UUID finalSourceId = sourceId;
         try {
-            IngestionResult result = retry.execute(currentAttempt -> {
-                try {
-                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromStream;%s;%d", finalSourceId, currentAttempt);
-                    return streamingIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties, clientRequestId);
-                } catch (Exception e) {
-                    if (e instanceof IngestionServiceException
-                            && e.getCause() != null
-                            && e.getCause() instanceof DataServiceException
-                            && e.getCause().getCause() != null
-                            && e.getCause().getCause() instanceof DataWebException) {
-                        DataWebException webException = (DataWebException) e.getCause().getCause();
-                        OneApiError oneApiError = webException.getApiError();
-                        if (oneApiError.isPermanent()) {
-                            throw e;
-                        }
-                    }
-
-                    log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
-
-                    try {
-                        managedSourceInfo.getStream().reset();
-                    } catch (IOException ioException) {
-                        throw new IngestionClientException("Failed to reset stream", ioException);
-                    }
-                }
-                return null;
-            });
-
+            IngestionResult result = streamWithRetries(managedSourceInfo, ingestionProperties, null);
             if (result != null) {
                 return result;
             }
