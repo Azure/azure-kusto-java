@@ -32,6 +32,17 @@ public class IngestClientFactory {
      * @return a new queued ingest client
      * @throws URISyntaxException if the connection string is invalid
      */
+    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+        return new QueuedIngestClientImpl(csb, properties, true);
+    }
+
+    /**
+     * Creates a new queued ingest client.
+     * @param csb connection string builder for the data management endpoint
+     * @param properties additional properties to configure the http client
+     * @return a new queued ingest client
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         return new QueuedIngestClientImpl(csb, properties, autoCorrectEndpoint);
     }
@@ -44,6 +55,19 @@ public class IngestClientFactory {
      */
     public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return createStreamingIngestClient(csb, null, true);
+    }
+
+
+    /**
+     * Creates a new streaming ingest client.
+     * @param csb connection string builder for the engine endpoint
+     * @param properties additional properties to configure the http client
+     * @return a new streaming ingest client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties)
+            throws URISyntaxException {
+        return new StreamingIngestClient(csb, properties, true);
     }
 
     /**
@@ -86,6 +110,22 @@ public class IngestClientFactory {
             ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
+    }
+
+    /**
+     * Creates a new managed streaming ingest client.
+     * This method should only be used for advanced cases. If your endpoints are standard, or you do not know, use
+     * {@link #createManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties, boolean)} instead.
+     * @param ingestionEndpointConnectionStringBuilder connection string builder for the data management endpoint
+     * @param queryEndpointConnectionStringBuilder connection string builder for the engine endpoint
+     * @param properties additional properties to configure the http client
+     * @return a new managed streaming ingest client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties)
+            throws URISyntaxException {
+        return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties, true);
     }
 
     /**
@@ -139,6 +179,22 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromEngineCsb(ConnectionStringBuilder engineConnectionStringBuilder,
+            @Nullable HttpClientProperties properties)
+            throws URISyntaxException {
+        return ManagedStreamingIngestClient.fromEngineConnectionString(engineConnectionStringBuilder, properties, true);
+    }
+
+    /**
+     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #createManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties, boolean)} instead.
+     * Creates a new ManagedStreamingIngestClient from an engine connection string.
+     * This method infers the DM connection string from the engine connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, boolean)}
+     * @param engineConnectionStringBuilder engine connection string
+     * @param properties additional properties to configure the http client
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromEngineCsb(ConnectionStringBuilder engineConnectionStringBuilder,
             @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return ManagedStreamingIngestClient.fromEngineConnectionString(engineConnectionStringBuilder, properties, autoCorrectEndpoint);
@@ -156,6 +212,22 @@ public class IngestClientFactory {
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder)
             throws URISyntaxException {
         return createManagedStreamingIngestClientFromDmCsb(dmConnectionStringBuilder, (HttpClientProperties) null, true);
+    }
+
+    /**
+     * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #createManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties, boolean)} instead.
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, boolean)}
+     * @param dmConnectionStringBuilder dm connection stringbuilder
+     * @param properties additional properties to configure the http client
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder,
+            @Nullable HttpClientProperties properties)
+            throws URISyntaxException {
+        return ManagedStreamingIngestClient.fromDmConnectionString(dmConnectionStringBuilder, properties, true);
     }
 
     /**
@@ -187,5 +259,19 @@ public class IngestClientFactory {
             @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
+    }
+    /**
+     * Creates a new ManagedStreamingIngestClient from a DM connection string.
+     * This method infers the engine connection string from the DM connection string.
+     * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, boolean)}
+     * @param connectionStringBuilder dm connection string builder
+     * @param httpClient HTTP Client to use for service and storage calls
+     * @return a new ManagedStreamingIngestClient
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable CloseableHttpClient httpClient)
+            throws URISyntaxException {
+        return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, true);
     }
 }

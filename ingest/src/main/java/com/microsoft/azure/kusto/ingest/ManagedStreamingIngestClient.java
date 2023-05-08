@@ -63,7 +63,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
-        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null);
+        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null, true);
     }
 
     /**
@@ -94,7 +94,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
-        return fromEngineConnectionString(engineConnectionString, null);
+        return fromEngineConnectionString(engineConnectionString, null, true);
     }
 
     /**
@@ -124,8 +124,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, true);
+    }
+    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
+        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, autoCorrectEndpoint);
     }
 
     /**
@@ -159,6 +163,32 @@ public class ManagedStreamingIngestClient implements IngestClient {
             @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
+        this.httpClient = httpClient;
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, true);
+        streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, true);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+                                 @Nullable HttpClientProperties properties) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, true);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, true);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+                                        @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
         this.httpClient = httpClient;
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
