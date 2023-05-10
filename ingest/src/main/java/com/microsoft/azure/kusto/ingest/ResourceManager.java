@@ -147,7 +147,7 @@ class ResourceManager implements Closeable {
                     refreshIngestionAuthToken();
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
-                    log.error("Error in refreshIngestionAuthToken." + e.getMessage(), e);
+                    log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
                     timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                 }
             }
@@ -281,9 +281,9 @@ class ResourceManager implements Closeable {
                 }
                 log.info("Refreshing Ingestion Resources Finished");
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources" + e.getMessage(), e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
             } catch (Throwable e) {
                 throw new IngestionClientException(e.getMessage(), e);
             } finally {
@@ -315,9 +315,9 @@ class ResourceManager implements Closeable {
                     identityToken = resultTable.getString(0);
                 }
             } catch (DataServiceException e) {
-                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken" + e.getMessage(), e);
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
             } catch (DataClientException e) {
-                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken" + e.getMessage(), e);
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
             } catch (Throwable e) {
                 throw new IngestionClientException(e.getMessage(), e);
             } finally {
