@@ -1,9 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -42,15 +41,10 @@ public abstract class IngestClientBase implements IngestClient {
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromFile
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromFile"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(fileSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromFileImpl(fileSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromFile"));
     }
 
     /**
@@ -72,15 +66,10 @@ public abstract class IngestClientBase implements IngestClient {
     public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromBlobImpl(blobSourceInfo, ingestionProperties);
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromBlob"));
     }
 
     /**
@@ -105,15 +94,10 @@ public abstract class IngestClientBase implements IngestClient {
     public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromResultSet
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromResultSet"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(resultSetSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromResultSetImpl(resultSetSourceInfo, ingestionProperties);
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromResultSetImpl(resultSetSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromResultSet"));
     }
 
     /**
@@ -135,29 +119,22 @@ public abstract class IngestClientBase implements IngestClient {
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromStreamImpl(streamSourceInfo, ingestionProperties);
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromStreamImpl(streamSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromStream"));
     }
 
     protected Map<String, String> getIngestionTraceAttributes(TraceableAttributes sourceInfo, TraceableAttributes ingestionProperties) {
         Map<String, String> attributes = new HashMap<>();
         if (sourceInfo != null) {
-            attributes = sourceInfo.addTraceAttributes(attributes);
+            attributes = sourceInfo.getTracingAttributes(attributes);
         }
         if (ingestionProperties != null) {
-            attributes = ingestionProperties.addTraceAttributes(attributes);
+            attributes = ingestionProperties.getTracingAttributes(attributes);
         }
         return attributes;
     }
 
-    protected String getClientType() {
-        return "IngestClientBase";
-    }
+    protected abstract String getClientType();
 }

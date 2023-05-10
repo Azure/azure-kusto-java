@@ -5,17 +5,16 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
@@ -251,16 +250,10 @@ class ResourceManager implements Closeable {
 
     private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionResources
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("getIngestionResource", "complete");
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("ResourceManager.refreshIngestionResource", Context.NONE, ProcessKind.PROCESS, null)) {
-            try {
-                refreshIngestionResourcesImpl();
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionResourcesImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionResource");
     }
 
     private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
@@ -301,17 +294,10 @@ class ResourceManager implements Closeable {
 
     private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
         // trace refreshIngestionAuthToken
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("getIdentityToken", "complete");
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("ResourceManager.refreshIngestionAuthToken", Context.NONE, ProcessKind.PROCESS,
-                null)) {
-            try {
-                refreshIngestionAuthTokenImpl();
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionAuthTokenImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionAuthToken");
     }
 
     private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {

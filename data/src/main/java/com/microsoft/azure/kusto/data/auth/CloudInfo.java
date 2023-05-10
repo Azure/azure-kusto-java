@@ -1,16 +1,15 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.HttpClientFactory;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -100,15 +99,8 @@ public class CloudInfo implements TraceableAttributes {
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
 
                     // trace CloudInfo.httpCall
-                    HttpResponse response;
-                    try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudInfo.httpCall", Context.NONE, ProcessKind.PROCESS, null)) {
-                        try {
-                            response = localHttpClient.execute(request);
-                        } catch (IOException e) {
-                            span.addException(e);
-                            throw e;
-                        }
-                    }
+                    HttpResponse response = MonitoredActivity.invoke((SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
+                            "CloudInfo.httpCall");
                     try {
                         int statusCode = response.getStatusLine().getStatusCode();
                         if (statusCode == 200) {
@@ -204,7 +196,7 @@ public class CloudInfo implements TraceableAttributes {
     }
 
     @Override
-    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
         attributes.put("resource", kustoServiceResourceId);
         return attributes;
     }

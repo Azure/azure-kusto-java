@@ -1,15 +1,14 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
@@ -17,8 +16,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -62,15 +59,9 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
             // trace acquireNewAccessToken
-            try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireNewAccessToken"), Context.NONE,
-                    ProcessKind.PROCESS, null)) {
-                try {
-                    accessTokenResult = acquireNewAccessToken();
-                } catch (DataServiceException | DataClientException e) {
-                    span.addException(e);
-                    throw e;
-                }
-            }
+            accessTokenResult = MonitoredActivity.invoke(
+                    (SupplierTwoExceptions<IAuthenticationResult, DataServiceException, DataClientException>) this::acquireNewAccessToken,
+                    getAuthMethod().concat(".acquireNewAccessToken"));
         }
         return accessTokenResult.accessToken();
     }

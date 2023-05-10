@@ -1,14 +1,12 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
-import java.util.Map;
 
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,20 +26,11 @@ public abstract class TokenProviderBase {
     public String acquireAccessToken() throws DataServiceException, DataClientException {
 
         // trace GetToken
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getAuthMethod().concat(".acquireAccessToken"), Context.NONE, ProcessKind.PROCESS,
-                null)) {
-            try {
-                return acquireAccessTokenInner();
-            } catch (DataServiceException | DataClientException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenInner,
+                getAuthMethod().concat(".acquireAccessToken"));
     }
 
-    abstract String acquireAccessTokenInner() throws DataServiceException, DataClientException;
+    protected abstract String acquireAccessTokenInner() throws DataServiceException, DataClientException;
 
-    protected String getAuthMethod() {
-        return "TokenProviderBase";
-    }
+    protected abstract String getAuthMethod();
 }

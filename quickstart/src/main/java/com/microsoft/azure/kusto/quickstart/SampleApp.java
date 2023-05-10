@@ -1,15 +1,14 @@
 package com.microsoft.azure.kusto.quickstart;
 
 import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -21,12 +20,7 @@ import java.net.URISyntaxException;
 import java.util.*;
 
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
-import io.opentelemetry.context.propagation.ContextPropagators;
-import io.opentelemetry.exporters.logging.LoggingMetricExporter;
 import io.opentelemetry.exporters.logging.LoggingSpanExporter;
-import io.opentelemetry.sdk.metrics.SdkMeterProvider;
-import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.trace.SdkTracerProvider;
@@ -283,62 +277,61 @@ public class SampleApp {
     private static boolean waitForUser;
 
     public static void main(String[] args) {
-        createKustoTracer();
+        initializeTracing();
+
+        MonitoredActivity.invoke(SampleApp::runSampleApp, "SampleApp.runSampleApp", new HashMap<>(Map.of("start", "app")));
+
+    }
+
+    private static void runSampleApp() {
         System.out.println("Kusto sample app is starting...");
+        ConfigJson config = loadConfigs();
+        waitForUser = config.isWaitForUser();
 
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("SampleApp.main", Context.NONE, ProcessKind.PROCESS, null)) {
+        if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
+            waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
+        }
+        try {
+            IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
+                    config.getAuthenticationMode()));
+            Client kustoClient = ClientFactory
+                    .createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
 
-            ConfigJson config = loadConfigs();
-            waitForUser = config.isWaitForUser();
+            preIngestionQuerying(config, kustoClient);
 
-            if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
-                waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
+            if (config.isIngestData()) {
+                ingestion(config, kustoClient, ingestClient);
             }
-            try {
-                IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
-                        config.getAuthenticationMode()));
-                Client kustoClient = ClientFactory
-                        .createClient(Utils.Authentication.generateConnectionString(config.getKustoUri(), config.getAuthenticationMode()));
-
-                preIngestionQuerying(config, kustoClient);
-
-                if (config.isIngestData()) {
-                    ingestion(config, kustoClient, ingestClient);
-                }
-                if (config.isQueryData()) {
-                    postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
-                }
-
-            } catch (URISyntaxException e) {
-                Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
+            if (config.isQueryData()) {
+                postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
             }
 
+        } catch (URISyntaxException e) {
+            Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
         }
         System.out.println("\nKusto sample app done");
     }
 
-    private static void createKustoTracer() {
+    /**
+     * Initializes the OpenTelemetry SDK with default values and registers it as the {@link com.microsoft.azure.kusto.data.instrumentation.Tracer}
+     */
+    private static void initializeTracing() {
         enableDistributedTracing();
-        DistributedTracing.initializeTracer(new OpenTelemetryTracer());
+        Tracer.initializeTracer(new OpenTelemetryTracer());
     }
 
+    /**
+     * Configures the OpenTelemetry SDK with default values and registers it as the {@link io.opentelemetry.api.GlobalOpenTelemetry}.
+     */
     private static void enableDistributedTracing() {
         Resource resource = Resource.getDefault()
                 .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "logical-service-name")));
-        LoggingSpanExporter spanExporter = new LoggingSpanExporter();
         SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
-                .addSpanProcessor(BatchSpanProcessor.builder(spanExporter).build())
-                .setResource(resource)
-                .build();
-
-        SdkMeterProvider sdkMeterProvider = SdkMeterProvider.builder()
-                .registerMetricReader(PeriodicMetricReader.builder(new LoggingMetricExporter()).build())
+                .addSpanProcessor(BatchSpanProcessor.builder(new LoggingSpanExporter()).build())
                 .setResource(resource)
                 .build();
         OpenTelemetrySdk.builder()
                 .setTracerProvider(sdkTracerProvider)
-                .setMeterProvider(sdkMeterProvider)
-                .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
                 .buildAndRegisterGlobal();
     }
 

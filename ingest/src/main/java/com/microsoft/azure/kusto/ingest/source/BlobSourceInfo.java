@@ -52,7 +52,7 @@ public class BlobSourceInfo extends AbstractSourceInfo implements TraceableAttri
     }
 
     @Override
-    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
         attributes.put("resource", blobPath);
         UUID sourceId = getSourceId();
         if (sourceId != null) {

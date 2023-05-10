@@ -3,25 +3,27 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.http.client.HttpClient;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
+public abstract class CloudDependentTokenProviderBase extends TokenProviderBase implements TraceableAttributes {
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
     protected final Set<String> scopes = new HashSet<>();
     private boolean initialized = false;
+    private CloudInfo cloudInfo;
 
     CloudDependentTokenProviderBase(@NotNull String clusterUrl, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
@@ -32,17 +34,11 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
             return;
         }
         // trace retrieveCloudInfo
-        try (DistributedTracing.Span span = DistributedTracing.startSpan("CloudDependentTokenProviderBase.retrieveCloudInfo", Context.NONE, ProcessKind.PROCESS,
-                null)) {
-            try {
-                CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient);
-                span.setAttributes(cloudInfo.addTraceAttributes(new HashMap<>()));
-                initializeWithCloudInfo(cloudInfo);
-            } catch (DataClientException | DataServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        cloudInfo = MonitoredActivity.invoke(
+                (SupplierTwoExceptions<CloudInfo, DataClientException, DataServiceException>) () -> CloudInfo.retrieveCloudInfoForCluster(clusterUrl,
+                        httpClient),
+                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes(new HashMap<>()));
+        initializeWithCloudInfo(cloudInfo);
         initialized = true;
     }
 
@@ -55,10 +51,23 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    String acquireAccessTokenInner() throws DataServiceException, DataClientException {
+    public String acquireAccessToken() throws DataServiceException, DataClientException {
+        return acquireAccessTokenInner();
+    }
+
+    @Override
+    protected String acquireAccessTokenInner() throws DataServiceException, DataClientException {
         initialize();
-        return acquireAccessTokenImpl();
+        Map<String, String> attributes = cloudInfo != null ? new HashMap<>(Map.of("resource", cloudInfo.getKustoServiceResourceId())) : null;
+        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
+                getAuthMethod().concat(".acquireAccessToken"), attributes);
     }
 
     protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
+
+    @Override
+    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+        attributes.put("http.url", clusterUrl);
+        return attributes;
+    }
 }

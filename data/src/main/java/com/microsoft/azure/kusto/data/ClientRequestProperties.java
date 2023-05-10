@@ -288,7 +288,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return options.entrySet().iterator();
     }
 
-    public Map<String, String> addTraceAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
         attributes.put("clientRequestId", getClientRequestId());
         return attributes;
     }

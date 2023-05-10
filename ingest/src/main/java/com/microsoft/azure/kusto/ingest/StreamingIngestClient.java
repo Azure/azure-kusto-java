@@ -3,8 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.util.Context;
-import com.azure.core.util.tracing.ProcessKind;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -12,7 +10,8 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.instrumentation.DistributedTracing;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -34,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -75,7 +72,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
+    protected IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -93,7 +90,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
+    protected IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -116,7 +113,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
+    protected IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
         Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
@@ -136,7 +133,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
+    protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, null);
     }
@@ -149,15 +146,11 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromStream"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, clientRequestId);
-            } catch (IngestionClientException | IngestionServiceException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromStreamImpl(streamSourceInfo,
+                        ingestionProperties, clientRequestId),
+                getClientType().concat(".ingestFromStream"),
+                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties));
     }
 
     private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
@@ -234,15 +227,11 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
-        try (DistributedTracing.Span span = DistributedTracing.startSpan(getClientType().concat(".ingestFromBlob"), Context.NONE, ProcessKind.PROCESS,
-                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties))) {
-            try {
-                return ingestFromBlobImpl(blobSourceInfo, ingestionProperties, cloudBlockBlob, clientRequestId);
-            } catch (IngestionServiceException | IngestionClientException e) {
-                span.addException(e);
-                throw e;
-            }
-        }
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
+                        ingestionProperties, cloudBlockBlob, clientRequestId),
+                getClientType().concat(".ingestFromBlob"),
+                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties));
     }
 
     private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob,

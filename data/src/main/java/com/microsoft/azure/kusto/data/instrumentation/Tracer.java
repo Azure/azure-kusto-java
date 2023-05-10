@@ -3,32 +3,35 @@ package com.microsoft.azure.kusto.data.instrumentation;
 import com.azure.core.util.Configuration;
 import com.azure.core.util.Context;
 import com.azure.core.util.tracing.ProcessKind;
-import com.azure.core.util.tracing.Tracer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Map;
 
-public class DistributedTracing {
+public class Tracer {
     private static final boolean IS_TRACING_DISABLED = Configuration.getGlobalConfiguration().get(Configuration.PROPERTY_AZURE_TRACING_DISABLED, false);
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static Tracer tracer;
+    private static com.azure.core.util.tracing.Tracer tracer;
     private static volatile boolean initialized = false;
 
-    public static void initializeTracer(Tracer tracer) {
-        if (!DistributedTracing.initialized) {
-            synchronized (DistributedTracing.class) {
-                if (!DistributedTracing.initialized) {
-                    DistributedTracing.tracer = IS_TRACING_DISABLED ? null : tracer;
+    public static void initializeTracer(com.azure.core.util.tracing.Tracer tracer) {
+        if (!Tracer.initialized) {
+            synchronized (Tracer.class) {
+                if (!Tracer.initialized) {
+                    Tracer.tracer = IS_TRACING_DISABLED ? null : tracer;
                     initialized = true;
                 }
             }
         }
     }
 
+    public static Span startSpan(String spanName) {
+        return startSpan(spanName, Context.NONE, ProcessKind.PROCESS, null);
+    }
+
+    public static Span startSpan(String spanName, Map<String, String> attributes) {
+        return startSpan(spanName, Context.NONE, ProcessKind.PROCESS, attributes);
+    }
+
     public static Span startSpan(String spanName, Context context, ProcessKind kind, Map<String, String> attributes) {
-        Context span = tracer == null ? context : tracer.start(spanName, context, kind);
+        Context span = tracer == null ? null : tracer.start(spanName, context, kind);
         return new Span(span, attributes);
     }
 
