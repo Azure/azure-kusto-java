@@ -344,7 +344,7 @@ class E2ETest {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
-                (isManaged && item.testOnManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
