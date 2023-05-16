@@ -10,7 +10,10 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
@@ -109,16 +112,14 @@ class ClientImpl implements Client, StreamingClient {
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         CommandType commandType = determineCommandType(command);
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
-                        commandType),
+                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>)
+                        () -> executeImpl(database, command, properties, commandType),
                 commandType.getActivityTypeSuffix().concat(".execute"),
-                getExecuteTraceAttributes(database, properties));
+                getExecuteTracingAttributes(database, properties));
     }
 
-    private Map<String, String> getExecuteTraceAttributes(String database, TraceableAttributes traceableAttributes) {
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("cluster", clusterUrl);
-        attributes.put("database", database);
+    private Map<String, String> getExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
+        Map<String, String> attributes = new HashMap<>(Map.of("cluster", clusterUrl, "database", database));
         if (traceableAttributes != null) {
             return traceableAttributes.getTracingAttributes(attributes);
         }
@@ -238,7 +239,8 @@ class ClientImpl implements Client, StreamingClient {
             String response;
             // trace executeStreamingIngest
             response = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> Utils.post(httpClient, clusterEndpoint, entity,
+                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>)
+                            () -> Utils.post(httpClient, clusterEndpoint, entity,
                             timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                     "ClientImpl.executeStreamingIngest");
             return new KustoOperationResult(response, "v1");
@@ -322,9 +324,10 @@ class ClientImpl implements Client, StreamingClient {
         }
         // trace httpCall
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
+                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>)
+                        () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
                         jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
-                "ClientImpl.executeStreamingQuery", getExecuteTraceAttributes(database, properties));
+                "ClientImpl.executeStreamingQuery", getExecuteTracingAttributes(database, properties));
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {

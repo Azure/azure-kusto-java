@@ -46,7 +46,7 @@ public class Tracer {
 
         @Override
         public void close() {
-            if (tracer != null) {
+            if (tracer != null && span != null) {
                 String errorCondition = "success";
                 if (throwable != null) {
                     errorCondition = throwable.getLocalizedMessage();
@@ -60,7 +60,7 @@ public class Tracer {
         }
 
         public void setAttributes(Map<String, String> attributes) {
-            if (tracer != null && attributes != null) {
+            if (tracer != null && attributes != null && span != null) {
                 attributes.forEach((k, v) -> tracer.setAttribute(k, v, span));
             }
         }
