@@ -112,8 +112,8 @@ class ClientImpl implements Client, StreamingClient {
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         CommandType commandType = determineCommandType(command);
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>)
-                        () -> executeImpl(database, command, properties, commandType),
+                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
+                        commandType),
                 commandType.getActivityTypeSuffix().concat(".execute"),
                 getExecuteTracingAttributes(database, properties));
     }
@@ -239,8 +239,7 @@ class ClientImpl implements Client, StreamingClient {
             String response;
             // trace executeStreamingIngest
             response = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>)
-                            () -> Utils.post(httpClient, clusterEndpoint, entity,
+                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> Utils.post(httpClient, clusterEndpoint, entity,
                             timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                     "ClientImpl.executeStreamingIngest");
             return new KustoOperationResult(response, "v1");
@@ -324,8 +323,7 @@ class ClientImpl implements Client, StreamingClient {
         }
         // trace httpCall
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>)
-                        () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
+                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
                         jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                 "ClientImpl.executeStreamingQuery", getExecuteTracingAttributes(database, properties));
     }

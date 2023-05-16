@@ -29,6 +29,7 @@ public class TracingTest {
         mockKind = ProcessKind.PROCESS;
         mockAttributes = new HashMap<>();
     }
+
     @AfterEach
     public void tearDown() {
         try {
@@ -110,13 +111,14 @@ public class TracingTest {
     }
 
     @Test
-    public void testNoAttributes(){
+    public void testNoAttributes() {
         Tracer.initializeTracer(mockTracer);
         when(mockTracer.start(eq("testSpan"), eq(mockContext), eq(mockKind))).thenReturn(mockContext);
         Tracer.Span span = Tracer.startSpan("testSpan", mockContext, mockKind, null);
         span.setAttributes(null);
         verify(mockTracer, times(0)).setAttribute(anyString(), anyString(), any());
     }
+
     @Test
     public void testInvokeRunnable() {
         Tracer.initializeTracer(mockTracer);
@@ -154,7 +156,7 @@ public class TracingTest {
 
         verify(mockTracer, times(1)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockSupplierOneException, times(1)).get();
-        verify(mockTracer).end(eq("testException"), eq(e),  eq(mockContext));
+        verify(mockTracer).end(eq("testException"), eq(e), eq(mockContext));
 
         reset(mockSupplierOneException);
         when(mockSupplierOneException.get()).thenReturn("testResult");
@@ -162,7 +164,7 @@ public class TracingTest {
 
         verify(mockTracer, times(2)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockSupplierOneException, times(1)).get();
-        verify(mockTracer).end(eq("success"), isNull(),  eq(mockContext));
+        verify(mockTracer).end(eq("success"), isNull(), eq(mockContext));
     }
 
     @Test
@@ -185,7 +187,7 @@ public class TracingTest {
 
         verify(mockTracer, times(1)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockSupplierTwoExceptions, times(1)).get();
-        verify(mockTracer).end(eq("testException"), eq(e),  eq(mockContext));
+        verify(mockTracer).end(eq("testException"), eq(e), eq(mockContext));
 
         reset(mockSupplierTwoExceptions);
         when(mockSupplierTwoExceptions.get()).thenReturn("testResult");
@@ -193,7 +195,7 @@ public class TracingTest {
 
         verify(mockTracer, times(2)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockSupplierTwoExceptions, times(1)).get();
-        verify(mockTracer).end(eq("success"), isNull(),  eq(mockContext));
+        verify(mockTracer).end(eq("success"), isNull(), eq(mockContext));
     }
 
     @Test
@@ -215,7 +217,7 @@ public class TracingTest {
 
         verify(mockTracer, times(1)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockFunctionOneException, times(1)).apply(any());
-        verify(mockTracer).end(eq("testException"), eq(e),  eq(mockContext));
+        verify(mockTracer).end(eq("testException"), eq(e), eq(mockContext));
 
         reset(mockFunctionOneException);
         when(mockFunctionOneException.apply(any())).thenReturn("testResult");
@@ -223,7 +225,7 @@ public class TracingTest {
 
         verify(mockTracer, times(2)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockFunctionOneException, times(1)).apply(any());
-        verify(mockTracer).end(eq("success"), isNull(),  eq(mockContext));
+        verify(mockTracer).end(eq("success"), isNull(), eq(mockContext));
 
     }
 
@@ -246,7 +248,7 @@ public class TracingTest {
 
         verify(mockTracer, times(1)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockFunctionTwoExceptions, times(1)).apply(any());
-        verify(mockTracer).end(eq("testException"), eq(e),  eq(mockContext));
+        verify(mockTracer).end(eq("testException"), eq(e), eq(mockContext));
 
         reset(mockFunctionTwoExceptions);
         when(mockFunctionTwoExceptions.apply(any())).thenReturn("testResult");
@@ -254,13 +256,8 @@ public class TracingTest {
 
         verify(mockTracer, times(2)).start(eq(spanName), eq(Context.NONE), eq(mockKind));
         verify(mockFunctionTwoExceptions, times(1)).apply(any());
-        verify(mockTracer).end(eq("success"), isNull(),  eq(mockContext));
+        verify(mockTracer).end(eq("success"), isNull(), eq(mockContext));
 
     }
-
-
-
-
-
 
 }
