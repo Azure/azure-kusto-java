@@ -392,8 +392,7 @@ class E2ETest {
         clusterUrl = clusterUrl.substring(0, clusterUrl.length() - 1);
         if (!autoCorrectEndpoint) {
             assertEquals(clusterUrl, connectionDataSource);
-        }
-        else {
+        } else {
             String compareString = isQueued ? clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX) : clusterUrl;
             assertEquals(compareString, connectionDataSource);
         }
@@ -405,15 +404,13 @@ class E2ETest {
                 appKey, tenantId);
         try {
             QueuedIngestClient queuedIngestClient = IngestClientFactory.createClient(engineCsb, null, true);
-            assertUrlCompare(((QueuedIngestClientImpl)queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(),true, true);
+            assertUrlCompare(((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(), true, true);
             queuedIngestClient = IngestClientFactory.createClient(engineCsb, null, false);
-            assertUrlCompare(((QueuedIngestClientImpl)queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(),false, true);
-        }
-        catch (URISyntaxException ex) {
+            assertUrlCompare(((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(), false, true);
+        } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
     }
-
 
     @Test
     void testStreamingUseAutoCorrectEndpoint() {
@@ -421,11 +418,10 @@ class E2ETest {
                 appKey, tenantId);
         try {
             StreamingIngestClient streamingIngest = IngestClientFactory.createStreamingIngestClient(engineCsb, null, true);
-            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), true,false);
+            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), true, false);
             streamingIngest = IngestClientFactory.createStreamingIngestClient(engineCsb, null, false);
-            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), false,false);
-        }
-        catch (URISyntaxException ex) {
+            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), false, false);
+        } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create query and streamingIngest client", ex);
         }
     }

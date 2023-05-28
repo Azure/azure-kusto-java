@@ -43,7 +43,8 @@ public class IngestClientFactory {
      * @return a new queued ingest client
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+    public static QueuedIngestClient createClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+            throws URISyntaxException {
         return new QueuedIngestClientImpl(csb, properties, autoCorrectEndpoint);
     }
 
@@ -56,7 +57,6 @@ public class IngestClientFactory {
     public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb) throws URISyntaxException {
         return createStreamingIngestClient(csb, null, true);
     }
-
 
     /**
      * Creates a new streaming ingest client.
@@ -77,7 +77,8 @@ public class IngestClientFactory {
      * @return a new streaming ingest client
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+    public static StreamingIngestClient createStreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties,
+            boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new StreamingIngestClient(csb, properties, autoCorrectEndpoint);
     }
@@ -109,7 +110,8 @@ public class IngestClientFactory {
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
             throws URISyntaxException {
-        return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
+        return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties,
+                autoCorrectEndpoint);
     }
 
     /**
@@ -260,6 +262,7 @@ public class IngestClientFactory {
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
     }
+
     /**
      * Creates a new ManagedStreamingIngestClient from a DM connection string.
      * This method infers the engine connection string from the DM connection string.
