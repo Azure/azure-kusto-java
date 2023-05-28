@@ -389,7 +389,6 @@ class E2ETest {
     }
 
     private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
-        clusterUrl = clusterUrl.substring(0, clusterUrl.length() - 1);
         if (!autoCorrectEndpoint) {
             assertEquals(clusterUrl, connectionDataSource);
         } else {
