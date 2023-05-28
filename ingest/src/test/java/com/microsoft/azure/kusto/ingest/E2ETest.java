@@ -68,6 +68,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -384,6 +386,48 @@ class E2ETest {
             return false;
         }
         return true;
+    }
+
+    private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
+        clusterUrl = clusterUrl.substring(0, clusterUrl.length() - 1);
+        if (!autoCorrectEndpoint) {
+            assertEquals(clusterUrl, connectionDataSource);
+        }
+        else {
+            String compareString = isQueued ? clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX) : clusterUrl;
+            assertEquals(compareString, connectionDataSource);
+        }
+    }
+
+    @Test
+    void testQueuedUseAutoCorrectEndpoint() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
+        try {
+            QueuedIngestClient queuedIngestClient = IngestClientFactory.createClient(engineCsb, null, true);
+            assertUrlCompare(((QueuedIngestClientImpl)queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(),true, true);
+            queuedIngestClient = IngestClientFactory.createClient(engineCsb, null, false);
+            assertUrlCompare(((QueuedIngestClientImpl)queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(),false, true);
+        }
+        catch (URISyntaxException ex) {
+            Assertions.fail("Failed to create query and streamingIngest client", ex);
+        }
+    }
+
+
+    @Test
+    void testStreamingUseAutoCorrectEndpoint() {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
+                appKey, tenantId);
+        try {
+            StreamingIngestClient streamingIngest = IngestClientFactory.createStreamingIngestClient(engineCsb, null, true);
+            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), true,false);
+            streamingIngest = IngestClientFactory.createStreamingIngestClient(engineCsb, null, false);
+            assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), false,false);
+        }
+        catch (URISyntaxException ex) {
+            Assertions.fail("Failed to create query and streamingIngest client", ex);
+        }
     }
 
     @Test
