@@ -5,15 +5,18 @@ import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class TokenProviderBase {
+public abstract class TokenProviderBase implements TraceableAttributes {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final String clusterUrl;
     protected final HttpClient httpClient;
@@ -24,13 +27,19 @@ public abstract class TokenProviderBase {
     }
 
     public String acquireAccessToken() throws DataServiceException, DataClientException {
-
-        // trace GetToken
-        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenInner,
-                getAuthMethod().concat(".acquireAccessToken"));
+        initialize();
+        // trace getToken
+        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
+                getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes(new HashMap<>()));
     }
+    void initialize() throws DataClientException, DataServiceException{}
 
-    protected abstract String acquireAccessTokenInner() throws DataServiceException, DataClientException;
+    protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
 
     protected abstract String getAuthMethod();
+
+    @Override
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+        return attributes;
+    }
 }

@@ -16,6 +16,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
@@ -196,7 +197,7 @@ public class CloudInfo implements TraceableAttributes {
     }
 
     @Override
-    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
         attributes.put("resource", kustoServiceResourceId);
         return attributes;
     }

@@ -17,7 +17,7 @@ public class AccessTokenTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected String acquireAccessTokenInner() {
+    protected String acquireAccessTokenImpl() {
         return accessToken;
     }
 

@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class StreamSourceInfo extends AbstractSourceInfo implements TraceableAtt
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 
-    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
         attributes.put("resource", "stream");
         UUID sourceId = getSourceId();
         if (sourceId != null) {

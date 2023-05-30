@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.ResultSet;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class ResultSetSourceInfo extends AbstractSourceInfo implements Traceable
         // nothing to validate as of now.
     }
 
-    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
         attributes.put("resource", "resultSet");
         UUID sourceId = getSourceId();
         if (sourceId != null) {

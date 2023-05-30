@@ -13,13 +13,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.http.client.HttpClient;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class CloudDependentTokenProviderBase extends TokenProviderBase implements TraceableAttributes {
+public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
     protected final Set<String> scopes = new HashSet<>();
     private boolean initialized = false;
@@ -29,6 +28,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         super(clusterUrl, httpClient);
     }
 
+    @Override
     synchronized void initialize() throws DataClientException, DataServiceException {
         if (initialized) {
             return;
@@ -51,22 +51,11 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
-        return acquireAccessTokenInner();
-    }
-
-    @Override
-    protected String acquireAccessTokenInner() throws DataServiceException, DataClientException {
-        initialize();
-        Map<String, String> attributes = cloudInfo != null ? new HashMap<>(Map.of("resource", cloudInfo.getKustoServiceResourceId())) : null;
-        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
-                getAuthMethod().concat(".acquireAccessToken"), attributes);
-    }
-
-    protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
-
-    @Override
-    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+        attributes = super.getTracingAttributes(attributes);
+        if (cloudInfo != null) {
+            cloudInfo.getTracingAttributes(attributes);
+        }
         attributes.put("http.url", clusterUrl);
         return attributes;
     }

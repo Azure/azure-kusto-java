@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.data.format.CslUuidFormat;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -288,7 +289,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return options.entrySet().iterator();
     }
 
-    public Map<String, String> getTracingAttributes(Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
         attributes.put("clientRequestId", getClientRequestId());
         return attributes;
     }

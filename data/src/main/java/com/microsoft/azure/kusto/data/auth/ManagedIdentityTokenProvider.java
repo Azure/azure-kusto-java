@@ -4,11 +4,9 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
@@ -42,13 +40,7 @@ public class ManagedIdentityTokenProvider extends CloudDependentTokenProviderBas
     }
 
     @Override
-    public String acquireAccessTokenImpl() throws DataServiceException {
-        // trace acquireNewAccessToken
-        return MonitoredActivity.invoke((SupplierOneException<String, DataServiceException>) this::acquireAccessTokenImplInner,
-                getAuthMethod().concat(".acquireAccessTokenImpl"));
-    }
-
-    private String acquireAccessTokenImplInner() throws DataServiceException {
+    protected String acquireAccessTokenImpl() throws DataServiceException {
         AccessToken accessToken = managedIdentityCredential.getToken(tokenRequestContext).block();
         if (accessToken == null) {
             throw new DataServiceException(clusterUrl, "Couldn't get token from Azure Identity", true);
