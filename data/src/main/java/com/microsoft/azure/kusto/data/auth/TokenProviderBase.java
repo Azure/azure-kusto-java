@@ -32,7 +32,9 @@ public abstract class TokenProviderBase implements TraceableAttributes {
         return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
                 getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes(new HashMap<>()));
     }
-    void initialize() throws DataClientException, DataServiceException{}
+
+    void initialize() throws DataClientException, DataServiceException {
+    }
 
     protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
 
