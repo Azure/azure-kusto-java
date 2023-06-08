@@ -187,6 +187,11 @@ class E2ETest {
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
 
+        IngestionProperties ingestionPropertiesWithIgnoreFirstRecord = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithIgnoreFirstRecord.setFlushImmediately(true);
+        ingestionPropertiesWithIgnoreFirstRecord.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithIgnoreFirstRecord.setIgnoreFirstRecord(true);
+
         IngestionProperties ingestionPropertiesWithMappingReference = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithMappingReference.setFlushImmediately(true);
         ingestionPropertiesWithMappingReference.setIngestionMapping(mappingReference, IngestionMappingKind.JSON);
@@ -208,6 +213,14 @@ class E2ETest {
                 file = new File(resourcesPath, "dataset.csv");
                 rows = 10;
                 ingestionProperties = ingestionPropertiesWithoutMapping;
+            }
+        }, new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 9;
+                ingestionProperties = ingestionPropertiesWithIgnoreFirstRecord;
+                testOnstreamingIngestion = false;
+                testOnManaged = false;
             }
         }, new TestDataItem() {
             {
@@ -315,7 +328,7 @@ class E2ETest {
         for (TestDataItem item : dataForTests) {
             FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
             try {
-                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
@@ -333,7 +346,7 @@ class E2ETest {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }
             try {
-                (isManaged ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
             } catch (Exception ex) {
                 Assertions.fail(ex);
             }
