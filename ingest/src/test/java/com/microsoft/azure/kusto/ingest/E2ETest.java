@@ -61,10 +61,7 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -576,7 +573,7 @@ class E2ETest {
 
     @Test
     void testNoRedirectsCloudFail() {
-        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
             try (Client client = ClientFactory.createClient(
@@ -601,7 +598,7 @@ class E2ETest {
 
     @Test
     void testNoRedirectsClientFail() {
-        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
             try (Client client = ClientFactory.createClient(
