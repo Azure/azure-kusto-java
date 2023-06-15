@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 public class ClientDetails {
 
     public static final String NONE = "[none]";
-    private static ConcurrentInitializer<String> defaultApplication = new LazyInitializer<>() {
+    private static ConcurrentInitializer<String> defaultApplication = new LazyInitializer() {
         @Override
         protected String initialize() {
             return UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command"));
         }
     };
-    private static ConcurrentInitializer<String> defaultUser = new LazyInitializer<>() {
+    private static ConcurrentInitializer<String> defaultUser = new LazyInitializer() {
         @Override
         protected String initialize() {
             String user = System.getProperty("user.name");
@@ -36,7 +36,7 @@ public class ClientDetails {
             return StringUtils.isNotBlank(user) ? user : NONE;
         }
     };
-    private static ConcurrentInitializer<String> defaultVersion = new LazyInitializer<>() {
+    private static ConcurrentInitializer<String> defaultVersion = new LazyInitializer() {
         @Override
         protected String initialize() {
             return formatHeader(Arrays.asList(
