@@ -33,8 +33,8 @@
     </developers>
 
     <properties>
-        <revision>4.0.4</revision> <!-- CHANGE THIS to match project version in the root (not technically parent) pom -->
-        <java.version>11</java.version>
+        <revision>5.0.0</revision> <!-- CHANGE THIS to match project version in the root (not technically parent) pom -->
+        <java.version>1.8</java.version>
         <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>

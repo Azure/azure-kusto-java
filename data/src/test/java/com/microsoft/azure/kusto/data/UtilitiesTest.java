@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -144,7 +144,7 @@ class UtilitiesTest {
     @Test
     @DisplayName("Assert file name extracted from some cmd line")
     void extractFileNameFromCommandLine() {
-        String cmdLine = Path.of(" home", "user", "someFile.jar").toString() + " -arg1 val";
+        String cmdLine = Paths.get(" home", "user", "someFile.jar").toString() + " -arg1 val";
         Assertions.assertEquals(UriUtils.stripFileNameFromCommandLine(cmdLine), "someFile.jar");
     }
 
