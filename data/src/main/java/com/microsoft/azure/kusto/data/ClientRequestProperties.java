@@ -290,9 +290,8 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     public Map<String, String> getTracingAttributes() {
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("clientRequestId", getClientRequestId());
-        return attributes;
+        return new HashMap<>(Map.of(
+                "clientRequestId", getClientRequestId()));
     }
 
     String getTimeoutAsString(Object timeoutObj) {
