@@ -5,7 +5,7 @@ import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class UriUtils {
     private UriUtils() {
@@ -81,7 +81,7 @@ public class UriUtils {
             String processNameForTracing = cmdLine;
 
             if (processNameForTracing != null) {
-                processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
+                processNameForTracing = Paths.get(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
             }
 
             return processNameForTracing;

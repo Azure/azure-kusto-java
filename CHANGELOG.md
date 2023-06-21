@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
+* Move back to Java 8
+* Update BOM version and msal
 * Replace non-ascii characters in headers to be in line with the service.
 ### Security
 * No redirects by default

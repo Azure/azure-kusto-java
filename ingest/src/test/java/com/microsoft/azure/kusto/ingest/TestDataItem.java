@@ -10,4 +10,5 @@ public class TestDataItem {
     public IngestionProperties ingestionProperties;
     public int rows;
     public boolean testOnstreamingIngestion = true;
+    public boolean testOnManaged = true;
 }
