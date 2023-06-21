@@ -13,7 +13,6 @@ import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import com.sun.security.ntlm.Client;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
