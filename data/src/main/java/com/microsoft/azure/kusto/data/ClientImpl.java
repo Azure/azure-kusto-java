@@ -119,7 +119,9 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     private Map<String, String> updateAndGetExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
-        Map<String, String> attributes = new HashMap<>(Map.of("cluster", clusterUrl, "database", database));
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("cluster", clusterUrl);
+        attributes.put("database", database);
         if (traceableAttributes != null) {
             attributes.putAll(traceableAttributes.getTracingAttributes());
         }

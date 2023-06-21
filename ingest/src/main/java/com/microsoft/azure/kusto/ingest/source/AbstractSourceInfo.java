@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-abstract class AbstractSourceInfo implements SourceInfo, TraceableAttributes{
+abstract class AbstractSourceInfo implements SourceInfo, TraceableAttributes {
 
     private UUID sourceId;
 
