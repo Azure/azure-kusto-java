@@ -128,10 +128,10 @@ public abstract class IngestClientBase implements IngestClient {
     protected Map<String, String> getIngestionTraceAttributes(TraceableAttributes sourceInfo, TraceableAttributes ingestionProperties) {
         Map<String, String> attributes = new HashMap<>();
         if (sourceInfo != null) {
-            attributes = sourceInfo.getTracingAttributes(attributes);
+            attributes.putAll(sourceInfo.getTracingAttributes());
         }
         if (ingestionProperties != null) {
-            attributes = ingestionProperties.getTracingAttributes(attributes);
+            attributes.putAll(ingestionProperties.getTracingAttributes());
         }
         return attributes;
     }

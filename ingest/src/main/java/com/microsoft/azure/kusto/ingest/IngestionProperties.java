@@ -384,7 +384,8 @@ public class IngestionProperties implements TraceableAttributes {
     }
 
     @Override
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("database", databaseName);
         attributes.put("table", tableName);
         return attributes;

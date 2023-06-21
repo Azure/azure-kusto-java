@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-public class StreamSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
+public class StreamSourceInfo extends AbstractSourceInfo {
 
     private InputStream stream;
     private boolean leaveOpen = false;
@@ -78,7 +78,8 @@ public class StreamSourceInfo extends AbstractSourceInfo implements TraceableAtt
         return String.format("Stream with SourceId: %s", getSourceId());
     }
 
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
         attributes.put("resource", "stream");
         UUID sourceId = getSourceId();
         if (sourceId != null) {

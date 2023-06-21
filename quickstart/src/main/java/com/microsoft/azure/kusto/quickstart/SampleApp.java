@@ -277,9 +277,10 @@ public class SampleApp {
     private static boolean waitForUser;
 
     public static void main(String[] args) {
-        initializeTracing();
+        // TODO (tracing): Uncomment the following line to enable tracing.
+        //initializeTracing();
 
-        MonitoredActivity.invoke(SampleApp::runSampleApp, "SampleApp.runSampleApp", new HashMap<>(Map.of("start", "app")));
+        MonitoredActivity.invoke(SampleApp::runSampleApp, "SampleApp.runSampleApp");
 
     }
 

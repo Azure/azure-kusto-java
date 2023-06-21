@@ -11,7 +11,7 @@ import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
-public class FileSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
+public class FileSourceInfo extends AbstractSourceInfo {
 
     private String filePath;
 
@@ -48,7 +48,8 @@ public class FileSourceInfo extends AbstractSourceInfo implements TraceableAttri
         stringIsNotBlank(filePath, "filePath");
     }
 
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
         attributes.put("resource", filePath);
         UUID sourceId = getSourceId();
         if (sourceId != null) {

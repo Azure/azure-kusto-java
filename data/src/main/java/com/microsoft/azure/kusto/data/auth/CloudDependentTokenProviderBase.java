@@ -37,7 +37,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
         cloudInfo = MonitoredActivity.invoke(
                 (SupplierTwoExceptions<CloudInfo, DataClientException, DataServiceException>) () -> CloudInfo.retrieveCloudInfoForCluster(clusterUrl,
                         httpClient),
-                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes(new HashMap<>()));
+                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes());
         initializeWithCloudInfo(cloudInfo);
         initialized = true;
     }
@@ -51,10 +51,10 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
-        attributes = super.getTracingAttributes(attributes);
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
         if (cloudInfo != null) {
-            cloudInfo.getTracingAttributes(attributes);
+            attributes.putAll(cloudInfo.getTracingAttributes());
         }
         attributes.put("http.url", clusterUrl);
         return attributes;

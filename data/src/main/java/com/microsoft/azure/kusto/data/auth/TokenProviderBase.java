@@ -30,7 +30,7 @@ public abstract class TokenProviderBase implements TraceableAttributes {
         initialize();
         // trace getToken
         return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
-                getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes(new HashMap<>()));
+                getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes());
     }
 
     void initialize() throws DataClientException, DataServiceException {
@@ -41,7 +41,7 @@ public abstract class TokenProviderBase implements TraceableAttributes {
     protected abstract String getAuthMethod();
 
     @Override
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
-        return attributes;
+    public Map<String, String> getTracingAttributes() {
+        return new HashMap<>();
     }
 }

@@ -14,7 +14,7 @@ import java.util.UUID;
 /**
  * Represents the ResultSet source information used for ingestion.
  */
-public class ResultSetSourceInfo extends AbstractSourceInfo implements TraceableAttributes {
+public class ResultSetSourceInfo extends AbstractSourceInfo {
 
     private ResultSet resultSet;
 
@@ -66,7 +66,8 @@ public class ResultSetSourceInfo extends AbstractSourceInfo implements Traceable
         // nothing to validate as of now.
     }
 
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
         attributes.put("resource", "resultSet");
         UUID sourceId = getSourceId();
         if (sourceId != null) {

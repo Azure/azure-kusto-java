@@ -115,13 +115,13 @@ class ClientImpl implements Client, StreamingClient {
                 (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
                         commandType),
                 commandType.getActivityTypeSuffix().concat(".execute"),
-                getExecuteTracingAttributes(database, properties));
+                updateAndGetExecuteTracingAttributes(database, properties));
     }
 
-    private Map<String, String> getExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
+    private Map<String, String> updateAndGetExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
         Map<String, String> attributes = new HashMap<>(Map.of("cluster", clusterUrl, "database", database));
         if (traceableAttributes != null) {
-            return traceableAttributes.getTracingAttributes(attributes);
+            attributes.putAll(traceableAttributes.getTracingAttributes());
         }
         return attributes;
     }
@@ -325,7 +325,7 @@ class ClientImpl implements Client, StreamingClient {
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
                         jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
-                "ClientImpl.executeStreamingQuery", getExecuteTracingAttributes(database, properties));
+                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {

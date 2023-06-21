@@ -197,9 +197,8 @@ public class CloudInfo implements TraceableAttributes {
     }
 
     @Override
-    public Map<String, String> getTracingAttributes(@NotNull Map<String, String> attributes) {
-        attributes.put("resource", kustoServiceResourceId);
-        return attributes;
+    public Map<String, String> getTracingAttributes() {
+        return new HashMap<>(Map.of("resource", kustoServiceResourceId));
     }
 
     public String getFirstPartyAuthorityUrl() {
