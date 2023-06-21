@@ -142,7 +142,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
             QueueClient queueClient = resourceManager.getQueue().getQueue();
             // trace postMessageToQueue
-            Map<String, String> attributes = new HashMap<>(Map.of("queue", queueClient.getQueueName()));
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("queue", queueClient.getQueueName());
             MonitoredActivity.invoke(() -> azureStorageClient.postMessageToQueue(queueClient, serializedIngestionBlobInfo),
                     getClientType().concat(".postMessageToQueue"), attributes);
             return reportToTable
@@ -184,7 +185,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ContainerWithSas container = resourceManager.getTempStorage();
             BlobContainerClient blobContainerClient = container.getContainer();
             // trace uploadLocalFileToBlob
-            Map<String, String> attributes = new HashMap<>(Map.of("container", blobContainerClient.getBlobContainerName()));
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("container", blobContainerClient.getBlobContainerName());
             MonitoredActivity.invoke((SupplierOneException<Void, IOException>) () -> {
                 azureStorageClient.uploadLocalFileToBlob(file, blobName,
                         blobContainerClient, shouldCompress);
@@ -235,7 +237,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ContainerWithSas container = resourceManager.getTempStorage();
             BlobContainerClient blobContainerClient = container.getContainer();
             // trace uploadStreamToBlob
-            Map<String, String> attributes = new HashMap<>(Map.of("container", blobContainerClient.getBlobContainerName()));
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put("container", blobContainerClient.getBlobContainerName());
             MonitoredActivity.invoke((SupplierTwoExceptions<Void, IOException, URISyntaxException>) () -> {
                 azureStorageClient.uploadStreamToBlob(streamSourceInfo.getStream(), blobName,
                         blobContainerClient, shouldCompress);
