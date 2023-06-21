@@ -385,7 +385,10 @@ public class IngestionProperties implements TraceableAttributes {
 
     @Override
     public Map<String, String> getTracingAttributes() {
-        return new HashMap<>(Map.of("database", databaseName, "table", tableName));
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("database", databaseName);
+        attributes.put("table", tableName);
+        return attributes;
     }
 
     public enum DataFormat {
