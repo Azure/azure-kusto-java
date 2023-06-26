@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenProviderBase {
+    public static final String APPLICATION_CERTIFICATE_TOKEN_PROVIDER = "ApplicationCertificateTokenProvider";
     private final IClientCertificate clientCertificate;
 
     ApplicationCertificateTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,
@@ -32,5 +33,10 @@ public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenPro
         }
         return clientApplication = builder
                 .build();
+    }
+
+    @Override
+    protected String getAuthMethod() {
+        return APPLICATION_CERTIFICATE_TOKEN_PROVIDER;
     }
 }

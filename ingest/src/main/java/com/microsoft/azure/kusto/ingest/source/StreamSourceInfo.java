@@ -4,8 +4,11 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -73,5 +76,15 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     @Override
     public String toString() {
         return String.format("Stream with SourceId: %s", getSourceId());
+    }
+
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
+        attributes.put("resource", "stream");
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
+        return attributes;
     }
 }

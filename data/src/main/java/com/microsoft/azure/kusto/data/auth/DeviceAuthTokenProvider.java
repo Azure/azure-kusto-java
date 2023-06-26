@@ -12,6 +12,9 @@ import java.net.URISyntaxException;
 import java.util.function.Consumer;
 
 public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
+
+    public static final String DEVICE_AUTH_TOKEN_PROVIDER = "DeviceAuthTokenProvider";
+
     public DeviceAuthTokenProvider(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, authorityId, httpClient);
     }
@@ -24,5 +27,10 @@ public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
 
         DeviceCodeFlowParameters deviceCodeFlowParams = DeviceCodeFlowParameters.builder(scopes, deviceCodeConsumer).build();
         return clientApplication.acquireToken(deviceCodeFlowParams).join();
+    }
+
+    @Override
+    protected String getAuthMethod() {
+        return DEVICE_AUTH_TOKEN_PROVIDER;
     }
 }
