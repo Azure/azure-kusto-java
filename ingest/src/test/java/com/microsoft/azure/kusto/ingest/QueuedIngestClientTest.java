@@ -77,8 +77,9 @@ class QueuedIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")), Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
-                .getTempStorages();
+        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")),
+                Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
+                        .getTempStorages();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");

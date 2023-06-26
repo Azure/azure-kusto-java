@@ -135,8 +135,7 @@ public class ResourceManager implements Closeable {
     public List<ContainerWithSas> getTempStorages() throws IngestionClientException, IngestionServiceException {
         IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.containers);
         return storageAccountSet.getShuffledResources(
-                groupResourceByAccountName(containers.getResourcesList())
-        );
+                groupResourceByAccountName(containers.getResourcesList()));
     }
 
     private <T extends ResourceWithSas<?>> Map<String, List<T>> groupResourceByAccountName(List<T> resourceSet) {
@@ -149,8 +148,7 @@ public class ResourceManager implements Closeable {
     public List<QueueWithSas> getQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
         return storageAccountSet.getShuffledResources(
-                groupResourceByAccountName(queues.getResourcesList())
-        );
+                groupResourceByAccountName(queues.getResourcesList()));
     }
 
     public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
@@ -278,7 +276,8 @@ public class ResourceManager implements Closeable {
     }
 
     private void populateStorageAccounts() {
-        RankedStorageAccountSet tempAccount = new RankedStorageAccountSet(this.storageAccountSet.getShuffleStrategy(), this.storageAccountSet.getWeighingStrategy());
+        RankedStorageAccountSet tempAccount = new RankedStorageAccountSet(this.storageAccountSet.getShuffleStrategy(),
+                this.storageAccountSet.getWeighingStrategy());
 
         if (this.queues != null) {
             for (QueueWithSas queue : this.queues.getResourcesList()) {

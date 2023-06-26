@@ -135,7 +135,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            if (!resourceActionWithRetries(resourceManager.getQueues(), queue -> azureStorageClient.postMessageToQueue(queue.getResource(), serializedIngestionBlobInfo))) {
+            if (!resourceActionWithRetries(resourceManager.getQueues(),
+                    queue -> azureStorageClient.postMessageToQueue(queue.getResource(), serializedIngestionBlobInfo))) {
                 throw new IngestionClientException("Failed to post message to queue - all retries failed");
             }
 
@@ -151,7 +152,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         }
     }
 
-    private <U, T extends ResourceWithSas<U>> boolean resourceActionWithRetries(List<T> resources, ConsumerWithException<T> action) throws IngestionClientException, IngestionServiceException {
+    private <U, T extends ResourceWithSas<U>> boolean resourceActionWithRetries(List<T> resources, ConsumerWithException<T> action)
+            throws IngestionClientException, IngestionServiceException {
 
         if (resources.isEmpty()) {
             throw new IngestionClientException("No resources found");
@@ -256,7 +258,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     ingestionProperties.getTableName(),
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
-
 
             AtomicReference<String> blobPath = new AtomicReference<>();
 

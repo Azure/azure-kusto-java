@@ -105,8 +105,9 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName")), Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName2"))).when(resourceManagerMock)
-                .getTempStorages();
+        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName")),
+                Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName2"))).when(resourceManagerMock)
+                        .getTempStorages();
 
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 

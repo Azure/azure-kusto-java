@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
-
 import java.util.List;
 import java.util.Map;
 

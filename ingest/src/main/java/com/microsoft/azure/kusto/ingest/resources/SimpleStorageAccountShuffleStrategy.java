@@ -14,11 +14,13 @@ public class SimpleStorageAccountShuffleStrategy implements StorageAccountShuffl
         Collections.shuffle(accounts);
 
         // Get valid resources for each account
-        List<List<T>> validResources = accounts.stream().map(x -> resources.get(x.getAccountName())).filter(r -> r != null && !r.isEmpty()).collect(Collectors.toList());
+        List<List<T>> validResources = accounts.stream().map(x -> resources.get(x.getAccountName())).filter(r -> r != null && !r.isEmpty())
+                .collect(Collectors.toList());
 
         int longestResourceList = validResources.stream().mapToInt(List::size).max().orElse(0);
 
         // naive round robin, get the nth element from each list, if it exists
-        return IntStream.range(0, longestResourceList).boxed().flatMap(i -> validResources.stream().map(r -> r.size() > i ? r.get(i) : null).filter(Objects::nonNull)).collect(Collectors.toList());
+        return IntStream.range(0, longestResourceList).boxed()
+                .flatMap(i -> validResources.stream().map(r -> r.size() > i ? r.get(i) : null).filter(Objects::nonNull)).collect(Collectors.toList());
     }
 }
