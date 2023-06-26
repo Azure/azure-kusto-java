@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.util.concurrent.Callable;
 
 public class CallbackTokenProvider extends TokenProviderBase {
+    public static final String CALLBACK_TOKEN_PROVIDER = "CallbackTokenProvider";
     private final CallbackTokenProviderFunction tokenProvider;
 
     CallbackTokenProvider(@NotNull String clusterUrl, @NotNull Callable<String> tokenProvider) throws URISyntaxException {
@@ -27,11 +28,16 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    public String acquireAccessToken() throws DataClientException {
+    protected String acquireAccessTokenImpl() throws DataClientException {
         try {
             return tokenProvider.apply(httpClient);
         } catch (Exception e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
+    }
+
+    @Override
+    protected String getAuthMethod() {
+        return CALLBACK_TOKEN_PROVIDER;
     }
 }

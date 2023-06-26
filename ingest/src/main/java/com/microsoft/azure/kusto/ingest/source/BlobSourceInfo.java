@@ -3,6 +3,11 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
@@ -46,5 +51,16 @@ public class BlobSourceInfo extends AbstractSourceInfo {
 
     public void validate() {
         stringIsNotBlank(blobPath, "blobPath");
+    }
+
+    @Override
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
+        attributes.put("resource", blobPath);
+        UUID sourceId = getSourceId();
+        if (sourceId != null) {
+            attributes.put("sourceId", sourceId.toString());
+        }
+        return attributes;
     }
 }

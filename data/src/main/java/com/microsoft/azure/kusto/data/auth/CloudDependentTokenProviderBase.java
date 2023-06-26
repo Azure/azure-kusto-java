@@ -3,12 +3,16 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.http.client.HttpClient;
 
 import org.jetbrains.annotations.NotNull;
@@ -18,17 +22,23 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
     protected final Set<String> scopes = new HashSet<>();
     private boolean initialized = false;
+    private CloudInfo cloudInfo;
 
     CloudDependentTokenProviderBase(@NotNull String clusterUrl, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
     }
 
+    @Override
     synchronized void initialize() throws DataClientException, DataServiceException {
         if (initialized) {
             return;
         }
-
-        initializeWithCloudInfo(CloudInfo.retrieveCloudInfoForCluster(clusterUrl, httpClient));
+        // trace retrieveCloudInfo
+        cloudInfo = MonitoredActivity.invoke(
+                (SupplierTwoExceptions<CloudInfo, DataClientException, DataServiceException>) () -> CloudInfo.retrieveCloudInfoForCluster(clusterUrl,
+                        httpClient),
+                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes());
+        initializeWithCloudInfo(cloudInfo);
         initialized = true;
     }
 
@@ -41,10 +51,12 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
-        initialize();
-        return acquireAccessTokenImpl();
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = super.getTracingAttributes();
+        if (cloudInfo != null) {
+            attributes.putAll(cloudInfo.getTracingAttributes());
+        }
+        attributes.put("http.url", clusterUrl);
+        return attributes;
     }
-
-    protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
 }
