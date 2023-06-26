@@ -15,12 +15,15 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
+import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccountSet;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.utils.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
@@ -35,59 +38,33 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
-class ResourceManager implements Closeable {
-    public static int UPLOAD_TIMEOUT_MINUTES = 10;
-    private RequestRetryOptions queueRequestOptions = null;
-
-    enum ResourceType {
-        SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
-        FAILED_INGESTIONS_QUEUE("FailedIngestionsQueue"),
-        SUCCESSFUL_INGESTIONS_QUEUE("SuccessfulIngestionsQueue"),
-        TEMP_STORAGE("TempStorage"),
-        INGESTIONS_STATUS_TABLE("IngestionsStatusTable");
-
-        private final String resourceTypeName;
-
-        ResourceType(String resourceTypeName) {
-            this.resourceTypeName = resourceTypeName;
-        }
-
-        String getResourceTypeName() {
-            return resourceTypeName;
-        }
-
-        public static ResourceType findByResourceTypeName(String resourceTypeName) {
-            for (ResourceType resourceType : values()) {
-                if (resourceType.resourceTypeName.equalsIgnoreCase(resourceTypeName)) {
-                    return resourceType;
-                }
-            }
-            throw new IllegalArgumentException(resourceTypeName);
-        }
-    }
-
-    private String identityToken;
-    private final Client client;
-    private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final Timer timer;
-    private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
+public class ResourceManager implements Closeable {
+    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = 1000L * 30;
     private static final long BASE_INTERVAL = 1000L * 2;
+    public static int UPLOAD_TIMEOUT_MINUTES = 10;
+    private final Client client;
+    private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private final Timer timer;
+    private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
-    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
+    private final HttpClient httpClient;
+    private final RetryConfig retryConfig;
+    private RequestRetryOptions queueRequestOptions = null;
+    private RankedStorageAccountSet storageAccountSet = RankedStorageAccountSet.Simple();
+    private String identityToken;
     private IngestionResource<ContainerWithSas> containers;
     private IngestionResource<TableWithSas> statusTable;
     private IngestionResource<QueueWithSas> queues;
     private IngestionResource<QueueWithSas> successfulIngestionsQueues;
     private IngestionResource<QueueWithSas> failedIngestionsQueues;
-    private final HttpClient httpClient;
-    private final RetryConfig retryConfig;
 
     public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
@@ -155,12 +132,25 @@ class ResourceManager implements Closeable {
         timer.schedule(new RefreshIngestionResourcesTask(), 0);
     }
 
-    public ContainerWithSas getTempStorage() throws IngestionClientException, IngestionServiceException {
-        return getResource(() -> this.containers);
+    public List<ContainerWithSas> getTempStorages() throws IngestionClientException, IngestionServiceException {
+        IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.containers);
+        return storageAccountSet.getShuffledResources(
+                groupResourceByAccountName(containers.getResourcesList())
+        );
     }
 
-    public QueueWithSas getQueue() throws IngestionClientException, IngestionServiceException {
-        return getResource(() -> this.queues);
+    private <T extends ResourceWithSas<?>> Map<String, List<T>> groupResourceByAccountName(List<T> resourceSet) {
+        if (resourceSet == null || resourceSet.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
+    }
+
+    public List<QueueWithSas> getQueues() throws IngestionClientException, IngestionServiceException {
+        IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
+        return storageAccountSet.getShuffledResources(
+                groupResourceByAccountName(queues.getResourcesList())
+        );
     }
 
     public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
@@ -195,6 +185,10 @@ class ResourceManager implements Closeable {
     }
 
     private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
+        return getResourceSet(resourceGetter).nextResource();
+    }
+
+    private <T> IngestionResource<T> getResourceSet(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
         IngestionResource<T> resource = null;
         try {
             resource = resourceGetter.call();
@@ -220,7 +214,7 @@ class ResourceManager implements Closeable {
             }
         }
 
-        return resource.nextResource();
+        return resource;
     }
 
     private void addIngestionResource(String resourceTypeName, String storageUrl) throws URISyntaxException {
@@ -269,6 +263,7 @@ class ResourceManager implements Closeable {
                         addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
+                populateStorageAccounts();
                 log.info("Refreshing Ingestion Resources Finised");
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
@@ -280,6 +275,33 @@ class ResourceManager implements Closeable {
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
+    }
+
+    private void populateStorageAccounts() {
+        RankedStorageAccountSet tempAccount = new RankedStorageAccountSet(this.storageAccountSet.getShuffleStrategy(), this.storageAccountSet.getWeighingStrategy());
+
+        if (this.queues != null) {
+            for (QueueWithSas queue : this.queues.getResourcesList()) {
+                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(queue.getQueue().getAccountName());
+                if (previousAccount != null) {
+                    tempAccount.addAccount(previousAccount);
+                } else {
+                    tempAccount.addAccount(queue.getQueue().getAccountName());
+                }
+            }
+        }
+        if (this.containers != null) {
+            for (ContainerWithSas queue : this.containers.getResourcesList()) {
+                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(queue.getContainer().getAccountName());
+                if (previousAccount != null) {
+                    tempAccount.addAccount(previousAccount);
+                } else {
+                    tempAccount.addAccount(queue.getContainer().getAccountName());
+                }
+            }
+        }
+
+        this.storageAccountSet = tempAccount;
     }
 
     private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
@@ -328,14 +350,52 @@ class ResourceManager implements Closeable {
         return null;
     }
 
+    public void reportIngestionResult(String accountName, boolean success) {
+        if (storageAccountSet == null) {
+            log.warn("StorageAccountSet is null");
+        }
+        storageAccountSet.addResultToAccount(accountName, success);
+    }
+
+    enum ResourceType {
+        SECURED_READY_FOR_AGGREGATION_QUEUE("SecuredReadyForAggregationQueue"),
+        FAILED_INGESTIONS_QUEUE("FailedIngestionsQueue"),
+        SUCCESSFUL_INGESTIONS_QUEUE("SuccessfulIngestionsQueue"),
+        TEMP_STORAGE("TempStorage"),
+        INGESTIONS_STATUS_TABLE("IngestionsStatusTable");
+
+        private final String resourceTypeName;
+
+        ResourceType(String resourceTypeName) {
+            this.resourceTypeName = resourceTypeName;
+        }
+
+        public static ResourceType findByResourceTypeName(String resourceTypeName) {
+            for (ResourceType resourceType : values()) {
+                if (resourceType.resourceTypeName.equalsIgnoreCase(resourceTypeName)) {
+                    return resourceType;
+                }
+            }
+            throw new IllegalArgumentException(resourceTypeName);
+        }
+
+        String getResourceTypeName() {
+            return resourceTypeName;
+        }
+    }
+
     private static class IngestionResource<T> {
+        final ResourceType resourceType;
         int roundRobinIdx = 0;
         List<T> resourcesList;
-        final ResourceType resourceType;
 
         IngestionResource(ResourceType resourceType) {
             this.resourceType = resourceType;
             resourcesList = new ArrayList<>();
+        }
+
+        public List<T> getResourcesList() {
+            return resourcesList;
         }
 
         void addResource(T resource) {

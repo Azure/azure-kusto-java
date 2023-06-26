@@ -17,6 +17,7 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
+import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.Collections;
 import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,9 +61,9 @@ class QueuedIngestClientTest {
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
-        when(resourceManagerMock.getQueue())
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
+        when(resourceManagerMock.getQueues())
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue1")))
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue2")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
@@ -75,8 +77,8 @@ class QueuedIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromContainerName("storage"), TestUtils.containerWithSasFromContainerName("storage2")).when(resourceManagerMock)
-                .getTempStorage();
+        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")), Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
+                .getTempStorages();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");

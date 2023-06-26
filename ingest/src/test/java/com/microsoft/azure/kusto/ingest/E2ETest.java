@@ -624,7 +624,7 @@ class E2ETest {
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
         ResourceManager resourceManager = new ResourceManager(dmCslClient, null);
-        ContainerWithSas container = resourceManager.getTempStorage();
+        ContainerWithSas container = resourceManager.getTempStorages().get(0);
         AzureStorageClient azureStorageClient = new AzureStorageClient();
 
         for (TestDataItem item : dataForTests) {

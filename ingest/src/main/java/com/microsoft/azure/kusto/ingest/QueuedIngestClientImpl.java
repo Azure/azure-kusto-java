@@ -24,10 +24,7 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
-import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
+import com.microsoft.azure.kusto.ingest.utils.*;
 import com.univocity.parsers.csv.CsvRoutines;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +41,8 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
@@ -136,8 +135,10 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            azureStorageClient.postMessageToQueue(
-                    resourceManager.getQueue().getQueue(), serializedIngestionBlobInfo);
+            if (!resourceActionWithRetries(resourceManager.getQueues(), queue -> azureStorageClient.postMessageToQueue(queue.getResource(), serializedIngestionBlobInfo))) {
+                throw new IngestionClientException("Failed to post message to queue - all retries failed");
+            }
+
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
                     : new IngestionStatusResult(status);
@@ -148,6 +149,35 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IngestionServiceException e) {
             throw e;
         }
+    }
+
+    private <U, T extends ResourceWithSas<U>> boolean resourceActionWithRetries(List<T> resources, ConsumerWithException<T> action) throws IngestionClientException, IngestionServiceException {
+
+        if (resources.isEmpty()) {
+            throw new IngestionClientException("No resources found");
+        }
+        int retries = calculateRetries(resources.size());
+
+        for (int i = 0; i < retries; i++) {
+            if (i >= resources.size()) {
+                return false;
+            }
+            T resource = resources.get(i);
+            try {
+                action.accept(resource);
+                resourceManager.reportIngestionResult(resource.getAccountName(), true);
+
+                return true;
+            } catch (Exception e) {
+                log.warn("Error during retry {} of {}", i + 1, retries, e);
+                resourceManager.reportIngestionResult(resource.getAccountName(), false);
+            }
+        }
+        return false;
+    }
+
+    private int calculateRetries(int size) {
+        return 5; // TODO: smarter calculation? configurable?
     }
 
     @Override
@@ -174,14 +204,21 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     ingestionProperties.getTableName(),
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
-            ContainerWithSas container = resourceManager.getTempStorage();
-            azureStorageClient.uploadLocalFileToBlob(file, blobName,
-                    container.getContainer(), shouldCompress);
-            String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+
+            AtomicReference<String> blobPath = new AtomicReference<>();
+
+            if (!resourceActionWithRetries(resourceManager.getTempStorages(), container -> {
+                azureStorageClient.uploadLocalFileToBlob(file, blobName,
+                        container.getContainer(), shouldCompress);
+                blobPath.set(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
+            })) {
+                throw new IngestionClientException("Failed to post message to queue - all retries failed");
+            }
+
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
 
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath.get(), rawDataSize, fileSourceInfo.getSourceId());
 
             return ingestFromBlob(blobSourceInfo, ingestionProperties);
         } catch (BlobStorageException e) {
@@ -219,16 +256,23 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     ingestionProperties.getTableName(),
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
-            ContainerWithSas container = resourceManager.getTempStorage();
 
-            azureStorageClient.uploadStreamToBlob(
-                    streamSourceInfo.getStream(),
-                    blobName,
-                    container.getContainer(),
-                    shouldCompress);
-            String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+
+            AtomicReference<String> blobPath = new AtomicReference<>();
+
+            if (!resourceActionWithRetries(resourceManager.getTempStorages(), container -> {
+                azureStorageClient.uploadStreamToBlob(
+                        streamSourceInfo.getStream(),
+                        blobName,
+                        container.getContainer(),
+                        shouldCompress);
+                blobPath.set(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
+            })) {
+                throw new IngestionClientException("Failed to post message to queue - all retries failed");
+            }
+
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                    blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
+                    blobPath.get(), 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize locally - maybe add a countingStream
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -237,7 +281,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             return ingestionResult;
         } catch (BlobStorageException e) {
             throw new IngestionServiceException("Failed to ingest from stream", e);
-        } catch (IOException | URISyntaxException e) {
+        } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
         } catch (IngestionServiceException e) {
             throw e;

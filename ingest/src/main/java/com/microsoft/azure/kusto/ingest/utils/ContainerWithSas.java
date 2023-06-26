@@ -7,7 +7,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import java.net.URISyntaxException;
 
-public class ContainerWithSas {
+public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
     private final String sas;
     private final BlobContainerClient container;
 
@@ -34,5 +34,15 @@ public class ContainerWithSas {
 
     public String getEndpoint() {
         return container.getBlobContainerUrl() + sas;
+    }
+
+    @Override
+    public String getAccountName() {
+        return container.getAccountName();
+    }
+
+    @Override
+    public BlobContainerClient getResource() {
+        return container;
     }
 }

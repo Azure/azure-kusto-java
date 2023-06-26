@@ -38,6 +38,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -84,9 +86,9 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        when(resourceManagerMock.getQueue())
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
+        when(resourceManagerMock.getQueues())
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue1")))
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue2")));
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
@@ -103,8 +105,8 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromContainerName("blobName"), TestUtils.containerWithSasFromContainerName("blobName2")).when(resourceManagerMock)
-                .getTempStorage();
+        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName")), Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName2"))).when(resourceManagerMock)
+                .getTempStorages();
 
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
