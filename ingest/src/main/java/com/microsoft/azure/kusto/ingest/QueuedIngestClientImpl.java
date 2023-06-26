@@ -13,9 +13,8 @@ import com.azure.storage.queue.models.QueueStorageException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.instrumentation.*;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -171,7 +170,21 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             }
             T resource = resources.get(i);
             try {
-                action.accept(resource);
+
+                Map<String, String> attributes = new HashMap<>();
+                attributes.put("resource", resource.getEndpoint());
+                attributes.put("account", resource.getAccountName());
+                attributes.put("type", resource.getClass().getName());
+                attributes.put("retries", String.valueOf(retries));
+                MonitoredActivity.invoke((FunctionOneException<Void, Tracer.Span, Exception>) (Tracer.Span span) -> {
+                    try {
+                        action.accept(resource);
+                        return null;
+                    } catch (Exception e) {
+                        span.addException(e);
+                        throw e;
+                    }
+                }, getClientType().concat(".uploadStreamToBlob"), attributes);
                 resourceManager.reportIngestionResult(resource.getAccountName(), true);
 
                 return true;
