@@ -33,9 +33,13 @@ public class QueueWithSas implements ResourceWithSas<QueueClient> {
         return queue;
     }
 
-    @Override
     public String getEndpoint() {
         return queue.getQueueUrl() + sas;
+    }
+
+    @Override
+    public String getEndpointWithoutSas() {
+        return queue.getQueueUrl();
     }
 
     @Override

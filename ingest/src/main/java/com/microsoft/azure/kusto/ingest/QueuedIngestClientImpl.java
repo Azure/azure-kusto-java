@@ -140,7 +140,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
             if (!resourceActionWithRetries(resourceManager.getQueues(),
-                    queue -> azureStorageClient.postMessageToQueue(queue.getResource(), serializedIngestionBlobInfo))) {
+                    queue -> azureStorageClient.postMessageToQueue(queue.getResource(), serializedIngestionBlobInfo),
+                    "postMessageToQueue"
+                    )) {
                 throw new IngestionClientException("Failed to post message to queue - all retries failed");
             }
 
@@ -156,7 +158,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         }
     }
 
-    private <U, T extends ResourceWithSas<U>> boolean resourceActionWithRetries(List<T> resources, ConsumerWithException<T> action)
+    private <U, T extends ResourceWithSas<U>> boolean resourceActionWithRetries(List<T> resources, ConsumerWithException<T> action , String actionName)
             throws IngestionClientException, IngestionServiceException {
 
         if (resources.isEmpty()) {
@@ -172,10 +174,10 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             try {
 
                 Map<String, String> attributes = new HashMap<>();
-                attributes.put("resource", resource.getEndpoint());
+                attributes.put("resource", resource.getEndpointWithoutSas());
                 attributes.put("account", resource.getAccountName());
                 attributes.put("type", resource.getClass().getName());
-                attributes.put("retries", String.valueOf(retries));
+                attributes.put("retry", String.valueOf(i));
                 MonitoredActivity.invoke((FunctionOneException<Void, Tracer.Span, Exception>) (Tracer.Span span) -> {
                     try {
                         action.accept(resource);
@@ -184,12 +186,12 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         span.addException(e);
                         throw e;
                     }
-                }, getClientType().concat(".uploadStreamToBlob"), attributes);
+                }, getClientType().concat(".").concat(actionName), attributes);
                 resourceManager.reportIngestionResult(resource.getAccountName(), true);
 
                 return true;
             } catch (Exception e) {
-                log.warn("Error during retry {} of {}", i + 1, retries, e);
+                log.warn(String.format("Error during retry %d of %d for %s", i + 1, retries, actionName), e);
                 resourceManager.reportIngestionResult(resource.getAccountName(), false);
             }
         }
@@ -231,7 +233,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                 azureStorageClient.uploadLocalFileToBlob(file, blobName,
                         container.getContainer(), shouldCompress);
                 blobPath.set(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-            })) {
+            }, "uploadLocalFileToBlob")) {
                 throw new IngestionClientException("Failed to post message to queue - all retries failed");
             }
 
@@ -286,7 +288,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         container.getContainer(),
                         shouldCompress);
                 blobPath.set(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-            })) {
+            }, "uploadStreamToBlob")) {
                 throw new IngestionClientException("Failed to post message to queue - all retries failed");
             }
 

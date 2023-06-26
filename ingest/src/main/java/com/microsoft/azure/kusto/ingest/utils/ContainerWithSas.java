@@ -32,8 +32,9 @@ public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
         return container;
     }
 
-    public String getEndpoint() {
-        return container.getBlobContainerUrl() + sas;
+    @Override
+    public String getEndpointWithoutSas() {
+        return container.getBlobContainerUrl();
     }
 
     @Override
