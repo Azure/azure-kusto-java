@@ -9,17 +9,17 @@ import java.util.Map;
 
 public class RankedStorageAccountSet {
     private final StorageAccountShuffleStrategy storageAccountShuffleStrategy;
-    private final StorageAccountWeighingStrategy strategy;
+    private final StorageAccountRankingStrategy strategy;
     private final Map<String, RankedStorageAccount> accounts;
 
-    public RankedStorageAccountSet(StorageAccountShuffleStrategy shuffleStrategy, StorageAccountWeighingStrategy weighingStrategy) {
+    public RankedStorageAccountSet(StorageAccountShuffleStrategy shuffleStrategy, StorageAccountRankingStrategy weighingStrategy) {
         this.storageAccountShuffleStrategy = shuffleStrategy;
         this.strategy = weighingStrategy;
         this.accounts = new HashMap<>();
     }
 
     public static RankedStorageAccountSet Simple() {
-        return new RankedStorageAccountSet(new SimpleStorageAccountShuffleStrategy(), new SimpleStorageAccountWeighingStrategy());
+        return new RankedStorageAccountSet(new SimpleStorageAccountShuffleStrategy(), new SimpleStorageAccountRankingStrategy());
     }
 
     public void addResultToAccount(String accountName, boolean success) {
@@ -55,7 +55,7 @@ public class RankedStorageAccountSet {
         return storageAccountShuffleStrategy;
     }
 
-    public StorageAccountWeighingStrategy getWeighingStrategy() {
+    public StorageAccountRankingStrategy getWeighingStrategy() {
         return strategy;
     }
 

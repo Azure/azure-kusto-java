@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
-public class SimpleStorageAccountWeighingStrategy implements StorageAccountWeighingStrategy {
+public class SimpleStorageAccountRankingStrategy implements StorageAccountRankingStrategy {
 
     @Override
     public void addResult(boolean success) {

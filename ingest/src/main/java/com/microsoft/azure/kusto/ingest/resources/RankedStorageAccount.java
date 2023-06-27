@@ -2,9 +2,9 @@ package com.microsoft.azure.kusto.ingest.resources;
 
 public class RankedStorageAccount {
     private final String accountName;
-    private final StorageAccountWeighingStrategy strategy;
+    private final StorageAccountRankingStrategy strategy;
 
-    public RankedStorageAccount(String accountName, StorageAccountWeighingStrategy strategy) {
+    public RankedStorageAccount(String accountName, StorageAccountRankingStrategy strategy) {
         this.accountName = accountName;
         this.strategy = strategy;
     }
@@ -21,7 +21,7 @@ public class RankedStorageAccount {
         return accountName;
     }
 
-    public StorageAccountWeighingStrategy getStrategy() {
+    public StorageAccountRankingStrategy getStrategy() {
         return strategy;
     }
 }
