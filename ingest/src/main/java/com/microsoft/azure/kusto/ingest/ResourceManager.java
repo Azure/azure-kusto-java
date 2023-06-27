@@ -17,8 +17,7 @@ import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
-import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccountSet;
+import com.microsoft.azure.kusto.ingest.resources.*;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.utils.ResourceWithSas;
@@ -60,7 +59,7 @@ public class ResourceManager implements Closeable {
     private final HttpClient httpClient;
     private final RetryConfig retryConfig;
     private RequestRetryOptions queueRequestOptions = null;
-    private RankedStorageAccountSet storageAccountSet = RankedStorageAccountSet.Simple();
+    private RankedStorageAccountSet storageAccountSet;
     private String identityToken;
     private IngestionResource<ContainerWithSas> containers;
     private IngestionResource<TableWithSas> statusTable;
@@ -69,6 +68,10 @@ public class ResourceManager implements Closeable {
     private IngestionResource<QueueWithSas> failedIngestionsQueues;
 
     public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
+        this(client, defaultRefreshTime, refreshTimeOnFailure, httpClient, new SimpleStorageAccountShuffleStrategy(), new SimpleStorageAccountRankingStrategy());
+    }
+
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient, StorageAccountShuffleStrategy shuffleStrategy, StorageAccountRankingStrategy rankingStrategy) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
@@ -78,6 +81,7 @@ public class ResourceManager implements Closeable {
                 ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
                 : new HttpClientWrapper(httpClient);
         retryConfig = buildRetryConfig();
+        storageAccountSet = new RankedStorageAccountSet(shuffleStrategy, rankingStrategy);
         init();
     }
 

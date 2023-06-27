@@ -218,11 +218,13 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
             AtomicReference<String> blobPath = new AtomicReference<>();
 
-            if (!resourceActionWithRetries(resourceManager.getTempStorages(), container -> {
-                azureStorageClient.uploadLocalFileToBlob(file, blobName,
-                        container.getContainer(), shouldCompress);
+            ConsumerWithException<ContainerWithSas> uploadFileFunction = container -> {
+                azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getContainer(), shouldCompress);
                 blobPath.set(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-            }, "uploadLocalFileToBlob")) {
+            };
+
+            if (!resourceActionWithRetries(resourceManager.getTempStorages(),
+                    uploadFileFunction, "uploadLocalFileToBlob")) {
                 throw new IngestionClientException("Failed to post message to queue - all retries failed");
             }
 
