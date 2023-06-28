@@ -29,9 +29,7 @@ import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.sql.Blob;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
@@ -172,19 +170,19 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
      * @deprecated - This method is slated to be private. Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
-    public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
+    public ManagedStreamingIngestClient(ResourceManagerImpl resourceManager,
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient,
-            ExponentialRetry retryTemplate) {
+    ManagedStreamingIngestClient(ResourceManagerImpl resourceManager,
+                                 AzureStorageClient storageClient,
+                                 StreamingClient streamingClient,
+                                 ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);

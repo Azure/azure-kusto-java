@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 
 class QueuedIngestClientTest {
 
-    private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    private static final ResourceManagerImpl resourceManagerMock = mock(ResourceManagerImpl.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static QueuedIngestClientImpl queuedIngestClient;
     private static IngestionProperties ingestionProperties;

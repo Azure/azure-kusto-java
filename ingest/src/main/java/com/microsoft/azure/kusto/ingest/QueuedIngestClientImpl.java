@@ -36,7 +36,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
-    private final ResourceManager resourceManager;
+    private final ResourceManagerImpl resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
 
@@ -49,12 +49,12 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
         csbWithEndpoint.setClusterUrl(getIngestionEndpoint(csbWithEndpoint.getClusterUrl()));
         Client client = ClientFactory.createClient(csbWithEndpoint, httpClient);
-        this.resourceManager = new ResourceManager(client, httpClient);
+        this.resourceManager = new ResourceManagerImpl(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
-    QueuedIngestClientImpl(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
+    QueuedIngestClientImpl(ResourceManagerImpl resourceManager, AzureStorageClient azureStorageClient) {
         log.info("Creating a new IngestClient");
         this.resourceManager = resourceManager;
         this.azureStorageClient = azureStorageClient;
@@ -62,6 +62,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
         this.resourceManager.setQueueRequestOptions(queueRequestOptions);
+    }
+
+    @Override
+    public ResourceManager getResourceManager() {
+        return resourceManager;
     }
 
     @Override

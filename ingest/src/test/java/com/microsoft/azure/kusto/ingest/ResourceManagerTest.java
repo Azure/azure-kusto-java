@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ResourceManagerTest {
-    private static ResourceManager resourceManager;
+    private static ResourceManagerImpl resourceManager;
     private static final Client clientMock = mock(Client.class);
     private static final String QUEUE_1 = "queue1";
     private static final String QUEUE_2 = "queue2";
@@ -57,7 +57,7 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
-        resourceManager = new ResourceManager(clientMock, null);
+        resourceManager = new ResourceManagerImpl(clientMock, null);
     }
 
     @AfterAll
@@ -72,21 +72,21 @@ class ResourceManagerTest {
 
     /*
      * TODO - walk through these
-     * 
+     *
      * @Test void GetIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException { List<String>
      * availableStorages = new ArrayList<>(Arrays.asList( STORAGE_1_RES.getEndpoint(), STORAGE_2_RES.getEndpoint()));
-     * 
+     *
      * List<ContainerWithSas> storage = resourceManager.getTempStorages(); int lastIndex = availableStorages.indexOf(storage.getEndpoint());
-     * 
+     *
      * for (int i = 0; i < 10; i++) { storage = resourceManager.getTempStorage(); int currIdx = availableStorages.indexOf(storage.getEndpoint());
      * assertEquals((lastIndex + 1) % availableStorages.size(), currIdx); lastIndex = currIdx; } }
-     * 
+     *
      * @Test void GetIngestionResource_AggregationQueue_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException { List<String>
      * availableQueues = new ArrayList<>(Arrays.asList( TestUtils.queueWithSasFromQueueName(QUEUE_1).getEndpoint(),
      * TestUtils.queueWithSasFromQueueName(QUEUE_2).getEndpoint()));
-     * 
+     *
      * QueueWithSas queue = resourceManager .getQueue(); int lastIndex = availableQueues.indexOf(queue.getEndpoint());
-     * 
+     *
      * for (int i = 0; i < 10; i++) { queue = resourceManager .getQueue(); int currIdx = availableQueues.indexOf(queue.getEndpoint()); assertEquals((lastIndex +
      * 1) % availableQueues.size(), currIdx); lastIndex = currIdx; } }
      */
