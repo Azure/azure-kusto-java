@@ -1,25 +1,18 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.microsoft.azure.kusto.ingest.utils.StreamUtils.roundRobinNestedList;
 
 public class RankedStorageAccountSet {
-    private final StorageAccountShuffleStrategy storageAccountShuffleStrategy;
-    private final StorageAccountRankingStrategy strategy;
     private final Map<String, RankedStorageAccount> accounts;
 
-    public RankedStorageAccountSet(StorageAccountShuffleStrategy shuffleStrategy, StorageAccountRankingStrategy weighingStrategy) {
-        this.storageAccountShuffleStrategy = shuffleStrategy;
-        this.strategy = weighingStrategy;
+    public RankedStorageAccountSet() {
         this.accounts = new HashMap<>();
-    }
-
-    public static RankedStorageAccountSet Simple() {
-        return new RankedStorageAccountSet(new SimpleStorageAccountShuffleStrategy(), new SimpleStorageAccountRankingStrategy());
     }
 
     public void addResultToAccount(String accountName, boolean success) {
@@ -31,7 +24,7 @@ public class RankedStorageAccountSet {
 
     public void addAccount(String accountName) {
         if (!accounts.containsKey(accountName)) {
-            accounts.put(accountName, new RankedStorageAccount(accountName, strategy));
+            accounts.put(accountName, new RankedStorageAccount(accountName));
         }
     }
 
@@ -46,20 +39,22 @@ public class RankedStorageAccountSet {
         return accounts.get(accountName);
     }
 
-    public <T> List<T> getShuffledResources(Map<String, List<T>> resourceSet) {
+    public <T> List<T> getShuffledResources(Map<String, List<T>> resources) {
+        List<RankedStorageAccount> accounts = getShuffledAccounts();
+
+        // Get valid resources for each account
+        List<List<T>> validResources = accounts.stream().map(x -> resources.get(x.getAccountName())).filter(r -> r != null && !r.isEmpty())
+                .collect(Collectors.toList());
+
+        return roundRobinNestedList(validResources);
+    }
+
+    @NotNull
+    private List<RankedStorageAccount> getShuffledAccounts() {
         List<RankedStorageAccount> accounts = new ArrayList<>(this.accounts.values());
-        return storageAccountShuffleStrategy.shuffleResources(accounts, resourceSet);
-    }
-
-    public StorageAccountShuffleStrategy getShuffleStrategy() {
-        return storageAccountShuffleStrategy;
-    }
-
-    public StorageAccountRankingStrategy getWeighingStrategy() {
-        return strategy;
-    }
-
-    public Map<String, RankedStorageAccount> getAccounts() {
+        // shuffle accounts
+        Collections.shuffle(accounts);
         return accounts;
     }
+
 }

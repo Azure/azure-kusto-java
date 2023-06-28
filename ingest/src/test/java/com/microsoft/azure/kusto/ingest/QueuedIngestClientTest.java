@@ -17,7 +17,6 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +78,7 @@ class QueuedIngestClientTest {
     void setUpEach() throws IngestionServiceException, IngestionClientException {
         doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")),
                 Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
-                        .getTempStorages();
+                        .getContainers();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");

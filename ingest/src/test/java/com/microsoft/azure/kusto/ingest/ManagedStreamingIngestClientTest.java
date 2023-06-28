@@ -39,7 +39,6 @@ import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.Collections;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -107,7 +106,7 @@ class ManagedStreamingIngestClientTest {
     void setUpEach() throws IngestionServiceException, IngestionClientException {
         doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName")),
                 Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName2"))).when(resourceManagerMock)
-                        .getTempStorages();
+                        .getContainers();
 
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
