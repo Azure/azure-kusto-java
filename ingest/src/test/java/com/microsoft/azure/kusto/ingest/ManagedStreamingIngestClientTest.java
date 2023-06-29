@@ -89,9 +89,9 @@ class ManagedStreamingIngestClientTest {
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
         when(resourceManagerMock.uploadLocalFileWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
         when(resourceManagerMock.uploadStreamToBlobWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));

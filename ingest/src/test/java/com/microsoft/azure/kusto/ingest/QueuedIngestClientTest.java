@@ -61,9 +61,9 @@ class QueuedIngestClientTest {
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.uploadLocalFileWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
         when(resourceManagerMock.uploadStreamToBlobWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
