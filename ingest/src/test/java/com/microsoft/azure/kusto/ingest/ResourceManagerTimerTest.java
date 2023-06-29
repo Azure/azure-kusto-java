@@ -40,7 +40,7 @@ public class ResourceManagerTimerTest {
             return generateIngestionResourcesResult();
         });
 
-        ResourceManagerImpl resourceManager = new ResourceManagerImpl(mockedClient, 1000L, 500L, null);
+        ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
         int runtime = 0;
         while (!booleanHolder.gotHere && runtime < 5000) {
             Thread.sleep(100);

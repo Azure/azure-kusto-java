@@ -67,7 +67,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ManagedStreamingIngestClientTest {
-    private static final ResourceManagerImpl resourceManagerMock = mock(ResourceManagerImpl.class);
+    private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static IngestionProperties ingestionProperties;

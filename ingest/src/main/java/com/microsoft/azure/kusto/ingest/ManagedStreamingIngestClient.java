@@ -170,7 +170,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
      * @deprecated - This method is slated to be private. Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
-    public ManagedStreamingIngestClient(ResourceManagerImpl resourceManager,
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
                                         AzureStorageClient storageClient,
                                         StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
@@ -179,7 +179,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ResourceManagerImpl resourceManager,
+    ManagedStreamingIngestClient(ResourceManager resourceManager,
                                  AzureStorageClient storageClient,
                                  StreamingClient streamingClient,
                                  ExponentialRetry retryTemplate) {

@@ -39,7 +39,7 @@ class ResourceManagerTest {
     private static final TableWithSas STATUS_TABLE_RES = TestUtils.tableWithSasFromTableName(STATUS_TABLE);
     private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
-    private static ResourceManagerImpl resourceManager;
+    private static ResourceManager resourceManager;
 
     private static int ACCOUNTS_COUNT = 10;
 
@@ -59,7 +59,7 @@ class ResourceManagerTest {
             }
         }
 
-        resourceManager = new ResourceManagerImpl(clientMock, null);
+        resourceManager = new ResourceManager(clientMock, null);
     }
 
     @AfterAll
