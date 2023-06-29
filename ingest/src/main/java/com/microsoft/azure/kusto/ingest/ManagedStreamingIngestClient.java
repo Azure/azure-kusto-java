@@ -171,8 +171,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-                                        AzureStorageClient storageClient,
-                                        StreamingClient streamingClient) {
+            AzureStorageClient storageClient,
+            StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -180,9 +180,9 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
     }
 
     ManagedStreamingIngestClient(ResourceManager resourceManager,
-                                 AzureStorageClient storageClient,
-                                 StreamingClient streamingClient,
-                                 ExponentialRetry retryTemplate) {
+            AzureStorageClient storageClient,
+            StreamingClient streamingClient,
+            ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);

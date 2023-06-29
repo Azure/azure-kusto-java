@@ -384,7 +384,8 @@ public class ResourceManager implements Closeable, ResourceHelper {
         return size < 3 ? size : size / 2 + 1; // Calculation is based on dotnet
     }
 
-    private <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> TOut resourceActionWithRetries(List<TWrapper> resources, FunctionOneException<TOut, TWrapper, Exception> action, String actionName)
+    private <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> TOut resourceActionWithRetries(List<TWrapper> resources,
+            FunctionOneException<TOut, TWrapper, Exception> action, String actionName)
             throws IngestionClientException {
 
         if (resources.isEmpty()) {
@@ -429,14 +430,16 @@ public class ResourceManager implements Closeable, ResourceHelper {
         }, "ResourceManager.postToQueueWithRetries");
     }
 
-    String uploadStreamToBlobWithRetries(AzureStorageClient azureStorageClient, InputStream stream, String blobName, boolean shouldCompress) throws IngestionClientException, IngestionServiceException {
+    String uploadStreamToBlobWithRetries(AzureStorageClient azureStorageClient, InputStream stream, String blobName, boolean shouldCompress)
+            throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(getContainers(), container -> {
             azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
             return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
         }, "ResourceManager.uploadLocalFileWithRetries");
     }
 
-    String uploadLocalFileWithRetries(AzureStorageClient azureStorageClient, File file, String blobName, boolean shouldCompress) throws IngestionClientException, IngestionServiceException {
+    String uploadLocalFileWithRetries(AzureStorageClient azureStorageClient, File file, String blobName, boolean shouldCompress)
+            throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(getContainers(), container -> {
             azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getContainer(), shouldCompress);
             return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());

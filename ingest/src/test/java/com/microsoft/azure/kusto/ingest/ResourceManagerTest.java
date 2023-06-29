@@ -72,7 +72,8 @@ class ResourceManagerTest {
         List<List<String>> valuesList = new ArrayList<>();
         for (int i = 0; i < STORAGES.size(); i++) {
             valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGES.get(i).getContainer().getBlobContainerUrl() + STORAGES.get(i).getSas()))));
-            valuesList.add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUES.get(i).getQueue().getQueueUrl() + QUEUES.get(i).getSas()))));
+            valuesList
+                    .add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUES.get(i).getQueue().getQueueUrl() + QUEUES.get(i).getSas()))));
         }
         valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE_RES.getQueue().getQueueUrl() + FAILED_QUEUE_RES.getSas()))));
         valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE_RES.getQueue().getQueueUrl() + SUCCESS_QUEUE_RES.getSas()))));

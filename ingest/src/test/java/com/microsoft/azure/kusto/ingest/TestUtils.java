@@ -14,6 +14,7 @@ public class TestUtils {
             return null;
         }
     }
+
     static QueueWithSas queueWithSasFromAccountNameAndQueueName(String accountName, String queueName) {
         try {
             return new QueueWithSas(String.format("https://%s.blob.core.windows.net/%s?sas", accountName, queueName), null, null);
@@ -37,7 +38,6 @@ public class TestUtils {
             return null;
         }
     }
-
 
     static TableWithSas tableWithSasFromTableName(String tableName) {
         try {
