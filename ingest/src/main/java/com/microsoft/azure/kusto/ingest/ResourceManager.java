@@ -405,7 +405,7 @@ public class ResourceManager implements Closeable, ResourceHelper {
                 attributes.put("account", resource.getAccountName());
                 attributes.put("type", resource.getClass().getName());
                 attributes.put("retry", String.valueOf(i));
-                MonitoredActivity.invoke((FunctionOneException<TOut, Tracer.Span, Exception>) (Tracer.Span span) -> {
+                return MonitoredActivity.invoke((FunctionOneException<TOut, Tracer.Span, Exception>) (Tracer.Span span) -> {
                     try {
                         TOut result = action.apply(resource);
                         reportIngestionResult(resource, true);
