@@ -14,6 +14,13 @@ public class TestUtils {
             return null;
         }
     }
+    static QueueWithSas queueWithSasFromAccountNameAndQueueName(String accountName, String queueName) {
+        try {
+            return new QueueWithSas(String.format("https://%s.blob.core.windows.net/%s?sas", accountName, queueName), null, null);
+        } catch (URISyntaxException ex) {
+            return null;
+        }
+    }
 
     static ContainerWithSas containerWithSasFromContainerName(String containerName) {
         try {
@@ -22,6 +29,15 @@ public class TestUtils {
             return null;
         }
     }
+
+    static ContainerWithSas containerWithSasFromAccountNameAndContainerName(String accountName, String containerName) {
+        try {
+            return new ContainerWithSas(String.format("https://%s.blob.core.windows.net/%s?sas", accountName, containerName), null);
+        } catch (URISyntaxException ex) {
+            return null;
+        }
+    }
+
 
     static TableWithSas tableWithSasFromTableName(String tableName) {
         try {
