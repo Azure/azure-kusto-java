@@ -39,6 +39,10 @@ public class TestUtils {
         }
     }
 
+    static String blobWithSasFromAccountNameAndContainerName(String accountName, String containerName, String blobName) {
+        return String.format("https://%s.blob.core.windows.net/%s/%s?sas", accountName, containerName, blobName);
+    }
+
     static TableWithSas tableWithSasFromTableName(String tableName) {
         try {
             return new TableWithSas(String.format("https://storage.table.core.windows.net/%s?sas", tableName), null);

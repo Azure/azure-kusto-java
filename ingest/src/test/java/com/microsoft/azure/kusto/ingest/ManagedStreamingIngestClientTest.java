@@ -85,12 +85,13 @@ class ManagedStreamingIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        when(resourceManagerMock.getQueues())
-                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue1")))
-                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromQueueName("queue2")));
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
+        when(resourceManagerMock.uploadLocalFileWithRetries(any(), any(), any(), anyBoolean()))
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
+        when(resourceManagerMock.uploadStreamToBlobWithRetries(any(), any(), any(), anyBoolean()))
+                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage",invocation.getArgument(2) ));
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
@@ -103,11 +104,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @BeforeEach
-    void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName")),
-                Collections.singletonList(TestUtils.containerWithSasFromContainerName("blobName2"))).when(resourceManagerMock)
-                        .getContainers();
-
+    void setUpEach() {
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
@@ -533,7 +530,7 @@ class ManagedStreamingIngestClientTest {
         verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
 
-        verify(azureStorageClientMock, atLeast(1)).uploadStreamToBlob(capture.capture(), anyString(), any(), anyBoolean());
+        verify(resourceManagerMock, atLeast(1)).uploadStreamToBlobWithRetries(any(), capture.capture(), anyString(), anyBoolean());
 
         InputStream value = capture.getValue();
         if (leaveOpen) {

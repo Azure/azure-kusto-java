@@ -150,7 +150,8 @@ class E2ETest {
     }
 
     private static boolean IsManualExecution() {
-        return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
+        return false;
+        // return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
 
     private static void createTableAndMapping() {
