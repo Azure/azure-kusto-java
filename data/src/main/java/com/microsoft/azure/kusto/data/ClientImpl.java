@@ -52,12 +52,12 @@ class ClientImpl implements Client, StreamingClient {
     public static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
-    private ClientDetails clientDetails;
+    private final ClientDetails clientDetails;
     private final CloseableHttpClient httpClient;
     private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
 
-    private ObjectMapper objectMapper = Utils.getObjectMapper();
+    private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());
@@ -110,12 +110,45 @@ class ClientImpl implements Client, StreamingClient {
 
     @Override
     public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        CommandType commandType = determineCommandType(command);
+        return execute(database, command, properties, determineCommandType(command));
+    }
+
+    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType) throws DataServiceException, DataClientException {
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
                         commandType),
                 commandType.getActivityTypeSuffix().concat(".execute"),
                 updateAndGetExecuteTracingAttributes(database, properties));
+    }
+
+    @Override
+    public KustoOperationResult executeQuery(String command) throws DataServiceException, DataClientException {
+        return executeQuery(DEFAULT_DATABASE_NAME, command);
+    }
+
+    @Override
+    public KustoOperationResult executeQuery(String database, String command) throws DataServiceException, DataClientException {
+        return executeQuery(database, command, null);
+    }
+
+    @Override
+    public KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+        return execute(database, command, properties, CommandType.QUERY);
+    }
+
+    @Override
+    public KustoOperationResult executeMgmt(String command) throws DataServiceException, DataClientException {
+        return executeMgmt(DEFAULT_DATABASE_NAME, command);
+    }
+
+    @Override
+    public KustoOperationResult executeMgmt(String database, String command) throws DataServiceException, DataClientException {
+        return executeMgmt(database, command, null);
+    }
+
+    @Override
+    public KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+        return execute(database, command, properties, CommandType.ADMIN_COMMAND);
     }
 
     private Map<String, String> updateAndGetExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
