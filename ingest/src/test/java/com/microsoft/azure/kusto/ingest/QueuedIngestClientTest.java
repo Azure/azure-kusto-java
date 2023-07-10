@@ -143,10 +143,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(any(), captor.capture());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
 
         ingestionProperties.setIgnoreFirstRecord(false);
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(any(), captor.capture());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
@@ -159,10 +161,12 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(any(), captor.capture());
         assertFalse(captor.getValue().toLowerCase().contains("validationpolicy"));
 
         ingestionProperties.setValidationPolicy(new ValidationPolicy());
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(any(), captor.capture());
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -171,6 +175,7 @@ class QueuedIngestClientTest {
         ingestionProperties.setValidationPolicy(
                 new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeast(1)).postMessageToQueue(any(), captor.capture());
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -205,6 +210,8 @@ class QueuedIngestClientTest {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        verify(azureStorageClientMock, atLeastOnce())
+                .uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean());
     }
 
     @Test
