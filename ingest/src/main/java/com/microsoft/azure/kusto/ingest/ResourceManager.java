@@ -140,8 +140,6 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), containers.getResourcesList());
     }
 
-
-
     public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), queues.getResourcesList());

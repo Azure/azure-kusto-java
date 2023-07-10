@@ -29,7 +29,7 @@ public class ResourceAlgorithms {
     }
 
     private static <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> TOut resourceActionWithRetries(ResourceManager resourceManager,
-            List<TWrapper> resources, FunctionOneException<TOut, TWrapper, Exception> action, String actionName, Map<String ,String> additionalAttributes)
+            List<TWrapper> resources, FunctionOneException<TOut, TWrapper, Exception> action, String actionName, Map<String, String> additionalAttributes)
             throws IngestionClientException {
 
         if (resources.isEmpty()) {
@@ -73,7 +73,6 @@ public class ResourceAlgorithms {
         resourceActionWithRetries(resourceManager, resourceManager.getShuffledQueues(), queue -> {
             ObjectMapper objectMapper = Utils.getObjectMapper();
 
-
             azureStorageClient.postMessageToQueue(queue.getQueue(), objectMapper.writeValueAsString(blob));
             return null;
         }, "ResourceAlgorithms.postToQueueWithRetries",
@@ -104,16 +103,15 @@ public class ResourceAlgorithms {
 
         // Go from 0 to the longest list length
         return IntStream.range(0, longestResourceList).boxed()
-                        // This flat maps combines all the inner lists
-                        .flatMap(i ->
-                        // For each list, get the i'th element if it exists, or null otherwise (if the list is shorter)
-                        validResources.stream().map(r -> r.size() > i ? r.get(i) : null)
+                // This flat maps combines all the inner lists
+                .flatMap(i ->
+                // For each list, get the i'th element if it exists, or null otherwise (if the list is shorter)
+                validResources.stream().map(r -> r.size() > i ? r.get(i) : null)
                         // Remove nulls
                         .filter(Objects::nonNull))
-                        // So we combine the list of the first element of each list, then the second element, etc.
-                        .collect(Collectors.toList());
+                // So we combine the list of the first element of each list, then the second element, etc.
+                .collect(Collectors.toList());
     }
-
 
     public static <T extends ResourceWithSas<?>> List<T> getShuffledResources(List<RankedStorageAccount> shuffledAccounts, List<T> resourceOfType) {
         Map<String, List<T>> accountToResourcesMap = groupResourceByAccountName(resourceOfType);
