@@ -4,6 +4,7 @@ import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
@@ -41,7 +42,7 @@ import java.util.UUID;
  * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  */
-public class ManagedStreamingIngestClient extends IngestClientBase implements IngestClient {
+public class ManagedStreamingIngestClient extends IngestClientBase implements IngestClient, QueuedIngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
@@ -372,5 +373,15 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
     public void close() throws IOException {
         queuedIngestClient.close();
         streamingIngestClient.close();
+    }
+
+    @Override
+    public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
+        queuedIngestClient.setQueueRequestOptions(queueRequestOptions);
+    }
+
+    @Override
+    public ResourceHelper getResourceManager() {
+        return queuedIngestClient.getResourceManager();
     }
 }

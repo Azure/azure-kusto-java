@@ -62,6 +62,8 @@ class QueuedIngestClientTest {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.getShuffledContainers())
                 .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName("someaccount", "someStorage")));
+        when(resourceManagerMock.getShuffledQueues())
+                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName("someaccount", "someQueue")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
