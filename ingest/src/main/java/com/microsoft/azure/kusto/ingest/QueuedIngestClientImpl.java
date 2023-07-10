@@ -8,7 +8,6 @@ import com.azure.data.tables.models.TableServiceException;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.queue.models.QueueStorageException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -69,7 +68,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
-    public ResourceHelper getResourceManager() {
+    public IngestionResourceManager getResourceManager() {
         return resourceManager;
     }
 
@@ -130,10 +129,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                 tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
             }
 
-            ObjectMapper objectMapper = Utils.getObjectMapper();
-            String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
-
-            ResourceAlgorithms.postToQueueWithRetries(resourceManager, azureStorageClient, serializedIngestionBlobInfo);
+            ResourceAlgorithms.postToQueueWithRetries(resourceManager, azureStorageClient, ingestionBlobInfo);
 
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)

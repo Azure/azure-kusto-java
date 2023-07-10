@@ -7,7 +7,7 @@ import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 
 import java.util.List;
 
-public interface ResourceHelper {
+public interface IngestionResourceManager {
 
     /**
      * Returns a list of containers with SAS tokens, ranked by their ingestion success rate, and then shuffled.

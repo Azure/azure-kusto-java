@@ -14,5 +14,5 @@ public interface QueuedIngestClient extends IngestClient {
      */
     void setQueueRequestOptions(RequestRetryOptions queueRequestOptions);
 
-    ResourceHelper getResourceManager();
+    IngestionResourceManager getResourceManager();
 }

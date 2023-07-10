@@ -40,9 +40,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
-public class ResourceManager implements Closeable, ResourceHelper {
+public class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = 1000L * 60 * 15; // 15 minutes
@@ -138,21 +137,14 @@ public class ResourceManager implements Closeable, ResourceHelper {
     @Override
     public List<ContainerWithSas> getShuffledContainers() throws IngestionClientException, IngestionServiceException {
         IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.containers);
-        return storageAccountSet.getShuffledResources(
-                groupResourceByAccountName(containers.getResourcesList()));
+        return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), containers.getResourcesList());
     }
 
-    private <T extends ResourceWithSas<?>> Map<String, List<T>> groupResourceByAccountName(List<T> resourceSet) {
-        if (resourceSet == null || resourceSet.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
-    }
+
 
     public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
-        return storageAccountSet.getShuffledResources(
-                groupResourceByAccountName(queues.getResourcesList()));
+        return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), queues.getResourcesList());
     }
 
     public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {

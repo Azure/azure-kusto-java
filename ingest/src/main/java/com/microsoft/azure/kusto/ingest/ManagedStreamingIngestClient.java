@@ -381,7 +381,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
     }
 
     @Override
-    public ResourceHelper getResourceManager() {
+    public IngestionResourceManager getResourceManager() {
         return queuedIngestClient.getResourceManager();
     }
 }
