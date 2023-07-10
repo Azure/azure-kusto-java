@@ -15,7 +15,9 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
 import com.microsoft.azure.kusto.ingest.source.*;
-import com.microsoft.azure.kusto.ingest.utils.*;
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
@@ -29,13 +31,15 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
+    public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
-    public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
@@ -129,7 +133,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             ObjectMapper objectMapper = Utils.getObjectMapper();
             String serializedIngestionBlobInfo = objectMapper.writeValueAsString(ingestionBlobInfo);
 
-            resourceManager.postToQueueWithRetries(azureStorageClient, serializedIngestionBlobInfo);
+            ResourceAlgorithms.postToQueueWithRetries(resourceManager, azureStorageClient, serializedIngestionBlobInfo);
 
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
@@ -168,7 +172,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
-            String blobPath = resourceManager.uploadLocalFileWithRetries(azureStorageClient, file, blobName, shouldCompress);
+            String blobPath = ResourceAlgorithms.uploadLocalFileWithRetries(resourceManager, azureStorageClient, file, blobName, shouldCompress);
 
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
@@ -212,14 +216,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
-            String blobPath = resourceManager.uploadStreamToBlobWithRetries(
+            String blobPath = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
                     azureStorageClient,
                     streamSourceInfo.getStream(),
                     blobName,
                     shouldCompress);
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize
-                                                                                                             // locally - maybe add a countingStream
+            // locally - maybe add a countingStream
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {

@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest.utils;
+package com.microsoft.azure.kusto.ingest.resources;
 
 public interface ResourceWithSas<T> {
     String getEndpointWithoutSas();

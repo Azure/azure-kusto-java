@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest.utils;
+package com.microsoft.azure.kusto.ingest.resources;
 
 import com.azure.core.http.HttpClient;
 import com.azure.storage.common.policy.RequestRetryOptions;

@@ -31,7 +31,7 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -625,7 +625,7 @@ class E2ETest {
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
         ResourceHelper resourceManager = new ResourceManager(dmCslClient, null);
-        ContainerWithSas container = resourceManager.getContainers().get(0);
+        ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
         AzureStorageClient azureStorageClient = new AzureStorageClient();
 
         for (TestDataItem item : dataForTests) {

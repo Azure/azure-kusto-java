@@ -12,8 +12,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
-import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -107,7 +107,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
-        List<ContainerWithSas> storages = resourceManager.getContainers();
+        List<ContainerWithSas> storages = resourceManager.getShuffledContainers();
 
         Pattern pattern = Pattern.compile("container_(\\d+)_(\\d+)");
 
@@ -135,7 +135,7 @@ class ResourceManagerTest {
 
     @Test
     void GetIngestionResource_AggregationQueue_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
-        List<QueueWithSas> queues = resourceManager.getQueues();
+        List<QueueWithSas> queues = resourceManager.getShuffledQueues();
 
         Pattern pattern = Pattern.compile("queue_(\\d+)_(\\d+)");
 

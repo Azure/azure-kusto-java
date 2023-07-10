@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
-import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 
 import java.net.URISyntaxException;

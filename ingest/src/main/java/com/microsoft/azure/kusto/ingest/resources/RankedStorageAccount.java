@@ -11,7 +11,7 @@ public class RankedStorageAccount {
 
     }
 
-    public double getSuccessRate() {
+    public double getRank() {
         return 1;
     }
 

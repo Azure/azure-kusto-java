@@ -60,10 +60,8 @@ class QueuedIngestClientTest {
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
-        when(resourceManagerMock.uploadLocalFileWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
-        when(resourceManagerMock.uploadStreamToBlobWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
+        when(resourceManagerMock.getShuffledContainers())
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName("someaccount", "someStorage")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
@@ -79,7 +77,7 @@ class QueuedIngestClientTest {
     void setUpEach() throws IngestionServiceException, IngestionClientException {
         doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")),
                 Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
-                        .getContainers();
+                        .getShuffledContainers();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");
@@ -143,12 +141,10 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(resourceManagerMock, atLeast(1)).postToQueueWithRetries(any(), captor.capture());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"true\""));
 
         ingestionProperties.setIgnoreFirstRecord(false);
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(resourceManagerMock, atLeast(1)).postToQueueWithRetries(any(), captor.capture());
         assertTrue((captor.getValue()).contains("\"ignoreFirstRecord\":\"false\""));
     }
 
@@ -161,12 +157,10 @@ class QueuedIngestClientTest {
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
 
-        verify(resourceManagerMock, atLeast(1)).postToQueueWithRetries(any(), captor.capture());
         assertFalse(captor.getValue().toLowerCase().contains("validationpolicy"));
 
         ingestionProperties.setValidationPolicy(new ValidationPolicy());
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(resourceManagerMock, atLeast(1)).postToQueueWithRetries(any(), captor.capture());
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -175,7 +169,6 @@ class QueuedIngestClientTest {
         ingestionProperties.setValidationPolicy(
                 new ValidationPolicy(ValidationPolicy.ValidationOptions.VALIDATE_CSV_INPUT_COLUMN_LEVEL_ONLY, ValidationPolicy.ValidationImplications.FAIL));
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        verify(resourceManagerMock, atLeast(1)).postToQueueWithRetries(any(), captor.capture());
         assertTrue(
                 captor.getValue()
                         .contains(
@@ -210,8 +203,6 @@ class QueuedIngestClientTest {
         InputStream stream = new FileInputStream(testFilePath);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        verify(resourceManagerMock, atLeastOnce())
-                .uploadStreamToBlobWithRetries(any(), any(InputStream.class), anyString(), anyBoolean());
     }
 
     @Test

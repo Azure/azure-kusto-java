@@ -88,10 +88,8 @@ class ManagedStreamingIngestClientTest {
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
-        when(resourceManagerMock.uploadLocalFileWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
-        when(resourceManagerMock.uploadStreamToBlobWithRetries(any(), any(), any(), anyBoolean()))
-                .then(invocation -> TestUtils.blobWithSasFromAccountNameAndContainerName("someaccount", "someStorage", invocation.getArgument(2)));
+        when(resourceManagerMock.getShuffledContainers())
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName("someaccount", "someStorage")));
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
         doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
@@ -529,8 +527,6 @@ class ManagedStreamingIngestClientTest {
 
         verify(streamingClientMock, never()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
                 clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
-
-        verify(resourceManagerMock, atLeast(1)).uploadStreamToBlobWithRetries(any(), capture.capture(), anyString(), anyBoolean());
 
         InputStream value = capture.getValue();
         if (leaveOpen) {

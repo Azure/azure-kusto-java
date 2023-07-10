@@ -13,17 +13,15 @@ import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccountSet;
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
-import com.microsoft.azure.kusto.ingest.utils.QueueWithSas;
-import com.microsoft.azure.kusto.ingest.utils.ResourceWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
@@ -35,8 +33,6 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -140,7 +136,7 @@ public class ResourceManager implements Closeable, ResourceHelper {
     }
 
     @Override
-    public List<ContainerWithSas> getContainers() throws IngestionClientException, IngestionServiceException {
+    public List<ContainerWithSas> getShuffledContainers() throws IngestionClientException, IngestionServiceException {
         IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.containers);
         return storageAccountSet.getShuffledResources(
                 groupResourceByAccountName(containers.getResourcesList()));
@@ -153,7 +149,7 @@ public class ResourceManager implements Closeable, ResourceHelper {
         return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
     }
 
-    public List<QueueWithSas> getQueues() throws IngestionClientException, IngestionServiceException {
+    public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
         return storageAccountSet.getShuffledResources(
                 groupResourceByAccountName(queues.getResourcesList()));
@@ -378,72 +374,6 @@ public class ResourceManager implements Closeable, ResourceHelper {
             log.warn("StorageAccountSet is null");
         }
         storageAccountSet.addResultToAccount(resource.getAccountName(), success);
-    }
-
-    private int calculateRetries(int size) {
-        return size < 3 ? size : size / 2 + 1; // Calculation is based on dotnet
-    }
-
-    private <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> TOut resourceActionWithRetries(List<TWrapper> resources,
-            FunctionOneException<TOut, TWrapper, Exception> action, String actionName)
-            throws IngestionClientException {
-
-        if (resources.isEmpty()) {
-            throw new IngestionClientException("No resources found");
-        }
-        int retries = calculateRetries(resources.size());
-
-        for (int i = 0; i < retries; i++) {
-            if (i >= resources.size()) {
-                throw new IngestionClientException("Retry count exceeded");
-            }
-            TWrapper resource = resources.get(i);
-            try {
-
-                Map<String, String> attributes = new HashMap<>();
-                attributes.put("resource", resource.getEndpointWithoutSas());
-                attributes.put("account", resource.getAccountName());
-                attributes.put("type", resource.getClass().getName());
-                attributes.put("retry", String.valueOf(i));
-                return MonitoredActivity.invoke((FunctionOneException<TOut, Tracer.Span, Exception>) (Tracer.Span span) -> {
-                    try {
-                        TOut result = action.apply(resource);
-                        reportIngestionResult(resource, true);
-                        return result;
-                    } catch (Exception e) {
-                        span.addException(e);
-                        throw e;
-                    }
-                }, actionName, attributes);
-            } catch (Exception e) {
-                log.warn(String.format("Error during retry %d of %d for %s", i + 1, retries, actionName), e);
-                reportIngestionResult(resource, false);
-            }
-        }
-        throw new IngestionClientException("Retry count exceeded");
-    }
-
-    void postToQueueWithRetries(AzureStorageClient azureStorageClient, String message) throws IngestionClientException, IngestionServiceException {
-        resourceActionWithRetries(getQueues(), queue -> {
-            azureStorageClient.postMessageToQueue(queue.getQueue(), message);
-            return null;
-        }, "ResourceManager.postToQueueWithRetries");
-    }
-
-    String uploadStreamToBlobWithRetries(AzureStorageClient azureStorageClient, InputStream stream, String blobName, boolean shouldCompress)
-            throws IngestionClientException, IngestionServiceException {
-        return resourceActionWithRetries(getContainers(), container -> {
-            azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-        }, "ResourceManager.uploadLocalFileWithRetries");
-    }
-
-    String uploadLocalFileWithRetries(AzureStorageClient azureStorageClient, File file, String blobName, boolean shouldCompress)
-            throws IngestionClientException, IngestionServiceException {
-        return resourceActionWithRetries(getContainers(), container -> {
-            azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-        }, "ResourceManager.uploadLocalFileWithRetries");
     }
 
     enum ResourceType {
