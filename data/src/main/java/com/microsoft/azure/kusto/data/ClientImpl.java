@@ -113,7 +113,8 @@ class ClientImpl implements Client, StreamingClient {
         return execute(database, command, properties, determineCommandType(command));
     }
 
-    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType) throws DataServiceException, DataClientException {
+    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
+            throws DataServiceException, DataClientException {
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
                         commandType),
@@ -132,7 +133,8 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException {
         return execute(database, command, properties, CommandType.QUERY);
     }
 
@@ -147,7 +149,8 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
+    public KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException {
         return execute(database, command, properties, CommandType.ADMIN_COMMAND);
     }
 

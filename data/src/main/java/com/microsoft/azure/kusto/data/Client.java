@@ -14,11 +14,13 @@ public interface Client extends Closeable {
     KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+
     KustoOperationResult executeQuery(String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult executeQuery(String database, String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+
     KustoOperationResult executeMgmt(String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult executeMgmt(String database, String command) throws DataServiceException, DataClientException;
