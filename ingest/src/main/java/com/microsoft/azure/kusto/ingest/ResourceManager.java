@@ -282,8 +282,8 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     private void populateStorageAccounts() {
         RankedStorageAccountSet tempAccount = new RankedStorageAccountSet();
-        Stream<? extends  ResourceWithSas<?> > queueStream = (this.queues == null ? Stream.empty() : this.queues.getResourcesList().stream());
-        Stream<? extends  ResourceWithSas<?>> containerStream = (this.containers == null ? Stream.empty() : this.containers.getResourcesList().stream());
+        Stream<? extends ResourceWithSas<?>> queueStream = (this.queues == null ? Stream.empty() : this.queues.getResourcesList().stream());
+        Stream<? extends ResourceWithSas<?>> containerStream = (this.containers == null ? Stream.empty() : this.containers.getResourcesList().stream());
 
         Stream.concat(queueStream, containerStream).forEach(resource -> {
             String accountName = resource.getAccountName();
