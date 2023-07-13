@@ -181,6 +181,7 @@ class E2ETest {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithoutMapping.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionProperties ingestionPropertiesWithIgnoreFirstRecord = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithIgnoreFirstRecord.setFlushImmediately(true);
@@ -202,6 +203,11 @@ class E2ETest {
         ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
+
+        IngestionProperties ingestionPropertiesWithTableReportMethod = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithTableReportMethod.setFlushImmediately(true);
+        ingestionPropertiesWithTableReportMethod.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithTableReportMethod.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         dataForTests = Arrays.asList(new TestDataItem() {
             {
@@ -248,6 +254,15 @@ class E2ETest {
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithColumnMapping;
                 testOnstreamingIngestion = false; // streaming ingestion doesn't support inline mapping
+            }
+        }, new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithTableReportMethod;
+                testOnstreamingIngestion = false;
+                testOnManaged = false;
+                testReportMethodTable = true;
             }
         });
     }
@@ -321,13 +336,30 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromFile(boolean isManaged) {
         for (TestDataItem item : dataForTests) {
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
-            try {
-                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
-            } catch (Exception ex) {
-                Assertions.fail(ex);
+            if (!item.testReportMethodTable) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                try {
+                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
             }
-            assertRowCount(item.rows, false);
+        }
+    }
+
+    @Test
+    void testIngestFromFileWithTable() {
+        for (TestDataItem item : dataForTests) {
+            if (item.testReportMethodTable) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                try {
+                    ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
+            }
         }
     }
 
@@ -335,17 +367,19 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
-            InputStream stream = new FileInputStream(item.file);
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
             if (item.file.getPath().endsWith(".gz")) {
+                InputStream stream = new FileInputStream(item.file);
+                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+
                 streamSourceInfo.setCompressionType(CompressionType.gz);
+                try {
+                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
+                            item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, true);
             }
-            try {
-                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
-            } catch (Exception ex) {
-                Assertions.fail(ex);
-            }
-            assertRowCount(item.rows, true);
         }
     }
 
