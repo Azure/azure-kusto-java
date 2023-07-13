@@ -181,6 +181,7 @@ class E2ETest {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithoutMapping.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionProperties ingestionPropertiesWithIgnoreFirstRecord = new IngestionProperties(databaseName, tableName);
         ingestionPropertiesWithIgnoreFirstRecord.setFlushImmediately(true);
