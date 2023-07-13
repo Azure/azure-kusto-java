@@ -7,6 +7,7 @@ import com.azure.core.http.HttpResponse;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
 import org.apache.http.Header;
+import org.apache.http.HttpStatus;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
@@ -82,7 +83,11 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
 
         if (body == null) {
             try {
-                body = EntityUtils.toByteArray(response.getEntity());
+                if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT){
+                    body = new byte[0];
+                }else{
+                    body = EntityUtils.toByteArray(response.getEntity());
+                }
             } catch (IOException ignored) {
                 body = new byte[0];
             }
