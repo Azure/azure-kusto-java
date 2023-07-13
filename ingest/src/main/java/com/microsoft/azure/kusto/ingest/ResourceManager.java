@@ -283,21 +283,26 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
         if (this.queues != null) {
             for (QueueWithSas queue : this.queues.getResourcesList()) {
-                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(queue.getQueue().getAccountName());
+                String accountName = queue.getQueue().getAccountName();
+                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
                 if (previousAccount != null) {
                     tempAccount.addAccount(previousAccount);
                 } else {
-                    tempAccount.addAccount(queue.getQueue().getAccountName());
+                    tempAccount.addAccount(accountName);
                 }
             }
         }
         if (this.containers != null) {
             for (ContainerWithSas queue : this.containers.getResourcesList()) {
-                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(queue.getContainer().getAccountName());
+                String accountName = queue.getContainer().getAccountName();
+                if (tempAccount.getAccount(accountName) != null) {
+                    continue;
+                }
+                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
                 if (previousAccount != null) {
                     tempAccount.addAccount(previousAccount);
                 } else {
-                    tempAccount.addAccount(queue.getContainer().getAccountName());
+                    tempAccount.addAccount(accountName);
                 }
             }
         }
