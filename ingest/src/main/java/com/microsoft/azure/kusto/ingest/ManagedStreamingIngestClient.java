@@ -42,12 +42,12 @@ import java.util.UUID;
  * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  */
-public class ManagedStreamingIngestClient extends IngestClientBase implements IngestClient, QueuedIngestClient {
+public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
-    public static final String MANAGED_STREAMING_INGEST_CLIENT = "ManagedStreamingIngestClient";
+    public static final String CLASS_NAME = ManagedStreamingIngestClient.class.getSimpleName();
     final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
@@ -366,7 +366,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
 
     @Override
     protected String getClientType() {
-        return MANAGED_STREAMING_INGEST_CLIENT;
+        return CLASS_NAME;
     }
 
     @Override

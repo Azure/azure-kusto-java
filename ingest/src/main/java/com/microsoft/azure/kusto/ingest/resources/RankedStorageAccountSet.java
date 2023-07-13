@@ -19,18 +19,24 @@ public class RankedStorageAccountSet {
         RankedStorageAccount account = accounts.get(accountName);
         if (account != null) {
             account.addResult(success);
+        } else {
+            throw new IllegalArgumentException("Account " + accountName + " does not exist");
         }
     }
 
     public void addAccount(String accountName) {
         if (!accounts.containsKey(accountName)) {
             accounts.put(accountName, new RankedStorageAccount(accountName));
+        } else {
+            throw new IllegalArgumentException("Account " + accountName + " already exists");
         }
     }
 
     public void addAccount(RankedStorageAccount account) {
         if (!accounts.containsKey(account.getAccountName())) {
             accounts.put(account.getAccountName(), account);
+        } else {
+            throw new IllegalArgumentException("Account " + account.getAccountName() + " already exists");
         }
     }
 

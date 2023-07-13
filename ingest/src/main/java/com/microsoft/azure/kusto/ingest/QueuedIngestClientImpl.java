@@ -36,7 +36,7 @@ import java.util.UUID;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
-    public static final String QUEUED_INGEST_CLIENT_IMPL = "QueuedIngestClientImpl";
+    public static final String CLASS_NAME = QueuedIngestClientImpl.class.getSimpleName();
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
@@ -237,7 +237,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected String getClientType() {
-        return QUEUED_INGEST_CLIENT_IMPL;
+        return CLASS_NAME;
     }
 
     private long estimateFileRawSize(String filePath, boolean isCompressible) {
