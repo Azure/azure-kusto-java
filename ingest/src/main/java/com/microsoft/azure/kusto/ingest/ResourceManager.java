@@ -41,6 +41,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
@@ -280,32 +282,22 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     private void populateStorageAccounts() {
         RankedStorageAccountSet tempAccount = new RankedStorageAccountSet();
+        Stream<? extends  ResourceWithSas<?> > queueStream = (this.queues == null ? Stream.empty() : this.queues.getResourcesList().stream());
+        Stream<? extends  ResourceWithSas<?>> containerStream = (this.containers == null ? Stream.empty() : this.containers.getResourcesList().stream());
 
-        if (this.queues != null) {
-            for (QueueWithSas queue : this.queues.getResourcesList()) {
-                String accountName = queue.getQueue().getAccountName();
-                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
-                if (previousAccount != null) {
-                    tempAccount.addAccount(previousAccount);
-                } else {
-                    tempAccount.addAccount(accountName);
-                }
+        Stream.concat(queueStream, containerStream).forEach(resource -> {
+            String accountName = resource.getAccountName();
+            if (tempAccount.getAccount(accountName) != null) {
+                return;
             }
-        }
-        if (this.containers != null) {
-            for (ContainerWithSas queue : this.containers.getResourcesList()) {
-                String accountName = queue.getContainer().getAccountName();
-                if (tempAccount.getAccount(accountName) != null) {
-                    continue;
-                }
-                RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
-                if (previousAccount != null) {
-                    tempAccount.addAccount(previousAccount);
-                } else {
-                    tempAccount.addAccount(accountName);
-                }
+
+            RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
+            if (previousAccount != null) {
+                tempAccount.addAccount(previousAccount);
+            } else {
+                tempAccount.addAccount(accountName);
             }
-        }
+        });
 
         this.storageAccountSet = tempAccount;
     }
