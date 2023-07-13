@@ -83,9 +83,9 @@ public class HttpResponseWrapper extends HttpResponse implements IHttpResponse {
 
         if (body == null) {
             try {
-                if(response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT){
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                     body = new byte[0];
-                }else{
+                } else {
                     body = EntityUtils.toByteArray(response.getEntity());
                 }
             } catch (IOException ignored) {
