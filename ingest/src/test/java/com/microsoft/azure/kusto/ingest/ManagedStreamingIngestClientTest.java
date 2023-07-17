@@ -52,8 +52,8 @@ import static org.mockito.Mockito.*;
 class ManagedStreamingIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
-    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
     private static final UUID CustomUUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    public static final String ACCOUNT_NAME = "someaccount";
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static IngestionProperties ingestionProperties;
     @Mock
@@ -69,9 +69,9 @@ class ManagedStreamingIngestClientTest {
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
 
         when(resourceManagerMock.getShuffledContainers())
-                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName("someaccount", "someStorage")));
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
-                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName("someaccount", "someQueue")));
+                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 

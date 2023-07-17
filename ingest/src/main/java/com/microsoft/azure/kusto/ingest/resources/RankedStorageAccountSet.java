@@ -4,9 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.microsoft.azure.kusto.ingest.ResourceAlgorithms.roundRobinNestedList;
 
 public class RankedStorageAccountSet {
     private final Map<String, RankedStorageAccount> accounts;

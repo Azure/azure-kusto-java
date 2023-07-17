@@ -51,19 +51,18 @@ class QueuedIngestClientTest {
 
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+    public static final String ACCOUNT_NAME = "someaccount";
     private static QueuedIngestClientImpl queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
-    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
-    private static final String ENDPOINT_SERVICE_TYPE_ENGINE = "Engine";
 
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.getShuffledContainers())
-                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName("someaccount", "someStorage")));
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
-                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName("someaccount", "someQueue")));
+                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
