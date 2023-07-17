@@ -11,4 +11,5 @@ public class TestDataItem {
     public int rows;
     public boolean testOnstreamingIngestion = true;
     public boolean testOnManaged = true;
+    public boolean testReportMethodTable = false;
 }
