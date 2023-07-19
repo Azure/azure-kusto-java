@@ -36,6 +36,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.jupiter.api.AfterAll;
@@ -436,7 +437,15 @@ class E2ETest {
 
     private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
         if (!autoCorrectEndpoint || clusterUrl.contains(INGEST_PREFIX) || isReservedHostname(clusterUrl)) {
-            assertEquals(clusterUrl, connectionDataSource);
+            String host = clusterUrl.replaceFirst("https"+PROTOCOL_SUFFIX, "");
+            if (InetAddressUtils.isIPv6Address(host))
+            {
+                String compareString = clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + '[') + ']';
+                assertEquals(compareString.toLowerCase(), connectionDataSource);
+            }
+            else {
+                assertEquals(clusterUrl, connectionDataSource);
+            }
         } else {
             String compareString = isQueued ? clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX) : clusterUrl;
             assertEquals(compareString, connectionDataSource);
