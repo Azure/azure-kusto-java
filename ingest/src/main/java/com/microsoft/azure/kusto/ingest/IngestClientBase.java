@@ -56,6 +56,7 @@ public abstract class IngestClientBase implements IngestClient {
 
         return isLocalFlagg || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
+
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
