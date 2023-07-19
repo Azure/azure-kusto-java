@@ -4,16 +4,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.HttpClientFactory;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
@@ -23,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class CloudInfo {
+public class CloudInfo implements TraceableAttributes {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
@@ -95,7 +98,10 @@ public class CloudInfo {
                     HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
                     request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
                     request.addHeader(HttpHeaders.ACCEPT, "application/json");
-                    HttpResponse response = localHttpClient.execute(request);
+
+                    // trace CloudInfo.httpCall
+                    HttpResponse response = MonitoredActivity.invoke((SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
+                            "CloudInfo.httpCall");
                     try {
                         int statusCode = response.getStatusLine().getStatusCode();
                         if (statusCode == 200) {
@@ -188,6 +194,13 @@ public class CloudInfo {
 
     public String getKustoServiceResourceId() {
         return kustoServiceResourceId;
+    }
+
+    @Override
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("resource", kustoServiceResourceId);
+        return attributes;
     }
 
     public String getFirstPartyAuthorityUrl() {

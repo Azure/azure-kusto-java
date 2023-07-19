@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.TextStringBuilder;
@@ -23,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class IngestionProperties {
+public class IngestionProperties implements TraceableAttributes {
     private final String databaseName;
     private final String tableName;
     private boolean flushImmediately;
@@ -380,6 +381,14 @@ public class IngestionProperties {
                 String.format("ResultSet translates into csv format but '%s' was given", dataFormat));
 
         validate();
+    }
+
+    @Override
+    public Map<String, String> getTracingAttributes() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("database", databaseName);
+        attributes.put("table", tableName);
+        return attributes;
     }
 
     public enum DataFormat {

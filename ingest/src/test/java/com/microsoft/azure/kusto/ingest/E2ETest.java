@@ -64,10 +64,7 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
@@ -211,6 +208,11 @@ class E2ETest {
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
+        IngestionProperties ingestionPropertiesWithTableReportMethod = new IngestionProperties(databaseName, tableName);
+        ingestionPropertiesWithTableReportMethod.setFlushImmediately(true);
+        ingestionPropertiesWithTableReportMethod.setDataFormat(DataFormat.CSV);
+        ingestionPropertiesWithTableReportMethod.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
+
         dataForTests = Arrays.asList(new TestDataItem() {
             {
                 file = new File(resourcesPath, "dataset.csv");
@@ -256,6 +258,15 @@ class E2ETest {
                 rows = 2;
                 ingestionProperties = ingestionPropertiesWithColumnMapping;
                 testOnstreamingIngestion = false; // streaming ingestion doesn't support inline mapping
+            }
+        }, new TestDataItem() {
+            {
+                file = new File(resourcesPath, "dataset.csv");
+                rows = 10;
+                ingestionProperties = ingestionPropertiesWithTableReportMethod;
+                testOnstreamingIngestion = false;
+                testOnManaged = false;
+                testReportMethodTable = true;
             }
         });
     }
@@ -329,13 +340,30 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromFile(boolean isManaged) {
         for (TestDataItem item : dataForTests) {
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
-            try {
-                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
-            } catch (Exception ex) {
-                Assertions.fail(ex);
+            if (!item.testReportMethodTable) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                try {
+                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
             }
-            assertRowCount(item.rows, false);
+        }
+    }
+
+    @Test
+    void testIngestFromFileWithTable() {
+        for (TestDataItem item : dataForTests) {
+            if (item.testReportMethodTable) {
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                try {
+                    ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, false);
+            }
         }
     }
 
@@ -343,17 +371,19 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
         for (TestDataItem item : dataForTests) {
-            InputStream stream = new FileInputStream(item.file);
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
             if (item.file.getPath().endsWith(".gz")) {
+                InputStream stream = new FileInputStream(item.file);
+                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+
                 streamSourceInfo.setCompressionType(CompressionType.gz);
+                try {
+                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
+                            item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
+                }
+                assertRowCount(item.rows, true);
             }
-            try {
-                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo, item.ingestionProperties);
-            } catch (Exception ex) {
-                Assertions.fail(ex);
-            }
-            assertRowCount(item.rows, true);
         }
     }
 
@@ -628,7 +658,7 @@ class E2ETest {
 
     @Test
     void testNoRedirectsCloudFail() {
-        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
             try (Client client = ClientFactory.createClient(
@@ -653,7 +683,7 @@ class E2ETest {
 
     @Test
     void testNoRedirectsClientFail() {
-        KustoTrustedEndpoints.addTrustedHosts(List.of(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
             try (Client client = ClientFactory.createClient(

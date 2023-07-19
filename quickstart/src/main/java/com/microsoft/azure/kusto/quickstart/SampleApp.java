@@ -1,11 +1,14 @@
 package com.microsoft.azure.kusto.quickstart;
 
+import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
@@ -14,9 +17,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Scanner;
-import java.util.UUID;
+import java.util.*;
+
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.exporters.logging.LoggingSpanExporter;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 
 /**
  * SourceType - represents the type of files used for ingestion
@@ -268,8 +277,15 @@ public class SampleApp {
     private static boolean waitForUser;
 
     public static void main(String[] args) {
-        System.out.println("Kusto sample app is starting...");
+        // TODO (tracing): Uncomment the following line to enable tracing.
+        // initializeTracing();
 
+        MonitoredActivity.invoke(SampleApp::runSampleApp, "SampleApp.runSampleApp");
+
+    }
+
+    private static void runSampleApp() {
+        System.out.println("Kusto sample app is starting...");
         ConfigJson config = loadConfigs();
         waitForUser = config.isWaitForUser();
 
@@ -294,9 +310,30 @@ public class SampleApp {
         } catch (URISyntaxException e) {
             Utils.errorHandler("Couldn't create client. Please validate your URIs in the configuration file.", e);
         }
-
         System.out.println("\nKusto sample app done");
+    }
 
+    /**
+     * Initializes the OpenTelemetry SDK with default values and registers it as the {@link com.microsoft.azure.kusto.data.instrumentation.Tracer}
+     */
+    private static void initializeTracing() {
+        enableDistributedTracing();
+        Tracer.initializeTracer(new OpenTelemetryTracer());
+    }
+
+    /**
+     * Configures the OpenTelemetry SDK with default values and registers it as the {@link io.opentelemetry.api.GlobalOpenTelemetry}.
+     */
+    private static void enableDistributedTracing() {
+        Resource resource = Resource.getDefault()
+                .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "logical-service-name")));
+        SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
+                .addSpanProcessor(BatchSpanProcessor.builder(new LoggingSpanExporter()).build())
+                .setResource(resource)
+                .build();
+        OpenTelemetrySdk.builder()
+                .setTracerProvider(sdkTracerProvider)
+                .buildAndRegisterGlobal();
     }
 
     /**

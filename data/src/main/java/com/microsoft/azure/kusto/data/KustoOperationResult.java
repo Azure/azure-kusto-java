@@ -9,6 +9,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +39,19 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
+        MonitoredActivity.invoke((SupplierOneException<Void, KustoServiceQueryError>) () -> {
+            KustoOperationResultImpl(response, version);
+            return null;
+        }, "KustoOperationResult.createFromResponse");
+        it = resultTables.iterator();
+    }
+
+    private void KustoOperationResultImpl(String response, String version) throws KustoServiceQueryError {
         if (version.contains("v2")) {
             createFromV2Response(response);
         } else {
             createFromV1Response(response);
         }
-        it = resultTables.iterator();
     }
 
     public List<KustoResultSetTable> getResultTables() {

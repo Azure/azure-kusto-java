@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
     private final IClientSecret clientSecret;
+    public static final String APPLICATION_KEY_TOKEN_PROVIDER = "ApplicationKeyTokenProvider";
 
     ApplicationKeyTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientSecret clientSecret,
             String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
@@ -30,5 +31,10 @@ public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBas
             authority.httpClient(new HttpClientWrapper(httpClient));
         }
         return authority.build();
+    }
+
+    @Override
+    protected String getAuthMethod() {
+        return APPLICATION_KEY_TOKEN_PROVIDER;
     }
 }

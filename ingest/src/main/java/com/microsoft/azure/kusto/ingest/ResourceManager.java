@@ -9,10 +9,12 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
@@ -246,7 +248,15 @@ class ResourceManager implements Closeable {
         }
     }
 
-    private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
+    private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionResources
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionResourcesImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionResource");
+    }
+
+    private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
@@ -269,7 +279,7 @@ class ResourceManager implements Closeable {
                         addIngestionResource(resourceTypeName, storageUrl);
                     }
                 }
-                log.info("Refreshing Ingestion Resources Finised");
+                log.info("Refreshing Ingestion Resources Finished");
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
             } catch (DataClientException e) {
@@ -282,7 +292,15 @@ class ResourceManager implements Closeable {
         }
     }
 
-    private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
+    private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionAuthToken
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionAuthTokenImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionAuthToken");
+    }
+
+    private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {
         if (authTokenLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Auth Token");

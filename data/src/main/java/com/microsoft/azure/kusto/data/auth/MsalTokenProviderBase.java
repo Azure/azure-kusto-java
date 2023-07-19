@@ -3,10 +3,12 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
@@ -53,10 +55,13 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     @Override
-    public String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
+    protected String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
         if (accessTokenResult == null) {
-            accessTokenResult = acquireNewAccessToken();
+            // trace acquireNewAccessToken
+            accessTokenResult = MonitoredActivity.invoke(
+                    (SupplierTwoExceptions<IAuthenticationResult, DataServiceException, DataClientException>) this::acquireNewAccessToken,
+                    getAuthMethod().concat(".acquireNewAccessToken"));
         }
         return accessTokenResult.accessToken();
     }
