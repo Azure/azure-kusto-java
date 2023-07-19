@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.http.conn.util.InetAddressUtils;
 
@@ -45,9 +44,9 @@ public abstract class IngestClientBase implements IngestClient {
         if (!uri.isAbsolute()) {
             return true;
         }
-        var authority = uri.getAuthority().toLowerCase();
-        var isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
-        var isLocalFlagg = false;
+        String authority = uri.getAuthority().toLowerCase();
+        boolean isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
+        boolean isLocalFlagg;
         try {
             isLocalFlagg = InetAddress.getByName(authority).isLoopbackAddress();
         } catch (UnknownHostException e) {
