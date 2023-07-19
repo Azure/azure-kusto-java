@@ -69,6 +69,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     /**
      * @param dmConnectionString dm connection string
      * @param properties         additional properties to configure the http client
+     * @param autoCorrectEndpoint Flag to indicate whether to correct the endpoint URI or not
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -100,6 +101,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
     /**
      * @param engineConnectionString engine connection string
      * @param properties             additional properties to configure the http client
+     * @param autoCorrectEndpoint Flag to indicate whether to correct the endpoint URI or not
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -128,6 +130,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, true);
     }
 
+    /**
+     * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
+     * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, autoCorrectEndpoint);
@@ -137,6 +145,7 @@ public class ManagedStreamingIngestClient implements IngestClient {
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
      * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
      * @param properties                               - Additional properties to configure the http client
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - This method is slated to be private.  Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -152,7 +161,13 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+    /**
+     * @param connectionStringBuilder - Client connection string
+     * @param properties - Additional properties to configure the http client
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
             @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, autoCorrectEndpoint);
@@ -160,6 +175,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
+    /**
+     * @param connectionStringBuilder - Client connection string
+     * @param httpClient - HTTP client
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
             @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
@@ -169,6 +190,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
+    /**
+     * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
+     * @param queryEndpointConnectionStringBuilder - Endpoint for querying data, does not include "ingest-"
+     * @param properties                               - Additional properties to configure the http client
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder,
             @Nullable HttpClientProperties properties) throws URISyntaxException {
@@ -178,7 +205,12 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+    /***
+     * @param connectionStringBuilder - Client connection string
+     * @param properties - Additional properties to configure the http client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
             @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, true);
@@ -186,6 +218,11 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
+    /***
+     * @param connectionStringBuilder - Client connection string
+     * @param httpClient - HTTP client
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
             @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
@@ -211,7 +248,13 @@ public class ManagedStreamingIngestClient implements IngestClient {
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ResourceManager resourceManager,
+    /**
+     * @param resourceManager ingestion resources manager
+     * @param storageClient - storage utilities
+     * @param streamingClient - the streaming client
+     * @param retryTemplate - retry template
+     */
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,
             StreamingClient streamingClient,
             ExponentialRetry retryTemplate) {

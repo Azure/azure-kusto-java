@@ -2,9 +2,11 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import org.apache.http.conn.util.InetAddressUtils;
 
+import java.net.InetAddress;
 import java.net.URI;
-import java.util.regex.Pattern;
+import java.net.UnknownHostException;
 
 public abstract class IngestClientBase {
     static final String INGEST_PREFIX = "ingest-";
@@ -35,15 +37,15 @@ public abstract class IngestClientBase {
         if (!uri.isAbsolute()) {
             return true;
         }
-        var host = uri.getHost().toLowerCase();
-        Pattern IPV4_PATTERN = Pattern.compile("^(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}$");
+        var authority = uri.getAuthority().toLowerCase();
+        var isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
+        var isLocalFlagg = false;
+        try {
+            isLocalFlagg = InetAddress.getByName(authority).isLoopbackAddress();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
 
-        Pattern IPV6_STD_PATTERN = Pattern.compile("^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$");
-
-        Pattern IPV6_HEX_COMPRESSED_PATTERN = Pattern.compile("^((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)::((?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4})*)?)$");
-
-        var isIPFlag = IPV4_PATTERN.matcher(host).matches() || IPV6_STD_PATTERN.matcher(host).matches() || IPV6_HEX_COMPRESSED_PATTERN.matcher(host).matches();
-
-        return UriUtils.isLocalAddress(host) || isIPFlag || host.equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalFlagg || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 }

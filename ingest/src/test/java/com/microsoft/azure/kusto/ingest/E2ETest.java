@@ -44,6 +44,9 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
@@ -67,9 +70,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Stream;
 
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -402,7 +405,7 @@ class E2ETest {
     }
 
     private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
-        if (!autoCorrectEndpoint) {
+        if (!autoCorrectEndpoint || clusterUrl.contains(INGEST_PREFIX) || isReservedHostname(clusterUrl)) {
             assertEquals(clusterUrl, connectionDataSource);
         } else {
             String compareString = isQueued ? clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX) : clusterUrl;
@@ -410,10 +413,20 @@ class E2ETest {
         }
     }
 
-    @Test
-    void testQueuedUseAutoCorrectEndpoint() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+    private static Stream<Arguments> provideStringsForAutoCorrectEndpointTests() {
+        return Stream.of(
+                Arguments.of(System.getenv("ENGINE_CONNECTION_STRING")),
+                Arguments.of("https://192.168.1.1"),
+                Arguments.of("https://2345:0425:2CA1:0000:0000:0567:5673:23b5"),
+                Arguments.of("https://127.0.0.1"),
+                Arguments.of("https://localhost"),
+                Arguments.of("https://onebox.dev.kusto.windows.net"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideStringsForAutoCorrectEndpointTests")
+    void testQueuedUseAutoCorrectEndpoint(String csb) {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(csb, appId, appKey, tenantId);
         try {
             QueuedIngestClient queuedIngestClient = IngestClientFactory.createClient(engineCsb, null, true);
             assertUrlCompare(((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource, engineCsb.getClusterUrl(), true, true);
@@ -424,10 +437,10 @@ class E2ETest {
         }
     }
 
-    @Test
-    void testStreamingUseAutoCorrectEndpoint() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+    @ParameterizedTest
+    @MethodSource("provideStringsForAutoCorrectEndpointTests")
+    void testStreamingUseAutoCorrectEndpoint(String csb) {
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(csb, appId, appKey, tenantId);
         try {
             StreamingIngestClient streamingIngest = IngestClientFactory.createStreamingIngestClient(engineCsb, null, true);
             assertUrlCompare(streamingIngest.connectionDataSource, engineCsb.getClusterUrl(), true, false);
