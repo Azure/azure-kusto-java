@@ -437,13 +437,11 @@ class E2ETest {
 
     private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
         if (!autoCorrectEndpoint || clusterUrl.contains(INGEST_PREFIX) || isReservedHostname(clusterUrl)) {
-            String host = clusterUrl.replaceFirst("https"+PROTOCOL_SUFFIX, "");
-            if (InetAddressUtils.isIPv6Address(host))
-            {
+            String host = clusterUrl.replaceFirst("https" + PROTOCOL_SUFFIX, "");
+            if (InetAddressUtils.isIPv6Address(host)) {
                 String compareString = clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + '[') + ']';
                 assertEquals(compareString.toLowerCase(), connectionDataSource);
-            }
-            else {
+            } else {
                 assertEquals(clusterUrl, connectionDataSource);
             }
         } else {
