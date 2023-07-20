@@ -50,7 +50,7 @@ public abstract class IngestClientBase implements IngestClient {
         try {
             isLocalFlagg = InetAddress.getByName(authority).isLoopbackAddress();
         } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
+            isLocalFlagg = false;
         }
 
         return isLocalFlagg || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
