@@ -72,7 +72,7 @@ class ResourceManager implements Closeable {
     private String identityToken;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final Timer timer;
+    private Timer timer;
     private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = 1000L * 60 * 60; // 1 hour
@@ -110,8 +110,10 @@ class ResourceManager implements Closeable {
 
     @Override
     public void close() {
-        timer.cancel();
-        timer.purge();
+        Timer closeTimer = timer;
+        timer = null;
+        closeTimer.cancel();
+        closeTimer.purge();
     }
 
     private RetryConfig buildRetryConfig() {
@@ -135,7 +137,9 @@ class ResourceManager implements Closeable {
                     timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
-                    timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
+                    }
                 }
             }
         }
@@ -148,7 +152,9 @@ class ResourceManager implements Closeable {
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
-                    timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
+                    }
                 }
             }
         }
