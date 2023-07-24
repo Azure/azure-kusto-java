@@ -31,7 +31,7 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
-import com.microsoft.azure.kusto.ingest.utils.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -150,7 +150,8 @@ class E2ETest {
     }
 
     private static boolean IsManualExecution() {
-        return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
+        return false;
+        // return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
 
     private static void createTableAndMapping() {
@@ -656,8 +657,8 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
-        ResourceManager resourceManager = new ResourceManager(dmCslClient, null);
-        ContainerWithSas container = resourceManager.getTempStorage();
+        IngestionResourceManager resourceManager = new ResourceManager(dmCslClient, null);
+        ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
         AzureStorageClient azureStorageClient = new AzureStorageClient();
 
         for (TestDataItem item : dataForTests) {

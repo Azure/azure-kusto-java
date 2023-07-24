@@ -4,8 +4,6 @@ import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.ingest.Commands;
-import com.microsoft.azure.kusto.ingest.ResourceManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
