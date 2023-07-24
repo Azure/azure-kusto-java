@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.ingest.utils;
+package com.microsoft.azure.kusto.ingest.resources;
 
 import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -7,7 +7,7 @@ import com.microsoft.azure.kusto.data.UriUtils;
 
 import java.net.URISyntaxException;
 
-public class ContainerWithSas {
+public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
     private final String sas;
     private final BlobContainerClient container;
 
@@ -32,7 +32,18 @@ public class ContainerWithSas {
         return container;
     }
 
-    public String getEndpoint() {
-        return container.getBlobContainerUrl() + sas;
+    @Override
+    public String getEndpointWithoutSas() {
+        return container.getBlobContainerUrl();
+    }
+
+    @Override
+    public String getAccountName() {
+        return container.getAccountName();
+    }
+
+    @Override
+    public BlobContainerClient getResource() {
+        return container;
     }
 }

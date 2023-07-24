@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+* Automatic retries for queued ingestion
 * `executeQuery`, `executeMgmt` to call with a specific type.
 
 ## [5.0.0]
