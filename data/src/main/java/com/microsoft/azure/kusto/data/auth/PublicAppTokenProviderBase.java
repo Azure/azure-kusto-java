@@ -32,6 +32,7 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
     protected synchronized String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
         return super.acquireAccessTokenImpl();
     }
+
     @Override
     protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
         super.initializeWithCloudInfo(cloudInfo);
