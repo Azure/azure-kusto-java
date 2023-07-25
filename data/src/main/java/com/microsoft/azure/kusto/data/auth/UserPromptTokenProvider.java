@@ -40,7 +40,7 @@ public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
 
     private final String usernameHint;
 
-    public UserPromptTokenProvider(@NotNull String clusterUrl, @Nullable String usernameHint, String authorityId,
+    UserPromptTokenProvider(@NotNull String clusterUrl, @Nullable String usernameHint, String authorityId,
             @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, authorityId, httpClient);
         this.usernameHint = usernameHint;
