@@ -54,7 +54,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     public static int UPLOAD_TIMEOUT_MINUTES = 10;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private final Timer timer;
+    private Timer timer;
     private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private final Long defaultRefreshTime;
@@ -90,8 +90,10 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
-        timer.cancel();
-        timer.purge();
+        Timer closeTimer = timer;
+        timer = null;
+        closeTimer.cancel();
+        closeTimer.purge();
     }
 
     private RetryConfig buildRetryConfig() {
@@ -115,7 +117,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                     timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
-                    timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
+                    }
                 }
             }
         }
@@ -128,7 +132,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                     timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
-                    timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
+                    }
                 }
             }
         }
