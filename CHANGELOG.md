@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * `executeQuery`, `executeMgmt` to call with a specific type.
 ### Fixed 
 * Timer was used if authentication throws after client was closed 
+* Public client credentials (user prompt,device auth) are synchronized - so that users are prompt once
 
 ## [5.0.0]
 ### Fixed
