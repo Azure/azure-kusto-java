@@ -4,6 +4,7 @@ import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
@@ -29,9 +30,7 @@ import java.io.IOException;
 import java.io.SequenceInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.sql.Blob;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 /**
  * <p>ManagedStreamingIngestClient</p>
@@ -43,12 +42,12 @@ import java.util.stream.Stream;
  * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  */
-public class ManagedStreamingIngestClient extends IngestClientBase implements IngestClient {
+public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
-    public static final String MANAGED_STREAMING_INGEST_CLIENT = "ManagedStreamingIngestClient";
+    public static final String CLASS_NAME = ManagedStreamingIngestClient.class.getSimpleName();
     final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
@@ -441,12 +440,22 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements In
 
     @Override
     protected String getClientType() {
-        return MANAGED_STREAMING_INGEST_CLIENT;
+        return CLASS_NAME;
     }
 
     @Override
     public void close() throws IOException {
         queuedIngestClient.close();
         streamingIngestClient.close();
+    }
+
+    @Override
+    public void setQueueRequestOptions(RequestRetryOptions queueRequestOptions) {
+        queuedIngestClient.setQueueRequestOptions(queueRequestOptions);
+    }
+
+    @Override
+    public IngestionResourceManager getResourceManager() {
+        return queuedIngestClient.getResourceManager();
     }
 }

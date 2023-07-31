@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.Collections;
 import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,18 +51,18 @@ class QueuedIngestClientTest {
 
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+    public static final String ACCOUNT_NAME = "someaccount";
     private static QueuedIngestClientImpl queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
-    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
-    private static final String ENDPOINT_SERVICE_TYPE_ENGINE = "Engine";
 
     @BeforeAll
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
-        when(resourceManagerMock.getQueue())
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
+        when(resourceManagerMock.getShuffledContainers())
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+        when(resourceManagerMock.getShuffledQueues())
+                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
@@ -75,8 +76,9 @@ class QueuedIngestClientTest {
 
     @BeforeEach
     void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromContainerName("storage"), TestUtils.containerWithSasFromContainerName("storage2")).when(resourceManagerMock)
-                .getTempStorage();
+        doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")),
+                Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
+                        .getShuffledContainers();
 
         queuedIngestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         ingestionProperties = new IngestionProperties("dbName", "tableName");

@@ -38,57 +38,40 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient.MAX_STREAMING_SIZE_BYTES;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.verifyCompressedStreamContent;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class ManagedStreamingIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+    private static final UUID CustomUUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    public static final String ACCOUNT_NAME = "someaccount";
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static IngestionProperties ingestionProperties;
-    private static final String STORAGE_URL = "https://testcontosourl.com/storageUrl";
-
     @Mock
     private static StreamingClient streamingClientMock;
-
     @Captor
     private static ArgumentCaptor<InputStream> argumentCaptor;
     @Captor
     private static ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesCaptor;
 
-    private static final UUID CustomUUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-
     @BeforeAll
     static void setUp() throws Exception {
-        when(resourceManagerMock.getQueue())
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue1"))
-                .thenReturn(TestUtils.queueWithSasFromQueueName("queue2"));
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("statusTable"));
+
+        when(resourceManagerMock.getShuffledContainers())
+                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+        when(resourceManagerMock.getShuffledQueues())
+                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
@@ -101,11 +84,31 @@ class ManagedStreamingIngestClientTest {
         clientRequestPropertiesCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
     }
 
-    @BeforeEach
-    void setUpEach() throws IngestionServiceException, IngestionClientException {
-        doReturn(TestUtils.containerWithSasFromContainerName("blobName"), TestUtils.containerWithSasFromContainerName("blobName2")).when(resourceManagerMock)
-                .getTempStorage();
+    private static void verifyClientRequestId() {
+        verifyClientRequestId(0, null);
+    }
 
+    private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID) {
+        verifyClientRequestId(count, expectedUUID, "ingestFromStream");
+    }
+
+    private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID, String method) {
+        String clientRequestId = clientRequestPropertiesCaptor.getValue().getClientRequestId();
+        assertNotNull(clientRequestId);
+        String[] values = clientRequestId.split(";");
+        assertEquals(3, values.length);
+        assertEquals("KJC.executeManagedStreamingIngest.ingestFromStream", values[0]);
+        assertDoesNotThrow(() -> {
+            UUID actual = UUID.fromString(values[1]);
+            if (expectedUUID != null) {
+                assertEquals(expectedUUID, actual);
+            }
+        });
+        assertDoesNotThrow(() -> assertEquals(Integer.parseInt(values[2]), count));
+    }
+
+    @BeforeEach
+    void setUpEach() {
         ExponentialRetry retryTemplate = new ExponentialRetry(ManagedStreamingIngestClient.ATTEMPT_COUNT, 0d, 0d);
 
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock,
@@ -607,28 +610,5 @@ class ManagedStreamingIngestClientTest {
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
-    }
-
-    private static void verifyClientRequestId() {
-        verifyClientRequestId(0, null);
-    }
-
-    private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID) {
-        verifyClientRequestId(count, expectedUUID, "ingestFromStream");
-    }
-
-    private static void verifyClientRequestId(int count, @Nullable UUID expectedUUID, String method) {
-        String clientRequestId = clientRequestPropertiesCaptor.getValue().getClientRequestId();
-        assertNotNull(clientRequestId);
-        String[] values = clientRequestId.split(";");
-        assertEquals(3, values.length);
-        assertEquals("KJC.executeManagedStreamingIngest.ingestFromStream", values[0]);
-        assertDoesNotThrow(() -> {
-            UUID actual = UUID.fromString(values[1]);
-            if (expectedUUID != null) {
-                assertEquals(expectedUUID, actual);
-            }
-        });
-        assertDoesNotThrow(() -> assertEquals(Integer.parseInt(values[2]), count));
     }
 }

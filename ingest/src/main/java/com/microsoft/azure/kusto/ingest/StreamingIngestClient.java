@@ -39,7 +39,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
-    private static final String STREAMING_INGEST_CLIENT = "StreamingIngestClient";
+    private static final String CLASS_NAME = StreamingIngestClient.class.getSimpleName();
     private final StreamingClient streamingClient;
     String connectionDataSource;
 
@@ -140,7 +140,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     protected String getClientType() {
-        return STREAMING_INGEST_CLIENT;
+        return CLASS_NAME;
     }
 
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)

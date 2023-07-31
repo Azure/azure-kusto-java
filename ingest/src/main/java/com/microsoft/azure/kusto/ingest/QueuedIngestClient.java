@@ -13,4 +13,6 @@ public interface QueuedIngestClient extends IngestClient {
      * @param queueRequestOptions - Options to use when creating QueueClient
      */
     void setQueueRequestOptions(RequestRetryOptions queueRequestOptions);
+
+    IngestionResourceManager getResourceManager();
 }
