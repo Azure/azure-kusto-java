@@ -51,10 +51,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
-    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingClient = ClientFactory.createStreamingClient(csb, httpClient);
-        this.connectionDataSource = csb.getClusterUrl();
+        ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getQueryEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
+        this.streamingClient = ClientFactory.createStreamingClient(csbWithEndpoint, httpClient);
+        this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
     StreamingIngestClient(StreamingClient streamingClient) {

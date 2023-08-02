@@ -63,13 +63,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString) throws URISyntaxException {
-        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null, true);
+        return fromDmConnectionString(dmConnectionString, (HttpClientProperties) null);
     }
 
     /**
      * @param dmConnectionString dm connection string
      * @param properties         additional properties to configure the http client
-     * @param autoCorrectEndpoint Flag to indicate whether to correct the endpoint URI or not
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -78,11 +77,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties, autoCorrectEndpoint);
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
     }
 
     /**
@@ -95,13 +94,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString) throws URISyntaxException {
-        return fromEngineConnectionString(engineConnectionString, null, true);
+        return fromEngineConnectionString(engineConnectionString, null);
     }
 
     /**
      * @param engineConnectionString engine connection string
      * @param properties             additional properties to configure the http client
-     * @param autoCorrectEndpoint Flag to indicate whether to correct the endpoint URI or not
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - Ingest clients now automatically deduce the endpoint, use {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -110,11 +108,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
-        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties, autoCorrectEndpoint);
+        return new ManagedStreamingIngestClient(dmConnectionString, engineConnectionString, properties);
     }
 
     /**
@@ -127,7 +125,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
-        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, true);
+        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
     }
 
     /**
@@ -145,7 +143,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
      * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
      * @param properties                               - Additional properties to configure the http client
-     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - This method is slated to be private.  Use
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder, HttpClientProperties)} instead.
@@ -185,7 +182,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
-        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
         this.httpClient = httpClient;
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
@@ -227,7 +224,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
-        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, true);
         this.httpClient = httpClient;
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }

@@ -36,7 +36,7 @@ public abstract class IngestClientBase implements IngestClient {
     }
 
     static String getQueryEndpoint(String clusterUrl) {
-        return isReservedHostname(clusterUrl) ? clusterUrl : clusterUrl.replaceFirst(INGEST_PREFIX, "");
+        return (clusterUrl == null || isReservedHostname(clusterUrl)) ? clusterUrl : clusterUrl.replaceFirst(INGEST_PREFIX, "");
     }
 
     static boolean isReservedHostname(String rawUri) {
@@ -46,14 +46,9 @@ public abstract class IngestClientBase implements IngestClient {
         }
         String authority = uri.getAuthority().toLowerCase();
         boolean isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
-        boolean isLocalFlagg;
-        try {
-            isLocalFlagg = InetAddress.getByName(authority).isLoopbackAddress();
-        } catch (UnknownHostException e) {
-            isLocalFlagg = false;
-        }
+        boolean isLocalFlag = authority.contains("localhost");
 
-        return isLocalFlagg || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
