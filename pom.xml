@@ -44,6 +44,7 @@
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-text.version>1.10.0</commons-text.version>
+        <commons-codec.version>1.13</commons-codec.version>
         <msal4j.version>1.13.8</msal4j.version>
         <httpclient.version>4.5.14</httpclient.version>
         <httpcore.version>4.4.16</httpcore.version>
@@ -53,9 +54,9 @@
         <resilience4j.version>1.7.1</resilience4j.version>
         <io.vavr.version>0.10.2</io.vavr.version>
         <!-- Test dependencies -->
-        <bouncycastle.version>1.70</bouncycastle.version>
+        <bouncycastle.version>1.75</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>
-        <sqlite-jdbc.version>3.36.0.2</sqlite-jdbc.version>
+        <sqlite-jdbc.version>3.42.0.0</sqlite-jdbc.version>
         <annotations.version>22.0.0</annotations.version>
 
         <!-- Other dependencies -->
