@@ -18,11 +18,14 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -41,6 +44,7 @@ import java.sql.ResultSetMetaData;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import static com.microsoft.azure.kusto.ingest.ManagedStreamingIngestClient.MAX_STREAMING_SIZE_BYTES;
 import static com.microsoft.azure.kusto.ingest.StreamingIngestClientTest.jsonDataUncompressed;
@@ -610,5 +614,59 @@ class ManagedStreamingIngestClientTest {
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
+    }
+
+    private static Stream<Arguments> provideStringsForAutoCorrectEndpointTruePass() {
+        return Stream.of(
+                Arguments.of("https://testendpoint.dev.kusto.windows.net", "https://ingest-testendpoint.dev.kusto.windows.net",
+                        "https://testendpoint.dev.kusto.windows.net"),
+                Arguments.of("https://shouldwork", "https://ingest-shouldwork", "https://shouldwork"),
+                Arguments.of("https://192.shouldwork.1.1", "https://ingest-192.shouldwork.1.1", "https://192.shouldwork.1.1"),
+                Arguments.of("https://2345:shouldwork:0425", "https://ingest-2345:shouldwork:0425", "https://2345:shouldwork:0425"),
+                Arguments.of("https://376.568.1564.1564", "https://ingest-376.568.1564.1564", "https://376.568.1564.1564"),
+                Arguments.of("https://192.168.1.1", "https://192.168.1.1", "https://192.168.1.1"),
+                Arguments.of("https://2345:0425:2CA1:0000:0000:0567:5673:23b5", "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]",
+                        "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]"),
+                Arguments.of("https://127.0.0.1", "https://127.0.0.1", "https://127.0.0.1"),
+                Arguments.of("https://localhost", "https://localhost", "https://localhost"),
+                Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
+    void AutoCorrectEndpoint_True_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
+
+        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt(csb), null,
+                true);
+        assertNotNull(client);
+        assertEquals(toCompareQueued, client.queuedIngestClient.connectionDataSource);
+        assertEquals(toCompareStreaming, client.streamingIngestClient.connectionDataSource);
+    }
+
+    private static Stream<Arguments> provideStringsForAutoCorrectEndpointFalsePass() {
+        return Stream.of(
+                Arguments.of("https://testendpoint.dev.kusto.windows.net", "https://testendpoint.dev.kusto.windows.net",
+                        "https://testendpoint.dev.kusto.windows.net"),
+                Arguments.of("https://shouldwork", "https://shouldwork", "https://shouldwork"),
+                Arguments.of("https://192.shouldwork.1.1", "https://192.shouldwork.1.1", "https://192.shouldwork.1.1"),
+                Arguments.of("https://2345:shouldwork:0425", "https://2345:shouldwork:0425", "https://2345:shouldwork:0425"),
+                Arguments.of("https://376.568.1564.1564", "https://376.568.1564.1564", "https://376.568.1564.1564"),
+                Arguments.of("https://192.168.1.1", "https://192.168.1.1", "https://192.168.1.1"),
+                Arguments.of("https://2345:0425:2CA1:0000:0000:0567:5673:23b5", "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]",
+                        "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]"),
+                Arguments.of("https://127.0.0.1", "https://127.0.0.1", "https://127.0.0.1"),
+                Arguments.of("https://localhost", "https://localhost", "https://localhost"),
+                Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
+    void AutoCorrectEndpoint_False_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
+
+        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt(csb), null,
+                false);
+        assertNotNull(client);
+        assertEquals(toCompareQueued, client.queuedIngestClient.connectionDataSource);
+        assertEquals(toCompareStreaming, client.streamingIngestClient.connectionDataSource);
     }
 }
