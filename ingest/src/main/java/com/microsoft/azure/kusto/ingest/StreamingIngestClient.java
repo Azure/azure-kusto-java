@@ -43,18 +43,20 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private final StreamingClient streamingClient;
     String connectionDataSource;
 
-    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
-        csbWithEndpoint.setClusterUrl(getQueryEndpoint(csbWithEndpoint.getClusterUrl()));
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getQueryEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
         this.streamingClient = ClientFactory.createStreamingClient(csbWithEndpoint, properties);
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
-    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
-        this.streamingClient = ClientFactory.createStreamingClient(csb, httpClient);
-        this.connectionDataSource = csb.getClusterUrl();
+        ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getQueryEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
+        this.streamingClient = ClientFactory.createStreamingClient(csbWithEndpoint, httpClient);
+        this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
     StreamingIngestClient(StreamingClient streamingClient) {

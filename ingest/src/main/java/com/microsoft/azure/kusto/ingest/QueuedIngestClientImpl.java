@@ -43,14 +43,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
 
-    QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
-        this(csb, properties == null ? null : HttpClientFactory.create(properties));
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+        this(csb, properties == null ? null : HttpClientFactory.create(properties), autoCorrectEndpoint);
     }
 
-    QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
-        csbWithEndpoint.setClusterUrl(getIngestionEndpoint(csbWithEndpoint.getClusterUrl()));
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getIngestionEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
         Client client = ClientFactory.createClient(csbWithEndpoint, httpClient);
         this.resourceManager = new ResourceManager(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
