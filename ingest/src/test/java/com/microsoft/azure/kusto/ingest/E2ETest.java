@@ -36,6 +36,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.junit.jupiter.api.AfterAll;
@@ -44,6 +45,9 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
@@ -64,7 +68,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Stream;
 
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -428,6 +434,21 @@ class E2ETest {
             return false;
         }
         return true;
+    }
+
+    private void assertUrlCompare(String connectionDataSource, String clusterUrl, boolean autoCorrectEndpoint, boolean isQueued) {
+        if (!autoCorrectEndpoint || clusterUrl.contains(INGEST_PREFIX) || isReservedHostname(clusterUrl)) {
+            String host = clusterUrl.replaceFirst("https" + PROTOCOL_SUFFIX, "");
+            if (InetAddressUtils.isIPv6Address(host)) {
+                String compareString = clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + '[') + ']';
+                assertEquals(compareString.toLowerCase(), connectionDataSource);
+            } else {
+                assertEquals(clusterUrl, connectionDataSource);
+            }
+        } else {
+            String compareString = isQueued ? clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX) : clusterUrl;
+            assertEquals(compareString, connectionDataSource);
+        }
     }
 
     @Test
