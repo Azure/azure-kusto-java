@@ -82,7 +82,6 @@ public class Utils {
             // Execute and get the response
             try (CloseableHttpResponse response = httpClient.execute(request)) {
                 HttpEntity entity = response.getEntity();
-                response.close();
 
                 if (entity != null) {
                     StatusLine statusLine = response.getStatusLine();
