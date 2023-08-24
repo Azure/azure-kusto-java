@@ -28,7 +28,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.EofSensorInputStream;
 import org.apache.http.entity.AbstractHttpEntity;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
@@ -81,19 +80,20 @@ public class Utils {
             request.setConfig(requestConfig);
 
             // Execute and get the response
-            HttpResponse response = httpClient.execute(request);
+            try (CloseableHttpResponse response = httpClient.execute(request)) {
+                HttpEntity entity = response.getEntity();
 
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                StatusLine statusLine = response.getStatusLine();
-                String responseContent = EntityUtils.toString(entity);
-                switch (statusLine.getStatusCode()) {
-                    case HttpStatus.SC_OK:
-                        return responseContent;
-                    case HttpStatus.SC_TOO_MANY_REQUESTS:
-                        throw new ThrottleException(urlStr);
-                    default:
-                        throw createExceptionFromResponse(urlStr, response, null, responseContent);
+                if (entity != null) {
+                    StatusLine statusLine = response.getStatusLine();
+                    String responseContent = EntityUtils.toString(entity);
+                    switch (statusLine.getStatusCode()) {
+                        case HttpStatus.SC_OK:
+                            return responseContent;
+                        case HttpStatus.SC_TOO_MANY_REQUESTS:
+                            throw new ThrottleException(urlStr);
+                        default:
+                            throw createExceptionFromResponse(urlStr, response, null, responseContent);
+                    }
                 }
             }
         } catch (SocketTimeoutException e) {
