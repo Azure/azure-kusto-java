@@ -6,14 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [5.0.2] 2023-08-24
 ### Fixed
-* close the http response 
+* close the http response
 
 ## [5.0.1] 2023-07-31
 ### Added
 * Automatic retries for queued ingestion
 * `executeQuery`, `executeMgmt` to call with a specific type.
-### Fixed 
-* Timer was used if authentication throws after client was closed 
+### Fixed
+* Timer was used if authentication throws after client was closed
 * Public client credentials (user prompt,device auth) are synchronized - so that users are prompt once
 * Msal version was old after some change and collide with azure-identity msal dependency
 
