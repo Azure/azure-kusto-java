@@ -58,6 +58,7 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
+        continue-on-error: true
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
         name: Uploading to Azure storage
         with:
