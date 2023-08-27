@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [5.0.1] 2023-07-31
 ### Added
 
-* Automatic retries for queued ing estion
+* Automatic retries for queued ingestion
 * `executeQuery`, `executeMgmt` to call with a specific type.
 
 ### Fixed
@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Msal version was old after some change and collide with azure-identity msal dependency
 
 ## [5.0.0] 2023-06-27
-
 ### Fixed
 * Move back to Java 8
 * Update BOM version and msal
