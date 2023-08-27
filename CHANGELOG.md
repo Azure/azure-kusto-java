@@ -4,12 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.0.2] 2023-08-24
+## [5.0.2] - 2023-08-24
 ### Fixed
 
 * close the http response
 
-## [5.0.1] 2023-07-31
+## [5.0.1] - 2023-07-31
 ### Added
 
 * Automatic retries for queued ingestion
@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Public client credentials (user prompt,device auth) are synchronized - so that users are prompt once
 * Msal version was old after some change and collide with azure-identity msal dependency
 
-## [5.0.0] 2023-06-27
+## [5.0.0] - 2023-06-27
 ### Fixed
 * Move back to Java 8
 * Update BOM version and msal
