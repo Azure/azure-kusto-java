@@ -156,7 +156,7 @@ class E2ETest {
     }
 
     private static boolean IsManualExecution() {
-        return true;
+        return false;
         // return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
 
