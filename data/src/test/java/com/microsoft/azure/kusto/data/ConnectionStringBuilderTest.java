@@ -119,12 +119,7 @@ class ConnectionStringBuilderTest {
     @DisplayName("validate createWithConnectionStringAuthentication  throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithConnectionStringAuthentication() {
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithConnectionString(null));
-
-        Assertions.assertThrows(IllegalArgumentException.class,
-                () -> ConnectionStringBuilder
-                        .createWithConnectionString(""));
+                () -> new ConnectionStringBuilder(""));
     }
 
     @Test

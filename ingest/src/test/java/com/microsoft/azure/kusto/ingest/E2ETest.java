@@ -156,7 +156,7 @@ class E2ETest {
     }
 
     private static boolean IsManualExecution() {
-        return false;
+        return true;
         // return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
 
@@ -462,8 +462,8 @@ class E2ETest {
     @Test
     void testCreateWithConnectionStringAndUserPrompt() {
         Assumptions.assumeTrue(IsManualExecution());
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithConnectionString("Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";User Prompt Auth=true");
+        ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
+                "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";User ID=" + System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -471,14 +471,6 @@ class E2ETest {
     void testCreateWithDeviceAuthentication() {
         Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
-        assertTrue(canAuthenticate(engineCsb));
-    }
-
-    @Test
-    void testCreateWithConnectionStringDeviceAuthentication() {
-        Assumptions.assumeTrue(IsManualExecution());
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder
-                .createWithConnectionString("Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";Device Prompt Auth=true");
         assertTrue(canAuthenticate(engineCsb));
     }
 
@@ -502,8 +494,8 @@ class E2ETest {
 
     @Test
     void testCreateWithConnectionStringAndAadApplicationCredentials() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithConnectionString(
-                "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";AppClientId=" + appId + ";AppKey=" + appKey + ";Authority=" + tenantId);
+        ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
+                "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";AppClientId=" + appId + ";AppKey=" + appKey + ";Authority ID=" + tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
