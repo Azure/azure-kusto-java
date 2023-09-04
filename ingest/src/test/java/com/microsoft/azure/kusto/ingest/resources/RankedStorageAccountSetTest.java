@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
-
 import com.microsoft.azure.kusto.ingest.MockTimeProvider;
 import com.microsoft.azure.kusto.ingest.utils.RandomProvider;
 import org.junit.jupiter.api.Test;
@@ -20,7 +19,7 @@ class RankedStorageAccountSetTest {
 
     @Test
     public void testShuffledAccountsNoTiers() {
-        int[] ints = new int[]{0};
+        int[] ints = new int[] {0};
 
         RankedStorageAccountSet rankedStorageAccountSet = new RankedStorageAccountSet(
                 6,
@@ -46,7 +45,7 @@ class RankedStorageAccountSetTest {
 
     @Test
     public void testShuffledAccounts() {
-        int[] tiers = new int[]{90, 70, 30, 0};
+        int[] tiers = new int[] {90, 70, 30, 0};
 
         RankedStorageAccountSet rankedStorageAccountSet = new RankedStorageAccountSet(
                 6,
@@ -57,7 +56,7 @@ class RankedStorageAccountSetTest {
 
         int[] values = new int[] {95, 40, 80, 20, 97, 10, 50, 75, 29, 0};
         for (int i = 0; i < values.length; i++) {
-            String name = String.format("%s%d", (char)('a' + i), values[i]);
+            String name = String.format("%s%d", (char) ('a' + i), values[i]);
             rankedStorageAccountSet.addAccount(name);
             for (int j = 0; j < 100; j++) {
                 rankedStorageAccountSet.addResultToAccount(name, j < values[i]);
@@ -83,7 +82,7 @@ class RankedStorageAccountSetTest {
 
     @Test
     public void testShuffledAccountsEmptyTier() {
-        int[] tiers = new int[]{90, 70, 30, 0};
+        int[] tiers = new int[] {90, 70, 30, 0};
 
         RankedStorageAccountSet rankedStorageAccountSet = new RankedStorageAccountSet(
                 6,
@@ -94,7 +93,7 @@ class RankedStorageAccountSetTest {
 
         int[] values = new int[] {95, 40, 20, 97, 10, 50};
         for (int i = 0; i < values.length; i++) {
-            String name = String.format("%s%d", (char)('a' + i), values[i]);
+            String name = String.format("%s%d", (char) ('a' + i), values[i]);
             rankedStorageAccountSet.addAccount(name);
             for (int j = 0; j < 100; j++) {
                 rankedStorageAccountSet.addResultToAccount(name, j < values[i]);

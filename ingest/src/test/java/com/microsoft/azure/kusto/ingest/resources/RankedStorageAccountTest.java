@@ -12,7 +12,7 @@ class RankedStorageAccountTest {
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
         RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
 
-        for(int i = 0; i < 10; i++){
+        for (int i = 0; i < 10; i++) {
             account.addResult(true);
         }
 
@@ -27,7 +27,7 @@ class RankedStorageAccountTest {
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
         RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
 
-        for(int i = 0; i < 10; i++){
+        for (int i = 0; i < 10; i++) {
             account.addResult(false);
         }
 
@@ -43,10 +43,10 @@ class RankedStorageAccountTest {
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
         RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
 
-        for(int i = 0; i < 5; i++){
+        for (int i = 0; i < 5; i++) {
             account.addResult(true);
         }
-        for(int i = 0; i < 5; i++){
+        for (int i = 0; i < 5; i++) {
             account.addResult(false);
         }
 

@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class RankedStorageAccountSet {
     private static final int DEFAULT_BUCKET_COUNT = 6;
     private static final int DEFAULT_BUCKET_DURATION_IN_SEC = 10;
-    private static final int[] DEFAULT_TIERS = new int[]{90, 70, 30, 0};
+    private static final int[] DEFAULT_TIERS = new int[] {90, 70, 30, 0};
 
     public static final TimeProvider DEFAULT_TIME_PROVIDER = new SystemTimeProvider();
     public static final RandomProvider DEFAULT_RANDOM_PROVIDER = new DefaultRandomProvider();
