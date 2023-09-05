@@ -5,7 +5,7 @@ import com.microsoft.azure.kusto.ingest.utils.TimeProvider;
 import java.util.ArrayDeque;
 
 public class RankedStorageAccount {
-    class Bucket {
+    static class Bucket {
         public int successCount;
         public int failureCount;
 
@@ -66,6 +66,10 @@ public class RankedStorageAccount {
     }
 
     public double getRank() {
+        if (buckets.isEmpty()) {
+            return 1;
+        }
+
         int penalty = buckets.size() + 1;
         double rank = 0;
         double totalPenalty = 0;

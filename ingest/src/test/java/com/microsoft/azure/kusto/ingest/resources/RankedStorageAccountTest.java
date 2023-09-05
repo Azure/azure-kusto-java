@@ -7,6 +7,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RankedStorageAccountTest {
     @Test
+    public void testGetRankWithNoData() {
+        // Rationale: To ensure that the getRank method correctly calculates the rank with no data
+        MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+
+        double rank = account.getRank();
+        System.out.println(rank);
+        assertEquals(1, rank, 0.001);
+    }
+    @Test
     public void testGetRankWithAllSuccesses() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with all successes
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
