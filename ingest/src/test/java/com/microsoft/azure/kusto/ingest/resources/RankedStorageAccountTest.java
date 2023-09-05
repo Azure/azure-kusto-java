@@ -16,6 +16,7 @@ class RankedStorageAccountTest {
         System.out.println(rank);
         assertEquals(1, rank, 0.001);
     }
+
     @Test
     public void testGetRankWithAllSuccesses() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with all successes
