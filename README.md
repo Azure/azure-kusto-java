@@ -1,6 +1,7 @@
 # Microsoft Azure Kusto (Azure Data Explorer) SDK for Java
 
 ![Released Version](https://img.shields.io/maven-central/v/com.microsoft.azure.kusto/kusto-ingest.svg)
+[![Project Map](https://sourcespy.com/shield.svg)](https://sourcespy.com/github/azureazurekustojava/)
 
 
 master: [![Build status](https://msazure.visualstudio.com/One/_apis/build/status/Custom/Kusto/azure-kusto-java-sdk%20ci?branchName=master)](https://msazure.visualstudio.com/One/_build/latest?definitionId=57651)
