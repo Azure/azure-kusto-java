@@ -100,7 +100,7 @@ public class KustoResultSetTable {
                 for (int i = 0; i < columnsJson.size(); i++) {
                     JsonNode jsonCol = columnsJson.get(i);
 
-                    // TODO yischoen 2023-09-26 Use CslFormat classes to validate columnType is valid, and that its value ("JsonNode obj" below) is valid for its columnType
+                    // TODO yischoen Use CslFormat classes to validate columnType is valid, and that its value ("JsonNode obj" below) is valid for columnType
                     String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText() : EMPTY_STRING;
                     if (columnType.isEmpty()) {
                         columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
@@ -215,7 +215,12 @@ public class KustoResultSetTable {
     }
 
     public String getString(int columnIndex) {
-        return get(columnIndex).toString();
+        Object obj = get(columnIndex);
+        if (obj == null) {
+            return null;
+        }
+
+        return obj.toString();
     }
 
     public boolean getBoolean(int columnIndex) {

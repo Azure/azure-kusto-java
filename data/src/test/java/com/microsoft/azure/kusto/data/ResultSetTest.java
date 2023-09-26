@@ -33,6 +33,7 @@ public class ResultSetTest {
     private static final int INT_VAL = 1;
     private static final long LONG_VAL = 100000000000L;
     private static final double DOUBLE_VAL = 1.1d;
+    private static final String JSON_VAL = "{\"JsonField1\":\"JsonValue1\",\"JsonField2\":\"JsonValue2\",\"Rows\":[[true,\"str\"]]}";
     private static final short SHORT_VAL = 10;
     private static final float FLOAT_VAL = 15.0f;
     private static final BigDecimal BIGDECIMAL_VAL = new BigDecimal("10.0003214134245341414141314134134101");
@@ -63,7 +64,7 @@ public class ResultSetTest {
 
         ArrayNode rowEmpty = objectMapper.createArrayNode();
         rowEmpty.add(nullObj);
-        rowEmpty.add("");
+        rowEmpty.add(nullObj);
         rowEmpty.add(nullObj);
         rowEmpty.add(nullObj);
         rowEmpty.add(nullObj);
@@ -83,7 +84,7 @@ public class ResultSetTest {
         rowWithValues.add(STR_VAL);
         rowWithValues.add(String.valueOf(NOW_VAL));
         rowWithValues.add(DECIMAL_VAL);
-        rowWithValues.add(objectMapper.createObjectNode());
+        rowWithValues.add(objectMapper.readTree(JSON_VAL));
         rowWithValues.add(String.valueOf(UUID_VAL));
         rowWithValues.add(INT_VAL);
         rowWithValues.add(LONG_VAL);
@@ -94,7 +95,7 @@ public class ResultSetTest {
         rowWithValues.add(FLOAT_VAL);
         rowWithValues.add(DOUBLE_VAL);
         kustoResultSetTableWithValues = new KustoResultSetTable(objectMapper.readTree("{\"" + TABLE_ID_PROPERTY_NAME + "\":\"TableWithValues\"," +
-                "\""  + COLUMNS_PROPERTY_NAME + "\":" + columns + ",\"" + ROWS_PROPERTY_NAME + "\":" +
+                "\"" + COLUMNS_PROPERTY_NAME + "\":" + columns + ",\"" + ROWS_PROPERTY_NAME + "\":" +
                 objectMapper.createArrayNode().add(rowWithValues) + "}"));
         kustoResultSetTableWithValues.first();
     }
@@ -116,12 +117,12 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetString_WhenEmpty_EmptyResult() {
-        assertTrue(kustoResultSetTableEmpty.getString(1).isEmpty());
-        assertTrue(kustoResultSetTableEmpty.getString("b").isEmpty());
+    void TestKustoResultSetString_WhenEmpty_ReturnsNull() {
+        assertNull(kustoResultSetTableEmpty.getString(1));
+        assertNull(kustoResultSetTableEmpty.getString("b"));
 
-        assertArrayEquals("".getBytes(), kustoResultSetTableEmpty.getBytes(1));
-        assertArrayEquals("".getBytes(), kustoResultSetTableEmpty.getBytes("b"));
+        assertNull(kustoResultSetTableEmpty.getBytes(1));
+        assertNull(kustoResultSetTableEmpty.getBytes("b"));
     }
 
     @Test
@@ -137,6 +138,7 @@ public class ResultSetTest {
     void TestKustoResultSetDatetime_WhenEmpty_ReturnsNull() throws SQLException {
         assertNull(kustoResultSetTableEmpty.getTimestamp(2));
         assertNull(kustoResultSetTableEmpty.getTimestamp("c"));
+
         assertNull(kustoResultSetTableEmpty.getKustoDateTime(2));
         assertNull(kustoResultSetTableEmpty.getKustoDateTime("c"));
     }
@@ -193,12 +195,11 @@ public class ResultSetTest {
         assertNull(kustoResultSetTableEmpty.getJSONObject("e"));
     }
 
-// Make more complex
     @Test
-    void TestKustoResultSetDynamic_WhenHasValue_ReturnsValue() {
+    void TestKustoResultSetDynamic_WhenHasValue_ReturnsValue() throws JsonProcessingException {
         ObjectMapper objectMapper = Utils.getObjectMapper();
-        assertEquals(objectMapper.createObjectNode(), kustoResultSetTableWithValues.getJSONObject(4));
-        assertEquals(objectMapper.createObjectNode(), kustoResultSetTableWithValues.getJSONObject("e"));
+        assertEquals(objectMapper.readTree(JSON_VAL), kustoResultSetTableWithValues.getJSONObject(4));
+        assertEquals(objectMapper.readTree(JSON_VAL), kustoResultSetTableWithValues.getJSONObject("e"));
     }
 
     @Test
@@ -341,7 +342,7 @@ public class ResultSetTest {
     }
 
     @Test
-    // Also tests that when the input table has a value that isn't in the mapping, we can reference its ordinal (as opposed to referencing it by column name, per the next test)
+    // Also tests that when input table has a value that isn't in the mapping, we can reference its ordinal (as opposed to by column name, per the next test)
     void TestKustoResultSetByte_WhenHasValue_ReturnsValue() {
         assertEquals(BYTE_VAL, kustoResultSetTableWithValues.getByte(11));
     }
@@ -369,8 +370,7 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnType\": \"bool\" } ]";
 
-        assertThrows(JsonPropertyMissingException.class, () ->
-                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+        assertThrows(JsonPropertyMissingException.class, () -> new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
                 "\"Columns\":" + columns + ",\"Rows\":" +
                 rows + "}")));
     }
@@ -386,10 +386,10 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" } ]";
 
-        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () ->
-                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
-                "\"Columns\":" + columns + ",\"Rows\":" +
-                objectMapper.createArrayNode().add(row) + "}")));
+        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class,
+                () -> new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                        "\"Columns\":" + columns + ",\"Rows\":" +
+                        objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(1, thrownException.getExceptions().size());
         assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
     }
@@ -406,10 +406,10 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" } ]";
 
-        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () ->
-                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
-                "\"Columns\":" + columns + ",\"Rows\":" +
-                objectMapper.createArrayNode().add(row) + "}")));
+        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class,
+                () -> new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                        "\"Columns\":" + columns + ",\"Rows\":" +
+                        objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(2, thrownException.getExceptions().size());
         assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
         assertSame(thrownException.getExceptions().get(1).getClass(), Exception.class);
