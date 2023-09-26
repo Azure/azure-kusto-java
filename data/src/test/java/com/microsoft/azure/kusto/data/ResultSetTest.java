@@ -369,11 +369,10 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnType\": \"bool\" } ]";
 
-        assertThrows(JsonPropertyMissingException.class, () -> {
-            new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
-                    "\"Columns\":" + columns + ",\"Rows\":" +
-                    rows + "}"));
-        });
+        assertThrows(JsonPropertyMissingException.class, () ->
+                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                "\"Columns\":" + columns + ",\"Rows\":" +
+                rows + "}")));
     }
 
     @Test
@@ -387,11 +386,10 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" } ]";
 
-        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () -> {
-            new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
-                    "\"Columns\":" + columns + ",\"Rows\":" +
-                    objectMapper.createArrayNode().add(row) + "}"));
-        });
+        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () ->
+                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                "\"Columns\":" + columns + ",\"Rows\":" +
+                objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(1, thrownException.getExceptions().size());
         assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
     }
@@ -408,11 +406,10 @@ public class ResultSetTest {
 
         String columns = "[ { \"ColumnName\": \"a\", \"ColumnType\": \"bool\" } ]";
 
-        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () -> {
-            new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
-                    "\"Columns\":" + columns + ",\"Rows\":" +
-                    objectMapper.createArrayNode().add(row) + "}"));
-        });
+        KustoServiceQueryError thrownException = assertThrows(KustoServiceQueryError.class, () ->
+                new KustoResultSetTable(objectMapper.readTree("{\"TableName\":\"Table_0\"," +
+                "\"Columns\":" + columns + ",\"Rows\":" +
+                objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(2, thrownException.getExceptions().size());
         assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
         assertSame(thrownException.getExceptions().get(1).getClass(), Exception.class);
