@@ -53,7 +53,7 @@ class KustoDateTimeTest {
                 "\"Columns\":" + columns + ",\"Rows\":" +
                 rows + "}"));
 
-        Integer rowNum = 0;
+        int rowNum = 0;
         while (res.next()) {
             Assertions.assertEquals(
                     LocalDateTime.parse(rows.get(rowNum).get(0).toString(), kustoDateTimeFormatter),

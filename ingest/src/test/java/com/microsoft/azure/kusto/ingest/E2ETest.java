@@ -73,7 +73,7 @@ class E2ETest {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
-    public static void setUp() throws IOException, URISyntaxException {
+    public static void setUp() throws IOException {
         appKey = System.getenv("APP_KEY");
         if (appKey == null) {
             String secretPath = System.getProperty("SecretPath");

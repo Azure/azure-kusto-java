@@ -162,7 +162,7 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void UploadStreamToBlob_NullInputStream_IllegalArgumentException() throws IOException, URISyntaxException {
+    void UploadStreamToBlob_NullInputStream_IllegalArgumentException() {
         BlobContainerClient container = new BlobContainerClientBuilder().endpoint("https://blobPath.blob.core.windows.net/container/blob").buildClient();
         assertThrows(
                 IllegalArgumentException.class,
