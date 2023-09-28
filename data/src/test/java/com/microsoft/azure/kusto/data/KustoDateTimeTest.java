@@ -10,10 +10,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 
-public class KustoDateTimeTest {
-
+class KustoDateTimeTest {
     @Test
-    void KustoResultSet() throws Exception {
+    void kustoResultSet() throws Exception {
         ObjectMapper mapper = Utils.getObjectMapper();
         DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();

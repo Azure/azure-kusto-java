@@ -6,14 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.StreamingClient;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
@@ -26,38 +19,23 @@ import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-
-import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -68,14 +46,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Stream;
 
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 
@@ -97,7 +70,7 @@ class E2ETest {
     private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
-    private ObjectMapper objectMapper = Utils.getObjectMapper();
+    private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
     public static void setUp() throws IOException, URISyntaxException {
@@ -155,7 +128,7 @@ class E2ETest {
         }
     }
 
-    private static boolean IsManualExecution() {
+    private static boolean isManualExecution() {
         return false;
         // return System.getenv("CI_EXECUTION") == null || !System.getenv("CI_EXECUTION").equals("1");
     }
@@ -371,10 +344,10 @@ class E2ETest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void testIngestFromStream(boolean isManaged) throws FileNotFoundException {
+    void testIngestFromStream(boolean isManaged) throws IOException {
         for (TestDataItem item : dataForTests) {
             if (item.file.getPath().endsWith(".gz")) {
-                InputStream stream = new FileInputStream(item.file);
+                InputStream stream = Files.newInputStream(item.file.toPath());
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
 
                 streamSourceInfo.setCompressionType(CompressionType.gz);
@@ -405,10 +378,10 @@ class E2ETest {
     }
 
     @Test
-    void testStreamingIngestFromStream() throws FileNotFoundException {
+    void testStreamingIngestFromStream() throws IOException {
         for (TestDataItem item : dataForTests) {
             if (item.testOnstreamingIngestion && item.ingestionProperties.getIngestionMapping() != null) {
-                InputStream stream = new FileInputStream(item.file);
+                InputStream stream = Files.newInputStream(item.file.toPath());
                 StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
                 if (item.file.getPath().endsWith(".gz")) {
                     streamSourceInfo.setCompressionType(CompressionType.gz);
@@ -453,7 +426,7 @@ class E2ETest {
 
     @Test
     void testCreateWithUserPrompt() {
-        Assumptions.assumeTrue(IsManualExecution());
+        Assumptions.assumeTrue(isManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"), null,
                 System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
@@ -461,7 +434,7 @@ class E2ETest {
 
     @Test
     void testCreateWithDeviceAuthentication() {
-        Assumptions.assumeTrue(IsManualExecution());
+        Assumptions.assumeTrue(isManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
         assertTrue(canAuthenticate(engineCsb));
     }
@@ -653,7 +626,7 @@ class E2ETest {
 
     @Test
     void testNoRedirectsClientFail() {
-        KustoTrustedEndpoints.addTrustedHosts(Arrays.asList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
+        KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
             try (Client client = ClientFactory.createClient(

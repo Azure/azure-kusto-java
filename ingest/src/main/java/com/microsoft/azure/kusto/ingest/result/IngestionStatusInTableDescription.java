@@ -55,7 +55,7 @@ public class IngestionStatusInTableDescription implements Serializable {
     public TableClient getTableClient() {
         if (tableClient == null) {
             try {
-                tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+                tableClient = TableWithSas.tableClientFromUrl(getTableConnectionString(), null);
             } catch (URISyntaxException uriSyntaxException) {
                 log.error("TableConnectionString could not be parsed as URI reference.", uriSyntaxException);
                 return null;

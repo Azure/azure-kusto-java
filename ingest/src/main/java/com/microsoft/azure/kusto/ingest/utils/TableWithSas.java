@@ -14,7 +14,7 @@ public class TableWithSas {
 
     public TableWithSas(String url, @Nullable HttpClient httpClient) throws URISyntaxException {
         this.uri = url;
-        this.table = TableClientFromUrl(url, httpClient);
+        this.table = tableClientFromUrl(url, httpClient);
     }
 
     public String getUri() {
@@ -25,7 +25,7 @@ public class TableWithSas {
         return table;
     }
 
-    public static TableClient TableClientFromUrl(String url, @Nullable HttpClient httpClient) throws URISyntaxException {
+    public static TableClient tableClientFromUrl(String url, @Nullable HttpClient httpClient) throws URISyntaxException {
         String[] parts = UriUtils.getSasAndEndpointFromResourceURL(url);
         int tableNameIndex = parts[0].lastIndexOf('/');
         String tableName = parts[0].substring(tableNameIndex + 1);
