@@ -195,7 +195,7 @@ class StreamingIngestClientTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value={"null,table", "'',table", "database,null", "database,''"}, nullValues={"null"})
+    @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
     void ingestFromBlobStreaming_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
@@ -365,7 +365,7 @@ class StreamingIngestClientTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value={"null,table", "'',table", "database,null", "database,''"}, nullValues={"null"})
+    @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
     void ingestFromFile_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
@@ -472,7 +472,7 @@ class StreamingIngestClientTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value={"null,table", "'',table", "database,null", "database,''"}, nullValues={"null"})
+    @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
     void ingestFromBlob_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         String path = "blobPath";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
@@ -564,7 +564,7 @@ class StreamingIngestClientTest {
     }
 
     @ParameterizedTest
-    @CsvSource(value={"null,table", "'',table", "database,null", "database,''"}, nullValues={"null"})
+    @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
     void ingestFromResultSet_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         ResultSet resultSet = mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
