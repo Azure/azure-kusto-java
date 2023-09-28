@@ -101,7 +101,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetBoolean_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetBoolean_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getBooleanObject(0));
         assertNull(kustoResultSetTableEmpty.getBooleanObject("a"));
         assertThrows(java.lang.NullPointerException.class, () -> kustoResultSetTableEmpty.getBoolean(0));
@@ -109,7 +109,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetBoolean_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetBoolean_WhenHasValue_ReturnsValue() {
         assertTrue(kustoResultSetTableWithValues.getBooleanObject(0));
         assertTrue(kustoResultSetTableWithValues.getBooleanObject("a"));
         assertTrue(kustoResultSetTableWithValues.getBoolean(0));
@@ -117,7 +117,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetString_WhenEmpty_ReturnsNull() {
+    public void testKustoResultSetString_WhenEmpty_ReturnsNull() {
         assertNull(kustoResultSetTableEmpty.getString(1));
         assertNull(kustoResultSetTableEmpty.getString("b"));
 
@@ -126,7 +126,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetString_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetString_WhenHasValue_ReturnsValue() {
         assertEquals(STR_VAL, kustoResultSetTableWithValues.getString(1));
         assertEquals(STR_VAL, kustoResultSetTableWithValues.getString("b"));
 
@@ -135,7 +135,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetDatetime_WhenEmpty_ReturnsNull() throws SQLException {
+    public void testKustoResultSetDatetime_WhenEmpty_ReturnsNull() throws SQLException {
         assertNull(kustoResultSetTableEmpty.getTimestamp(2));
         assertNull(kustoResultSetTableEmpty.getTimestamp("c"));
 
@@ -144,7 +144,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetDatetime_WhenHasValue_ReturnsValue() throws SQLException {
+    public void testKustoResultSetDatetime_WhenHasValue_ReturnsValue() throws SQLException {
         assertEquals(Timestamp.valueOf(NOW_VAL.atZone(ZoneId.of("UTC")).toLocalDateTime()), kustoResultSetTableWithValues.getTimestamp(2));
         assertEquals(Timestamp.valueOf(NOW_VAL.atZone(ZoneId.of("UTC")).toLocalDateTime()), kustoResultSetTableWithValues.getTimestamp("c"));
 
@@ -158,7 +158,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetDecimal_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetDecimal_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getBigDecimal(3));
         assertNull(kustoResultSetTableEmpty.getBigDecimal("d"));
 
@@ -174,7 +174,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetDecimal_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetDecimal_WhenHasValue_ReturnsValue() {
         assertEquals(DECIMAL_VAL, kustoResultSetTableWithValues.getBigDecimal(3));
         assertEquals(DECIMAL_VAL, kustoResultSetTableWithValues.getBigDecimal("d"));
 
@@ -190,32 +190,32 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetDynamic_WhenEmpty_ReturnsNull() {
+    public void testKustoResultSetDynamic_WhenEmpty_ReturnsNull() {
         assertNull(kustoResultSetTableEmpty.getJSONObject(4));
         assertNull(kustoResultSetTableEmpty.getJSONObject("e"));
     }
 
     @Test
-    void TestKustoResultSetDynamic_WhenHasValue_ReturnsValue() throws JsonProcessingException {
+    public void testKustoResultSetDynamic_WhenHasValue_ReturnsValue() throws JsonProcessingException {
         ObjectMapper objectMapper = Utils.getObjectMapper();
         assertEquals(objectMapper.readTree(JSON_VAL), kustoResultSetTableWithValues.getJSONObject(4));
         assertEquals(objectMapper.readTree(JSON_VAL), kustoResultSetTableWithValues.getJSONObject("e"));
     }
 
     @Test
-    void TestKustoResultSetGuid_WhenEmpty_ReturnsNull() {
+    public void testKustoResultSetGuid_WhenEmpty_ReturnsNull() {
         assertNull(kustoResultSetTableEmpty.getUUID(5));
         assertNull(kustoResultSetTableEmpty.getUUID("f"));
     }
 
     @Test
-    void TestKustoResultSetGuid_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetGuid_WhenHasValue_ReturnsValue() {
         assertEquals(UUID_VAL, kustoResultSetTableWithValues.getUUID(5));
         assertEquals(UUID_VAL, kustoResultSetTableWithValues.getUUID("f"));
     }
 
     @Test
-    void TestKustoResultSetInteger_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetInteger_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getIntegerObject(6));
         assertNull(kustoResultSetTableEmpty.getIntegerObject("g"));
         assertThrows(java.lang.NullPointerException.class, () -> kustoResultSetTableEmpty.getInt(6));
@@ -236,7 +236,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetInteger_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetInteger_WhenHasValue_ReturnsValue() {
         assertEquals(INT_VAL, kustoResultSetTableWithValues.getIntegerObject(6));
         assertEquals(INT_VAL, kustoResultSetTableWithValues.getIntegerObject("g"));
         assertEquals(INT_VAL, kustoResultSetTableWithValues.getInt(6));
@@ -257,7 +257,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetLong_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetLong_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getLongObject(7));
         assertNull(kustoResultSetTableEmpty.getLongObject("h"));
         assertThrows(java.lang.NullPointerException.class, () -> kustoResultSetTableEmpty.getLong(7));
@@ -268,7 +268,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetLong_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetLong_WhenHasValue_ReturnsValue() {
         assertEquals(LONG_VAL, kustoResultSetTableWithValues.getLongObject(7));
         assertEquals(LONG_VAL, kustoResultSetTableWithValues.getLong("h"));
 
@@ -277,7 +277,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetReal_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetReal_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getBigDecimal(8));
         assertNull(kustoResultSetTableEmpty.getBigDecimal("i"));
 
@@ -293,7 +293,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetReal_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetReal_WhenHasValue_ReturnsValue() {
         assertEquals(BIGDECIMAL_VAL, kustoResultSetTableWithValues.getBigDecimal(8));
         assertEquals(BIGDECIMAL_VAL, kustoResultSetTableWithValues.getBigDecimal("i"));
 
@@ -309,7 +309,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetTimespan_WhenEmpty_ReturnsNull() throws SQLException {
+    public void testKustoResultSetTimespan_WhenEmpty_ReturnsNull() throws SQLException {
         assertNull(kustoResultSetTableEmpty.getTime(9));
         assertNull(kustoResultSetTableEmpty.getTime("j"));
         assertNull(kustoResultSetTableEmpty.getLocalTime(9));
@@ -317,7 +317,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetTimespan_WhenHasValue_ReturnsValue() throws SQLException {
+    public void testKustoResultSetTimespan_WhenHasValue_ReturnsValue() throws SQLException {
         assertEquals(Time.valueOf(DURATION_AS_KUSTO_STRING_VAL), kustoResultSetTableWithValues.getTime(9));
         assertEquals(Time.valueOf(DURATION_AS_KUSTO_STRING_VAL), kustoResultSetTableWithValues.getTime("j"));
 
@@ -326,7 +326,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetShort_WhenEmpty_ReturnsNullIfObjectOrThrows() {
+    public void testKustoResultSetShort_WhenEmpty_ReturnsNullIfObjectOrThrows() {
         assertNull(kustoResultSetTableEmpty.getShortObject(10));
         assertNull(kustoResultSetTableEmpty.getShortObject("k"));
         assertThrows(java.lang.NullPointerException.class, () -> kustoResultSetTableEmpty.getShort(10));
@@ -334,7 +334,7 @@ public class ResultSetTest {
     }
 
     @Test
-    void TestKustoResultSetShort_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetShort_WhenHasValue_ReturnsValue() {
         assertEquals(SHORT_VAL, kustoResultSetTableWithValues.getShortObject(10));
         assertEquals(SHORT_VAL, kustoResultSetTableWithValues.getShortObject("k"));
         assertEquals(SHORT_VAL, kustoResultSetTableWithValues.getShort(10));
@@ -343,23 +343,23 @@ public class ResultSetTest {
 
     @Test
     // Also tests that when input table has a value that isn't in the mapping, we can reference its ordinal (as opposed to by column name, per the next test)
-    void TestKustoResultSetByte_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetByte_WhenHasValue_ReturnsValue() {
         assertEquals(BYTE_VAL, kustoResultSetTableWithValues.getByte(11));
     }
 
     @Test
-    void TestKustoResultSetByte_WhenHasValueButNotInMappingAndReferenceByOrdinal_Throws() {
+    public void testKustoResultSetByte_WhenHasValueButNotInMappingAndReferenceByOrdinal_Throws() {
         assertThrows(java.lang.NullPointerException.class, () -> kustoResultSetTableWithValues.getByte("l"));
     }
 
     @Test
-    void TestKustoResultSetFloat_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetFloat_WhenHasValue_ReturnsValue() {
         assertEquals(FLOAT_VAL, kustoResultSetTableWithValues.getFloatObject(12));
         assertEquals(FLOAT_VAL, kustoResultSetTableWithValues.getFloat(12));
     }
 
     @Test
-    void TestKustoResultSetDouble_WhenHasValue_ReturnsValue() {
+    public void testKustoResultSetDouble_WhenHasValue_ReturnsValue() {
         assertEquals(BigDecimal.valueOf(DOUBLE_VAL), kustoResultSetTableWithValues.getBigDecimal(13));
     }
 
