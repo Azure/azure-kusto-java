@@ -10,7 +10,7 @@ class RankedStorageAccountTest {
     public void testGetRankWithNoData() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with no data
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         double rank = account.getRank();
         System.out.println(rank);
@@ -21,7 +21,7 @@ class RankedStorageAccountTest {
     public void testGetRankWithAllSuccesses() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with all successes
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         for (int i = 0; i < 10; i++) {
             account.addResult(true);
@@ -36,7 +36,7 @@ class RankedStorageAccountTest {
     public void testGetRankWithAllFailures() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with all failures
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         for (int i = 0; i < 10; i++) {
             account.addResult(false);
@@ -52,7 +52,7 @@ class RankedStorageAccountTest {
     public void testGetRankWithMixedResults() {
         // Rationale: To ensure that the getRank method correctly calculates the rank with mixed results
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         for (int i = 0; i < 5; i++) {
             account.addResult(true);
@@ -70,7 +70,7 @@ class RankedStorageAccountTest {
     public void testNewBucketOverride() {
         // Rationale: To ensure that the new bucket override works as expected
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         account.addResult(false);
         account.addResult(false);
@@ -90,7 +90,7 @@ class RankedStorageAccountTest {
     public void testSkipBucket() {
         // Rationale: To ensure that the skip bucket works as expected
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         account.addResult(false);
         account.addResult(false);
@@ -110,7 +110,7 @@ class RankedStorageAccountTest {
     public void testClearBuckets() {
         // Rationale: To ensure that the clear buckets works as expected
         MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
-        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10, timeProvider);
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         account.addResult(false);
         account.addResult(false);

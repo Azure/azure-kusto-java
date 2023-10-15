@@ -12,21 +12,21 @@ import java.util.stream.Collectors;
 
 public class RankedStorageAccountSet {
     private static final int DEFAULT_BUCKET_COUNT = 6;
-    private static final int DEFAULT_BUCKET_DURATION_IN_SEC = 10;
+    private static final int DEFAULT_BUCKET_DURATION_MILLIS = 10000;
     private static final int[] DEFAULT_TIERS = new int[] {90, 70, 30, 0};
 
     public static final TimeProvider DEFAULT_TIME_PROVIDER = new SystemTimeProvider();
     public static final RandomProvider DEFAULT_RANDOM_PROVIDER = new DefaultRandomProvider();
     private final Map<String, RankedStorageAccount> accounts;
     private final int bucketCount;
-    private final int bucketDurationInSec;
+    private final int bucketDurationMillis;
     private final int[] tiers;
     private final TimeProvider timeProvider;
     private final RandomProvider randomProvider;
 
-    public RankedStorageAccountSet(int bucketCount, int bucketDurationInSec, int[] tiers, TimeProvider timeProvider, RandomProvider randomProvider) {
+    public RankedStorageAccountSet(int bucketCount, int bucketDurationMillis, int[] tiers, TimeProvider timeProvider, RandomProvider randomProvider) {
         this.bucketCount = bucketCount;
-        this.bucketDurationInSec = bucketDurationInSec;
+        this.bucketDurationMillis = bucketDurationMillis;
         this.tiers = tiers;
         this.timeProvider = timeProvider;
         this.randomProvider = randomProvider;
@@ -34,7 +34,7 @@ public class RankedStorageAccountSet {
     }
 
     public RankedStorageAccountSet() {
-        this(DEFAULT_BUCKET_COUNT, DEFAULT_BUCKET_DURATION_IN_SEC, DEFAULT_TIERS, DEFAULT_TIME_PROVIDER, DEFAULT_RANDOM_PROVIDER);
+        this(DEFAULT_BUCKET_COUNT, DEFAULT_BUCKET_DURATION_MILLIS, DEFAULT_TIERS, DEFAULT_TIME_PROVIDER, DEFAULT_RANDOM_PROVIDER);
     }
 
     public void addResultToAccount(String accountName, boolean success) {
@@ -48,7 +48,7 @@ public class RankedStorageAccountSet {
 
     public void addAccount(String accountName) {
         if (!accounts.containsKey(accountName)) {
-            accounts.put(accountName, new RankedStorageAccount(accountName, bucketCount, bucketDurationInSec, timeProvider));
+            accounts.put(accountName, new RankedStorageAccount(accountName, bucketCount, bucketDurationMillis, timeProvider));
         } else {
             throw new IllegalArgumentException("Account " + accountName + " already exists");
         }
