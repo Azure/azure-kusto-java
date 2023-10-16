@@ -153,14 +153,20 @@ public class ConnectionStringBuilder {
         this.applicationNameForTracing = other.applicationNameForTracing;
     }
 
-    // NewConnectionStringBuilder Creates new Kusto ConnectionStringBuilder.
-    // Params takes kusto connection string connStr: string. Kusto connection string should be of the format:
-    // https://<clusterName>.<location>.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
-    // For more information please look at:
-    // https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+    /**
+     * NewConnectionStringBuilder Creates new Kusto ConnectionStringBuilder.
+     * Params takes kusto connection string connStr: string. Kusto connection string should be of the format:
+     * https://<clusterName>.<location>.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * For more information please look at:
+     * https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     */
     public ConnectionStringBuilder(String connectionString) {
         if (StringUtils.isEmpty(connectionString)) {
             throw new IllegalArgumentException("connectionString cannot be null or empty");
+        }
+
+        if (StringUtils.isEmpty(connectionString.trim())) {
+            throw new IllegalArgumentException("connectionString cannot contain only spaces");
         }
 
         String[] connStrArr = connectionString.split(";");

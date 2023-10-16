@@ -116,10 +116,37 @@ class ConnectionStringBuilderTest {
     }
 
     @Test
-    @DisplayName("validate createWithConnectionStringAuthentication  throws IllegalArgumentException exception when missing or invalid parameters")
+    @DisplayName("validate createWithConnectionStringAuthentication which throws IllegalArgumentException exception when missing or invalid parameters")
     void createWithConnectionStringAuthentication() {
+        // An empty connection string should throw an exception
         Assertions.assertThrows(IllegalArgumentException.class,
                 () -> new ConnectionStringBuilder(""));
+        // A connection string with only spaces should throw an exception
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ConnectionStringBuilder("   "));
+        // InvalidKey is not a valid connection string parameter
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;InvalidKey=invalidKey"));
+    }
+
+    @Test
+    @DisplayName("validate createWithConnectionStringAuthentication order in connection string is not important")
+    void testUnexpectedOrderWithConnectionString() {
+        String connectionString = "AppClientId=myclientid;Data Source=mycluster.kusto.windows.net;AppKey=myappkey;";
+        ConnectionStringBuilder builder = new ConnectionStringBuilder(connectionString);
+
+        // Assert that the fields have been set correctly
+        Assertions.assertEquals("mycluster.kusto.windows.net", builder.getClusterUrl());
+    }
+
+    @Test
+    @DisplayName("validate createWithConnectionStringAuthentication with valid connection string")
+    void createValidWithConnectionStringAuthentication() {
+        String connectionString = "Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;";
+        ConnectionStringBuilder builder = new ConnectionStringBuilder(connectionString);
+
+        // Assert that the fields have been set correctly
+        Assertions.assertEquals("mycluster.kusto.windows.net", builder.getClusterUrl());
     }
 
     @Test
