@@ -1,15 +1,40 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
+import com.microsoft.azure.kusto.ingest.utils.DefaultRandomProvider;
+import com.microsoft.azure.kusto.ingest.utils.RandomProvider;
+import com.microsoft.azure.kusto.ingest.utils.SystemTimeProvider;
+import com.microsoft.azure.kusto.ingest.utils.TimeProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class RankedStorageAccountSet {
+    private static final int DEFAULT_BUCKET_COUNT = 6;
+    private static final int DEFAULT_BUCKET_DURATION_MILLIS = 10000;
+    private static final int[] DEFAULT_TIERS = new int[] {90, 70, 30, 0};
+
+    public static final TimeProvider DEFAULT_TIME_PROVIDER = new SystemTimeProvider();
+    public static final RandomProvider DEFAULT_RANDOM_PROVIDER = new DefaultRandomProvider();
     private final Map<String, RankedStorageAccount> accounts;
+    private final int bucketCount;
+    private final int bucketDurationMillis;
+    private final int[] tiers;
+    private final TimeProvider timeProvider;
+    private final RandomProvider randomProvider;
+
+    public RankedStorageAccountSet(int bucketCount, int bucketDurationMillis, int[] tiers, TimeProvider timeProvider, RandomProvider randomProvider) {
+        this.bucketCount = bucketCount;
+        this.bucketDurationMillis = bucketDurationMillis;
+        this.tiers = tiers;
+        this.timeProvider = timeProvider;
+        this.randomProvider = randomProvider;
+        this.accounts = new HashMap<>();
+    }
 
     public RankedStorageAccountSet() {
-        this.accounts = new HashMap<>();
+        this(DEFAULT_BUCKET_COUNT, DEFAULT_BUCKET_DURATION_MILLIS, DEFAULT_TIERS, DEFAULT_TIME_PROVIDER, DEFAULT_RANDOM_PROVIDER);
     }
 
     public void addResultToAccount(String accountName, boolean success) {
@@ -23,7 +48,7 @@ public class RankedStorageAccountSet {
 
     public void addAccount(String accountName) {
         if (!accounts.containsKey(accountName)) {
-            accounts.put(accountName, new RankedStorageAccount(accountName));
+            accounts.put(accountName, new RankedStorageAccount(accountName, bucketCount, bucketDurationMillis, timeProvider));
         } else {
             throw new IllegalArgumentException("Account " + accountName + " already exists");
         }
@@ -44,10 +69,28 @@ public class RankedStorageAccountSet {
 
     @NotNull
     public List<RankedStorageAccount> getRankedShuffledAccounts() {
-        List<RankedStorageAccount> accounts = new ArrayList<>(this.accounts.values());
-        // shuffle accounts
-        Collections.shuffle(accounts);
-        return accounts;
+        List<List<RankedStorageAccount>> tiersList = new ArrayList<>();
+
+        for (int i = 0; i < tiers.length; i++) {
+            tiersList.add(new ArrayList<>());
+        }
+
+        for (RankedStorageAccount account : this.accounts.values()) {
+            double rankPercentage = account.getRank() * 100.0;
+            for (int i = 0; i < tiers.length; i++) {
+                if (rankPercentage >= tiers[i]) {
+                    tiersList.get(i).add(account);
+                    break;
+                }
+            }
+        }
+
+        for (List<RankedStorageAccount> tier : tiersList) {
+            randomProvider.shuffle(tier);
+        }
+
+        // flatten tiers
+        return tiersList.stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
 
 }
