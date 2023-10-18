@@ -154,11 +154,10 @@ public class ConnectionStringBuilder {
     }
 
     /**
-     * NewConnectionStringBuilder Creates new Kusto ConnectionStringBuilder.
-     * Params takes kusto connection string connStr: string. Kusto connection string should be of the format:
-     * https://<clusterName>.<location>.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
-     * For more information please look at:
-     * https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     * Creates a ConnectionStringBuilder from a connection string. For more information please look at: https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     *
+     * @param connectionString The connection string should be of the format: https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
         if (StringUtils.isBlank(connectionString)) {
