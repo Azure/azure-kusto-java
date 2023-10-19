@@ -10,7 +10,9 @@ import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
@@ -37,8 +39,42 @@ public class ConnectionStringBuilder {
     private String applicationNameForTracing;
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
 
-    private ConnectionStringBuilder(String clusterUrl) {
-        this.clusterUrl = clusterUrl;
+    private static final Map<String, ConnectionStringKeyword> stringKeywordMap = new HashMap<>();
+
+    static {
+        stringKeywordMap.put("Data Source".toLowerCase(), ConnectionStringKeyword.DataSource);
+        stringKeywordMap.put("Addr".toLowerCase(), ConnectionStringKeyword.DataSource);
+        stringKeywordMap.put("Address".toLowerCase(), ConnectionStringKeyword.DataSource);
+        stringKeywordMap.put("Network Address".toLowerCase(), ConnectionStringKeyword.DataSource);
+        stringKeywordMap.put("Server".toLowerCase(), ConnectionStringKeyword.DataSource);
+
+        // used for user prompt authentication
+        stringKeywordMap.put("User ID".toLowerCase(), ConnectionStringKeyword.UsernameHint);
+        stringKeywordMap.put("UID".toLowerCase(), ConnectionStringKeyword.UsernameHint);
+        stringKeywordMap.put("User".toLowerCase(), ConnectionStringKeyword.UsernameHint);
+
+        stringKeywordMap.put("Authority ID".toLowerCase(), ConnectionStringKeyword.AuthorityId);
+        stringKeywordMap.put("TenantId".toLowerCase(), ConnectionStringKeyword.AuthorityId);
+
+        stringKeywordMap.put("Application Client Id".toLowerCase(), ConnectionStringKeyword.ApplicationClientId);
+        stringKeywordMap.put("AppClientId".toLowerCase(), ConnectionStringKeyword.ApplicationClientId);
+
+        stringKeywordMap.put("Application Key".toLowerCase(), ConnectionStringKeyword.ApplicationKey);
+        stringKeywordMap.put("AppKey".toLowerCase(), ConnectionStringKeyword.ApplicationKey);
+
+        stringKeywordMap.put("User Token".toLowerCase(), ConnectionStringKeyword.UserToken);
+        stringKeywordMap.put("UserToken".toLowerCase(), ConnectionStringKeyword.UserToken);
+        stringKeywordMap.put("UsrToken".toLowerCase(), ConnectionStringKeyword.UserToken);
+
+        stringKeywordMap.put("Application Name for Tracing".toLowerCase(), ConnectionStringKeyword.ApplicationNameForTracing);
+
+        stringKeywordMap.put("User Name for Tracing".toLowerCase(), ConnectionStringKeyword.UserNameForTracing);
+
+        stringKeywordMap.put("Client Version for Tracing".toLowerCase(), ConnectionStringKeyword.ClientVersionForTracing);
+    }
+
+    private ConnectionStringBuilder() {
+        this.clusterUrl = null;
         this.usernameHint = null;
         this.applicationClientId = null;
         this.applicationKey = null;
@@ -55,6 +91,46 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.appendedClientVersionForTracing = null;
         this.applicationNameForTracing = null;
+    }
+
+    private void assignValue(String rawKey, String value) {
+        rawKey = rawKey.trim().toLowerCase();
+        ConnectionStringKeyword parsedKey = stringKeywordMap.get(rawKey);
+        if (parsedKey == null) {
+            throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
+        }
+        switch (parsedKey) {
+            case DataSource:
+                this.clusterUrl = value;
+                break;
+            case ApplicationClientId:
+                this.applicationClientId = value;
+                break;
+            case ApplicationKey:
+                this.applicationKey = value;
+                break;
+            case AuthorityId:
+                this.aadAuthorityId = value;
+                break;
+            case ApplicationNameForTracing:
+                this.applicationNameForTracing = value;
+                break;
+            case UserNameForTracing:
+                this.userNameForTracing = value;
+                break;
+            case ClientVersionForTracing:
+                this.appendedClientVersionForTracing = value;
+                break;
+            case UsernameHint:
+                this.usernameHint = value;
+                this.useUserPromptAuth = true;
+                break;
+            case UserToken:
+                this.accessToken = value;
+                break;
+            default:
+                throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
+        }
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -75,6 +151,35 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = other.userNameForTracing;
         this.appendedClientVersionForTracing = other.appendedClientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
+    }
+
+    /**
+     * Creates a ConnectionStringBuilder from a connection string. For more information please look at: https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     *
+     * @param connectionString The connection string should be of the format: https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * @throws IllegalArgumentException If the connection string is invalid.
+     */
+    public ConnectionStringBuilder(String connectionString) {
+        if (StringUtils.isBlank(connectionString)) {
+            throw new IllegalArgumentException("connectionString cannot be null or empty");
+        }
+
+        String[] connStrArr = connectionString.split(";");
+        if (!connStrArr[0].contains("=")) {
+            connStrArr[0] = "Data Source=" + connStrArr[0];
+        }
+
+        for (String kvp : connStrArr) {
+            kvp = kvp.trim();
+            if (StringUtils.isEmpty(kvp)) {
+                continue;
+            }
+            String[] kvpArr = kvp.split("=");
+            String val = kvpArr[1].trim();
+            if (!StringUtils.isEmpty(val)) {
+                assignValue(kvpArr[0], val);
+            }
+        }
     }
 
     public String getClusterUrl() {
@@ -215,7 +320,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("applicationKey cannot be null or empty");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.applicationClientId = applicationClientId;
         csb.applicationKey = applicationKey;
         csb.aadAuthorityId = authorityId;
@@ -235,7 +341,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.aadAuthorityId = authorityId;
         csb.usernameHint = usernameHint;
         csb.useUserPromptAuth = true;
@@ -251,7 +358,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.aadAuthorityId = authorityId;
         csb.useDeviceCodeAuth = true;
         return csb;
@@ -282,7 +390,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.applicationClientId = applicationClientId;
         csb.x509Certificate = x509Certificate;
         csb.privateKey = privateKey;
@@ -315,7 +424,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("privateKey cannot be null");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.applicationClientId = applicationClientId;
         csb.x509CertificateChain = x509CertificateChain;
         csb.privateKey = privateKey;
@@ -331,7 +441,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("token cannot be null or empty");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.accessToken = token;
         return csb;
     }
@@ -345,7 +456,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("tokenProviderCallback cannot be null");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.tokenProvider = tokenProviderCallable;
         return csb;
     }
@@ -359,7 +471,8 @@ public class ConnectionStringBuilder {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
 
-        ConnectionStringBuilder csb = new ConnectionStringBuilder(clusterUrl);
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
         csb.managedIdentityClientId = managedIdentityClientId;
         csb.useManagedIdentityAuth = true;
         return csb;
@@ -382,5 +495,19 @@ public class ConnectionStringBuilder {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();
+    }
+
+    enum ConnectionStringKeyword {
+        DataSource,
+        UsernameHint,
+        UseDeviceCodeAuth,
+        TokenProvider,
+        ApplicationClientId,
+        ApplicationKey,
+        UserToken,
+        AuthorityId,
+        ApplicationNameForTracing,
+        UserNameForTracing,
+        ClientVersionForTracing
     }
 }

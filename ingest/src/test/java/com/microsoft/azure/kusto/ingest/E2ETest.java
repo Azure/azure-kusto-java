@@ -460,6 +460,14 @@ class E2ETest {
     }
 
     @Test
+    void testCreateWithConnectionStringAndUserPrompt() {
+        Assumptions.assumeTrue(IsManualExecution());
+        ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
+                "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";User ID=" + System.getenv("USERNAME_HINT"));
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
     void testCreateWithDeviceAuthentication() {
         Assumptions.assumeTrue(IsManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithDeviceCode(System.getenv("ENGINE_CONNECTION_STRING"), null);
@@ -481,6 +489,13 @@ class E2ETest {
     void testCreateWithAadApplicationCredentials() {
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
                 appKey, tenantId);
+        assertTrue(canAuthenticate(engineCsb));
+    }
+
+    @Test
+    void testCreateWithConnectionStringAndAadApplicationCredentials() {
+        ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
+                "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";AppClientId=" + appId + ";AppKey=" + appKey + ";Authority ID=" + tenantId);
         assertTrue(canAuthenticate(engineCsb));
     }
 
