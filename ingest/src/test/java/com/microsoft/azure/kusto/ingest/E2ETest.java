@@ -434,7 +434,7 @@ class E2ETest {
 
     @Test
     void testCreateWithConnectionStringAndUserPrompt() {
-        Assumptions.assumeTrue(IsManualExecution());
+        Assumptions.assumeTrue(isManualExecution());
         ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
                 "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";User ID=" + System.getenv("USERNAME_HINT"));
         assertTrue(canAuthenticate(engineCsb));
