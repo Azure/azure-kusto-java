@@ -40,13 +40,13 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
         MonitoredActivity.invoke((SupplierOneException<Void, KustoServiceQueryError>) () -> {
-            KustoOperationResultImpl(response, version);
+            kustoOperationResultImpl(response, version);
             return null;
         }, "KustoOperationResult.createFromResponse");
         it = resultTables.iterator();
     }
 
-    private void KustoOperationResultImpl(String response, String version) throws KustoServiceQueryError {
+    private void kustoOperationResultImpl(String response, String version) throws KustoServiceQueryError {
         if (version.contains("v2")) {
             createFromV2Response(response);
         } else {
@@ -89,7 +89,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                 throw new JsonPropertyMissingException("Tables Property missing from V1 response json");
             }
         } catch (JsonProcessingException | JsonPropertyMissingException e) {
-            log.error("Json processing error occured while parsing string to json with exception", e);
+            log.error("Json processing error occurred while parsing string to json with exception", e);
             throw new KustoServiceQueryError("Json processing error occurred while parsing string to json with exception " + e.getMessage());
         }
 
@@ -129,7 +129,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                 throw new JsonPropertyMissingException("There is no array in the response which can be parsed");
             }
         } catch (JsonProcessingException | JsonPropertyMissingException jsonException) {
-            log.error("Json processing error occured while parsing string to json with exception", jsonException);
+            log.error("Json processing error occurred while parsing string to json with exception", jsonException);
             throw new KustoServiceQueryError(
                     "Json processing error occurred while parsing string to json with exception " + jsonException.getMessage());
         } catch (NullPointerException nullPointerException) {

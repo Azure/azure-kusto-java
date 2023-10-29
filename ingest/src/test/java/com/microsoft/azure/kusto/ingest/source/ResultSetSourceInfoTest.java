@@ -14,10 +14,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ResultSetSourceInfoTest {
-
     @Test
     @DisplayName("test set/get resultset")
-    void ResultSet_GetSet_Success() {
+    void resultSet_GetSet_Success() {
         ResultSet mockResultSet = Mockito.mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(mockResultSet);
 
@@ -32,7 +31,7 @@ class ResultSetSourceInfoTest {
 
     @Test
     @DisplayName("test new object with null resultset")
-    void Constructor_NullResultSet_Exception() {
+    void constructor_NullResultSet_Exception() {
         assertThrows(NullPointerException.class, () -> new ResultSetSourceInfo(null));
     }
 
@@ -46,5 +45,4 @@ class ResultSetSourceInfoTest {
 
         Assertions.assertTrue(resultSetSourceInfo.toString().contains(uuid.toString()));
     }
-
 }

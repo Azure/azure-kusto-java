@@ -24,13 +24,13 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void WhenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenClose_ThenInnerStreamIsNotClosed() throws IOException {
         stream.close();
         verify(stream.getInnerStream(), never()).close();
     }
 
     @Test
-    void WhenReadThenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenReadThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
         byte[] buffer = new byte[amount];
         int read = stream.read(buffer);
@@ -52,7 +52,7 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void WhenSkipThenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenSkipThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
 
         int skipped = (int) stream.skip(amount);
@@ -73,7 +73,7 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void WhenAvailableThenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenAvailableThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int total = bytes.length;
 
         assertEquals(total, stream.available());
@@ -98,7 +98,7 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void WhenResetThenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenResetThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
         byte[] buffer = new byte[amount];
         int read = stream.read(buffer);
@@ -122,7 +122,7 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void WheMarkThenClose_ThenInnerStreamIsNotClosed() throws IOException {
+    void whenMarkThenClose_ThenInnerStreamIsNotClosed() throws IOException {
         int amount = 3;
         byte[] buffer = new byte[amount];
         int read = stream.read(buffer);
@@ -148,7 +148,7 @@ class UncloseableStreamTest {
     }
 
     @Test
-    void TestMarkSupported_MatchesInnerMarkSupported() throws IOException {
+    void testMarkSupported_MatchesInnerMarkSupported() throws IOException {
         assertEquals(stream.markSupported(), stream.getInnerStream().markSupported());
         stream.close();
         assertEquals(stream.markSupported(), stream.getInnerStream().markSupported());

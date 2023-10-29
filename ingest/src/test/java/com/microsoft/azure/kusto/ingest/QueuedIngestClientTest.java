@@ -11,12 +11,8 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
+import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,9 +22,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Collections;
@@ -36,22 +32,9 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class QueuedIngestClientTest {
-
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     public static final String ACCOUNT_NAME = "someaccount";
@@ -90,23 +73,23 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(result.getIngestionStatusCollection().get(0).status, OperationStatus.Queued);
+        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertNotEquals(result.getIngestionStatusesLength(), 0);
+        assertNotEquals(0, result.getIngestionStatusesLength());
     }
 
     @Test
-    void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromBlob_NullIngestionProperties_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -114,14 +97,14 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
+    void ingestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromBlob(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                 "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
                 100);
@@ -136,7 +119,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionIgnoreFirstRecord_SetsProperty() throws Exception {
+    void ingestFromBlob_IngestionIgnoreFirstRecord_SetsProperty() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                 "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
                 100);
@@ -155,7 +138,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_ValidationPolicy_SetsProperly() throws Exception {
+    void ingestFromBlob_ValidationPolicy_SetsProperly() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                 "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
                 100);
@@ -185,7 +168,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromFile_NullIngestionProperties_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -193,14 +176,14 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_NullFileSourceInfo_IllegalArgumentException() {
+    void ingestFromFile_NullFileSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromFile(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromFile_FileDoesNotExist_IngestionClientException() {
+    void ingestFromFile_FileDoesNotExist_IngestionClientException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IngestionClientException.class,
@@ -208,8 +191,8 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_UploadStreamToBlobIsCalled() throws Exception {
-        InputStream stream = new FileInputStream(testFilePath);
+    void ingestFromStream_UploadStreamToBlobIsCalled() throws Exception {
+        InputStream stream = Files.newInputStream(Paths.get(testFilePath));
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         verify(azureStorageClientMock, atLeastOnce())
@@ -217,7 +200,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromStream_NullIngestionProperties_IllegalArgumentException() {
         StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
@@ -225,14 +208,14 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
+    void ingestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromStream(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
         ResultSetSourceInfo resultSetSourceInfo = mock(ResultSetSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
@@ -240,14 +223,14 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
+    void ingestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromResultSet(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
+    void ingestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
         IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
@@ -265,7 +248,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
+    void ingestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
         IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
@@ -283,7 +266,7 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
+    void ingestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
         IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
         // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
         IngestClient ingestClientSpy = spy(ingestClient);
@@ -323,8 +306,7 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void AutoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
-
+    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
@@ -346,8 +328,7 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void AutoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
-
+    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
