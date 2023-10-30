@@ -41,11 +41,17 @@ public class RankedStorageAccount {
 
     private Bucket adjustForTimePassed() {
         if (buckets.isEmpty()) {
-            buckets.push(new Bucket());
+            Bucket b = new Bucket();
+            buckets.push(b);
+            lastActionTimestamp = timeProvider.currentTimeMillis();
+            return b;
         }
 
         long timePassed = timeProvider.currentTimeMillis() - lastActionTimestamp;
         long bucketsToCreate = timePassed / bucketDurationMillis;
+        if (bucketsToCreate == 0) {
+            return buckets.peek();
+        }
 
         if (bucketsToCreate >= maxNumberOfBuckets) {
             buckets.clear();
