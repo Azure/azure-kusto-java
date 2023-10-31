@@ -13,31 +13,6 @@
         <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
         <connection>scm:git:https://github.com/Azure/azure-kusto-java</connection>
     </scm>
-    <repositories>
-        <repository>
-            <id>SynapseMaven</id>
-            <url>https://pkgs.dev.azure.com/msdata/A365/_packaging/SynapseMaven/maven/v1</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    <distributionManagement>
-        <downloadUrl>https://github.com/Azure/azure-kusto-java/releases</downloadUrl>
-        <repository>
-            <id>SynapseMaven</id>
-            <url>https://pkgs.dev.azure.com/msdata/A365/_packaging/SynapseMaven/maven/v1</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>        
-    </distributionManagement>
     <licenses>
         <license>
             <name>MIT License</name>
