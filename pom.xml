@@ -13,8 +13,30 @@
         <url>scm:git:https://github.com/Azure/azure-kusto-java</url>
         <connection>scm:git:https://github.com/Azure/azure-kusto-java</connection>
     </scm>
+    <repositories>
+        <repository>
+            <id>SynapseMaven</id>
+            <url>https://pkgs.dev.azure.com/msdata/A365/_packaging/SynapseMaven/maven/v1</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
     <distributionManagement>
         <downloadUrl>https://github.com/Azure/azure-kusto-java/releases</downloadUrl>
+        <repository>
+            <id>SynapseMaven</id>
+            <url>https://pkgs.dev.azure.com/msdata/A365/_packaging/SynapseMaven/maven/v1</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>        
     </distributionManagement>
     <licenses>
         <license>
@@ -32,7 +54,7 @@
     </developers>
 
     <properties>
-        <revision>3.2.1</revision> <!-- CHANGE THIS and in quickstart's pom to adjust project version-->
+        <revision>3.2.1-Synapse</revision> <!-- CHANGE THIS and in quickstart's pom to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
@@ -118,4 +140,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
