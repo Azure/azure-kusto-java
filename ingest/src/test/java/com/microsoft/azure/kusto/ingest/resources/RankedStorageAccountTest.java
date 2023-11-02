@@ -13,7 +13,6 @@ class RankedStorageAccountTest {
         RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(1, rank, 0.001);
     }
 
@@ -28,7 +27,6 @@ class RankedStorageAccountTest {
         }
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(1.0, rank, 0.001);
     }
 
@@ -43,7 +41,6 @@ class RankedStorageAccountTest {
         }
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.0, rank, 0.001);
     }
 
@@ -62,7 +59,6 @@ class RankedStorageAccountTest {
         }
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.5, rank, 0.001);
     }
 
@@ -76,13 +72,11 @@ class RankedStorageAccountTest {
         account.addResult(false);
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.0, rank, 0.001);
 
         timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 11000);
         account.addResult(true);
         rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.6, rank, 0.001); // it would be 0.333 without the override
     }
 
@@ -96,14 +90,36 @@ class RankedStorageAccountTest {
         account.addResult(false);
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.0, rank, 0.001);
 
         timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 21000);
         account.addResult(true);
         rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.666, rank, 0.001); // it would be 0.5 without the override
+    }
+
+    @Test
+    public void testMultipleSmallDeltas() {
+        // Rationale: To ensure that the multiple small deltas works as expected
+        MockTimeProvider timeProvider = new MockTimeProvider(System.currentTimeMillis());
+        RankedStorageAccount account = new RankedStorageAccount("testAccount", 5, 10000, timeProvider);
+
+        account.addResult(false);
+
+        assertEquals(0.0, account.getRank(), 0.001);
+
+        timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 4000);
+        account.addResult(true);
+        assertEquals(0.5, account.getRank(), 0.001);
+
+        timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 4000);
+        account.addResult(true);
+        assertEquals(0.666, account.getRank(), 0.001);
+
+        // at this point, we should switch to a new bucket
+        timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 4000);
+        account.addResult(false);
+        assertEquals(0.266, account.getRank(), 0.001); // it would be 0.5 without the override
     }
 
     @Test
@@ -116,13 +132,11 @@ class RankedStorageAccountTest {
         account.addResult(false);
 
         double rank = account.getRank();
-        System.out.println(rank);
         assertEquals(0.0, rank, 0.001);
 
         timeProvider.setCurrentTimeMillis(timeProvider.currentTimeMillis() + 51000);
         account.addResult(true);
         rank = account.getRank();
-        System.out.println(rank);
         assertEquals(1.0, rank, 0.001); // it would be 0.5 without the override
     }
 }
