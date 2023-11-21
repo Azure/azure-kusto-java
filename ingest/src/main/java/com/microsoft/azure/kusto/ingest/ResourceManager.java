@@ -94,7 +94,6 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         closeTimer.purge();
     }
 
-
     private void init() {
         class RefreshIngestionResourcesTask extends TimerTask {
             @Override

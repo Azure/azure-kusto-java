@@ -11,7 +11,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 
 public class KustoDateTimeTest {
-
     @Test
     void kustoResultSet() throws Exception {
         ObjectMapper mapper = Utils.getObjectMapper();

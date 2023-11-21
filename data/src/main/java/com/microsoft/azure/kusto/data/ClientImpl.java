@@ -365,7 +365,8 @@ class ClientImpl implements Client, StreamingClient {
         }
         // trace httpCall
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> HttpPostUtils.postToStreamingOutput(httpClient, clusterEndpoint,
+                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> HttpPostUtils.postToStreamingOutput(httpClient,
+                        clusterEndpoint,
                         jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
     }

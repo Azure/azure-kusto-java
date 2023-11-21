@@ -15,7 +15,6 @@ import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.net.ConnectException;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -34,20 +33,26 @@ public class Utils {
     public static ObjectMapper getObjectMapper() {
         return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
                 DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
-                JsonNodeFactory.withExactBigDecimals(true));
+                        JsonNodeFactory.withExactBigDecimals(true));
     }
 
-    private static final HashSet<Class<? extends IOException>> nonRetriableClasses = new HashSet<Class<? extends IOException>>() {{
-        add(InterruptedIOException.class);
-        add(UnknownHostException.class);
-        add(NoRouteToHostException.class);
-        add(SSLException.class);
-    }};
+    private static final HashSet<Class<? extends IOException>> nonRetriableClasses = new HashSet<Class<? extends IOException>>() {
+        {
+            add(InterruptedIOException.class);
+            add(UnknownHostException.class);
+            add(NoRouteToHostException.class);
+            add(SSLException.class);
+        }
+    };
 
     static private final IntervalFunction sleepConfig = IntervalFunction.ofExponentialRandomBackoff(BASE_INTERVAL,
             IntervalFunction.DEFAULT_MULTIPLIER,
             IntervalFunction.DEFAULT_RANDOMIZATION_FACTOR,
             MAX_RETRY_INTERVAL);
+
+    private Utils() {
+        // Hide constructor, as this is a static utility class
+    }
 
     public static String getPackageVersion() {
         try {
@@ -79,7 +84,7 @@ public class Utils {
         return seconds < 0 ? "-" + positive : positive;
     }
 
-    public static boolean isRetriableIOException(IOException ex){
+    public static boolean isRetriableIOException(IOException ex) {
         return !nonRetriableClasses.contains(ex.getClass()) &&
                 ex.getMessage().contains("timed out");
 

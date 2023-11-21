@@ -95,7 +95,7 @@ public class HttpPostUtils {
     }
 
     public static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers,
-                                             int redirectCount)
+            int redirectCount)
             throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);

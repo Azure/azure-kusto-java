@@ -88,7 +88,8 @@ class UtilitiesTest {
                 "                \"@permanent\": true\n" +
                 "            }}";
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), OneApiError);
+        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                OneApiError);
         Assertions.assertEquals("Query execution has exceeded the allowed limits (80DA0003): ., ActivityId='1234'", error.getMessage());
         Assertions.assertTrue(error.getCause() instanceof DataWebException);
         Assertions.assertTrue(error.isPermanent());
@@ -100,7 +101,8 @@ class UtilitiesTest {
     void createExceptionFromMessageError() {
         String errorMessage = "{\"message\": \"Test Error Message\"}";
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), errorMessage);
+        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                errorMessage);
         Assertions.assertEquals("Test Error Message, ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
@@ -111,7 +113,8 @@ class UtilitiesTest {
     void createExceptionFromBadJson() {
         String errorMessage = "\"message\": \"Test Error Message\"";
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), errorMessage);
+        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                errorMessage);
         Assertions.assertEquals("\"message\": \"Test Error Message\", ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
@@ -122,7 +125,8 @@ class UtilitiesTest {
     void createExceptionFromOtherJson() {
         String errorMessage = "{\"response\": \"Test Error Message\"}";
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), errorMessage);
+        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                errorMessage);
         Assertions.assertEquals("{\"response\": \"Test Error Message\"}, ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
@@ -133,7 +137,8 @@ class UtilitiesTest {
     void createExceptionFromBlankErrorMessage() {
         String errorMessage = " ";
         BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), errorMessage);
+        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                errorMessage);
         Assertions.assertEquals("Http StatusCode='http/1.1 401 Some Error', ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
@@ -158,10 +163,10 @@ class UtilitiesTest {
         IOException e = new UnknownHostException("Doesnt exist");
         Assertions.assertFalse(Utils.isRetriableIOException(e));
 
-        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection refused"),null);
+        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection refused"), null);
         Assertions.assertFalse(Utils.isRetriableIOException(e));
 
-        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection timed out"),null);
+        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection timed out"), null);
         Assertions.assertTrue(Utils.isRetriableIOException(e));
     }
 

@@ -42,16 +42,6 @@ public class HttpClientFactory {
 
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
-            final ConnectionKeepAliveStrategy keepAliveStrategy2 = (response, context) -> {
-                String header = response.getFirstHeader("Keep-Alive").getValue();
-                if (header == null) {
-                    header = response.getFirstHeader("Connection").getValue();
-                }
-                if (header != null && header.equalsIgnoreCase("keep-alive")) {
-                    return 30 * 1000; // keep the connection alive for 30 seconds
-                }
-                return -1; // close the connection otherwise
-            };
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
