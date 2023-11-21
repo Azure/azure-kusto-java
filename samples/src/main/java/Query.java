@@ -31,7 +31,7 @@ public class Query {
 
             Client client = ClientFactory.createClient(csb, properties);
 
-            KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
+            KustoOperationResult results = client.execute(".show version");
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 

@@ -15,7 +15,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.UncloseableStream;
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;

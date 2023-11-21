@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;

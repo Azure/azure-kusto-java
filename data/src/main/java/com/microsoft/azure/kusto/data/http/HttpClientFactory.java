@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data.http;
 
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;

@@ -1,9 +1,10 @@
-package com.microsoft.azure.kusto.data.http;
+package com.microsoft.azure.kusto.data;
 
 import org.apache.http.HttpHost;
 
 /**
  * HTTP client properties.
+ * TODO: move to http package on next major
  */
 public class HttpClientProperties {
     private final Integer maxIdleTime;
