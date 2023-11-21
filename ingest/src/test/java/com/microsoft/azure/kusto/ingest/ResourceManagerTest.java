@@ -41,8 +41,6 @@ class ResourceManagerTest {
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
     private static ResourceManager resourceManager;
 
-    private static int ACCOUNTS_COUNT = 10;
-
     @BeforeAll
     static void setUp() throws DataClientException, DataServiceException {
         // Using answer so that we get a new result set with reset iterator
@@ -52,6 +50,7 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
+        int ACCOUNTS_COUNT = 10;
         for (int i = 0; i < ACCOUNTS_COUNT; i++) {
             for (int j = 0; j < i; j++) { // different number of containers per account
                 STORAGES.add(TestUtils.containerWithSasFromAccountNameAndContainerName("storage_" + i, "container_" + i + "_" + j));
@@ -101,12 +100,12 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
+    void getIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
         assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
     }
 
     @Test
-    void GetIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void getIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
         List<ContainerWithSas> storages = resourceManager.getShuffledContainers();
 
         Pattern pattern = Pattern.compile("container_(\\d+)_(\\d+)");
@@ -134,7 +133,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_AggregationQueue_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void getIngestionResource_AggregationQueue_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
         List<QueueWithSas> queues = resourceManager.getShuffledQueues();
 
         Pattern pattern = Pattern.compile("queue_(\\d+)_(\\d+)");
@@ -162,7 +161,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_StatusTable_ReturnCorrectTable()
+    void getIngestionResource_StatusTable_ReturnCorrectTable()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 STATUS_TABLE_RES.getUri(),
@@ -170,7 +169,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
+    void getIngestionResource_FailedIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 FAILED_QUEUE_RES.getEndpoint(),
@@ -178,7 +177,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void GetIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
+    void getIngestionResource_SuccessfulIngestionQueue_ReturnCorrectQueue()
             throws IngestionServiceException, IngestionClientException {
         assertEquals(
                 SUCCESS_QUEUE_RES.getEndpoint(),

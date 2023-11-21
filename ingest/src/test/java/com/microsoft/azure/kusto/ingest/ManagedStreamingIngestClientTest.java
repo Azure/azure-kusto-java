@@ -18,7 +18,6 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -123,7 +122,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob",
                 MAX_STREAMING_SIZE_BYTES + 1);
         IngestionResult result = managedStreamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -131,7 +130,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -140,7 +139,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromBlob_NullIngestionProperties_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -148,14 +147,14 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
+    void ingestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> managedStreamingIngestClient.ingestFromBlob(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
+    void ingestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
                 "http://blobPath.blob.core.windows.net/container/blob",
                 MAX_STREAMING_SIZE_BYTES + 1);
@@ -171,7 +170,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromFile_NullIngestionProperties_IllegalArgumentException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IllegalArgumentException.class,
@@ -179,14 +178,14 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_NullFileSourceInfo_IllegalArgumentException() {
+    void ingestFromFile_NullFileSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> managedStreamingIngestClient.ingestFromFile(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromFile_FileDoesNotExist_IngestionClientException() {
+    void ingestFromFile_FileDoesNotExist_IngestionClientException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
         assertThrows(
                 IngestionClientException.class,
@@ -194,7 +193,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromStream_NullIngestionProperties_IllegalArgumentException() {
         StreamSourceInfo streamSourceInfo = mock(StreamSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
@@ -202,14 +201,14 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
+    void ingestFromStream_NullStreamSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> managedStreamingIngestClient.ingestFromStream(null, ingestionProperties));
     }
 
     @Test
-    void IngestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
         ResultSetSourceInfo resultSetSourceInfo = mock(ResultSetSourceInfo.class);
         assertThrows(
                 IllegalArgumentException.class,
@@ -217,7 +216,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
+    void ingestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> managedStreamingIngestClient.ingestFromResultSet(null, ingestionProperties));
@@ -226,7 +225,7 @@ class ManagedStreamingIngestClientTest {
     // Since, like streamingClient, managedStreamingClient forwards everything to the IngestFromStream methods we can use similar tests
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void IngestFromFile_Csv(boolean useSourceId) throws Exception {
+    void ingestFromFile_Csv(boolean useSourceId) throws Exception {
         UUID sourceId = useSourceId ? CustomUUID : null;
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
@@ -241,7 +240,7 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void IngestFromResultSet(boolean useSourceId) throws Exception {
+    void ingestFromResultSet(boolean useSourceId) throws Exception {
         UUID sourceId = useSourceId ? CustomUUID : null;
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         ResultSet resultSet = mock(ResultSet.class);
@@ -271,7 +270,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_Json() throws Exception {
+    void ingestFromFile_Json() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
@@ -288,7 +287,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_CompressedJson() throws Exception {
+    void ingestFromFile_CompressedJson() throws Exception {
         String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
         String path = resourcesDirectory + "testdata.json.gz";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
@@ -346,7 +345,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromFile_Fail() throws Exception {
+    void ingestFromFile_Fail() throws Exception {
         try {
             // It's an array so we can safely modify it in the lambda
             final int[] times = {0};
@@ -372,7 +371,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_FailStreaming() throws Exception {
+    void ingestFromStream_FailStreaming() throws Exception {
         try {
             // It's an array, so we can safely modify it in the lambda
             final int[] times = {0};
@@ -398,9 +397,9 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @CsvSource({"true,true", "false,true", "true,false", "false,false"})
-    void IngestFromStream_FailFewTimes(boolean leaveOpen, boolean useSourceId) throws Exception {
+    void ingestFromStream_FailFewTimes(boolean leaveOpen, boolean useSourceId) throws Exception {
         int failCount = 2;
-        // It's an array so we can safely modify it in the lambda
+        // It's an array, so we can safely modify it in the lambda
         final int[] times = {0};
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new CloseableByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
@@ -444,10 +443,10 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @CsvSource({"true,true", "false,true", "true,false", "false,false"})
-    void IngestFromStream_FailTransientException(boolean leaveOpen, boolean useSourceId) throws Exception {
+    void ingestFromStream_FailTransientException(boolean leaveOpen, boolean useSourceId) throws Exception {
         try {
             int failCount = 2;
-            // It's an array so we can safely modify it in the lambda
+            // It's an array, so we can safely modify it in the lambda
             final int[] times = {0};
             String data = "Name, Age, Weight, Height";
             InputStream inputStream = new CloseableByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
@@ -492,7 +491,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromStream_FailPermanentException() throws Exception {
+    void ingestFromStream_FailPermanentException() throws Exception {
         try {
             // It's an array, so we can safely modify it in the lambda
             String data = "Name, Age, Weight, Height";
@@ -519,7 +518,7 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @CsvSource({"true,true", "false,true", "true,false", "false,false"})
-    void IngestFromStream_IngestOverFileLimit_QueuedFallback(boolean leaveOpen, boolean useSourceId) throws Exception {
+    void ingestFromStream_IngestOverFileLimit_QueuedFallback(boolean leaveOpen, boolean useSourceId) throws Exception {
         int testByteArraySize = 5 * 1024 * 1024;
         byte[] bytes = new byte[testByteArraySize];
         for (int i = 0; i < bytes.length; i++) {
@@ -551,7 +550,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void IngestFromBlob_IngestOverBlobLimit_QueuedFallback() throws Exception {
+    void ingestFromBlob_IngestOverBlobLimit_QueuedFallback() throws Exception {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
 
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
@@ -562,44 +561,38 @@ class ManagedStreamingIngestClientTest {
                 clientRequestPropertiesCaptor.capture(), any(String.class), eq("mappingName"), any(boolean.class));
     }
 
-    @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithQueryUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://testendpoint.dev.kusto.windows.net"));
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "https://testendpoint.dev.kusto.windows.net",
+            "https://ingest-testendpoint.dev.kusto.windows.net"
+    })
+    void createManagedStreamingIngestClient_WithDefaultCtor_WithQueryUri_Pass(String url) throws URISyntaxException {
+        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt(url));
         assertNotNull(client);
         assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithIngestUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://ingest-testendpoint.dev.kusto.windows.net"));
-        assertNotNull(client);
-        assertEquals("https://ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
-        assertEquals("https://testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
-    }
-
-    @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithPrivateQueryUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://private-testendpoint.dev.kusto.windows.net"));
+    void createManagedStreamingIngestClient_WithDefaultCtor_WithPrivateQueryUri_Pass() throws URISyntaxException {
+        ManagedStreamingIngestClient client = IngestClientFactory
+                .createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https://private-testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
         assertEquals("https://ingest-private-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://private-testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithDefaultCtor_WithPrivateIngestUri_Pass() throws URISyntaxException {
-        ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https" +
-                "://private-ingest-testendpoint.dev.kusto.windows.net"));
+    void createManagedStreamingIngestClient_WithDefaultCtor_WithPrivateIngestUri_Pass() throws URISyntaxException {
+        ManagedStreamingIngestClient client = IngestClientFactory
+                .createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt("https://private-ingest-testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
         assertEquals("https://private-ingest-testendpoint.dev.kusto.windows.net", client.queuedIngestClient.connectionDataSource);
         assertEquals("https://private-testendpoint.dev.kusto.windows.net", client.streamingIngestClient.connectionDataSource);
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
+    void createManagedStreamingIngestClient_WithDmUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient
                 .fromDmConnectionString(ConnectionStringBuilder.createWithUserPrompt("https://ingest-testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
@@ -608,7 +601,7 @@ class ManagedStreamingIngestClientTest {
     }
 
     @Test
-    void CreateManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
+    void createManagedStreamingIngestClient_WithEngineUri_Pass() throws URISyntaxException {
         ManagedStreamingIngestClient client = ManagedStreamingIngestClient.fromEngineConnectionString(
                 ConnectionStringBuilder.createWithUserPrompt("https://testendpoint.dev.kusto.windows.net"));
         assertNotNull(client);
@@ -634,7 +627,7 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void AutoCorrectEndpoint_True_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
+    void autoCorrectEndpoint_True_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
 
         ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt(csb), null,
                 true);
@@ -661,7 +654,7 @@ class ManagedStreamingIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void AutoCorrectEndpoint_False_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
+    void autoCorrectEndpoint_False_Pass(String csb, String toCompareQueued, String toCompareStreaming) throws URISyntaxException {
 
         ManagedStreamingIngestClient client = IngestClientFactory.createManagedStreamingIngestClient(ConnectionStringBuilder.createWithUserPrompt(csb), null,
                 false);
