@@ -13,10 +13,10 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -196,15 +196,15 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     JsonNode toJson() {
-        ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
+        ObjectNode optionsAsJSON = HttpPostUtils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
         }
 
-        ObjectNode json = Utils.getObjectMapper().createObjectNode();
+        ObjectNode json = HttpPostUtils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
-        json.set(PARAMETERS_KEY, Utils.getObjectMapper().valueToTree(this.parameters));
+        json.set(PARAMETERS_KEY, HttpPostUtils.getObjectMapper().valueToTree(this.parameters));
         return json;
     }
 
@@ -215,7 +215,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     public static ClientRequestProperties fromString(String json) throws JsonProcessingException {
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
-            JsonNode jsonObj = Utils.getObjectMapper().readTree(json);
+            JsonNode jsonObj = HttpPostUtils.getObjectMapper().readTree(json);
             Iterator<String> it = jsonObj.fieldNames();
             while (it.hasNext()) {
                 String propertyName = it.next();

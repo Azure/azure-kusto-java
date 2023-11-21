@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
@@ -230,13 +230,13 @@ public class IngestionProperties implements TraceableAttributes {
                 }
             }
 
-            ObjectMapper objectMapper = Utils.getObjectMapper();
+            ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
             String tagsAsJson = objectMapper.writeValueAsString(tags);
             fullAdditionalProperties.put("tags", tagsAsJson);
         }
 
         if (!ingestIfNotExists.isEmpty()) {
-            ObjectMapper objectMapper = Utils.getObjectMapper();
+            ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
             String ingestIfNotExistsJson = objectMapper.writeValueAsString(ingestIfNotExists);
             fullAdditionalProperties.put("ingestIfNotExists", ingestIfNotExistsJson);
         }
@@ -249,7 +249,7 @@ public class IngestionProperties implements TraceableAttributes {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().getKustoValue());
         } else if (ingestionMapping.getColumnMappings() != null) {
-            ObjectMapper objectMapper = Utils.getObjectMapper();
+            ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
             objectMapper.setVisibility(PropertyAccessor.ALL, Visibility.NONE);
             objectMapper.setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
 

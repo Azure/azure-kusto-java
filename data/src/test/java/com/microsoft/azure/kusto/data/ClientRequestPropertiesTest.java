@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class ClientRequestPropertiesTest {
         ClientRequestProperties props = new ClientRequestProperties();
         props.setOption("a", 1);
         props.setOption("b", "hello");
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
 
         Assertions.assertEquals(objectMapper.readTree("{\"Options\":{\"a\":1,\"b\":\"hello\"},\"Parameters\":{}}").toString(), props.toString());
     }

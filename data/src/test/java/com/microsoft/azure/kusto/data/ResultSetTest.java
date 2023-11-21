@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,7 @@ import java.util.UUID;
 public class ResultSetTest {
     @Test
     void KustoResultSet() throws Exception {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
 
         ArrayNode rows = objectMapper.createArrayNode();
         ArrayNode row1 = objectMapper.createArrayNode();
@@ -123,7 +124,7 @@ public class ResultSetTest {
 
     @Test
     public void testException() {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
 
         ArrayNode rows = objectMapper.createArrayNode();
         ObjectNode row = objectMapper.createObjectNode();

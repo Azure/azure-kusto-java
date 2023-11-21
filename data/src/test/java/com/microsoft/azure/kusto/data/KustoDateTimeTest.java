@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -14,7 +15,7 @@ public class KustoDateTimeTest {
 
     @Test
     void KustoResultSet() throws Exception {
-        ObjectMapper mapper = Utils.getObjectMapper();
+        ObjectMapper mapper = HttpPostUtils.getObjectMapper();
         DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
         ArrayNode rows = mapper.createArrayNode();

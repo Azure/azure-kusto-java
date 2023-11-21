@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;

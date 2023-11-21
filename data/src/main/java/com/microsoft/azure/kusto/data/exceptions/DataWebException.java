@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.data.exceptions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.apache.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,7 @@ public class DataWebException extends WebException {
     private OneApiError apiError = null;
 
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private ObjectMapper objectMapper = Utils.getObjectMapper();
+    private ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
 
     public DataWebException(String message, HttpResponse httpResponse, Throwable cause) {
         super(message, httpResponse, cause);

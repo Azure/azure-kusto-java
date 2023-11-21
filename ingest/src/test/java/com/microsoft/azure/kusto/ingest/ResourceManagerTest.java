@@ -6,7 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
@@ -68,7 +68,7 @@ class ResourceManagerTest {
     }
 
     static KustoOperationResult generateIngestionResourcesResult() throws KustoServiceQueryError, IOException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         for (int i = 0; i < STORAGES.size(); i++) {
             valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGES.get(i).getContainer().getBlobContainerUrl() + STORAGES.get(i).getSas()))));
@@ -88,7 +88,7 @@ class ResourceManagerTest {
     }
 
     static KustoOperationResult generateIngestionAuthTokenResult() throws KustoServiceQueryError, IOException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         valuesList.add(new ArrayList<>((Collections.singletonList(AUTH_TOKEN))));
         String listAsJson = objectMapper.writeValueAsString(valuesList);

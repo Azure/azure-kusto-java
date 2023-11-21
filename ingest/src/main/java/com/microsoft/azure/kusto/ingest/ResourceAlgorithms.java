@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.Tracer;
@@ -71,7 +71,7 @@ public class ResourceAlgorithms {
     public static void postToQueueWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob)
             throws IngestionClientException, IngestionServiceException {
         resourceActionWithRetries(resourceManager, resourceManager.getShuffledQueues(), queue -> {
-            ObjectMapper objectMapper = Utils.getObjectMapper();
+            ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
 
             azureStorageClient.postMessageToQueue(queue.getQueue(), objectMapper.writeValueAsString(blob));
             return null;

@@ -3,20 +3,24 @@ package com.microsoft.azure.kusto.data.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.HttpClientFactory;
+import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.vavr.CheckedFunction0;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
@@ -90,55 +94,63 @@ public class CloudInfo implements TraceableAttributes {
                 return cloudInfo;
             }
 
-            CloudInfo result;
+            RetryConfig retryConfig = Utils.buildRetryConfig((Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
+                     && Utils.isRetriableIOException((IOException) e));
+            Retry retry = Retry.of("get cluster metadata", retryConfig);
+            CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
+                    () -> {
+                            CloudInfo result;
+                            HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
+                            try {
+                                HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
+                                request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
+                                request.addHeader(HttpHeaders.ACCEPT, "application/json");
 
-            try {
-                HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
-                try {
-                    HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
-                    request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
-                    request.addHeader(HttpHeaders.ACCEPT, "application/json");
-
-                    // trace CloudInfo.httpCall
-                    HttpResponse response = MonitoredActivity.invoke((SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
-                            "CloudInfo.httpCall");
-                    try {
-                        int statusCode = response.getStatusLine().getStatusCode();
-                        if (statusCode == 200) {
-                            String content = EntityUtils.toString(response.getEntity());
-                            if (content == null || content.equals("") || content.equals("{}")) {
-                                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                                // trace CloudInfo.httpCall
+                                HttpResponse response = MonitoredActivity.invoke((SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
+                                        "CloudInfo.httpCall");
+                                try {
+                                    int statusCode = response.getStatusLine().getStatusCode();
+                                    if (statusCode == 200) {
+                                        String content = EntityUtils.toString(response.getEntity());
+                                        if (content == null || content.equals("") || content.equals("{}")) {
+                                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                                        }
+                                        result = parseCloudInfo(content);
+                                    } else if (statusCode == 404) {
+                                        result = DEFAULT_CLOUD;
+                                    } else {
+                                        String errorFromResponse = EntityUtils.toString(response.getEntity());
+                                        throw new DataServiceException(clusterUrl,
+                                                "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                                    }
+                                } finally {
+                                    if (response instanceof Closeable) {
+                                        ((Closeable) response).close();
+                                    }
+                                }
+                            } finally {
+                                if (givenHttpClient == null && localHttpClient != null) {
+                                    ((Closeable) localHttpClient).close();
+                                }
                             }
-                            result = parseCloudInfo(content);
-                        } else if (statusCode == 404) {
-                            result = DEFAULT_CLOUD;
-                        } else {
-                            String errorFromResponse = EntityUtils.toString(response.getEntity());
-                            throw new DataServiceException(clusterUrl,
-                                    "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
-                        }
-                    } finally {
-                        if (response instanceof Closeable) {
-                            ((Closeable) response).close();
-                        }
-                    }
-                } finally {
-                    if (givenHttpClient == null && localHttpClient != null) {
-                        ((Closeable) localHttpClient).close();
-                    }
-                }
-            }catch (URISyntaxException e) {
-                throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve CloudInfo:" + e.getMessage(), e, true);
+                        cache.put(clusterUrl, result);
+                        return result;
+                    });
+            try {
+                return retryExecute.apply();
+            } catch (URISyntaxException e) {
+                throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
             } catch (IOException ex) {
-                throw new DataServiceException(clusterUrl, "IOException when trying to retrieve CloudInfo:" + ex.getMessage(), ex, true);
+                throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex, false);
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
             }
-            cache.put(clusterUrl, result);
-            return result;
         }
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
+        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
         JsonNode jsonObject = objectMapper.readTree(content);
         JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {
