@@ -127,8 +127,10 @@ public class CloudInfo implements TraceableAttributes {
                         ((Closeable) localHttpClient).close();
                     }
                 }
-            } catch (IOException | URISyntaxException ex) {
-                throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
+            }catch (URISyntaxException e) {
+                throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve CloudInfo:" + e.getMessage(), e, true);
+            } catch (IOException ex) {
+                throw new DataServiceException(clusterUrl, "IOException when trying to retrieve CloudInfo:" + ex.getMessage(), ex, true);
             }
             cache.put(clusterUrl, result);
             return result;

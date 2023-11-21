@@ -96,11 +96,10 @@ public class Utils {
                     }
                 }
             }
-        } catch (SocketTimeoutException e) {
-            throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
         } catch (IOException e) {
-            throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
+            throw new DataServiceException(urlStr, "IOException in post request:" + e.getMessage(), false);
         }
+
         return null;
     }
 
@@ -110,7 +109,7 @@ public class Utils {
     }
 
     static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers,
-            int redirectCount)
+                                             int redirectCount)
             throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URI uri = parseUriFromUrlString(url);
