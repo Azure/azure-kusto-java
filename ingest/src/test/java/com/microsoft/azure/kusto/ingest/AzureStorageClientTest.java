@@ -116,7 +116,7 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void UploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
+    void uploadLocalFileToBlob_NullBlobName_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> uploadLocalFileToBlob(testFile, null, "storageUri", IngestionProperties.DataFormat.CSV));

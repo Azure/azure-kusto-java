@@ -28,6 +28,15 @@ public class Utils {
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
+
+    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
+    // double value
+    public static ObjectMapper getObjectMapper() {
+        return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
+                DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
+                JsonNodeFactory.withExactBigDecimals(true));
+    }
+
     private static final HashSet<Class<? extends IOException>> nonRetriableClasses = new HashSet<Class<? extends IOException>>() {{
         add(InterruptedIOException.class);
         add(UnknownHostException.class);
@@ -91,13 +100,4 @@ public class Utils {
                 .retryOnException(predicate)
                 .build();
     }
-
-    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
-    // double value
-    public static ObjectMapper getObjectMapper() {
-        return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
-                DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
-                JsonNodeFactory.withExactBigDecimals(true));
-    }
-
 }
