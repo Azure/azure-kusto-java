@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.IngestClient;
@@ -346,7 +345,7 @@ public class SampleApp {
     private static ConfigJson loadConfigs() {
         File configFile = new File(".\\" + SampleApp.configFileName);
         try {
-            ObjectMapper mapper = HttpPostUtils.getObjectMapper();
+            ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
             mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
             return mapper.readValue(configFile, ConfigJson.class);
 

@@ -61,7 +61,7 @@ class ClientImpl implements Client, StreamingClient {
     private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
 
-    private final ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+    private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
         this(csb, HttpClientProperties.builder().build());

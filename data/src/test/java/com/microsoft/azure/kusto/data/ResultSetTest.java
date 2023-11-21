@@ -26,7 +26,7 @@ import java.util.UUID;
 public class ResultSetTest {
     @Test
     void KustoResultSet() throws Exception {
-        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
 
         ArrayNode rows = objectMapper.createArrayNode();
         ArrayNode row1 = objectMapper.createArrayNode();
@@ -124,7 +124,7 @@ public class ResultSetTest {
 
     @Test
     public void testException() {
-        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
 
         ArrayNode rows = objectMapper.createArrayNode();
         ObjectNode row = objectMapper.createObjectNode();

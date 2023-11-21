@@ -150,7 +150,7 @@ public class CloudInfo implements TraceableAttributes {
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
-        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         JsonNode jsonObject = objectMapper.readTree(content);
         JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
         if (innerObject == null) {

@@ -37,7 +37,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
     private final List<KustoResultSetTable> resultTables = new ArrayList<>();
     private final Iterator<KustoResultSetTable> it;
 
-    private final ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+    private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
         MonitoredActivity.invoke((SupplierOneException<Void, KustoServiceQueryError>) () -> {

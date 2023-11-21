@@ -13,7 +13,7 @@ import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.StreamingClient;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
@@ -93,7 +93,7 @@ class E2ETest {
     private static String tableName;
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
-    private ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+    private ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
     public static void setUp() throws IOException, URISyntaxException {

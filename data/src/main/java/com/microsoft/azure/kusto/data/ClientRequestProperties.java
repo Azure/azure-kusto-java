@@ -196,15 +196,15 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     JsonNode toJson() {
-        ObjectNode optionsAsJSON = HttpPostUtils.getObjectMapper().valueToTree(this.options);
+        ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
         }
 
-        ObjectNode json = HttpPostUtils.getObjectMapper().createObjectNode();
+        ObjectNode json = Utils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
-        json.set(PARAMETERS_KEY, HttpPostUtils.getObjectMapper().valueToTree(this.parameters));
+        json.set(PARAMETERS_KEY, Utils.getObjectMapper().valueToTree(this.parameters));
         return json;
     }
 
@@ -215,7 +215,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     public static ClientRequestProperties fromString(String json) throws JsonProcessingException {
         if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
-            JsonNode jsonObj = HttpPostUtils.getObjectMapper().readTree(json);
+            JsonNode jsonObj = Utils.getObjectMapper().readTree(json);
             Iterator<String> it = jsonObj.fieldNames();
             while (it.hasNext()) {
                 String propertyName = it.next();

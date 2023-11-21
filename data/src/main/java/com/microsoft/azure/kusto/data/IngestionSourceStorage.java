@@ -12,7 +12,7 @@ class IngestionSourceStorage {
     }
 
     public String toString() {
-        ObjectMapper objectMapper = HttpPostUtils.getObjectMapper();
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         try {
             return objectMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {

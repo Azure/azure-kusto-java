@@ -15,7 +15,7 @@ public class KustoDateTimeTest {
 
     @Test
     void KustoResultSet() throws Exception {
-        ObjectMapper mapper = HttpPostUtils.getObjectMapper();
+        ObjectMapper mapper = Utils.getObjectMapper();
         DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
         ArrayNode rows = mapper.createArrayNode();

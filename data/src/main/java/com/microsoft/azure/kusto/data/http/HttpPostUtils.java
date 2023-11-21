@@ -50,14 +50,6 @@ public class HttpPostUtils {
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
-    // double value
-    public static ObjectMapper getObjectMapper() {
-        return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
-                DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
-                        JsonNodeFactory.withExactBigDecimals(true));
-    }
-
     private HttpPostUtils() {
         // Hide constructor, as this is a static utility class
     }
@@ -186,7 +178,7 @@ public class HttpPostUtils {
             boolean isPermanent = false;
             if (!StringUtils.isBlank(errorFromResponse)) {
                 try {
-                    JsonNode jsonObject = getObjectMapper().readTree(errorFromResponse);
+                    JsonNode jsonObject = Utils.getObjectMapper().readTree(errorFromResponse);
                     if (jsonObject.has("error")) {
                         formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
                         OneApiError apiError = ((DataWebException) formattedException).getApiError();
