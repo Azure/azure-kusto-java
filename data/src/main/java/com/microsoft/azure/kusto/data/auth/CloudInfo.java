@@ -4,11 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
@@ -122,6 +120,9 @@ public class CloudInfo implements TraceableAttributes {
                                     result = DEFAULT_CLOUD;
                                 } else {
                                     String errorFromResponse = EntityUtils.toString(response.getEntity());
+                                    if (errorFromResponse.isEmpty()){
+                                        errorFromResponse = response.getStatusLine().getReasonPhrase();
+                                    }
                                     throw new DataServiceException(clusterUrl,
                                             "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
                                 }
@@ -143,7 +144,9 @@ public class CloudInfo implements TraceableAttributes {
             } catch (URISyntaxException e) {
                 throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
             } catch (IOException ex) {
-                throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex, false);
+                throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex,Utils.isRetriableIOException(ex));
+            }catch (DataServiceException e) {
+                throw e;
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }

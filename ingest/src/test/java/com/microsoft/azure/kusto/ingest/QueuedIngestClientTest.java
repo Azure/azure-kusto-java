@@ -14,6 +14,7 @@ import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,11 @@ class QueuedIngestClientTest {
         ingestionProperties.setDataFormat(DataFormat.CSV);
     }
 
+    @AfterEach
+    void tareEach() {
+        queuedIngestClient.close();
+    }
+
     @Test
     void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
@@ -82,8 +88,6 @@ class QueuedIngestClientTest {
     @Test
     void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
-        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
-
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertNotEquals(0, result.getIngestionStatusesLength());
     }

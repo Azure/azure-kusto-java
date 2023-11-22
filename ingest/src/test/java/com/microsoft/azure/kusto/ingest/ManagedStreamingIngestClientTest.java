@@ -18,6 +18,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,6 +120,11 @@ class ManagedStreamingIngestClientTest {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.JSON);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
+    }
+
+    @AfterEach
+    void tareDownEach() throws IOException {
+        managedStreamingIngestClient.close();
     }
 
     @Test
