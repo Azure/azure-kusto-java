@@ -75,7 +75,7 @@
         <profile>
             <id>java8</id>
             <activation>
-                <jdk>[1.8,)</jdk>
+                <jdk>[1.8,11)</jdk>
             </activation>
             <properties>
                 <mockito.version>4.5.1</mockito.version>
