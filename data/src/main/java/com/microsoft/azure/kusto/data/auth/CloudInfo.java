@@ -92,11 +92,13 @@ public class CloudInfo implements TraceableAttributes {
                 return cloudInfo;
             }
 
-            RetryConfig retryConfig = Utils.buildRetryConfig((Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
-                    && Utils.isRetriableIOException((IOException) e));
-            Retry retry = Retry.of("get cluster metadata", retryConfig);
-            CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
-                    () -> {
+//            RetryConfig retryConfig = Utils.buildRetryConfig(1, (Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
+//                    && Utils.isRetriableIOException((IOException) e));
+//            Retry retry = Retry.of("get cluster metadata", retryConfig);
+//            CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
+//                    () -> {
+
+            try{
                         CloudInfo result;
                         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
                         try {
@@ -138,9 +140,9 @@ public class CloudInfo implements TraceableAttributes {
                         }
                         cache.put(clusterUrl, result);
                         return result;
-                    });
-            try {
-                return retryExecute.apply();
+//                    });
+//            try {
+//                return retryExecute.apply();
             } catch (URISyntaxException e) {
                 throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
             } catch (IOException ex) {

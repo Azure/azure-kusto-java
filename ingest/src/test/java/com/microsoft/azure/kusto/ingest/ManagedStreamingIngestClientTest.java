@@ -51,7 +51,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
+@Timeout(value = 1, unit = TimeUnit.MINUTES)
 class ManagedStreamingIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
