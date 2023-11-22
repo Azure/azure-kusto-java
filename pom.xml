@@ -71,6 +71,17 @@
         <mockito.version>5.7.0</mockito.version>
         <jacoco.version>0.8.7</jacoco.version>
     </properties>
+    <profiles>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <mockito.version>4.5.1</mockito.version>
+            </properties>
+        </profile>
+    </profiles>
 
     <modules>
         <module>ingest</module>
@@ -112,6 +123,7 @@
                 <artifactId>formatter-maven-plugin</artifactId>
                 <version>2.16.0</version>
                 <configuration>
+                    <!--suppress UnresolvedMavenProperty -->
                     <configFile>${session.executionRootDirectory}/kusto-style.xml</configFile>
                     <encoding>UTF-8</encoding>
                 </configuration>
