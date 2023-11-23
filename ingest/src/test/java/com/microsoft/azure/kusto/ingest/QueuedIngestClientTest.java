@@ -77,12 +77,12 @@ class QueuedIngestClientTest {
         queuedIngestClient.close();
     }
 
-//    @Test
-//    void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
-//        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
-//        IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-//        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
-//    }
+    // @Test
+    // void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
+    // BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+    // IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+    // assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
+    // }
 
     @Test
     void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
