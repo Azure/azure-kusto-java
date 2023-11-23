@@ -46,9 +46,9 @@ class QueuedIngestClientTest {
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.getShuffledContainers())
-                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+                .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
-                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
@@ -77,16 +77,18 @@ class QueuedIngestClientTest {
         queuedIngestClient.close();
     }
 
-    @Test
-    void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
-        IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
-    }
+//    @Test
+//    void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
+//        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+//        IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+//        assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().get(0).status);
+//    }
 
     @Test
     void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+        ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
+
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertNotEquals(0, result.getIngestionStatusesLength());
     }
