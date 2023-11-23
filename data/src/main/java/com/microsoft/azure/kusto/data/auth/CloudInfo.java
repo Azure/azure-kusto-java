@@ -92,11 +92,11 @@ public class CloudInfo implements TraceableAttributes {
                 return cloudInfo;
             }
 
-            // RetryConfig retryConfig = Utils.buildRetryConfig(1, (Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
-            // && Utils.isRetriableIOException((IOException) e));
-            // Retry retry = Retry.of("get cluster metadata", retryConfig);
-            // CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
-            // () -> {
+            RetryConfig retryConfig = Utils.buildRetryConfig(1, (Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
+                    && Utils.isRetriableIOException((IOException) e));
+            Retry retry = Retry.of("get cluster metadata", retryConfig);
+            CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
+                    () -> DEFAULT_CLOUD);
 
             try {
                 CloudInfo result;
