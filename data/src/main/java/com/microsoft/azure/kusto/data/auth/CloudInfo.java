@@ -90,24 +90,23 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 return cloudInfo;
             }
 
-
-//            RetryConfig retryConfig = Utils.buildRetryConfig(1,(Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
-//                    && Utils.isRetriableIOException((IOException) e));
-//            Retry retry = Retry.of("get cluster metadata", retryConfig);
-//            CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
-//                    () -> {
+            // RetryConfig retryConfig = Utils.buildRetryConfig(1,(Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
+            // && Utils.isRetriableIOException((IOException) e));
+            // Retry retry = Retry.of("get cluster metadata", retryConfig);
+            // CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
+            // () -> {
             for (int i = 0; i < 3; i++) {
                 try {
                     return fetchImpl(clusterUrl, givenHttpClient);
                 } catch (URISyntaxException e) {
                     throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
                 } catch (IOException ex) {
-                    if (Utils.isRetriableIOException(ex) || i == 2){
+                    if (Utils.isRetriableIOException(ex) || i == 2) {
                         throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex,
                                 Utils.isRetriableIOException(ex));
                     }
                 } catch (DataServiceException e) {
-                    if (e.isPermanent() || i == 2){
+                    if (e.isPermanent() || i == 2) {
                         throw e;
                     }
                 } catch (Throwable e) {
@@ -117,6 +116,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             return null;
         }
     }
+
     private static CloudInfo fetchImpl(String clusterUrl, @Nullable HttpClient givenHttpClient) throws URISyntaxException, IOException, DataServiceException {
         CloudInfo result;
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
@@ -159,7 +159,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
         cache.put(clusterUrl, result);
         return result;
-//    });
+        // });
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
