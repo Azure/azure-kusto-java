@@ -59,7 +59,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(ATTEMPT_COUNT);
+    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(
+            ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -96,7 +97,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             }
 
             ExponentialRetry<RuntimeException, DataServiceException> retry = new ExponentialRetry<>(exponentialRetryTemplate);
-            return retry.execute(currentAttempt-> {
+            return retry.execute(currentAttempt -> {
                 try {
                     return fetchImpl(clusterUrl, givenHttpClient);
                 } catch (URISyntaxException e) {

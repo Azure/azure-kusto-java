@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 
-public class ExponentialRetry<E1 extends Throwable,E2 extends Throwable> {
+public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final int maxAttempts;

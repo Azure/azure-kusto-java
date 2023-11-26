@@ -322,7 +322,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)
             throws IngestionClientException, IngestionServiceException {
-        ExponentialRetry<IngestionClientException, IngestionServiceException> retry = new ExponentialRetry<IngestionClientException, IngestionServiceException>(exponentialRetryTemplate);
+        ExponentialRetry<IngestionClientException, IngestionServiceException> retry = new ExponentialRetry<>(
+                exponentialRetryTemplate);
         return retry.execute(currentAttempt -> {
             try {
                 if (blobClient != null) {
