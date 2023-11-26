@@ -3,7 +3,9 @@ package com.microsoft.azure.kusto.data.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
@@ -56,7 +58,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoClientRedirectUri;
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
-    private static final int RetryAttempts = 3;
+    private static final int ATTEMPT_COUNT = 3;
+    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -92,22 +95,25 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 return cloudInfo;
             }
 
-            for (int i = 0;; i++) {
+            ExponentialRetry<RuntimeException, DataServiceException> retry = new ExponentialRetry<>(exponentialRetryTemplate);
+            return retry.execute(currentAttempt-> {
                 try {
                     return fetchImpl(clusterUrl, givenHttpClient);
                 } catch (URISyntaxException e) {
                     throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
                 } catch (IOException ex) {
-                    if (Utils.isRetriableIOException(ex) || i == RetryAttempts - 1) {
+                    if (!Utils.isRetriableIOException(ex)) {
                         throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex,
                                 Utils.isRetriableIOException(ex));
                     }
                 } catch (DataServiceException e) {
-                    if (e.isPermanent() || i == RetryAttempts - 1) {
+                    if (e.isPermanent()) {
                         throw e;
                     }
                 }
-            }
+                return null;
+            });
+
         }
     }
 

@@ -86,7 +86,7 @@ public class Utils {
 
     public static boolean isRetriableIOException(IOException ex) {
         return !nonRetriableClasses.contains(ex.getClass()) &&
-                ex.getMessage().contains("timed out");
+                ex.getMessage() != null && ex.getMessage().contains("timed out");
 
     }
 

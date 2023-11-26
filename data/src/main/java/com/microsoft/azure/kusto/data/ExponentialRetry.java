@@ -1,14 +1,11 @@
-package com.microsoft.azure.kusto.ingest.utils;
-
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+package com.microsoft.azure.kusto.data;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 
-public class ExponentialRetry {
+public class ExponentialRetry<E1 extends Throwable,E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final int maxAttempts;
@@ -33,7 +30,8 @@ public class ExponentialRetry {
         this.maxJitterSecs = other.maxJitterSecs;
     }
 
-    public <T> T execute(KustoCheckedFunction<Integer, T> function) throws IngestionClientException, IngestionServiceException {
+    // Caller should throw only permanent errors, returning null if a retry is needed
+    public <T> T execute(KustoCheckedFunction<Integer, T, E1, E2> function) throws E1, E2 {
         for (int currentAttempt = 0; currentAttempt < maxAttempts; currentAttempt++) {
             log.info("execute: Attempt {}", currentAttempt);
 
