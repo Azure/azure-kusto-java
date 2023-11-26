@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
@@ -55,6 +56,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoClientRedirectUri;
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
+    private static final int RetryAttempts = 3;
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -90,30 +92,22 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 return cloudInfo;
             }
 
-            // RetryConfig retryConfig = Utils.buildRetryConfig(1,(Throwable e) -> IOException.class.isAssignableFrom(e.getClass())
-            // && Utils.isRetriableIOException((IOException) e));
-            // Retry retry = Retry.of("get cluster metadata", retryConfig);
-            // CheckedFunction0<CloudInfo> retryExecute = Retry.decorateCheckedSupplier(retry,
-            // () -> {
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0;; i++) {
                 try {
                     return fetchImpl(clusterUrl, givenHttpClient);
                 } catch (URISyntaxException e) {
                     throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
                 } catch (IOException ex) {
-                    if (Utils.isRetriableIOException(ex) || i == 2) {
+                    if (Utils.isRetriableIOException(ex) || i == RetryAttempts - 1) {
                         throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex,
                                 Utils.isRetriableIOException(ex));
                     }
                 } catch (DataServiceException e) {
-                    if (e.isPermanent() || i == 2) {
+                    if (e.isPermanent() || i == RetryAttempts - 1) {
                         throw e;
                     }
-                } catch (Throwable e) {
-                    throw new RuntimeException(e);
                 }
             }
-            return null;
         }
     }
 
@@ -131,7 +125,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     "CloudInfo.httpCall");
             try {
                 int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode == 200) {
+                if (statusCode == HttpStatus.SC_OK) {
                     String content = EntityUtils.toString(response.getEntity());
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
@@ -145,7 +139,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                         errorFromResponse = response.getStatusLine().getReasonPhrase();
                     }
                     throw new DataServiceException(clusterUrl,
-                            "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
+                            "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse,
+                            statusCode != HttpStatus.SC_TOO_MANY_REQUESTS);
                 }
             } finally {
                 if (response instanceof Closeable) {
