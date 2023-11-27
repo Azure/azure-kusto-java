@@ -68,9 +68,21 @@
         <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
         <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
         <junit.version>5.8.2</junit.version>
-        <mockito.version>4.5.1</mockito.version>
+        <mockito.version>5.7.0</mockito.version>
         <jacoco.version>0.8.7</jacoco.version>
     </properties>
+    <profiles>
+        <profile>
+            <!-- For java 8 this is the supported mockito version -->
+            <id>java8</id>
+            <activation>
+                <jdk>[1.8,11)</jdk>
+            </activation>
+            <properties>
+                <mockito.version>4.5.1</mockito.version>
+            </properties>
+        </profile>
+    </profiles>
 
     <modules>
         <module>ingest</module>
@@ -112,6 +124,7 @@
                 <artifactId>formatter-maven-plugin</artifactId>
                 <version>2.16.0</version>
                 <configuration>
+                    <!--suppress UnresolvedMavenProperty -->
                     <configFile>${session.executionRootDirectory}/kusto-style.xml</configFile>
                     <encoding>UTF-8</encoding>
                 </configuration>
