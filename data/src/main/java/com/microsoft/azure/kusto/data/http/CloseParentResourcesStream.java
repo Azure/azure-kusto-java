@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 

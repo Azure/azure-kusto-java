@@ -4,9 +4,9 @@ import org.apache.http.HttpHost;
 
 /**
  * HTTP client properties.
+ * TODO: move to http package on next major
  */
 public class HttpClientProperties {
-
     private final Integer maxIdleTime;
     private final boolean keepAlive;
     private final Integer maxKeepAliveTime;
@@ -51,7 +51,7 @@ public class HttpClientProperties {
      * {@code Keep-Alive} header, the client will use a default keep-alive period indicated by
      * {@linkplain #maxKeepAliveTime()}.
      *
-     * @return whether or not a custom connection keep-alive strategy should be used
+     * @return whether a custom connection keep-alive strategy should be used
      *
      * @see #maxKeepAliveTime()
      * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>

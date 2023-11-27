@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 
-class KustoDateTimeTest {
+public class KustoDateTimeTest {
     @Test
     void kustoResultSet() throws Exception {
         ObjectMapper mapper = Utils.getObjectMapper();

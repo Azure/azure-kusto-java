@@ -1,5 +1,6 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;

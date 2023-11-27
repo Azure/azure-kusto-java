@@ -16,8 +16,8 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 
-import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
@@ -322,7 +322,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)
             throws IngestionClientException, IngestionServiceException {
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+        ExponentialRetry<IngestionClientException, IngestionServiceException> retry = new ExponentialRetry<>(
+                exponentialRetryTemplate);
         return retry.execute(currentAttempt -> {
             try {
                 if (blobClient != null) {

@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
 import org.jetbrains.annotations.NotNull;
 

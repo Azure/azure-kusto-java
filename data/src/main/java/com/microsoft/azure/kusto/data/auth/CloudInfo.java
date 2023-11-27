@@ -3,30 +3,33 @@ package com.microsoft.azure.kusto.data.auth;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.HttpClientFactory;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
+import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class CloudInfo implements TraceableAttributes {
+public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
@@ -55,6 +58,9 @@ public class CloudInfo implements TraceableAttributes {
     private final String kustoClientRedirectUri;
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
+    private static final int ATTEMPT_COUNT = 3;
+    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(
+            ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -90,49 +96,72 @@ public class CloudInfo implements TraceableAttributes {
                 return cloudInfo;
             }
 
-            CloudInfo result;
-
-            try {
-                HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
+            ExponentialRetry<RuntimeException, DataServiceException> retry = new ExponentialRetry<>(exponentialRetryTemplate);
+            return retry.execute(currentAttempt -> {
                 try {
-                    HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
-                    request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
-                    request.addHeader(HttpHeaders.ACCEPT, "application/json");
-
-                    // trace CloudInfo.httpCall
-                    HttpResponse response = MonitoredActivity.invoke((SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
-                            "CloudInfo.httpCall");
-                    try {
-                        int statusCode = response.getStatusLine().getStatusCode();
-                        if (statusCode == 200) {
-                            String content = EntityUtils.toString(response.getEntity());
-                            if (content == null || content.equals("") || content.equals("{}")) {
-                                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
-                            }
-                            result = parseCloudInfo(content);
-                        } else if (statusCode == 404) {
-                            result = DEFAULT_CLOUD;
-                        } else {
-                            String errorFromResponse = EntityUtils.toString(response.getEntity());
-                            throw new DataServiceException(clusterUrl,
-                                    "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse, true);
-                        }
-                    } finally {
-                        if (response instanceof Closeable) {
-                            ((Closeable) response).close();
-                        }
+                    return fetchImpl(clusterUrl, givenHttpClient);
+                } catch (URISyntaxException e) {
+                    throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
+                } catch (IOException ex) {
+                    if (!Utils.isRetriableIOException(ex)) {
+                        throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ex.getMessage(), ex,
+                                Utils.isRetriableIOException(ex));
                     }
-                } finally {
-                    if (givenHttpClient == null && localHttpClient != null) {
-                        ((Closeable) localHttpClient).close();
+                } catch (DataServiceException e) {
+                    if (e.isPermanent()) {
+                        throw e;
                     }
                 }
-            } catch (IOException | URISyntaxException ex) {
-                throw new DataServiceException(clusterUrl, "IOError when trying to retrieve CloudInfo", ex, true);
-            }
-            cache.put(clusterUrl, result);
-            return result;
+                return null;
+            });
+
         }
+    }
+
+    private static CloudInfo fetchImpl(String clusterUrl, @Nullable HttpClient givenHttpClient) throws URISyntaxException, IOException, DataServiceException {
+        CloudInfo result;
+        HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
+        try {
+            HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
+            request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
+            request.addHeader(HttpHeaders.ACCEPT, "application/json");
+
+            // trace CloudInfo.httpCall
+            HttpResponse response = MonitoredActivity.invoke(
+                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
+                    "CloudInfo.httpCall");
+            try {
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode == HttpStatus.SC_OK) {
+                    String content = EntityUtils.toString(response.getEntity());
+                    if (content == null || content.equals("") || content.equals("{}")) {
+                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                    }
+                    result = parseCloudInfo(content);
+                } else if (statusCode == 404) {
+                    result = DEFAULT_CLOUD;
+                } else {
+                    String errorFromResponse = EntityUtils.toString(response.getEntity());
+                    if (errorFromResponse.isEmpty()) {
+                        errorFromResponse = response.getStatusLine().getReasonPhrase();
+                    }
+                    throw new DataServiceException(clusterUrl,
+                            "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse,
+                            statusCode != HttpStatus.SC_TOO_MANY_REQUESTS);
+                }
+            } finally {
+                if (response instanceof Closeable) {
+                    ((Closeable) response).close();
+                }
+            }
+        } finally {
+            if (givenHttpClient == null && localHttpClient != null) {
+                ((Closeable) localHttpClient).close();
+            }
+        }
+        cache.put(clusterUrl, result);
+        return result;
+        // });
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {

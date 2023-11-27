@@ -10,6 +10,8 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.queue.models.QueueStorageException;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;

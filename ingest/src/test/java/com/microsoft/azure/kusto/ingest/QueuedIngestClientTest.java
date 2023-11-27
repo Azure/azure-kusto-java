@@ -14,9 +14,7 @@ import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,12 +26,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
 class QueuedIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
@@ -46,9 +46,9 @@ class QueuedIngestClientTest {
     static void setUp() throws Exception {
         testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.getShuffledContainers())
-                .then(invocation -> Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+                .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
-                .then(invocation -> Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
+                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
 
         when(resourceManagerMock.getStatusTable())
                 .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
@@ -70,6 +70,11 @@ class QueuedIngestClientTest {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         ingestionProperties.setIngestionMapping("mappingName", IngestionMapping.IngestionMappingKind.CSV);
         ingestionProperties.setDataFormat(DataFormat.CSV);
+    }
+
+    @AfterEach
+    void tareEach() {
+        queuedIngestClient.close();
     }
 
     @Test

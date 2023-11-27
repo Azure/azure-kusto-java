@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -41,16 +42,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
-    private static final int MAX_RETRY_ATTEMPTS = 4;
-    private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
-    private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
     public static int UPLOAD_TIMEOUT_MINUTES = 10;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -79,7 +76,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         this.httpClient = httpClient == null
                 ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
                 : new HttpClientWrapper(httpClient);
-        retryConfig = buildRetryConfig();
+        retryConfig = Utils.buildRetryConfig(ThrottleException.class);
         storageAccountSet = new RankedStorageAccountSet();
         init();
     }
@@ -94,18 +91,6 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         timer = null;
         closeTimer.cancel();
         closeTimer.purge();
-    }
-
-    private RetryConfig buildRetryConfig() {
-        IntervalFunction sleepConfig = IntervalFunction.ofExponentialRandomBackoff(BASE_INTERVAL,
-                IntervalFunction.DEFAULT_MULTIPLIER,
-                IntervalFunction.DEFAULT_RANDOMIZATION_FACTOR,
-                MAX_RETRY_INTERVAL);
-        return RetryConfig.custom()
-                .maxAttempts(MAX_RETRY_ATTEMPTS)
-                .intervalFunction(sleepConfig)
-                .retryExceptions(ThrottleException.class)
-                .build();
     }
 
     private void init() {

@@ -14,6 +14,9 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
@@ -218,7 +221,7 @@ class ClientImpl implements Client, StreamingClient {
         StringEntity requestEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
         // trace execution
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> Utils.post(httpClient, clusterEndpoint, requestEntity,
+                (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, requestEntity,
                         timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                 commandType.getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
@@ -277,7 +280,7 @@ class ClientImpl implements Client, StreamingClient {
             String response;
             // trace executeStreamingIngest
             response = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> Utils.post(httpClient, clusterEndpoint, entity,
+                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, entity,
                             timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                     "ClientImpl.executeStreamingIngest");
             return new KustoOperationResult(response, "v1");
@@ -361,7 +364,8 @@ class ClientImpl implements Client, StreamingClient {
         }
         // trace httpCall
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> Utils.postToStreamingOutput(httpClient, clusterEndpoint,
+                (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> HttpPostUtils.postToStreamingOutput(httpClient,
+                        clusterEndpoint,
                         jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
     }

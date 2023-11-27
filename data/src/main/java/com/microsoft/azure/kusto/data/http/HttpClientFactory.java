@@ -1,5 +1,6 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
@@ -42,7 +43,6 @@ public class HttpClientFactory {
 
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
-
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 

@@ -13,10 +13,10 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.time.Duration;
