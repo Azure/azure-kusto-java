@@ -103,6 +103,7 @@ public class HttpPostUtils {
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == 200) {
+                // Fixme: replace eofsensor
                 InputStream contentStream = new CloseParentResourcesStream(httpResponse);
                 Optional<HttpHeader> contentEncoding =
                         Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
