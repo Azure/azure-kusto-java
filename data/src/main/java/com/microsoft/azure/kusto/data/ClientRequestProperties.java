@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.format.CslBoolFormat;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslIntFormat;
@@ -17,7 +18,6 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
-import java.text.ParseException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -151,7 +151,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         parameters.clear();
     }
 
-    public Long getTimeoutInMilliSec() throws ParseException {
+    public Long getTimeoutInMilliSec() throws KustoParseException {
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         Long timeout = null;
         if (timeoutObj instanceof Long) {
@@ -165,11 +165,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return timeout;
     }
 
-    private long parseTimeoutFromTimespanString(String str) throws ParseException {
+    private long parseTimeoutFromTimespanString(String str) throws KustoParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
             // Todo: Replace this with a custom exception?
-            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
+            throw new KustoParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 
         if ("-".equals(matcher.group(1))) {
