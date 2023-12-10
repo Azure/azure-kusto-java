@@ -3,8 +3,8 @@ package com.microsoft.azure.kusto.data.format;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
 
+import java.text.ParseException;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +27,7 @@ public class CslTimespanFormat extends CslFormat {
         } else {
             Matcher matcher = ClientRequestProperties.KUSTO_TIMESPAN_REGEX.matcher(value);
             if (!matcher.matches()) {
+                // Fixme: The Apache ParseException has a different signature than the Java one, need to add an index
                 throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: %s", value));
             }
 

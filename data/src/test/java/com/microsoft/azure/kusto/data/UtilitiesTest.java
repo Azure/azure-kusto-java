@@ -1,13 +1,11 @@
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.http.HttpResponse;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
-import org.apache.http.HttpStatus;
+
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -171,8 +169,8 @@ class UtilitiesTest {
     }
 
     @NotNull
-    private BasicHttpResponse getBasicHttpResponse(int statusCode) {
-        BasicHttpResponse basicHttpResponse = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), statusCode, "Some Error"));
+    private HttpResponse getHttpResponse(int statusCode) {
+        HttpResponse basicHttpResponse = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), statusCode, "Some Error"));
         basicHttpResponse.addHeader("x-ms-activity-id", "1234");
         return basicHttpResponse;
     }

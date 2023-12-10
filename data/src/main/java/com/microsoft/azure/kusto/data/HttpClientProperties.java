@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
-import org.apache.http.HttpHost;
+import com.azure.core.http.ProxyOptions;
 
 /**
  * HTTP client properties.
@@ -12,7 +12,7 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
-    private final HttpHost proxy;
+    private final ProxyOptions proxy;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -94,7 +94,7 @@ public class HttpClientProperties {
      *
      * @return the proxy
      */
-    public HttpHost getProxy() {
+    public ProxyOptions getProxy() {
         return proxy;
     }
 
@@ -105,7 +105,7 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
-        private HttpHost proxy = null;
+        private ProxyOptions proxy = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -185,7 +185,7 @@ public class HttpClientProperties {
          * @param proxy the proxy server
          * @return the builder instance
          */
-        public HttpClientPropertiesBuilder proxy(HttpHost proxy) {
+        public HttpClientPropertiesBuilder proxy(ProxyOptions proxy) {
             this.proxy = proxy;
             return this;
         }

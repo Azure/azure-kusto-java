@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpHeaderName;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
@@ -21,20 +23,14 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.ParseException;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.AbstractHttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +52,7 @@ class ClientImpl implements Client, StreamingClient {
     private final TokenProviderBase aadAuthenticationHelper;
     private final String clusterUrl;
     private final ClientDetails clientDetails;
-    private final CloseableHttpClient httpClient;
+    private final HttpClient httpClient;
     private final boolean leaveHttpClientOpen;
     private boolean endpointValidated = false;
 
@@ -71,7 +67,7 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     // Accepting a CloseableHttpClient so that we can create InputStream from response
-    public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean leaveHttpClientOpen) throws URISyntaxException {
+    public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient, boolean leaveHttpClientOpen) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
@@ -79,20 +75,20 @@ class ClientImpl implements Client, StreamingClient {
         if (host == null) {
             host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
         }
-        URIBuilder uriBuilder = new URIBuilder().setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
         String path = clusterUrlForParsing.getPath();
         if (path != null && !path.isEmpty()) {
             path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
             path = StringUtils.removeEndIgnoreCase(path, "/");
-
-            uriBuilder.setPath(path);
         }
 
+        Integer port = null;
         if (clusterUrlForParsing.getPort() != -1) {
-            uriBuilder.setPort(clusterUrlForParsing.getPort());
+            port = clusterUrlForParsing.getPort();
         }
-        csb.setClusterUrl(uriBuilder.build().toString());
+        // Todo: Validate that generated URI without using builder is valid
+        URI uri = URI.create(clusterUrlForParsing.getScheme() + ":" + host + (port != null ? ":" + port : "") + path);
+
+        csb.setClusterUrl(uri.toString());
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
@@ -218,10 +214,9 @@ class ClientImpl implements Client, StreamingClient {
         }
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties);
-        StringEntity requestEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
         // trace execution
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, requestEntity,
+                (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, jsonPayload,
                         timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                 commandType.getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
@@ -267,13 +262,15 @@ class ClientImpl implements Client, StreamingClient {
                 "KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"),
                 CommandType.STREAMING_INGEST.getActivityTypeSuffix());
         if (isStreamSource) {
-            headers.put(HttpHeaders.CONTENT_ENCODING, "gzip");
+            headers.put(HttpHeaderName.CONTENT_ENCODING.getCaseSensitiveName(), "gzip");
         }
 
         Long timeoutMs = populateHeadersAndGetTimeout(properties, headers);
         try (InputStream ignored = (isStreamSource && !leaveOpen) ? stream : null) {
             validateEndpoint();
 
+            // Fixme: Modified post to take a String since 90% of methods are concerned with JSON.
+            // This method on the other hand considers streaming data, so a different POST method or a wrapper class may be needed to replace the AbstractHttpEntity
             // We use UncloseableStream to prevent HttpClient From closing it
             AbstractHttpEntity entity = isStreamSource ? new InputStreamEntity(new UncloseableStream(stream))
                     : new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
@@ -402,7 +399,8 @@ class ClientImpl implements Client, StreamingClient {
         Map<String, String> headers = extractTracingHeaders(properties);
 
         if (aadAuthenticationHelper != null) {
-            headers.put(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
+            headers.put(HttpHeaderName.AUTHORIZATION.getCaseSensitiveName(),
+                    String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken()));
         }
 
         String clientRequestId;
@@ -461,7 +459,7 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     private void addCommandHeaders(Map<String, String> headers) {
-        headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
+        headers.put(HttpHeaderName.CONTENT_TYPE.getCaseSensitiveName(), "application/json");
         headers.put("Fed", "True");
     }
 
@@ -470,9 +468,7 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
-    public void close() throws IOException {
-        if (!leaveHttpClientOpen) {
-            httpClient.close();
-        }
+    public void close() {
+        // No default implementation, clients are no longer closeable
     }
 }

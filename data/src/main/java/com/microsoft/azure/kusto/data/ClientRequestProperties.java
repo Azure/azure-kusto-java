@@ -13,12 +13,11 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
 
 import java.io.Serializable;
+import java.text.ParseException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -169,6 +168,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     private long parseTimeoutFromTimespanString(String str) throws ParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
+            // Todo: Replace this with a custom exception?
             throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 

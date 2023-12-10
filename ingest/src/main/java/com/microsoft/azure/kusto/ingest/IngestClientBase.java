@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import org.apache.http.conn.util.InetAddressUtils;
 
 import java.net.InetAddress;
 import java.net.URI;

@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data.http;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
+import com.azure.core.http.HttpResponse;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,10 +16,10 @@ import java.io.InputStream;
  */
 public class CloseParentResourcesStream extends InputStream {
     private final InputStream innerStream;
-    private final CloseableHttpResponse httpResponse;
+    private final HttpResponse httpResponse;
 
-    public CloseParentResourcesStream(CloseableHttpResponse httpResponse) throws IOException {
-        this.innerStream = httpResponse.getEntity().getContent();
+    public CloseParentResourcesStream(HttpResponse httpResponse) throws IOException {
+        this.innerStream = httpResponse.getBodyAsInputStream().block();
         this.httpResponse = httpResponse;
     }
 

@@ -3,8 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.net.URISyntaxException;
 
@@ -47,7 +47,7 @@ public class ClientFactory {
      * @return a fully constructed {@linkplain Client} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */
-    public static Client createClient(ConnectionStringBuilder csb, CloseableHttpClient client) throws URISyntaxException {
+    public static Client createClient(ConnectionStringBuilder csb, HttpClient client) throws URISyntaxException {
         return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client, true);
     }
 
@@ -85,7 +85,7 @@ public class ClientFactory {
      * @return a fully constructed {@linkplain StreamingClient} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */
-    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
         return new ClientImpl(csb, httpClient, true);
     }
 }

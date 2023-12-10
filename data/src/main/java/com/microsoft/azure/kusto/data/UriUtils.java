@@ -1,9 +1,9 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
@@ -15,7 +15,7 @@ public class UriUtils {
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         path = StringUtils.prependIfMissing(path, "/");
 
-        String pathString = new URIBuilder(uri).setPath(path).build().toString();
+        String pathString = URI.create(uri + path).toString();
         if (ensureTrailingSlash) {
             pathString = StringUtils.appendIfMissing(pathString, "/");
         }
@@ -27,7 +27,7 @@ public class UriUtils {
     }
 
     public static String appendPathToUri(String uri, String path) throws URISyntaxException {
-        String existing = new URIBuilder(uri).getPath();
+        String existing = URI.create(uri).getPath();
         return setPathForUri(uri, StringUtils.appendIfMissing(existing == null ? "" : existing, "/") + path);
     }
 

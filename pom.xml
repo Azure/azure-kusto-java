@@ -46,8 +46,6 @@
         <commons-text.version>1.10.0</commons-text.version>
         <commons-codec.version>1.13</commons-codec.version>
         <msal4j.version>1.13.8</msal4j.version>
-        <httpclient.version>4.5.14</httpclient.version>
-        <httpcore.version>4.4.16</httpcore.version>
         <fasterxml.jackson.core.version>2.14.2</fasterxml.jackson.core.version>
         <reactor-core.version>3.4.19</reactor-core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>

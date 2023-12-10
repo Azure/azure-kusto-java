@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.http.*;
+import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,18 +9,13 @@ import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.util.EntityUtils;
+
 import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
@@ -122,18 +119,19 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         CloudInfo result;
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
         try {
-            HttpGet request = new HttpGet(UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
-            request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
-            request.addHeader(HttpHeaders.ACCEPT, "application/json");
+            HttpRequest request = new HttpRequest(HttpMethod.GET, UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
+            request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
+            request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
+            // Fixme: Make me not synchronous please
             // trace CloudInfo.httpCall
             HttpResponse response = MonitoredActivity.invoke(
-                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.execute(request),
-                    "CloudInfo.httpCall");
+                    (SupplierOneException<HttpResponse, IOException>) () ->
+                            localHttpClient.sendSync(request, new Context(new Object(), null)), "CloudInfo.httpCall");
             try {
-                int statusCode = response.getStatusLine().getStatusCode();
-                if (statusCode == HttpStatus.SC_OK) {
-                    String content = EntityUtils.toString(response.getEntity());
+                int statusCode = response.getStatusCode();
+                if (statusCode == 200) {
+                    String content = response.getBodyAsString().block();
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
@@ -141,17 +139,17 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 } else if (statusCode == 404) {
                     result = DEFAULT_CLOUD;
                 } else {
-                    String errorFromResponse = EntityUtils.toString(response.getEntity());
+                    // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
+                    String errorFromResponse = response.getBodyAsString().block();
                     if (errorFromResponse.isEmpty()) {
-                        errorFromResponse = response.getStatusLine().getReasonPhrase();
+                        errorFromResponse = "";
                     }
-                    throw new DataServiceException(clusterUrl,
-                            "Error in metadata endpoint, got code: " + statusCode + "\nWith error: " + errorFromResponse,
-                            statusCode != HttpStatus.SC_TOO_MANY_REQUESTS);
+                    throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
+                            "\nWith error: " + errorFromResponse, statusCode != 429);
                 }
             } finally {
-                if (response instanceof Closeable) {
-                    ((Closeable) response).close();
+                if (response != null) {
+                    response.close();
                 }
             }
         } finally {
