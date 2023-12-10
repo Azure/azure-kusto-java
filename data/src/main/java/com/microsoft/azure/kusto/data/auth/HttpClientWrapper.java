@@ -8,8 +8,7 @@ import com.microsoft.aad.msal4j.IHttpResponse;
 
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class wraps both of the azure http client interfaces - IHttpClient and HttpClient to use our apache http client.
@@ -37,15 +36,20 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
 
     // Implementation of the synchronous HttpClient
     @Override
-    public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) throws Exception {
-        HttpMethod method = null;
-        if (httpRequest.httpMethod() == com.microsoft.aad.msal4j.HttpMethod.GET) {
-            method = HttpMethod.GET;
-        } else if (httpRequest.httpMethod() == com.microsoft.aad.msal4j.HttpMethod.POST) {
-            method = HttpMethod.POST;
-        } else {
-            throw new Exception("");
+    public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) {
+        HttpMethod method;
+
+        switch (httpRequest.httpMethod()) {
+            case GET:
+                method = HttpMethod.GET;
+                break;
+            case POST:
+                method = HttpMethod.POST;
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported HTTP method: " + httpRequest.httpMethod());
         }
+
         // Generate an azure core HttpRequest from the existing msal4j HttpRequest
         HttpRequest request = new HttpRequest(method, httpRequest.url(), new HttpHeaders(httpRequest.headers()),
                 BinaryData.fromString(httpRequest.body()));
@@ -57,8 +61,18 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
         msalResponse.statusCode(response.getStatusCode());
         msalResponse.body(response.getBodyAsString().block());
 
-        // Todo: Add the headers
-        // msalResponse.addHeaders();
+        Map<String, List<String>> headers = new HashMap<>();
+
+        // Java 11 will make this much more concise
+        httpRequest.headers().entrySet().stream()
+                .filter(entry -> isNotContentLength(entry.getKey()))
+                .forEach(entry -> {
+                    List<String> values = new ArrayList<>();
+                    values.add(entry.getValue());
+                    headers.put(entry.getKey(), values);
+                });
+
+        msalResponse.addHeaders(headers);
         return msalResponse;
     }
 }
