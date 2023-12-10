@@ -6,6 +6,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 
+import com.microsoft.azure.kusto.data.http.TestHttpResponse;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -55,9 +56,9 @@ class UtilitiesTest {
     @Test
     @DisplayName("Test exception creation on a 404 error")
     void createExceptionFromResponse404Error() {
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(404);
+        HttpResponse basicHttpResponse = getHttpResponse(404);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), "error");
-        Assertions.assertTrue(error.getStatusCode() != null && error.getStatusCode() == HttpStatus.SC_NOT_FOUND);
+        Assertions.assertTrue(error.getStatusCode() != null && error.getStatusCode() == 404);
     }
 
     @Test
@@ -85,7 +86,7 @@ class UtilitiesTest {
                 "                },\n" +
                 "                \"@permanent\": true\n" +
                 "            }}";
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
+        HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 OneApiError);
         Assertions.assertEquals("Query execution has exceeded the allowed limits (80DA0003): ., ActivityId='1234'", error.getMessage());
@@ -98,7 +99,7 @@ class UtilitiesTest {
     @DisplayName("Test exception creation from a message object")
     void createExceptionFromMessageError() {
         String errorMessage = "{\"message\": \"Test Error Message\"}";
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
+        HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("Test Error Message, ActivityId='1234'", error.getMessage());
@@ -110,7 +111,7 @@ class UtilitiesTest {
     @DisplayName("Test exception creation from a bad json")
     void createExceptionFromBadJson() {
         String errorMessage = "\"message\": \"Test Error Message\"";
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
+        HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("\"message\": \"Test Error Message\", ActivityId='1234'", error.getMessage());
@@ -122,7 +123,7 @@ class UtilitiesTest {
     @DisplayName("Test exception creation from an unexpected json")
     void createExceptionFromOtherJson() {
         String errorMessage = "{\"response\": \"Test Error Message\"}";
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
+        HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("{\"response\": \"Test Error Message\"}, ActivityId='1234'", error.getMessage());
@@ -134,7 +135,7 @@ class UtilitiesTest {
     @DisplayName("Test exception creation from a blank error message")
     void createExceptionFromBlankErrorMessage() {
         String errorMessage = " ";
-        BasicHttpResponse basicHttpResponse = getBasicHttpResponse(401);
+        HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("Http StatusCode='http/1.1 401 Some Error', ActivityId='1234'", error.getMessage());
@@ -161,17 +162,19 @@ class UtilitiesTest {
         IOException e = new UnknownHostException("Doesnt exist");
         Assertions.assertFalse(Utils.isRetriableIOException(e));
 
-        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection refused"), null);
+        e = new ConnectException("Connection refused");
         Assertions.assertFalse(Utils.isRetriableIOException(e));
 
-        e = new org.apache.http.conn.HttpHostConnectException(new ConnectException("Connection timed out"), null);
+        e = new ConnectException("Connection timed out");
         Assertions.assertTrue(Utils.isRetriableIOException(e));
     }
 
     @NotNull
     private HttpResponse getHttpResponse(int statusCode) {
-        HttpResponse basicHttpResponse = new BasicHttpResponse(new BasicStatusLine(new ProtocolVersion("http", 1, 1), statusCode, "Some Error"));
-        basicHttpResponse.addHeader("x-ms-activity-id", "1234");
-        return basicHttpResponse;
+        return TestHttpResponse
+                .newBuilder()
+                .withStatusCode(statusCode)
+                .addHeader("x-ms-activity-id", "1234")
+                .build();
     }
 }
