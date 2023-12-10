@@ -168,7 +168,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     private long parseTimeoutFromTimespanString(String str) throws KustoParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
-            // Todo: Replace this with a custom exception?
             throw new KustoParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 
