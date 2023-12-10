@@ -103,8 +103,7 @@ public class HttpPostUtils {
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == 200) {
-                // Todo: Replace EofSensorInputStream
-                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
+                InputStream contentStream = new CloseParentResourcesStream(httpResponse);
                 Optional<HttpHeader> contentEncoding =
                         Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
                 if (contentEncoding.isPresent()) {
