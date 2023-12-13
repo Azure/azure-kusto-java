@@ -45,6 +45,7 @@
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-text.version>1.10.0</commons-text.version>
         <commons-codec.version>1.13</commons-codec.version>
+        <httpcore.version>5.2.4</httpcore.version>
         <msal4j.version>1.13.8</msal4j.version>
         <fasterxml.jackson.core.version>2.14.2</fasterxml.jackson.core.version>
         <reactor-core.version>3.4.19</reactor-core.version>

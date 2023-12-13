@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.*;
+import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,6 +14,8 @@ import com.microsoft.azure.kusto.data.exceptions.*;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.apache.hc.core5.http.io.EofSensorInputStream;
+import org.apache.hc.core5.http.io.entity.AbstractHttpEntity;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +38,7 @@ public class HttpPostUtils {
         // Hide constructor, as this is a static utility class
     }
 
-    public static String post(HttpClient httpClient, String urlStr, String body, long timeoutMs,
+    public static String post(HttpClient httpClient, String urlStr, AbstractHttpEntity body, long timeoutMs,
                               Map<String, String> headers) throws DataServiceException, DataClientException {
 
         URL url = parseURLString(urlStr);
@@ -68,12 +71,12 @@ public class HttpPostUtils {
         return null;
     }
 
-    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, String body, long timeoutMs, Map<String, String> headers)
+    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, AbstractHttpEntity entity, long timeoutMs, Map<String, String> headers)
             throws DataServiceException, DataClientException {
-        return postToStreamingOutput(httpClient, url, body, timeoutMs, headers, 0);
+        return postToStreamingOutput(httpClient, url, entity, timeoutMs, headers, 0);
     }
 
-    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, String body, long timeoutMs, Map<String, String> headers,
+    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, AbstractHttpEntity entity, long timeoutMs, Map<String, String> headers,
             int redirectCount)
             throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
@@ -90,7 +93,7 @@ public class HttpPostUtils {
          */
         HttpResponse httpResponse = null;
         try {
-            HttpRequest httpPost = setupHttpPostRequest(cleanedURL, body, headers);
+            HttpRequest httpPost = setupHttpPostRequest(cleanedURL, entity, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
 
             // Todo: Handle custom socket timeout settings
@@ -103,8 +106,7 @@ public class HttpPostUtils {
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == 200) {
-                // Fixme: replace eofsensor
-                InputStream contentStream = new CloseParentResourcesStream(httpResponse);
+                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
                 Optional<HttpHeader> contentEncoding =
                         Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
                 if (contentEncoding.isPresent()) {
@@ -133,7 +135,7 @@ public class HttpPostUtils {
                 Optional<HttpHeader> redirectLocation = Optional.ofNullable(
                         httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), body, timeoutMs, headers, redirectCount + 1);
+                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), entity, timeoutMs, headers, redirectCount + 1);
                 }
             }
         } catch (IOException ex) {
@@ -212,11 +214,16 @@ public class HttpPostUtils {
         return activityId;
     }
 
-    private static HttpRequest setupHttpPostRequest(URL uri, String body, Map<String, String> headers) {
+    private static HttpRequest setupHttpPostRequest(URL uri, AbstractHttpEntity entity, Map<String, String> headers) {
         HttpRequest request = new HttpRequest(HttpMethod.POST, uri);
 
-        // Request parameters and other properties
-        request.setBody(body);
+        try {
+            request.setBody(BinaryData.fromStream(entity.getContent()));
+        } catch (IOException e) {
+            throw new KustoParseException("Unable to generate a proper request payload from provided input.");
+        }
+
+        // Set the appropriate headers
         request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
         request.setHeader(HttpHeaderName.ACCEPT, "application/json");
         request.setHeader(HttpHeaderName.CONTENT_TYPE, "application/json");

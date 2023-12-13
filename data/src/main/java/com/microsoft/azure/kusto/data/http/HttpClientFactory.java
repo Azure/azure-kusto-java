@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.util.HttpClientOptions;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

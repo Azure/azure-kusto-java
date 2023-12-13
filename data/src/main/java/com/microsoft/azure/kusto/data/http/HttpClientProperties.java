@@ -1,10 +1,9 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.ProxyOptions;
 
 /**
  * HTTP client properties.
- * TODO: move to http package on next major
  */
 public class HttpClientProperties {
     private final Integer maxIdleTime;

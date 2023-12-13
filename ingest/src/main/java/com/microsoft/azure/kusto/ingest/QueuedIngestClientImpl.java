@@ -12,7 +12,7 @@ import com.azure.storage.queue.models.QueueStorageException;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
@@ -141,6 +141,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
         } catch (IngestionServiceException e) {
+            // Todo: Determine if this is needed since the exception is immediately rethrown w/ no type change
             throw e;
         }
     }
@@ -183,6 +184,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         } catch (IngestionServiceException e) {
+            // Todo: Determine if this is needed since the exception is immediately rethrown w/ no type change
             throw e;
         }
     }
@@ -233,6 +235,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
         } catch (IngestionServiceException e) {
+            // Todo: Determine if this is needed since the exception is immediately rethrown w/ no type change
             throw e;
         }
     }
@@ -285,7 +288,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.connectionDataSource = connectionDataSource;
     }
 
-    @Override
     public void close() {
         this.resourceManager.close();
     }

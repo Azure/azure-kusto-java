@@ -13,7 +13,7 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 
 import java.io.Closeable;
 
-public interface IngestClient extends Closeable {
+public interface IngestClient {
 
     /**
      * <p>Ingest data from a file into Kusto database.</p>
