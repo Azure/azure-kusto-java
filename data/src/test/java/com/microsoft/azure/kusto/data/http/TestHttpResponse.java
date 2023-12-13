@@ -71,7 +71,8 @@ public class TestHttpResponse extends HttpResponse {
 
         private final TestHttpResponse res = new TestHttpResponse();
 
-        private TestHttpResponseBuilder() {}
+        private TestHttpResponseBuilder() {
+        }
 
         public TestHttpResponseBuilder withStatusCode(int statusCode) {
             res.setStatusCode(statusCode);

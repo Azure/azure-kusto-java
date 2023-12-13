@@ -39,7 +39,7 @@ public class HttpPostUtils {
     }
 
     public static String post(HttpClient httpClient, String urlStr, AbstractHttpEntity body, long timeoutMs,
-                              Map<String, String> headers) throws DataServiceException, DataClientException {
+            Map<String, String> headers) throws DataServiceException, DataClientException {
 
         URL url = parseURLString(urlStr);
 
@@ -107,8 +107,7 @@ public class HttpPostUtils {
 
             if (responseStatusCode == 200) {
                 InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
-                Optional<HttpHeader> contentEncoding =
-                        Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+                Optional<HttpHeader> contentEncoding = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
                         GZIPInputStream gzipInputStream = new GZIPInputStream(contentStream);
