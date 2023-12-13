@@ -32,9 +32,7 @@ public class HttpClientFactory {
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
 
         if (properties.getProxy() != null) {
-            // HttpHost host = properties.getProxy();
-            // Todo set proxy options
-            options.setProxyOptions(null);
+            options.setProxyOptions(properties.getProxy());
         }
 
         // Is the per route connection maximum needed?

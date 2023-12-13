@@ -16,7 +16,11 @@ public class UriUtils {
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         path = StringUtils.prependIfMissing(path, "/");
 
-        String pathString = URI.create(uri + path).toString();
+        String pathString = new URIBuilder(uri)
+                .setPath(path)
+                .build()
+                .toString();
+
         if (ensureTrailingSlash) {
             pathString = StringUtils.appendIfMissing(pathString, "/");
         }

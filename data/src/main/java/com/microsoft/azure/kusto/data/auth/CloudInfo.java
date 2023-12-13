@@ -139,9 +139,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 } else if (statusCode == 404) {
                     result = DEFAULT_CLOUD;
                 } else {
-                    // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                     String errorFromResponse = response.getBodyAsString().block();
                     if (errorFromResponse.isEmpty()) {
+                        // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                         errorFromResponse = "";
                     }
                     throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
