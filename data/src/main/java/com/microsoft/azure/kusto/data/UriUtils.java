@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.core5.net.URIBuilder;
 
 import java.io.File;
 import java.net.URI;
@@ -27,7 +28,7 @@ public class UriUtils {
     }
 
     public static String appendPathToUri(String uri, String path) throws URISyntaxException {
-        String existing = URI.create(uri).getPath();
+        String existing = new URIBuilder(uri).getPath();
         return setPathForUri(uri, StringUtils.appendIfMissing(existing == null ? "" : existing, "/") + path);
     }
 
