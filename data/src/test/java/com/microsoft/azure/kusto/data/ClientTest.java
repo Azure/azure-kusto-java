@@ -53,11 +53,6 @@ public class ClientTest {
 
         for (Map.Entry<String, String> entry : tests.entrySet()) {
             ClientImpl client = new ClientImpl(ConnectionStringBuilder.createWithAadAccessTokenAuthentication(entry.getKey(), "test"));
-            if(!entry.getValue().equals(client.getClusterUrl()))
-            {
-                Assertions.assertEquals(entry.getValue(), client.getClusterUrl());
-
-            }
             Assertions.assertEquals(entry.getValue(), client.getClusterUrl());
         }
     }
