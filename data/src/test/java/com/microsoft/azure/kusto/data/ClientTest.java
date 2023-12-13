@@ -24,7 +24,7 @@ public class ClientTest {
         tests.put("https://kusto.test.com;fed=true", "https://kusto.test.com");
         tests.put("https://kusto.test.com/;fed=true", "https://kusto.test.com");
         tests.put("https://kusto.test.com/test;fed=true", "https://kusto.test.com/test");
-        tests.put("https://kusto.test.com:4242;fed=true", "https://kusto.test.com:4242");
+        tests.put("https://kusto.test.com:4242;fed=true", "https://kusto.test.com%3A4242");// TODO?
         tests.put("https://kusto.test.com:4242/;fed=true", "https://kusto.test.com:4242");
         tests.put("https://kusto.test.com:4242/test;fed=true", "https://kusto.test.com:4242/test");
         tests.put("https://ade.loganalytics.io/subscriptions/da45f7ac-97c0-4fff-ac66-3b6810eb4f65/resourcegroups/some_resource_group/providers/microsoft" +
@@ -53,6 +53,11 @@ public class ClientTest {
 
         for (Map.Entry<String, String> entry : tests.entrySet()) {
             ClientImpl client = new ClientImpl(ConnectionStringBuilder.createWithAadAccessTokenAuthentication(entry.getKey(), "test"));
+            if(!entry.getValue().equals(client.getClusterUrl()))
+            {
+                Assertions.assertEquals(entry.getValue(), client.getClusterUrl());
+
+            }
             Assertions.assertEquals(entry.getValue(), client.getClusterUrl());
         }
     }

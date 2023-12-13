@@ -15,10 +15,9 @@ import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
-
+import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
@@ -130,7 +129,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     "CloudInfo.httpCall");
             try {
                 int statusCode = response.getStatusCode();
-                if (statusCode == 200) {
+                if (statusCode == HttpStatus.SC_OK) {
                     String content = response.getBodyAsString().block();
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
