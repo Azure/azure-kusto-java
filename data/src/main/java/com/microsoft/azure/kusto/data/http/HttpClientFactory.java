@@ -23,7 +23,7 @@ public class HttpClientFactory {
      * @return a new Apache HTTP client
      */
     public static HttpClient create(HttpClientProperties providedProperties) {
-        LOGGER.info("Creating new CloseableHttpClient client");
+        LOGGER.info("Creating new HTTP Client");
         final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
 

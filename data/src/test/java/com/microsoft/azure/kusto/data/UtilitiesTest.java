@@ -138,7 +138,7 @@ class UtilitiesTest {
         HttpResponse basicHttpResponse = getHttpResponse(401);
         DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
-        Assertions.assertEquals("Http StatusCode='http/1.1 401 Some Error', ActivityId='1234'", error.getMessage());
+        Assertions.assertEquals("Http StatusCode='401', ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
         Assertions.assertEquals(401, Objects.requireNonNull(error.getStatusCode()).intValue());
     }

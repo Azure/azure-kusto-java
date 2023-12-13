@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.util.Context;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -31,6 +32,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
+import org.apache.hc.core5.net.InetAddressUtils;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -612,7 +614,8 @@ class E2ETest {
         clientImpl.execute(databaseName, query, clientRequestProperties);
         clientImpl.execute(databaseName, query, clientRequestProperties);
 
-        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any());
+        // Todo potentially need a try with resources here
+        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), new Context(new Object(), null));
     }
 
     @Test
@@ -620,8 +623,9 @@ class E2ETest {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
-            try (Client client = ClientFactory.createClient(
-                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"))) {
+            try {
+                Client client = ClientFactory.createClient(
+                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"));
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
@@ -645,17 +649,20 @@ class E2ETest {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
-            try (Client client = ClientFactory.createClient(
-                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"))) {
+            try {
+                Client client = ClientFactory.createClient(
+                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"));
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertTrue(e.getMessage().contains("" + code));
                     Assertions.assertFalse(e.getMessage().contains("metadata"));
+                } catch (Exception e) {
+                    return e;
                 }
-            } catch (Exception e) {
-                return e;
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
             }
             return null;
         }).forEach(e -> {

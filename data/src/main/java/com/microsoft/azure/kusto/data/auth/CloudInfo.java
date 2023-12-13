@@ -154,7 +154,10 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             }
         } finally {
             if (givenHttpClient == null && localHttpClient != null) {
-                ((Closeable) localHttpClient).close();
+                // Fixme? Not sure what we want to do here since clients are no longer closeable
+                //  but some still technically have close methods that close other resources. Maybe as a hack we
+                //  could add a close method to the base interfaces and that would take care of that. Then cast to Client here.
+                //((Closeable) localHttpClient).close();
             }
         }
         cache.put(clusterUrl, result);
