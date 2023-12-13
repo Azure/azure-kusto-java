@@ -286,4 +286,8 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         this.connectionDataSource = connectionDataSource;
     }
 
+    @Override
+    public void close() throws IOException {
+
+    }
 }

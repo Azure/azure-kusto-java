@@ -2,9 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 
-import java.net.InetAddress;
 import java.net.URI;
-import java.net.UnknownHostException;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
@@ -12,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
+import org.apache.hc.core5.net.InetAddressUtils;
 
 import java.util.HashMap;
 import java.util.Map;
