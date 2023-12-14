@@ -151,7 +151,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         parameters.clear();
     }
 
-    public Long getTimeoutInMilliSec() throws KustoParseException {
+    public Long getTimeoutInMilliSec() {
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         Long timeout = null;
         if (timeoutObj instanceof Long) {
@@ -165,7 +165,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return timeout;
     }
 
-    private long parseTimeoutFromTimespanString(String str) throws KustoParseException {
+    private long parseTimeoutFromTimespanString(String str) {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
             throw new KustoParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
