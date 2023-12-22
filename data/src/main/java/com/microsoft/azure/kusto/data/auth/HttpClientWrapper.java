@@ -54,14 +54,14 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
         HttpRequest request = new HttpRequest(method, httpRequest.url(), new HttpHeaders(httpRequest.headers()),
                 BinaryData.fromString(httpRequest.body()));
 
-        // Fixme: Make me nonblocking -
         // TODO Ohad - But we are in Sync mode - so its ok to block, maybe take code from this reference :
         // https://github.com/Azure/azure-sdk-for-java/blob/6732ed81c3364bc418c4c80b8d781e6b1f741536/sdk/identity/azure-identity/src/main/java/com/azure/identity/implementation/HttpPipelineAdapter.java#L18
         com.microsoft.aad.msal4j.HttpResponse msalResponse;
-        try (HttpResponse response = httpClient.sendSync(request, new Context(new Object(), null))) {
+        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
 
             msalResponse = new com.microsoft.aad.msal4j.HttpResponse();
             msalResponse.statusCode(response.getStatusCode());
+            // Todo: Cole - String body = response.getBodyAsBinaryData().toString();
             msalResponse.body(response.getBodyAsString().block());
         }
 

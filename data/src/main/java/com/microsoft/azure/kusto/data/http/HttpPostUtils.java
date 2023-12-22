@@ -47,20 +47,17 @@ public class HttpPostUtils {
         int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
 
         // Todo: Handle custom socket timeout settings
-        // RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
-        // request.setConfig(requestConfig);
+        // Todo: Add async version of this method
 
         // Execute and get the response
-        // Fixme: Send requests asynchronously instead of synchronously
-        try (HttpResponse response = httpClient.sendSync(request, new Context(new Object(), null))) {
-            // Fixme: Remove call to block and instead register a callback "onBody"
+        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
             String responseBody = response.getBodyAsString().block();
 
             if (responseBody != null) {
                 switch (response.getStatusCode()) {
-                    case 200:
+                    case HttpStatus.OK:
                         return responseBody;
-                    case 429:
+                    case HttpStatus.TOO_MANY_REQS:
                         throw new ThrottleException(urlStr);
                     default:
                         throw createExceptionFromResponse(urlStr, response, null, responseBody);
@@ -84,28 +81,20 @@ public class HttpPostUtils {
 
         boolean returnInputStream = false;
         String errorFromResponse = null;
-        /*
-         * The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse). We use CloseParentResourcesStream so
-         * that when the stream is closed, these resources are closed as well. We shouldn't need to do that, per
-         * https://hc.apache.org/httpcomponents-client-4.5.x/current/tutorial/html/fundamentals.html: "In order to ensure proper release of system resources one
-         * must close either the content stream associated with the entity or the response itself." However, in my testing this wasn't reliably the case. We
-         * further use EofSensorInputStream to close the stream even if not explicitly closed, once all content is consumed.
-         */
+
         HttpResponse httpResponse = null;
         try {
             HttpRequest httpPost = setupHttpPostRequest(cleanedURL, entity, headers);
             int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
 
             // Todo: Handle custom socket timeout settings
-            // RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
-            // httpPost.setConfig(requestConfig);
+            // Todo: Implement async version of this method
 
-            // Fixme: Send requests asynchronously instead of synchronously
-            httpResponse = httpClient.sendSync(httpPost, new Context(new Object(), null));
+            httpResponse = httpClient.sendSync(httpPost, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();
 
-            if (responseStatusCode == 200) {
+            if (responseStatusCode == HttpStatus.OK) {
                 InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
                 Optional<HttpHeader> contentEncoding = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
                 if (contentEncoding.isPresent()) {
@@ -119,8 +108,6 @@ public class HttpPostUtils {
                         return deflaterInputStream;
                     }
                 }
-                // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which
-                // handles the above logic
                 returnInputStream = true;
                 return contentStream;
             }
@@ -138,8 +125,7 @@ public class HttpPostUtils {
                 }
             }
         } catch (IOException ex) {
-            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
-                    ex, false);
+            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream", ex, false);
         } catch (Exception ex) {
             throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
         } finally {
@@ -199,7 +185,7 @@ public class HttpPostUtils {
     }
 
     private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
-        return (status == 302 || status == 307) && redirectCount + 1 <= MAX_REDIRECT_COUNT;
+        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= MAX_REDIRECT_COUNT;
     }
 
     private static String determineActivityId(HttpResponse httpResponse) {

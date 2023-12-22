@@ -11,13 +11,14 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hc.core5.http.HttpStatus;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
@@ -122,20 +123,19 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
             request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
-            // Fixme: Make me not synchronous please
             // trace CloudInfo.httpCall
             HttpResponse response = MonitoredActivity.invoke(
-                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, new Context(new Object(), null)),
+                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, Context.NONE),
                     "CloudInfo.httpCall");
             try {
                 int statusCode = response.getStatusCode();
-                if (statusCode == HttpStatus.SC_OK) {
+                if (statusCode == HttpStatus.OK) {
                     String content = response.getBodyAsString().block();
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
                     result = parseCloudInfo(content);
-                } else if (statusCode == 404) {
+                } else if (statusCode == HttpStatus.NOT_FOUND) {
                     result = DEFAULT_CLOUD;
                 } else {
                     String errorFromResponse = response.getBodyAsString().block();
@@ -144,7 +144,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                         errorFromResponse = "";
                     }
                     throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
-                            "\nWith error: " + errorFromResponse, statusCode != 429);
+                            "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS);
                 }
             } finally {
                 if (response != null) {
@@ -153,10 +153,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             }
         } finally {
             if (givenHttpClient == null && localHttpClient != null) {
-                // Fixme? Not sure what we want to do here since clients are no longer closeable
-                // but some still technically have close methods that close other resources. Maybe as a hack we
-                // could add a close method to the base interfaces and that would take care of that. Then cast to Client here.
-                // ((Closeable) localHttpClient).close();
+                ((Closeable) localHttpClient).close();
             }
         }
         cache.put(clusterUrl, result);

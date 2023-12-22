@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -251,7 +252,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             }
         } catch (BlobStorageException ex) {
             throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
-                    ex.getStatusCode() == 403 ? "this might mean the blob doesn't exist" : ""), ex);
+                    ex.getStatusCode() == HttpStatus.FORBIDDEN ? "this might mean the blob doesn't exist" : ""), ex);
         }
         ClientRequestProperties clientRequestProperties = null;
         if (StringUtils.isNotBlank(clientRequestId)) {

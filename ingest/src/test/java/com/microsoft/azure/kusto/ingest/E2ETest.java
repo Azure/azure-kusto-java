@@ -615,7 +615,7 @@ class E2ETest {
         clientImpl.execute(databaseName, query, clientRequestProperties);
 
         // Todo potentially need a try with resources here
-        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), new Context(new Object(), null));
+        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), Context.NONE);
     }
 
     @Test
