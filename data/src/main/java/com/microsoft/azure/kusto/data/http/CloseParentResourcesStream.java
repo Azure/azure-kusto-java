@@ -19,7 +19,7 @@ public class CloseParentResourcesStream extends InputStream {
     private final HttpResponse httpResponse;
 
     public CloseParentResourcesStream(HttpResponse httpResponse) throws IOException {
-        this.innerStream = httpResponse.getBodyAsInputStream().block();
+        this.innerStream = httpResponse.getBodyAsBinaryData().toStream();
         this.httpResponse = httpResponse;
     }
 

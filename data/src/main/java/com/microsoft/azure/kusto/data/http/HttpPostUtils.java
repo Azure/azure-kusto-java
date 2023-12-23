@@ -15,7 +15,6 @@ import com.microsoft.azure.kusto.data.exceptions.*;
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.hc.core5.http.io.EofSensorInputStream;
-import org.apache.hc.core5.http.io.entity.AbstractHttpEntity;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,14 +31,16 @@ import java.util.zip.GZIPInputStream;
 
 public class HttpPostUtils {
     private static final int MAX_REDIRECT_COUNT = 1;
+
+    // TODO - maybe save this in a resource
+    private static final String KUSTO_API_VERSION = "2019-02-13";
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private HttpPostUtils() {
         // Hide constructor, as this is a static utility class
     }
 
-    public static String post(HttpClient httpClient, String urlStr, AbstractHttpEntity body, long timeoutMs,
-            Map<String, String> headers) throws DataServiceException, DataClientException {
+    public static String post(HttpClient httpClient, String urlStr, BinaryData body, long timeoutMs, Map<String, String> headers) throws DataServiceException, DataClientException {
 
         URL url = parseURLString(urlStr);
 
@@ -51,7 +52,7 @@ public class HttpPostUtils {
 
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = response.getBodyAsString().block();
+            String responseBody = response.getBodyAsBinaryData().toString();
 
             if (responseBody != null) {
                 switch (response.getStatusCode()) {
@@ -68,14 +69,13 @@ public class HttpPostUtils {
         return null;
     }
 
-    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, AbstractHttpEntity entity, long timeoutMs, Map<String, String> headers)
-            throws DataServiceException, DataClientException {
+    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, BinaryData entity, long timeoutMs,
+                                                    Map<String, String> headers) throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, entity, timeoutMs, headers, 0);
     }
 
-    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, AbstractHttpEntity entity, long timeoutMs, Map<String, String> headers,
-            int redirectCount)
-            throws DataServiceException, DataClientException {
+    public static InputStream postToStreamingOutput(HttpClient httpClient, String url, BinaryData entity, long timeoutMs,
+                                                    Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URL cleanedURL = parseURLString(url);
 
@@ -112,8 +112,7 @@ public class HttpPostUtils {
                 return contentStream;
             }
 
-            // Fixme: Remove call to block and instead register a callback "onBody"
-            errorFromResponse = httpResponse.getBodyAsString().block();
+            errorFromResponse = httpResponse.getBodyAsBinaryData().toString();
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
@@ -199,22 +198,15 @@ public class HttpPostUtils {
         return activityId;
     }
 
-    private static HttpRequest setupHttpPostRequest(URL uri, AbstractHttpEntity entity, Map<String, String> headers) {
+    private static HttpRequest setupHttpPostRequest(URL uri, BinaryData entity, Map<String, String> headers) {
         HttpRequest request = new HttpRequest(HttpMethod.POST, uri);
-
-        try {
-            request.setBody(BinaryData.fromStream(entity.getContent()));
-        } catch (IOException e) {
-            throw new KustoParseException("Unable to generate a proper request payload from provided input.");
-        }
+        request.setBody(entity);
 
         // Set the appropriate headers
         request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
         request.setHeader(HttpHeaderName.ACCEPT, "application/json");
-        request.setHeader(HttpHeaderName.CONTENT_TYPE, "application/json");
+        // Removed content type from this method because the request should already have a type that is not always json
 
-        // TODO - maybe save this in a resouce
-        String KUSTO_API_VERSION = "2019-02-13";
         request.setHeader(HttpHeaderName.fromString("x-ms-version"), KUSTO_API_VERSION);
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             request.setHeader(HttpHeaderName.fromString(entry.getKey()), entry.getValue());

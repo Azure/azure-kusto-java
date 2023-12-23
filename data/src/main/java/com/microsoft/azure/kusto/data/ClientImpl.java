@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.data;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaderName;
+import com.azure.core.util.BinaryData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
@@ -22,10 +23,6 @@ import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.io.entity.AbstractHttpEntity;
-import org.apache.hc.core5.http.io.entity.InputStreamEntity;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.net.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -216,7 +213,9 @@ class ClientImpl implements Client, StreamingClient {
         }
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties);
-        StringEntity requestEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
+        BinaryData requestEntity = BinaryData.fromString(jsonPayload);
+        headers.put(HttpHeaderName.CONTENT_TYPE.getCaseSensitiveName(), "application/json");
+
         // trace execution
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, requestEntity,
@@ -272,13 +271,22 @@ class ClientImpl implements Client, StreamingClient {
         try (InputStream ignored = (isStreamSource && !leaveOpen) ? stream : null) {
             validateEndpoint();
 
-            // We use UncloseableStream to prevent HttpClient From closing it
-            AbstractHttpEntity entity = isStreamSource ? new InputStreamEntity(new UncloseableStream(stream), ContentType.DEFAULT_BINARY)
-                    : new StringEntity(new IngestionSourceStorage(blobUrl).toString(), ContentType.APPLICATION_JSON);
+            // The entity set content type headers for us before, now we must set them manually
+            BinaryData data;
+
+            if (isStreamSource) {
+                // We use UncloseableStream to prevent HttpClient From closing it
+                data = BinaryData.fromStream(new UncloseableStream(stream));
+                headers.put(HttpHeaderName.CONTENT_TYPE.getCaseSensitiveName(), "application/octet-stream");
+            } else {
+                data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
+                headers.put(HttpHeaderName.CONTENT_TYPE.getCaseSensitiveName(), "application/json");
+            }
+
             String response;
             // trace executeStreamingIngest
             response = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, entity,
+                    (SupplierTwoExceptions<String, DataServiceException, DataClientException>) () -> HttpPostUtils.post(httpClient, clusterEndpoint, data,
                             timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
                     "ClientImpl.executeStreamingIngest");
             return new KustoOperationResult(response, "v1");
@@ -354,7 +362,8 @@ class ClientImpl implements Client, StreamingClient {
 
         addCommandHeaders(headers);
         String jsonPayload = generateCommandPayload(database, command, properties);
-        StringEntity requestEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
+        BinaryData requestEntity = BinaryData.fromString(jsonPayload);
+        headers.put(HttpHeaderName.CONTENT_TYPE.getCaseSensitiveName(), "application/json");
 
         try {
             validateEndpoint();

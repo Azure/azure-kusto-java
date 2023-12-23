@@ -61,8 +61,7 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
 
             msalResponse = new com.microsoft.aad.msal4j.HttpResponse();
             msalResponse.statusCode(response.getStatusCode());
-            // Todo: Cole - String body = response.getBodyAsBinaryData().toString();
-            msalResponse.body(response.getBodyAsString().block());
+            msalResponse.body(response.getBodyAsBinaryData().toString());
         }
 
         Map<String, List<String>> headers = new HashMap<>();

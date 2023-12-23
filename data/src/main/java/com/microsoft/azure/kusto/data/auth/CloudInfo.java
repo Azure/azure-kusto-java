@@ -130,7 +130,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             try {
                 int statusCode = response.getStatusCode();
                 if (statusCode == HttpStatus.OK) {
-                    String content = response.getBodyAsString().block();
+                    String content = response.getBodyAsBinaryData().toString();
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
@@ -138,7 +138,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 } else if (statusCode == HttpStatus.NOT_FOUND) {
                     result = DEFAULT_CLOUD;
                 } else {
-                    String errorFromResponse = response.getBodyAsString().block();
+                    String errorFromResponse = response.getBodyAsBinaryData().toString();
                     if (errorFromResponse.isEmpty()) {
                         // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                         errorFromResponse = "";
