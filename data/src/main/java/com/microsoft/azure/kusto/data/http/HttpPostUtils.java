@@ -40,7 +40,8 @@ public class HttpPostUtils {
         // Hide constructor, as this is a static utility class
     }
 
-    public static String post(HttpClient httpClient, String urlStr, BinaryData body, long timeoutMs, Map<String, String> headers) throws DataServiceException, DataClientException {
+    public static String post(HttpClient httpClient, String urlStr, BinaryData body, long timeoutMs, Map<String, String> headers)
+            throws DataServiceException, DataClientException {
 
         URL url = parseURLString(urlStr);
 
@@ -70,12 +71,12 @@ public class HttpPostUtils {
     }
 
     public static InputStream postToStreamingOutput(HttpClient httpClient, String url, BinaryData entity, long timeoutMs,
-                                                    Map<String, String> headers) throws DataServiceException, DataClientException {
+            Map<String, String> headers) throws DataServiceException, DataClientException {
         return postToStreamingOutput(httpClient, url, entity, timeoutMs, headers, 0);
     }
 
     public static InputStream postToStreamingOutput(HttpClient httpClient, String url, BinaryData entity, long timeoutMs,
-                                                    Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
+            Map<String, String> headers, int redirectCount) throws DataServiceException, DataClientException {
         long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
         URL cleanedURL = parseURLString(url);
 
