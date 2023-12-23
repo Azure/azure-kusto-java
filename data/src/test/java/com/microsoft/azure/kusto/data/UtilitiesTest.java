@@ -4,8 +4,6 @@ import com.azure.core.http.HttpResponse;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
-
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.http.TestHttpResponse;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +47,7 @@ class UtilitiesTest {
     @Test
     @DisplayName("Test exception creation when the web response is null")
     void createExceptionFromResponseNoResponse() {
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
         Assertions.assertEquals("POST failed to send request", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
     }
@@ -58,7 +56,7 @@ class UtilitiesTest {
     @DisplayName("Test exception creation on a 404 error")
     void createExceptionFromResponse404Error() {
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.NOT_FOUND);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), "error");
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(), "error");
         Assertions.assertTrue(error.getStatusCode() != null && error.getStatusCode() == HttpStatus.NOT_FOUND);
     }
 
@@ -88,7 +86,7 @@ class UtilitiesTest {
                 "                \"@permanent\": true\n" +
                 "            }}";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 OneApiError);
         Assertions.assertEquals("Query execution has exceeded the allowed limits (80DA0003): ., ActivityId='1234'", error.getMessage());
         Assertions.assertTrue(error.getCause() instanceof DataWebException);
@@ -101,7 +99,7 @@ class UtilitiesTest {
     void createExceptionFromMessageError() {
         String errorMessage = "{\"message\": \"Test Error Message\"}";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("Test Error Message, ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
@@ -113,7 +111,7 @@ class UtilitiesTest {
     void createExceptionFromBadJson() {
         String errorMessage = "\"message\": \"Test Error Message\"";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("\"message\": \"Test Error Message\", ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
@@ -125,7 +123,7 @@ class UtilitiesTest {
     void createExceptionFromOtherJson() {
         String errorMessage = "{\"response\": \"Test Error Message\"}";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("{\"response\": \"Test Error Message\"}, ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());
@@ -137,7 +135,7 @@ class UtilitiesTest {
     void createExceptionFromBlankErrorMessage() {
         String errorMessage = " ";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
-        DataServiceException error = HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+        DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("Http StatusCode='401', ActivityId='1234'", error.getMessage());
         Assertions.assertFalse(error.isPermanent());

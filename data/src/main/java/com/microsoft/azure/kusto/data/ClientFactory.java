@@ -44,12 +44,12 @@ public class ClientFactory {
      * customized with the given properties.
      *
      * @param csb the connection string builder
-     * @param client CloseableHttpClient client. It will not be closed when {@link Client#close} is called.
+     * @param client HttpClient client.
      * @return a fully constructed {@linkplain Client} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */
     public static Client createClient(ConnectionStringBuilder csb, HttpClient client) throws URISyntaxException {
-        return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client, true);
+        return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client);
     }
 
     /**
@@ -87,6 +87,6 @@ public class ClientFactory {
      * @throws URISyntaxException if the cluster URL is invalid
      */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
-        return new ClientImpl(csb, httpClient, true);
+        return new ClientImpl(csb, httpClient);
     }
 }
