@@ -25,7 +25,7 @@ public class TestUtils {
 
     static ContainerWithSas containerWithSasFromContainerName(String containerName) {
         try {
-            return new ContainerWithSas(String.format("https://storage.blob.core.windows.net/%s?sas", containerName), null);
+            return new ContainerWithSas(String.format("https://storage.blob.core.windows.net/%s?sas", containerName), null, null);
         } catch (URISyntaxException ex) {
             return null;
         }
@@ -33,7 +33,7 @@ public class TestUtils {
 
     static ContainerWithSas containerWithSasFromAccountNameAndContainerName(String accountName, String containerName) {
         try {
-            return new ContainerWithSas(String.format("https://%s.blob.core.windows.net/%s?sas", accountName, containerName), null);
+            return new ContainerWithSas(String.format("https://%s.blob.core.windows.net/%s?sas", accountName, containerName), null, null);
         } catch (URISyntaxException ex) {
             return null;
         }

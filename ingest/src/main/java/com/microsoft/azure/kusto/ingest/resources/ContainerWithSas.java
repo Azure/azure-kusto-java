@@ -3,7 +3,9 @@ package com.microsoft.azure.kusto.ingest.resources;
 import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.UriUtils;
+import reactor.util.annotation.Nullable;
 
 import java.net.URISyntaxException;
 
@@ -11,7 +13,7 @@ public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
     private final String sas;
     private final BlobContainerClient container;
 
-    public ContainerWithSas(String url, HttpClient httpClient) throws URISyntaxException {
+    public ContainerWithSas(String url, HttpClient httpClient, @Nullable RequestRetryOptions retryOptions) throws URISyntaxException {
         String[] parts = UriUtils.getSasAndEndpointFromResourceURL(url);
         String endpoint = parts[0];
         String sas = parts[1];
@@ -21,6 +23,7 @@ public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
                 .endpoint(endpoint)
                 .sasToken(sas)
                 .httpClient(httpClient)
+                .retryOptions(retryOptions)
                 .buildClient();
     }
 

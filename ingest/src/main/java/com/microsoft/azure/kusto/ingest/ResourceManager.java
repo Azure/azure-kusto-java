@@ -207,7 +207,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         switch (resourceType) {
             case TEMP_STORAGE:
-                this.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
+                this.containers.addResource(new ContainerWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             case INGESTIONS_STATUS_TABLE:
                 this.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
