@@ -128,7 +128,8 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             if (jsonNode.isArray()) {
                 jsonArray = (ArrayNode) jsonNode;
                 for (JsonNode node : jsonArray) {
-                    if (node.has(FRAME_TYPE_PROPERTY_NAME) && node.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_SET_COMPLETION_FRAME_TYPE_PROPERTY_VALUE) &&
+                    if (node.has(FRAME_TYPE_PROPERTY_NAME) && node.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_SET_COMPLETION_FRAME_TYPE_PROPERTY_VALUE)
+                            &&
                             node.has(HAS_ERRORS_PROPERTY_NAME) && node.get(HAS_ERRORS_PROPERTY_NAME).asBoolean()) {
                         ArrayNode oneApiErrors = (ArrayNode) node.get(ONE_API_ERRORS_PROPERTY_NAME);
 
