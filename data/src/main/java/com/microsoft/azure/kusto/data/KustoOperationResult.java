@@ -128,8 +128,12 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
             if (jsonNode.isArray()) {
                 jsonArray = (ArrayNode) jsonNode;
                 for (JsonNode node : jsonArray) {
-                    if (node.has(FRAME_TYPE_PROPERTY_NAME) && node.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_SET_COMPLETION_FRAME_TYPE_PROPERTY_VALUE)
-                            &&
+                    String frameType = "";
+                    if (node.has(FRAME_TYPE_PROPERTY_NAME)) {
+                        frameType = node.get(FRAME_TYPE_PROPERTY_NAME).asText();
+                    }
+
+                    if (frameType.equals(DATA_SET_COMPLETION_FRAME_TYPE_PROPERTY_VALUE) &&
                             node.has(HAS_ERRORS_PROPERTY_NAME) && node.get(HAS_ERRORS_PROPERTY_NAME).asBoolean()) {
                         ArrayNode oneApiErrors = (ArrayNode) node.get(ONE_API_ERRORS_PROPERTY_NAME);
 
@@ -145,7 +149,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                         }
 
                     }
-                    if (node.has(FRAME_TYPE_PROPERTY_NAME) && node.get(FRAME_TYPE_PROPERTY_NAME).asText().equals(DATA_TABLE_FRAME_TYPE_PROPERTY_VALUE)) {
+                    if (frameType.equals(DATA_TABLE_FRAME_TYPE_PROPERTY_VALUE)) {
                         resultTables.add(new KustoResultSetTable(node));
                     }
                 }
