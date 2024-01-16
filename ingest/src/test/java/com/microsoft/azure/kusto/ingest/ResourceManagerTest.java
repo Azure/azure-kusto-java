@@ -191,7 +191,8 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources() throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
+    void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources()
+            throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
         ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock, waitTime, waitTime, null);
         resourceManagerWithLowRefresh.getShuffledContainers();
