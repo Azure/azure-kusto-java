@@ -36,13 +36,12 @@ class ResourceManagerTest {
     private static final String STATUS_TABLE = "statusTable";
     private static final String FAILED_QUEUE = "failedQueue";
     private static final String SUCCESS_QUEUE = "successQueue";
-    private static final List<ContainerWithSas> STORAGES = new ArrayList<>();
+    private static List<ContainerWithSas> STORAGES = new ArrayList<>();
     private static final List<QueueWithSas> QUEUES = new ArrayList<>();
     private static final TableWithSas STATUS_TABLE_RES = TestUtils.tableWithSasFromTableName(STATUS_TABLE);
     private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
     private static ResourceManager resourceManager;
-    private static ResourceManager resourceManagerWithLowRefresh;
     private static int ACCOUNTS_COUNT = 10;
 
     @BeforeAll
@@ -57,10 +56,10 @@ class ResourceManagerTest {
         setUpStorageResources(0);
 
         resourceManager = new ResourceManager(clientMock, null);
-        resourceManagerWithLowRefresh = new ResourceManager(clientMock, 5000l, 5000l, null);
     }
 
     static void setUpStorageResources(int startingIndex) {
+        STORAGES = new ArrayList<>();
         for (int i = startingIndex; i < startingIndex + ACCOUNTS_COUNT; i++) {
             for (int j = 0; j < i; j++) { // different number of containers per account
                 STORAGES.add(TestUtils.containerWithSasFromAccountNameAndContainerName("storage_" + i, "container_" + i + "_" + j));
@@ -110,19 +109,6 @@ class ResourceManagerTest {
     @Test
     void getIdentityToken_ReturnsCorrectToken() throws IngestionServiceException, IngestionClientException {
         assertEquals(AUTH_TOKEN, resourceManager.getIdentityToken());
-    }
-
-    @Test
-    void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources() throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
-        resourceManagerWithLowRefresh.getShuffledContainers();
-        setUpStorageResources(10);
-        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
-        Thread.sleep(6000);
-        List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
-        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
-                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
-        assertEquals(storageByAccount.size(), ACCOUNTS_COUNT);
     }
 
     @Test
@@ -202,5 +188,22 @@ class ResourceManagerTest {
         assertEquals(
                 SUCCESS_QUEUE_RES.getEndpoint(),
                 resourceManager.getSuccessfulQueue().getEndpoint());
+    }
+
+    @Test
+    void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources() throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
+        long waitTime = 1000;
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock, waitTime, waitTime, null);
+        resourceManagerWithLowRefresh.getShuffledContainers();
+
+        setUpStorageResources(10);
+
+        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
+        Thread.sleep(waitTime + 2000);
+        List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
+        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
+                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
+        assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
     }
 }
