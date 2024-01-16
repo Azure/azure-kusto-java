@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.storage.blob.BlobContainerClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -40,6 +42,8 @@ class ResourceManagerTest {
     private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
     private static ResourceManager resourceManager;
+    private static ResourceManager resourceManagerWithLowRefresh;
+    private static int ACCOUNTS_COUNT = 10;
 
     @BeforeAll
     static void setUp() throws DataClientException, DataServiceException {
@@ -50,15 +54,19 @@ class ResourceManagerTest {
         when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
-        int ACCOUNTS_COUNT = 10;
-        for (int i = 0; i < ACCOUNTS_COUNT; i++) {
+        setUpStorageResources(0);
+
+        resourceManager = new ResourceManager(clientMock, null);
+        resourceManagerWithLowRefresh = new ResourceManager(clientMock, 5000l, 5000l, null);
+    }
+
+    static void setUpStorageResources(int startingIndex) {
+        for (int i = startingIndex; i < startingIndex + ACCOUNTS_COUNT; i++) {
             for (int j = 0; j < i; j++) { // different number of containers per account
                 STORAGES.add(TestUtils.containerWithSasFromAccountNameAndContainerName("storage_" + i, "container_" + i + "_" + j));
                 QUEUES.add(TestUtils.queueWithSasFromAccountNameAndQueueName("queue_" + i, "queue_" + i + "_" + j));
             }
         }
-
-        resourceManager = new ResourceManager(clientMock, null);
     }
 
     @AfterAll
@@ -105,9 +113,21 @@ class ResourceManagerTest {
     }
 
     @Test
+    void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources() throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
+        resourceManagerWithLowRefresh.getShuffledContainers();
+        setUpStorageResources(10);
+        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
+        Thread.sleep(6000);
+        List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
+        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
+                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
+        assertEquals(storageByAccount.size(), ACCOUNTS_COUNT);
+    }
+
+    @Test
     void getIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
         List<ContainerWithSas> storages = resourceManager.getShuffledContainers();
-
         Pattern pattern = Pattern.compile("container_(\\d+)_(\\d+)");
 
         int currentRoundRobinIndex = 0;
