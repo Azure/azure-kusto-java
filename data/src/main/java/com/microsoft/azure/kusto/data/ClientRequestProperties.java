@@ -13,7 +13,6 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
@@ -200,6 +199,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
+            optionsAsJSON.put("query_language", "csl");
+            // Disables reporting partial query failures as part of the result set
+            // Default (false or not set): report failures as soon as possible as part of the result stream
+            // When the option is set: try to complete the result stream and report all partial failures as part of the "query status" result in the end
+            // When to use? I suppose depends first on SDK support.
         }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
@@ -285,7 +289,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         this.user = user;
     }
 
-    Iterator<HashMap.Entry<String, Object>> getOptions() {
+    Iterator<Map.Entry<String, Object>> getOptions() {
         return options.entrySet().iterator();
     }
 
