@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import org.junit.jupiter.api.BeforeAll;
@@ -391,7 +392,7 @@ public class ResultSetTest {
                         "\"Columns\":" + columns + ",\"Rows\":" +
                         objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(1, thrownException.getExceptions().size());
-        assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
+        assertSame(thrownException.getExceptions().get(0).getClass(), DataWebException.class);
     }
 
     @Test
