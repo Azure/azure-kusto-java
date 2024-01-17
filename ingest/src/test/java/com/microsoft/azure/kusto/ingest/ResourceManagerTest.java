@@ -42,7 +42,7 @@ class ResourceManagerTest {
     private static final QueueWithSas FAILED_QUEUE_RES = TestUtils.queueWithSasFromQueueName(FAILED_QUEUE);
     private static final QueueWithSas SUCCESS_QUEUE_RES = TestUtils.queueWithSasFromQueueName(SUCCESS_QUEUE);
     private static ResourceManager resourceManager;
-    private static int ACCOUNTS_COUNT = 10;
+    private static final int ACCOUNTS_COUNT = 10;
 
     @BeforeAll
     static void setUp() throws DataClientException, DataServiceException {
@@ -61,7 +61,7 @@ class ResourceManagerTest {
     static void setUpStorageResources(int startingIndex) {
         STORAGES = new ArrayList<>();
         for (int i = startingIndex; i < startingIndex + ACCOUNTS_COUNT; i++) {
-            for (int j = 0; j < i; j++) { // different number of containers per account
+            for (int j = 0; j <= i; j++) { // different number of containers per account
                 STORAGES.add(TestUtils.containerWithSasFromAccountNameAndContainerName("storage_" + i, "container_" + i + "_" + j));
                 QUEUES.add(TestUtils.queueWithSasFromAccountNameAndQueueName("queue_" + i, "queue_" + i + "_" + j));
             }
@@ -206,5 +206,24 @@ class ResourceManagerTest {
         Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
                 .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
         assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
+    }
+
+    @Test
+    void getIngestionResource_WhenStorageFalisToFetch_ReturnOldContainers()
+            throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
+        long waitTime = 1000;
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock, waitTime, waitTime, null);
+        List<ContainerWithSas> shuffledContainers = resourceManagerWithLowRefresh.getShuffledContainers();
+        assert shuffledContainers.size() > 0;
+
+        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenThrow(new RuntimeException());
+        for (int i = 1; i < 10; i++) {
+            Thread.sleep(i * 500);
+            List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
+            Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
+                    .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
+            assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
+        }
     }
 }
