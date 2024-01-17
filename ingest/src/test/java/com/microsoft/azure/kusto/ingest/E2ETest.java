@@ -584,13 +584,14 @@ class E2ETest {
             String streamedLine;
             long prevTime = 0;
             int count = 0;
-            while ((br.read(buffer)) > -1) {
+            int read;
+            while ((read = br.read(buffer)) > -1) {
                 count++;
-                streamedLine = String.valueOf(buffer);
+                streamedLine = String.valueOf(buffer, 0, read);
                 streamedResult.append(streamedLine);
                 streamedResult.append("\n");
                 long currTime = stopWatch.getTime();
-                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", streamedLine.length(), (currTime - prevTime));
+                System.out.printf("Read streamed segment of length '%s' in '%s'ms%n", read, (currTime - prevTime));
                 prevTime = currTime;
             }
             stopWatch.stop();
