@@ -200,10 +200,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         if (timeoutObj != null) {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
             optionsAsJSON.put("query_language", "csl");
-            // Disables reporting partial query failures as part of the result set
-            // Default (false or not set): report failures as soon as possible as part of the result stream
-            // When the option is set: try to complete the result stream and report all partial failures as part of the "query status" result in the end
-            // When to use? I suppose depends first on SDK support.
         }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
