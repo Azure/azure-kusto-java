@@ -194,29 +194,32 @@ class ResourceManagerTest {
     void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources()
             throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
-        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock, waitTime, waitTime, null);
+        Client clientMock2 = mock(Client.class);
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock2, waitTime, waitTime, null);
         resourceManagerWithLowRefresh.getShuffledContainers();
 
         setUpStorageResources(10);
 
-        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(clientMock2.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
         Thread.sleep(waitTime + 5000);
         List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
         Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
                 .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
         assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
+        resourceManagerWithLowRefresh.close();
     }
 
     @Test
     void getIngestionResource_WhenStorageFalisToFetch_ReturnOldContainers()
             throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
-        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock, waitTime, waitTime, null);
+        Client clientMock2 = mock(Client.class);
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock2, waitTime, waitTime, null);
         List<ContainerWithSas> shuffledContainers = resourceManagerWithLowRefresh.getShuffledContainers();
         assert shuffledContainers.size() > 0;
 
-        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(clientMock2.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenThrow(new RuntimeException());
         for (int i = 1; i < 10; i++) {
             Thread.sleep(i * 500);
@@ -225,5 +228,6 @@ class ResourceManagerTest {
                     .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
             assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
         }
+        resourceManagerWithLowRefresh.close();
     }
 }
