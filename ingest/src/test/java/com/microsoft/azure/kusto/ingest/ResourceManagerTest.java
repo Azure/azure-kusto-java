@@ -201,7 +201,7 @@ class ResourceManagerTest {
 
         when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
-        Thread.sleep(waitTime + 2000);
+        Thread.sleep(waitTime + 5000);
         List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
         Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
                 .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));

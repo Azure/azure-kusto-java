@@ -67,7 +67,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     private IngestionResource<QueueWithSas> successfulIngestionsQueues;
     private IngestionResource<QueueWithSas> failedIngestionsQueues;
 
-    ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
+   public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
@@ -81,7 +81,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         init();
     }
 
-    ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
+    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
         this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
@@ -237,6 +237,12 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
         // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
         if (ingestionResourcesLock.writeLock().tryLock()) {
+            IngestionResource<ContainerWithSas> oldContainers = this.containers;
+            IngestionResource<QueueWithSas> oldQueues = this.queues;
+            IngestionResource<QueueWithSas> oldSuccessfulIngestionsQueues = this.successfulIngestionsQueues;
+            IngestionResource<QueueWithSas> oldFailedIngestionsQueues = this.failedIngestionsQueues;
+            IngestionResource<TableWithSas> oldStatusTable = this.statusTable;
+            boolean failed = true;
             try {
                 log.info("Refreshing Ingestion Resources");
                 this.containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
@@ -259,6 +265,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                 }
                 populateStorageAccounts();
                 log.info("Refreshing Ingestion Resources Finished");
+                failed = false;
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
             } catch (DataClientException e) {
@@ -266,6 +273,13 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             } catch (Throwable e) {
                 throw new IngestionClientException(e.getMessage(), e);
             } finally {
+                if (failed) {
+                    this.containers = oldContainers;
+                    this.queues = oldQueues;
+                    this.successfulIngestionsQueues = oldSuccessfulIngestionsQueues;
+                    this.failedIngestionsQueues = oldFailedIngestionsQueues;
+                    this.statusTable = oldStatusTable;
+                }
                 ingestionResourcesLock.writeLock().unlock();
             }
         }
