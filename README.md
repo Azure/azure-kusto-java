@@ -59,7 +59,7 @@ And the SDK will know to use these values automatically.
 Alternatively, you can define a proxy programmatically when creating a client, using `HttpClientProperties`:  
 ```java
 HttpClientProperties httpClientProperties = HttpClientProperties.builder()
-        .proxy(new HttpHost("1.2.3.4", 8989))
+        .proxy(new ProxyOptions(ProxyOptions.Type.HTTP, new InetSocketAddress("myproxy.contoso.com", 8080)))
         .build();
 
 Client = ClientFactory.createClient(<engine_connection_string>, httpClientProperties); 
