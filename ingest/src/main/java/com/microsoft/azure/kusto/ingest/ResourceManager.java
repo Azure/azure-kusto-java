@@ -80,7 +80,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
                 ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
-                : new HttpClientWrapper(httpClient); // We're putting a CloseableHttpClient in a wrapper that isn't closeable! Now we can't close it!
+                : new HttpClientWrapper(httpClient);
         retryConfig = Utils.buildRetryConfig(ThrottleException.class);
         storageAccountSet = new RankedStorageAccountSet();
         init();
