@@ -73,7 +73,7 @@ class QueuedIngestClientTest {
 
     @AfterEach
     void tareEach() {
-System.out.println("Yihezkel called QueuedIngestClientTest close");
+        System.out.println("Yihezkel called QueuedIngestClientTest close");
         queuedIngestClient.close();
     }
 
