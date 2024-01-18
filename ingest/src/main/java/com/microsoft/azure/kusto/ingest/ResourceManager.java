@@ -66,6 +66,8 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     private IngestionResource<QueueWithSas> queues;
     private IngestionResource<QueueWithSas> successfulIngestionsQueues;
     private IngestionResource<QueueWithSas> failedIngestionsQueues;
+    private TimerTask refreshIngestionAuthTokenTask;
+    private TimerTask refreshIngestionResourcesTask;
 
     ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
@@ -87,6 +89,8 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
+        refreshIngestionAuthTokenTask.cancel();
+        refreshIngestionResourcesTask.cancel();
         Timer closeTimer = timer;
         timer = null;
         closeTimer.cancel();
@@ -106,11 +110,13 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionResources();
-                    timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
+                    refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
+                    timer.schedule(refreshIngestionResourcesTask, defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
                     if (timer != null) {
-                        timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
+                        refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
+                        timer.schedule(refreshIngestionResourcesTask, refreshTimeOnFailure);
                     }
                 }
             }
@@ -121,18 +127,21 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionAuthToken();
-                    timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
+                    refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
+                    timer.schedule(refreshIngestionAuthTokenTask, defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
                     if (timer != null) {
-                        timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
+                        timer.schedule(refreshIngestionAuthTokenTask, refreshTimeOnFailure);
                     }
                 }
             }
         }
 
-        timer.schedule(new RefreshIngestionAuthTokenTask(), 0);
-        timer.schedule(new RefreshIngestionResourcesTask(), 0);
+        refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
+        timer.schedule(refreshIngestionAuthTokenTask, 0);
+        refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
+        timer.schedule(refreshIngestionResourcesTask, 0);
     }
 
     @Override
@@ -413,7 +422,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         boolean empty() {
-            return this.resourcesList.size() == 0;
+            return this.resourcesList.isEmpty();
         }
     }
 }
