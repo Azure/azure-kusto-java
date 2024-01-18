@@ -82,16 +82,8 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
         // This empty operation
         if (request instanceof HttpEntityEnclosingRequest) {
             HttpEntityEnclosingRequest entityEnclosingRequest = (HttpEntityEnclosingRequest) request;
-            PipedOutputStream osPipe = new PipedOutputStream();
-            PipedInputStream isPipe = null;
-            try {
-                isPipe = new PipedInputStream(osPipe);
-            } catch (IOException ignored) {
-                // This should never happen
-            }
-
-            EXECUTOR.execute(() -> {
-                httpRequest.getBody().publishOn(Schedulers.boundedElastic()).map(buf -> {
+            try (PipedOutputStream osPipe = new PipedOutputStream()) {
+                EXECUTOR.execute(() -> httpRequest.getBody().publishOn(Schedulers.boundedElastic()).map(buf -> {
                     try {
                         if (buf.hasArray()) {
                             osPipe.write(buf.array(), buf.position(), buf.remaining());
@@ -104,18 +96,15 @@ public class HttpClientWrapper implements com.azure.core.http.HttpClient, IHttpC
                         return false;
                     }
                     return true;
-                }).blockLast();
-                try {
-                    osPipe.close();
-                } catch (IOException e) {
-                    // This should never happen
-                }
-            });
+                }).blockLast());
 
-            String contentLength = httpRequest.getHeaders().getValue("Content-Length");
-            String contentType = httpRequest.getHeaders().getValue("Content-Type");
-            entityEnclosingRequest.setEntity(new InputStreamEntity(isPipe, contentLength == null ? -1 : Long.parseLong(contentLength),
-                    contentType == null ? null : ContentType.parse(contentType)));
+                String contentLength = httpRequest.getHeaders().getValue("Content-Length");
+                String contentType = httpRequest.getHeaders().getValue("Content-Type");
+                entityEnclosingRequest.setEntity(new InputStreamEntity(new PipedInputStream(osPipe), contentLength == null ? -1 : Long.parseLong(contentLength),
+                        contentType == null ? null : ContentType.parse(contentType)));
+            } catch (IOException e) {
+                // This should never happen
+            }
         }
 
         // The types of the Monos are different, but we ignore the results anyway (since we only care about the input stream) so this is fine.
