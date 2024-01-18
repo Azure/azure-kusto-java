@@ -194,39 +194,53 @@ class ResourceManagerTest {
     void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources()
             throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
-        Client clientMock2 = mock(Client.class);
-        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock2, waitTime, waitTime, null);
+        Client clientMockLocal = mock(Client.class);
+        when(clientMockLocal.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
+
+        when(clientMockLocal.execute(Commands.IDENTITY_GET_COMMAND))
+                .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
+
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMockLocal, waitTime, waitTime, null);
         resourceManagerWithLowRefresh.getShuffledContainers();
 
         setUpStorageResources(10);
+        validateStorage(resourceManagerWithLowRefresh.getShuffledContainers());
 
-        when(clientMock2.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
-        Thread.sleep(waitTime + 5000);
-        List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
-        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
-                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
-        assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
         resourceManagerWithLowRefresh.close();
     }
 
+    void validateStorage(List<ContainerWithSas> storages){
+        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
+                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
+        assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
+    }
+
     @Test
-    void getIngestionResource_WhenStorageFalisToFetch_ReturnOldContainers()
+    void getIngestionResource_WhenStorageFailsToFetch_ReturnGoodContainers()
             throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
-        Client clientMock2 = mock(Client.class);
-        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMock2, waitTime, waitTime, null);
-        List<ContainerWithSas> shuffledContainers = resourceManagerWithLowRefresh.getShuffledContainers();
-        assert shuffledContainers.size() > 0;
+        Client clientMockFail = mock(Client.class);
+        class Fail {
+            public boolean shouldFail;
+        }
+        final Fail fail = new Fail();
+        when(clientMockFail.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .thenAnswer(invocationOnMock -> {
+                    if (!fail.shouldFail){
+                        return generateIngestionResourcesResult();
+                    }
+                    throw new RuntimeException("Failed something");
+                });
+        ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMockFail, waitTime, waitTime, null);
 
-        when(clientMock2.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
-                .thenThrow(new RuntimeException());
         for (int i = 1; i < 10; i++) {
+            if (i % 5 == 4){
+                fail.shouldFail = !fail.shouldFail;
+            }
             Thread.sleep(i * 500);
-            List<ContainerWithSas> storages = resourceManagerWithLowRefresh.getShuffledContainers();
-            Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
-                    .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
-            assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
+            validateStorage(resourceManagerWithLowRefresh.getShuffledContainers());
+
         }
         resourceManagerWithLowRefresh.close();
     }
