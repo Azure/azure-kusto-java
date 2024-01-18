@@ -199,7 +199,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
             optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
-            optionsAsJSON.put("query_language", "csl");
         }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
