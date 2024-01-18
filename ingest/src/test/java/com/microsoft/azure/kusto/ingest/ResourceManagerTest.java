@@ -210,7 +210,7 @@ class ResourceManagerTest {
         resourceManagerWithLowRefresh.close();
     }
 
-    void validateStorage(List<ContainerWithSas> storages){
+    void validateStorage(List<ContainerWithSas> storages) {
         Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
                 .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
         assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
@@ -219,7 +219,7 @@ class ResourceManagerTest {
     @Test
     void getIngestionResource_WhenStorageFailsToFetch_ReturnGoodContainers()
             throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
-        long waitTime = 1000;
+        long waitTime = 200;
         Client clientMockFail = mock(Client.class);
         class Fail {
             public boolean shouldFail;
@@ -227,7 +227,7 @@ class ResourceManagerTest {
         final Fail fail = new Fail();
         when(clientMockFail.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> {
-                    if (!fail.shouldFail){
+                    if (!fail.shouldFail) {
                         return generateIngestionResourcesResult();
                     }
                     throw new RuntimeException("Failed something");
@@ -235,10 +235,10 @@ class ResourceManagerTest {
         ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMockFail, waitTime, waitTime, null);
 
         for (int i = 1; i < 10; i++) {
-            if (i % 5 == 4){
+            if (i % 5 == 4) {
                 fail.shouldFail = !fail.shouldFail;
             }
-            Thread.sleep(i * 500);
+            Thread.sleep(i * 200);
             validateStorage(resourceManagerWithLowRefresh.getShuffledContainers());
 
         }
