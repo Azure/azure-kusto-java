@@ -9,11 +9,11 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -37,7 +37,10 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -92,6 +95,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         refreshIngestionAuthTokenTask.cancel();
         refreshIngestionResourcesTask.cancel();
         timer.cancel();
+        timer.purge();
         timer = null;
         try {
             System.out.println("Yihezkel called ResourceManager close");
@@ -108,16 +112,10 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionResources();
-                    if (refreshIngestionResourcesTask != null) {
-                        refreshIngestionResourcesTask.cancel();
-                    }
-                    refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
-                    timer.schedule(refreshIngestionResourcesTask, defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
                     if (timer != null) {
-                        refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
-                        timer.schedule(refreshIngestionResourcesTask, refreshTimeOnFailure);
+                        timer.schedule(this, refreshTimeOnFailure, defaultRefreshTime);
                     }
                 }
             }
@@ -128,24 +126,19 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionAuthToken();
-                    if (refreshIngestionAuthTokenTask != null) {
-                        refreshIngestionAuthTokenTask.cancel();
-                    }
-                    refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
-                    timer.schedule(refreshIngestionAuthTokenTask, defaultRefreshTime);
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
                     if (timer != null) {
-                        timer.schedule(refreshIngestionAuthTokenTask, refreshTimeOnFailure);
+                        timer.schedule(this, refreshTimeOnFailure, defaultRefreshTime);
                     }
                 }
             }
         }
 
         refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
-        timer.schedule(refreshIngestionAuthTokenTask, 0);
+        timer.schedule(refreshIngestionAuthTokenTask, 0, defaultRefreshTime);
         refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
-        timer.schedule(refreshIngestionResourcesTask, 0);
+        timer.schedule(refreshIngestionResourcesTask, 0, defaultRefreshTime);
     }
 
     @Override

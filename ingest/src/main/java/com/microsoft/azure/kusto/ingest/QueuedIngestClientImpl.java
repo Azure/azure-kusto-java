@@ -44,7 +44,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
-    private CloseableHttpClient httpClient;
+    // private CloseableHttpClient httpClient;
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties), autoCorrectEndpoint);
@@ -55,7 +55,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
         csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getIngestionEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
         Client client = ClientFactory.createClient(csbWithEndpoint, httpClient);
-        this.httpClient = httpClient; // We obviously don't want this
+        // this.httpClient = httpClient; // We obviously don't want this
         this.resourceManager = new ResourceManager(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
@@ -289,13 +289,10 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     public void close() {
-        try {
-            if (this.httpClient != null) {
-                this.httpClient.close();
-            }
-        } catch (IOException e) {
-            log.error("Couldn't close httpClient. " + e.getMessage(), e);
-        }
+        /*
+         * try { if (this.httpClient != null) { this.httpClient.close(); } } catch (IOException e) { log.error("Couldn't close httpClient. " + e.getMessage(),
+         * e); }
+         */
         this.resourceManager.close();
     }
 }
