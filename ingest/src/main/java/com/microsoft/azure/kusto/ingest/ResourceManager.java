@@ -115,7 +115,10 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
                     if (timer != null) {
-                        timer.schedule(this, refreshTimeOnFailure, defaultRefreshTime);
+                        RefreshIngestionResourcesTask newRefreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
+                        timer.schedule(newRefreshIngestionResourcesTask, refreshTimeOnFailure, defaultRefreshTime);
+                        refreshIngestionResourcesTask.cancel();
+                        refreshIngestionResourcesTask = newRefreshIngestionResourcesTask;
                     }
                 }
             }
@@ -129,7 +132,10 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                 } catch (Exception e) {
                     log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
                     if (timer != null) {
-                        timer.schedule(this, refreshTimeOnFailure, defaultRefreshTime);
+                        RefreshIngestionAuthTokenTask newRefreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
+                        timer.schedule(newRefreshIngestionAuthTokenTask, refreshTimeOnFailure, defaultRefreshTime);
+                        refreshIngestionAuthTokenTask.cancel();
+                        refreshIngestionAuthTokenTask = newRefreshIngestionAuthTokenTask;
                     }
                 }
             }
