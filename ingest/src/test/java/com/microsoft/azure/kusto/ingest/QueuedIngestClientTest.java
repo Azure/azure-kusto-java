@@ -20,6 +20,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -72,6 +73,7 @@ class QueuedIngestClientTest {
 
     @AfterEach
     void tareEach() {
+System.out.println("Yihezkel called QueuedIngestClientTest close");
         queuedIngestClient.close();
     }
 
@@ -307,7 +309,6 @@ class QueuedIngestClientTest {
                 Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
     }
 
-    @Disabled
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
     void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
@@ -330,7 +331,6 @@ class QueuedIngestClientTest {
                 Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
     }
 
-    @Disabled
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
     void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {

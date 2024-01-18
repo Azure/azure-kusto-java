@@ -24,7 +24,6 @@ import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
-import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
@@ -34,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -75,7 +75,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
                 ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
-                : new HttpClientWrapper(httpClient);
+                : new HttpClientWrapper(httpClient); // We're putting a CloseableHttpClient in a wrapper that isn't closeable! Now we can't close it!
         retryConfig = Utils.buildRetryConfig(ThrottleException.class);
         storageAccountSet = new RankedStorageAccountSet();
         init();
@@ -91,6 +91,13 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         timer = null;
         closeTimer.cancel();
         closeTimer.purge();
+        try {
+System.out.println("Yihezkel called ResourceManager close");
+            client.close();
+//            httpClient.close();
+        } catch (IOException e) {
+            log.error("Couldn't close client/httpClient. " + e.getMessage(), e);
+        }
     }
 
     private void init() {
