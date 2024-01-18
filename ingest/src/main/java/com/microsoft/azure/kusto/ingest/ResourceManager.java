@@ -91,10 +91,8 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     public void close() {
         refreshIngestionAuthTokenTask.cancel();
         refreshIngestionResourcesTask.cancel();
-        Timer closeTimer = timer;
+        timer.cancel();
         timer = null;
-        closeTimer.cancel();
-        closeTimer.purge();
         try {
             System.out.println("Yihezkel called ResourceManager close");
             client.close();
@@ -110,6 +108,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionResources();
+                    if (refreshIngestionResourcesTask != null) {
+                        refreshIngestionResourcesTask.cancel();
+                    }
                     refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
                     timer.schedule(refreshIngestionResourcesTask, defaultRefreshTime);
                 } catch (Exception e) {
@@ -127,6 +128,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
             public void run() {
                 try {
                     refreshIngestionAuthToken();
+                    if (refreshIngestionAuthTokenTask != null) {
+                        refreshIngestionAuthTokenTask.cancel();
+                    }
                     refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
                     timer.schedule(refreshIngestionAuthTokenTask, defaultRefreshTime);
                 } catch (Exception e) {

@@ -290,7 +290,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     @Override
     public void close() {
         try {
-            this.httpClient.close();
+            if (this.httpClient != null) {
+                this.httpClient.close();
+            }
         } catch (IOException e) {
             log.error("Couldn't close httpClient. " + e.getMessage(), e);
         }
