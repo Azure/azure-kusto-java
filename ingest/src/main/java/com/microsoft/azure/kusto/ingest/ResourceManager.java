@@ -92,9 +92,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         closeTimer.cancel();
         closeTimer.purge();
         try {
-System.out.println("Yihezkel called ResourceManager close");
+            System.out.println("Yihezkel called ResourceManager close");
             client.close();
-//            httpClient.close();
+            // httpClient.close();
         } catch (IOException e) {
             log.error("Couldn't close client/httpClient. " + e.getMessage(), e);
         }
