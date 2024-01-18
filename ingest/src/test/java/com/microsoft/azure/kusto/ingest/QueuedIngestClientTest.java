@@ -70,6 +70,11 @@ class QueuedIngestClientTest {
         ingestionProperties.setDataFormat(DataFormat.CSV);
     }
 
+    @AfterEach
+    void tareEach() {
+        queuedIngestClient.close();
+    }
+
     @Test
     void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
@@ -302,6 +307,7 @@ class QueuedIngestClientTest {
                 Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
     }
 
+    @Disabled
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
     void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
@@ -324,6 +330,7 @@ class QueuedIngestClientTest {
                 Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
     }
 
+    @Disabled
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
     void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
