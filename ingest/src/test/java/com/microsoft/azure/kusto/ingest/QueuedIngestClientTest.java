@@ -311,10 +311,11 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
+    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
+        client.close();
     }
 
     private static Stream<Arguments> provideStringsForAutoCorrectEndpointFalsePass() {
@@ -333,10 +334,11 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
+    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
+        client.close();
     }
 
     @Test
