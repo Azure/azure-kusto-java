@@ -471,7 +471,6 @@ class ClientImpl implements Client, StreamingClient {
 
     @Override
     public void close() throws IOException {
-        System.out.println("Yihezkel called ClientImpl close with " + leaveHttpClientOpen);
         if (!leaveHttpClientOpen) {
             httpClient.close();
         }

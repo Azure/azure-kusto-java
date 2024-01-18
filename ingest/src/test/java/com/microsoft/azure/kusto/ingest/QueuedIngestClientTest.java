@@ -73,7 +73,6 @@ class QueuedIngestClientTest {
 
     @AfterEach
     void tareEach() {
-        System.out.println("Yihezkel called QueuedIngestClientTest close");
         queuedIngestClient.close();
     }
 
@@ -311,11 +310,10 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
+    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
-        client.close();
     }
 
     private static Stream<Arguments> provideStringsForAutoCorrectEndpointFalsePass() {
@@ -334,11 +332,10 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
+    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
         QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false);
         assertNotNull(client);
         assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
-        client.close();
     }
 
     @Test
