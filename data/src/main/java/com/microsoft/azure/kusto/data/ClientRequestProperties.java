@@ -13,7 +13,6 @@ import com.microsoft.azure.kusto.data.format.CslLongFormat;
 import com.microsoft.azure.kusto.data.format.CslRealFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
@@ -191,7 +190,14 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return millis;
     }
 
+    /**
+     * Sets the amount of time a query may execute on the service before it times out.
+     * @param timeoutInMs number of milliseconds before timeout. Value must be between 1 minute and 1 hour.
+     */
     public void setTimeoutInMilliSec(Long timeoutInMs) {
+        if (timeoutInMs < 60000 || timeoutInMs > MAX_TIMEOUT_MS) {
+            throw new IllegalArgumentException(String.format("Timeout must be between 60,000 and %,d milliseconds", MAX_TIMEOUT_MS));
+        }
         options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
     }
 
