@@ -92,11 +92,10 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
-        refreshIngestionAuthTokenTask.cancel();
-        refreshIngestionResourcesTask.cancel();
-        timer.cancel();
-        timer.purge();
+        Timer closeTimer = timer;
         timer = null;
+        closeTimer.cancel();
+        closeTimer.purge();
         try {
             client.close();
         } catch (IOException e) {
@@ -423,7 +422,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         boolean empty() {
-            return this.resourcesList.isEmpty();
+            return this.resourcesList.size() == 0;
         }
     }
 }
