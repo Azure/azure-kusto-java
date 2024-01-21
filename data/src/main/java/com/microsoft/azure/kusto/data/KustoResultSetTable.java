@@ -3,13 +3,11 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 
@@ -28,6 +26,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 
+import static com.microsoft.azure.kusto.data.KustoOperationResult.ONE_API_ERRORS_PROPERTY_NAME;
+
 // This class does not keep an open connection with the cluster - the results are evaluated once and can be retrieved using getData()
 public class KustoResultSetTable {
     protected static final String TABLE_NAME_PROPERTY_NAME = "TableName";
@@ -39,7 +39,7 @@ public class KustoResultSetTable {
     protected static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
     protected static final String ROWS_PROPERTY_NAME = "Rows";
     protected static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
-    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
+    static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private static final String EMPTY_STRING = "";
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
@@ -82,7 +82,7 @@ public class KustoResultSetTable {
         this.tableKind = tableKind;
     }
 
-    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException, JsonPropertyMissingException {
+    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonPropertyMissingException {
         if (jsonTable.has(TABLE_NAME_PROPERTY_NAME)) {
             tableName = jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText();
         }
@@ -131,12 +131,12 @@ public class KustoResultSetTable {
                     if (exceptions != null) {
                         if (exceptions.size() == 1) {
                             String message = exceptions.get(0).asText();
-                            throw new KustoServiceQueryError(message);
+                            throw new KustoServiceQueryError(exceptions, true, message);
                         } else {
                             throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceQueryError((ArrayNode) row.get("OneApiErrors"), true, EXCEPTIONS_MESSAGE);
+                        throw new KustoServiceQueryError((ArrayNode) row.get(ONE_API_ERRORS_PROPERTY_NAME), true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 ArrayNode rowAsJsonArray = (ArrayNode) jsonRows.get(i);
