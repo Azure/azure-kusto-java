@@ -43,7 +43,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
-public class ResourceManager implements Closeable, IngestionResourceManager {
+class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
@@ -82,10 +82,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
-        Timer closeTimer = timer;
+        timer.cancel();
+        timer.purge();
         timer = null;
-        closeTimer.cancel();
-        closeTimer.purge();
     }
 
     private void init() {
