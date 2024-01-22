@@ -57,9 +57,9 @@ public class HttpRequestBuilder {
 
         request.setBody(json.toString());
 
-        // When executing a query/command, we always add these command headers
-        request.setHeader(HttpHeaderName.fromString("Fed"), "True");
-        request.setHeader(HttpHeaderName.CONTENT_TYPE, "application/json");
+        // When executing a query/command, we always add content type
+        // Updated to remove Fed True from command headers per PR #342
+        request.setHeader(HttpHeaderName.CONTENT_TYPE, "application/json; charset=utf-8");
 
         return this;
     }
