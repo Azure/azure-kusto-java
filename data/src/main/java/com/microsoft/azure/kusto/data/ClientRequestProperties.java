@@ -291,7 +291,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         this.user = user;
     }
 
-    Iterator<HashMap.Entry<String, Object>> getOptions() {
+    Iterator<Map.Entry<String, Object>> getOptions() {
         return options.entrySet().iterator();
     }
 

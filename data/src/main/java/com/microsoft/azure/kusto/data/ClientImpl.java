@@ -15,8 +15,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.http.UncloseableStream;
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
@@ -461,8 +461,7 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     private void addCommandHeaders(Map<String, String> headers) {
-        headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
-        headers.put("Fed", "True");
+        headers.put(HttpHeaders.CONTENT_TYPE, "application/json; charset=utf-8");
     }
 
     public String getClusterUrl() {
