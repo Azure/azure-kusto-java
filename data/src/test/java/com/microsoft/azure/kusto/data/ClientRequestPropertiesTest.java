@@ -10,6 +10,8 @@ import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -19,13 +21,14 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_SERVER_TIMEOUT;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test set/get timeout")
     void timeoutSetGet() {
         ClientRequestProperties props = new ClientRequestProperties();
-        Long expected = TimeUnit.MINUTES.toMillis(100);
+        Long expected = TimeUnit.MINUTES.toMillis(10);
 
         // before setting value should be null
         Assertions.assertNull(props.getTimeoutInMilliSec());
@@ -34,7 +37,25 @@ class ClientRequestPropertiesTest {
         Assertions.assertEquals(expected, props.getTimeoutInMilliSec());
 
         Object timeoutObj = props.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertEquals("00.01:40:00.0", props.getTimeoutAsString(timeoutObj));
+        Assertions.assertEquals("00.00:10:00.0", props.getTimeoutAsString(timeoutObj));
+    }
+
+    @Test
+    @DisplayName("test set/get timeout with value that's below the minimum")
+    void timeoutSetGetInvalidValue() {
+        ClientRequestProperties props = new ClientRequestProperties();
+        Long expected = TimeUnit.SECONDS.toMillis(10);
+
+        // before setting value should be null
+        Assertions.assertNull(props.getTimeoutInMilliSec());
+
+        IllegalArgumentException thrownException = assertThrows(IllegalArgumentException.class,
+                () -> props.setTimeoutInMilliSec(expected));
+
+        Assertions.assertNull(props.getTimeoutInMilliSec());
+
+        Object timeoutObj = props.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertEquals("", props.getTimeoutAsString(timeoutObj));
     }
 
     @Test
@@ -179,32 +200,16 @@ class ClientRequestPropertiesTest {
         Assertions.assertEquals("guid(" + testUuid + ")", crp.getParameter(paramName));
     }
 
-    @Test
-    void testCreateCslDateTimeFormatFromString() {
-        String localDateTimeString = "2024-09-29T08:28:54.5440000Z";
-        String result = new CslDateTimeFormat(localDateTimeString).toString();
-        Assertions.assertEquals("datetime(" + localDateTimeString + ")", result);
-    }
-
-    @Test
-    void testCreateCslDateTimeFormatFromStringWithTypeAndValue() {
-        String localDateTimeString = "datetime( 2024-09-29T08:28:54.5440000Z)";
-        String result = new CslDateTimeFormat(localDateTimeString).toString();
-        Assertions.assertEquals("datetime(2024-09-29T08:28:54.5440000Z)", result);
-    }
-
-    @Test
-    void testCreateCslDateTimeFormatFromStringWithJustYear() {
-        String localDateTimeString = "datetime( 2024)";
-        String result = new CslDateTimeFormat(localDateTimeString).toString();
-        Assertions.assertEquals("datetime(2024-01-01T00:00:00.0000000Z)", result);
-    }
-
-    @Test
-    void testCreateCslDateTimeFormatFromStringWithStringLiteral() {
-        String localDateTimeString = "h\\\"2024-09-29T08:28:54.5440000Z\\\"";
-        String result = new CslDateTimeFormat(localDateTimeString).toString();
-        Assertions.assertEquals("datetime(2024-09-29T08:28:54.5440000Z)", result);
+    @ParameterizedTest
+    @CsvSource({
+            "2024-09-29T08:28:54.5440000Z, datetime(2024-09-29T08:28:54.5440000Z)",
+            "datetime( 2024-09-29T08:28:54.5440000Z), datetime(2024-09-29T08:28:54.5440000Z)",
+            "datetime( 2024), datetime(2024-01-01T00:00:00.0000000Z)",
+            "h\\\"2024-09-29T08:28:54.5440000Z\\\", datetime(2024-09-29T08:28:54.5440000Z)",
+    })
+    void testCreateCslDateTimeFormat(String localDateTimeStringInput, String localDateTimeStringExpected) {
+        String result = new CslDateTimeFormat(localDateTimeStringInput).toString();
+        Assertions.assertEquals(localDateTimeStringExpected, result);
     }
 
     @Test

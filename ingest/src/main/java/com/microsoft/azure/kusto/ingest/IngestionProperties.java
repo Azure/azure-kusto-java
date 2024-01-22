@@ -403,9 +403,9 @@ public class IngestionProperties implements TraceableAttributes {
         SINGLEJSON("singlejson", IngestionMapping.IngestionMappingKind.JSON, true),
         MULTIJSON("multijson", IngestionMapping.IngestionMappingKind.JSON, true),
         AVRO("avro", IngestionMapping.IngestionMappingKind.AVRO, false),
-        APACHEAVRO("apacheavro", IngestionMapping.IngestionMappingKind.APACHEAVRO, true),
+        APACHEAVRO("apacheavro", IngestionMapping.IngestionMappingKind.APACHEAVRO, false),
         PARQUET("parquet", IngestionMapping.IngestionMappingKind.PARQUET, false),
-        SSTREAM("sstream", IngestionMapping.IngestionMappingKind.SSTREAM, true),
+        SSTREAM("sstream", IngestionMapping.IngestionMappingKind.SSTREAM, false),
         ORC("orc", IngestionMapping.IngestionMappingKind.ORC, false),
         RAW("raw", IngestionMapping.IngestionMappingKind.CSV, true),
         W3CLOGFILE("w3clogfile", IngestionMapping.IngestionMappingKind.W3CLOGFILE, true);
