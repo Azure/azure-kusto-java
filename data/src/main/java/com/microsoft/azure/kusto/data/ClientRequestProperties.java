@@ -50,6 +50,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
+    static final long MIN_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(1);
     static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
     private String clientRequestId;
     private String application;
@@ -151,8 +152,15 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         parameters.clear();
     }
 
+    /**
+     * Gets the amount of time a query may execute on the service before it times out. Value must be between 1 minute and 1 hour,
+     * and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
+     */
     public Long getTimeoutInMilliSec() throws ParseException {
-        Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
+        return getTimeoutInMilliSec(getOption(OPTION_SERVER_TIMEOUT));
+    }
+
+    private static Long getTimeoutInMilliSec(Object timeoutObj) throws ParseException {
         Long timeout = null;
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
@@ -162,10 +170,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
             timeout = Long.valueOf((Integer) timeoutObj);
         }
 
-        return timeout;
+        return calculateTimeoutPerServiceLogic(timeout);
     }
 
-    private long parseTimeoutFromTimespanString(String str) throws ParseException {
+    private static long parseTimeoutFromTimespanString(String str) throws ParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
             throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
@@ -174,7 +182,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         if ("-".equals(matcher.group(1))) {
             throw new IllegalArgumentException(String.format("Negative timeouts are invalid. Value: '%s'", str));
         }
-        long millis = 0;
+
         String days = matcher.group(2);
         if (days != null && !days.equals("0") && !days.equals("00")) {
             return MAX_TIMEOUT_MS;
@@ -186,19 +194,29 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
                 timespanWithoutDays += matcher.group(i);
             }
         }
-        millis += TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(timespanWithoutDays).toNanoOfDay());
-        return millis;
+
+        return TimeUnit.NANOSECONDS.toMillis(LocalTime.parse(timespanWithoutDays).toNanoOfDay());
     }
 
     /**
      * Sets the amount of time a query may execute on the service before it times out.
-     * @param timeoutInMs number of milliseconds before timeout. Value must be between 1 minute and 1 hour.
+     * @param timeoutInMs number of milliseconds before timeout.
+     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        if (timeoutInMs < 60000 || timeoutInMs > MAX_TIMEOUT_MS) {
-            throw new IllegalArgumentException(String.format("Timeout must be between 60,000 and %,d milliseconds", MAX_TIMEOUT_MS));
+        options.put(OPTION_SERVER_TIMEOUT, calculateTimeoutPerServiceLogic(timeoutInMs));
+    }
+
+    private static Long calculateTimeoutPerServiceLogic(Long timeoutInMs) {
+        if (timeoutInMs != null) {
+            if (timeoutInMs < MIN_TIMEOUT_MS) {
+                return MIN_TIMEOUT_MS;
+            } else if (timeoutInMs > MAX_TIMEOUT_MS) {
+                return MAX_TIMEOUT_MS;
+            }
         }
-        options.put(OPTION_SERVER_TIMEOUT, timeoutInMs);
+
+        return timeoutInMs;
     }
 
     JsonNode toJson() {
@@ -301,17 +319,28 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return attributes;
     }
 
+    /**
+     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
+     * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
+     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
+     */
+    // TODO: Breaking change for next major release: static String getTimeoutAsTimespan(Object timeoutObj)
     String getTimeoutAsString(Object timeoutObj) {
-        String timeoutString = "";
-        if (timeoutObj instanceof Long) {
-            Duration duration = Duration.ofMillis((Long) timeoutObj);
-            timeoutString = Utils.formatDurationAsTimespan(duration);
-        } else if (timeoutObj instanceof String) {
-            timeoutString = (String) timeoutObj;
-        } else if (timeoutObj instanceof Integer) {
-            Duration duration = Duration.ofMillis((Integer) timeoutObj);
-            timeoutString = Utils.formatDurationAsTimespan(duration);
+        Long timeoutInMilliSec = getTimeoutInMilliSec(timeoutObj);
+
+        if (timeoutInMilliSec == null) {
+            return null;
         }
-        return timeoutString;
+
+        Duration duration = Duration.ofMillis(timeoutInMilliSec);
+        return Utils.formatDurationAsTimespan(duration);
+    }
+
+    /**
+     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
+     * Value must be between 1 minute and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
+     */
+    String getTimeoutAsTimespan() {
+        return getTimeoutAsString(getOption(OPTION_SERVER_TIMEOUT));
     }
 }

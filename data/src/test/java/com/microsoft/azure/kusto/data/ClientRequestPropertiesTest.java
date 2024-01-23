@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -19,43 +21,78 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_SERVER_TIMEOUT;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ClientRequestPropertiesTest {
-    @Test
-    @DisplayName("test set/get timeout")
-    void timeoutSetGet() {
-        ClientRequestProperties props = new ClientRequestProperties();
-        Long expected = TimeUnit.MINUTES.toMillis(10);
-
-        // before setting value should be null
-        Assertions.assertNull(props.getTimeoutInMilliSec());
-
-        props.setTimeoutInMilliSec(expected);
-        Assertions.assertEquals(expected, props.getTimeoutInMilliSec());
-
-        Object timeoutObj = props.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertEquals("00.00:10:00.0", props.getTimeoutAsString(timeoutObj));
+    // Used by the 3 parameterized tests below, in the format: {inputTimespan, inputMillis, expectedTimespan, expectedMillis}. Each method uses only one of the
+    // 2 input parameters.
+    private static Stream<Arguments> provideInputsForConvertTimeoutBetweenMillisAndTimespan() {
+        return Stream.of(
+                Arguments.of("00:40:02", TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2), "00:40:02",
+                        TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2)),
+                // If set to over MAX_TIMEOUT_MS - value should be MAX_TIMEOUT_MS
+                Arguments.of("01:40:02.1", TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2) + 100, "01:00:00",
+                        ClientRequestProperties.MAX_TIMEOUT_MS),
+                Arguments.of("1.01:40:02.1",
+                        TimeUnit.DAYS.toMillis(1) + TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2) + 100, "01:00:00",
+                        ClientRequestProperties.MAX_TIMEOUT_MS),
+                // If set to under MIN_TIMEOUT_MS - value should be MIN_TIMEOUT_MS
+                Arguments.of("00:00:12.6", TimeUnit.SECONDS.toMillis(12) + 600, "00:01:00", ClientRequestProperties.MIN_TIMEOUT_MS),
+                Arguments.of("00:00:00", 0L, "00:01:00", ClientRequestProperties.MIN_TIMEOUT_MS),
+                Arguments.of(null, null, null, null));
     }
 
-    @Test
-    @DisplayName("test set/get timeout with value that's below the minimum")
-    void timeoutSetGetInvalidValue() {
-        ClientRequestProperties props = new ClientRequestProperties();
-        Long expected = TimeUnit.SECONDS.toMillis(10);
+    @ParameterizedTest
+    @MethodSource("provideInputsForConvertTimeoutBetweenMillisAndTimespan")
+    @DisplayName("Set the timeout in milliseconds, using helper method")
+    void setTimeoutInMilliSec(String serverTimeoutOptionTimespan, Long serverTimeoutOptionMillis, String expectedTimespan, Long expectedMillis) {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
 
         // before setting value should be null
-        Assertions.assertNull(props.getTimeoutInMilliSec());
+        Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
+        Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
 
-        IllegalArgumentException thrownException = assertThrows(IllegalArgumentException.class,
-                () -> props.setTimeoutInMilliSec(expected));
+        clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
+        Assertions.assertEquals(clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT), expectedMillis);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
+    }
 
-        Assertions.assertNull(props.getTimeoutInMilliSec());
+    @ParameterizedTest
+    @MethodSource("provideInputsForConvertTimeoutBetweenMillisAndTimespan")
+    @DisplayName("Set the timeout in milliseconds, directly via OPTION_SERVER_TIMEOUT")
+    void setOPTION_SERVER_TIMEOUTProvidingMillis(String serverTimeoutOptionTimespan, Long serverTimeoutOptionMillis, String expectedTimespan,
+            Long expectedMillis) {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
 
-        Object timeoutObj = props.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertEquals("", props.getTimeoutAsString(timeoutObj));
+        // before setting value should be null
+        Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
+        Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionMillis);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideInputsForConvertTimeoutBetweenMillisAndTimespan")
+    @DisplayName("Set the timeout to a timespan, directly via OPTION_SERVER_TIMEOUT")
+    void setOPTION_SERVER_TIMEOUTProvidingTimespan(String serverTimeoutOptionTimespan, Long serverTimeoutOptionMillis, String expectedTimespan,
+            Long expectedMillis) {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+
+        // before setting value should be null
+        Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
+        Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionTimespan);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
     }
 
     @Test
@@ -72,21 +109,21 @@ class ClientRequestPropertiesTest {
     @Test
     @DisplayName("test ClientRequestProperties fromString")
     void stringToProperties() throws JsonProcessingException {
-        String properties = "{\"Options\":{\"servertimeout\":\"01:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
+        String properties = "{\"Options\":{\"servertimeout\":\"00:25:11.111\", \"Content-Encoding\":\"gzip\"},\"Parameters\":{\"birthday\":\"datetime(1970-05-11)\",\"courses\":\"dynamic(['Java', 'C++'])\"}}";
         ClientRequestProperties crp = ClientRequestProperties.fromString(properties);
 
-        assert crp != null;
-        assert crp.toJson().get("Options").get("servertimeout").asText().equals("01:25:11.111");
-        assert crp.getTimeoutInMilliSec() != null;
-        assert crp.getOption("Content-Encoding").equals("gzip");
-        assert crp.getParameter("birthday").equals("datetime(1970-05-11)");
-        assert crp.getParameter("courses").equals("dynamic(['Java', 'C++'])");
+        Assertions.assertNotNull(crp);
+        Assertions.assertEquals("00:25:11.111", crp.toJson().get("Options").get(OPTION_SERVER_TIMEOUT).asText());
+        Assertions.assertNotNull(crp.getTimeoutInMilliSec());
+        Assertions.assertEquals("gzip", crp.getOption("Content-Encoding"));
+        Assertions.assertEquals("datetime(1970-05-11)", crp.getParameter("birthday"));
+        Assertions.assertEquals("dynamic(['Java', 'C++'])", crp.getParameter("courses"));
 
         Long timeoutMilli = 200000L;
         crp = new ClientRequestProperties();
         crp.setTimeoutInMilliSec(timeoutMilli);
         crp = ClientRequestProperties.fromString(crp.toString());
-        assert crp.getTimeoutInMilliSec().equals(timeoutMilli);
+        Assertions.assertEquals(timeoutMilli, crp.getTimeoutInMilliSec());
     }
 
     @Test
