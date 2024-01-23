@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [5.0.4] - 2024-01-23 
+### Fixed
+- Getting ingestion resources could fail with containers list being empty.
+- Added missing headers in commands
+- Throw KustoServiceQueryError when Kusto service result includes OneApiError(s)
+
 ### Changed
 - Changed binary files data format compression to false
+- Enforce valid server timeout range
 
- [5.0.3] - 2023-11-27
+## [5.0.3] - 2023-11-27
 ### Fixed
 * IOException is sometimes considered transient
 ### Added
