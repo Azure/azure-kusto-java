@@ -9,11 +9,11 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -24,7 +24,6 @@ import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
-import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
@@ -34,10 +33,14 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -91,6 +94,11 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         timer = null;
         closeTimer.cancel();
         closeTimer.purge();
+        try {
+            client.close();
+        } catch (IOException e) {
+            log.error("Couldn't close client: " + e.getMessage(), e);
+        }
     }
 
     private void init() {
@@ -406,7 +414,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         boolean empty() {
-            return this.resourcesList.size() == 0;
+            return this.resourcesList.isEmpty();
         }
     }
 }
