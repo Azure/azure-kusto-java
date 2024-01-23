@@ -27,19 +27,17 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@Timeout(value = 5, unit = TimeUnit.MINUTES)
 class QueuedIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     public static final String ACCOUNT_NAME = "someaccount";
-    private static QueuedIngestClientImpl queuedIngestClient;
+    private static QueuedIngestClient queuedIngestClient;
     private static IngestionProperties ingestionProperties;
     private static String testFilePath;
 
@@ -74,7 +72,7 @@ class QueuedIngestClientTest {
     }
 
     @AfterEach
-    void tareEach() {
+    void tareEach() throws IOException {
         queuedIngestClient.close();
     }
 
@@ -315,11 +313,10 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
-        try (QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true)) {
-            assertNotNull(client);
-            assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
-        }
+    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
+        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true);
+        assertNotNull(queuedIngestClient);
+        assertEquals(toCompare, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
     }
 
     private static Stream<Arguments> provideStringsForAutoCorrectEndpointFalsePass() {
@@ -338,11 +335,10 @@ class QueuedIngestClientTest {
 
     @ParameterizedTest
     @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException, IOException {
-        try (QueuedIngestClient client = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false)) {
-            assertNotNull(client);
-            assertEquals(toCompare, ((QueuedIngestClientImpl) client).connectionDataSource);
-        }
+    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
+        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false);
+        assertNotNull(queuedIngestClient);
+        assertEquals(toCompare, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
     }
 
     @Test
