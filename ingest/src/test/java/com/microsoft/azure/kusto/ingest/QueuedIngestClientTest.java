@@ -235,63 +235,66 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
-        IngestClient ingestClientSpy = spy(ingestClient);
+        try (IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock)) {
+            // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
+            IngestClient ingestClientSpy = spy(ingestClient);
 
-        IngestionClientException ingestionClientException = new IngestionClientException(
-                "Client exception in ingestFromFile");
-        doThrow(ingestionClientException).when(ingestClientSpy).ingestFromStream(any(), any());
+            IngestionClientException ingestionClientException = new IngestionClientException(
+                    "Client exception in ingestFromFile");
+            doThrow(ingestionClientException).when(ingestClientSpy).ingestFromStream(any(), any());
 
-        ResultSet resultSet = getSampleResultSet();
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
+            ResultSet resultSet = getSampleResultSet();
+            ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        assertThrows(
-                IngestionClientException.class,
-                () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
+            assertThrows(
+                    IngestionClientException.class,
+                    () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
+        }
     }
 
     @Test
     void ingestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
-        IngestClient ingestClientSpy = spy(ingestClient);
+        try (IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock)) {
+            // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
+            IngestClient ingestClientSpy = spy(ingestClient);
 
-        IngestionServiceException ingestionServiceException = new IngestionServiceException(
-                "Service exception in ingestFromFile");
-        doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromStream(any(), any());
+            IngestionServiceException ingestionServiceException = new IngestionServiceException(
+                    "Service exception in ingestFromFile");
+            doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromStream(any(), any());
 
-        ResultSet resultSet = getSampleResultSet();
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
+            ResultSet resultSet = getSampleResultSet();
+            ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        assertThrows(
-                IngestionServiceException.class,
-                () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
+            assertThrows(
+                    IngestionServiceException.class,
+                    () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
+        }
     }
 
     @Test
     void ingestFromResultSet_StreamIngest_VerifyStreamContent() throws Exception {
-        IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock);
-        // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
-        IngestClient ingestClientSpy = spy(ingestClient);
+        try (IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock)) {
+            // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
+            IngestClient ingestClientSpy = spy(ingestClient);
 
-        doReturn(null).when(ingestClientSpy).ingestFromStream(any(), any());
+            doReturn(null).when(ingestClientSpy).ingestFromStream(any(), any());
 
-        ResultSet resultSet = getSampleResultSet();
-        ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
+            ResultSet resultSet = getSampleResultSet();
+            ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-        ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
+            ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties);
 
-        ArgumentCaptor<StreamSourceInfo> argumentCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
+            ArgumentCaptor<StreamSourceInfo> argumentCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
 
-        verify(ingestClientSpy, atLeastOnce()).ingestFromStream(argumentCaptor.capture(), any());
-        InputStream ingestFromStreamReceivedStream = argumentCaptor.getValue().getStream();
+            verify(ingestClientSpy, atLeastOnce()).ingestFromStream(argumentCaptor.capture(), any());
+            InputStream ingestFromStreamReceivedStream = argumentCaptor.getValue().getStream();
 
-        int len = ingestFromStreamReceivedStream.available();
-        byte[] streamContent = new byte[len];
-        ingestFromStreamReceivedStream.read(streamContent, 0, len);
-        String stringContent = new String(streamContent);
-        assertEquals(stringContent, getSampleResultSetDump());
+            int len = ingestFromStreamReceivedStream.available();
+            byte[] streamContent = new byte[len];
+            ingestFromStreamReceivedStream.read(streamContent, 0, len);
+            String stringContent = new String(streamContent);
+            assertEquals(stringContent, getSampleResultSetDump());
+        }
     }
 
     private static Stream<Arguments> provideStringsForAutoCorrectEndpointTruePass() {
@@ -375,6 +378,7 @@ class QueuedIngestClientTest {
         holder.name = avroLocalCompressFileName;
         String avroNameCompression = genName.apply(DataFormat.AVRO, compressionTypeRes2);
         assert (avroNameCompression.endsWith(".avro.gz"));
+        ingestClient.close();
     }
 
     private ResultSet getSampleResultSet() throws SQLException {
