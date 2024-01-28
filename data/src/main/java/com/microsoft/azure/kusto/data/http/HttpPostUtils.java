@@ -74,7 +74,8 @@ public class HttpPostUtils {
                 }
             }
         } catch (IOException e) {
-            throw new DataServiceException(urlStr, "IOException in post request:" + e.getMessage(), !Utils.isRetriableIOException(e));
+            String message = e.getMessage() == null ? e.getCause().getMessage() : e.getMessage();
+            throw new DataServiceException(urlStr, "IOException in post request:" + message, !Utils.isRetriableIOException(e));
         }
 
         return null;
