@@ -4,6 +4,24 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+        tag:
+            description: 'Tag'
+            required: true
+            default: 'refs/tags/v0.0.0'
+        upload_to_maven:
+            description: 'Upload to Maven'
+            required: false
+            default: false
+        github_release:
+            description: 'Create Github release'
+            required: false
+            default: false
+        upload_to_azure:
+            description: 'Upload to Azure storage'
+            required: false
+            default: false
 
 jobs:
   release:
@@ -13,7 +31,9 @@ jobs:
         java: [ '8' ]
     name: Java ${{ matrix.java }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Setup java ${{ matrix.java }}
         uses: actions/setup-java@v3
         with:
@@ -43,7 +63,7 @@ jobs:
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
       - name: Github Release
-        uses: anton-yurchenko/git-release@v5.0.1
+        uses: anton-yurchenko/git-release@v6.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -59,6 +79,7 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
         continue-on-error: true
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.github_release == 'true') }}
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
         name: Uploading to Azure storage
         with:
@@ -67,6 +88,7 @@ jobs:
           source_folder: staging
           destination_folder: kusto/java/${{ steps.get_version.outputs.VERSION }}
           delete_if_exists: true
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_azure == 'true') }}
       - name: Trigger pipelines release
         uses: jacopocarlini/azure-pipelines@v1.3
         with:
@@ -74,3 +96,5 @@ jobs:
           azure-devops-token: '${{ secrets.AZURE_PIPELINES_PAT }}'
           azure-pipeline-name: 'java - partner-release'
           azure-template-parameters:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
+        if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_maven == 'true') }}
+
