@@ -161,6 +161,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     private static Long getTimeoutInMilliSec(Object timeoutObj) throws ParseException {
+        if (timeoutObj == null) {
+            return null;
+        }
+
         Long timeout = null;
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;
@@ -170,7 +174,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
             timeout = Long.valueOf((Integer) timeoutObj);
         }
 
-        return calculateTimeoutPerServiceLogic(timeout);
+        return adjustTimeoutToServiceLimits(timeout);
     }
 
     private static long parseTimeoutFromTimespanString(String str) throws ParseException {
@@ -204,10 +208,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        options.put(OPTION_SERVER_TIMEOUT, calculateTimeoutPerServiceLogic(timeoutInMs));
+        options.put(OPTION_SERVER_TIMEOUT, adjustTimeoutToServiceLimits(timeoutInMs));
     }
 
-    private static Long calculateTimeoutPerServiceLogic(Long timeoutInMs) {
+    private static Long adjustTimeoutToServiceLimits(Long timeoutInMs) {
         if (timeoutInMs != null) {
             if (timeoutInMs < MIN_TIMEOUT_MS) {
                 return MIN_TIMEOUT_MS;
@@ -223,7 +227,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsString(timeoutObj));
+            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsTimespan(timeoutObj));
         }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
@@ -323,9 +327,19 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
      * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
+     * @Deprecated use {@link #getTimeoutAsTimespan(Object)} instead.
      */
-    // TODO: Breaking change for next major release: static String getTimeoutAsTimespan(Object timeoutObj)
+    @Deprecated
     String getTimeoutAsString(Object timeoutObj) {
+        return getTimeoutAsTimespan(timeoutObj);
+    }
+
+    /**
+     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
+     * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
+     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
+     */
+    String getTimeoutAsTimespan(Object timeoutObj) {
         Long timeoutInMilliSec = getTimeoutInMilliSec(timeoutObj);
 
         if (timeoutInMilliSec == null) {
@@ -341,6 +355,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Value must be between 1 minute and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
     String getTimeoutAsTimespan() {
-        return getTimeoutAsString(getOption(OPTION_SERVER_TIMEOUT));
+        return getTimeoutAsTimespan(getOption(OPTION_SERVER_TIMEOUT));
     }
 }
