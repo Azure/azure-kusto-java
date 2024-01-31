@@ -58,7 +58,7 @@ class ClientRequestPropertiesTest {
         clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
         Assertions.assertEquals(clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT), expectedMillis);
-        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsCslTimespan(), expectedTimespan);
     }
 
     @ParameterizedTest
@@ -75,7 +75,7 @@ class ClientRequestPropertiesTest {
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
-        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsCslTimespan(), expectedTimespan);
     }
 
     @ParameterizedTest
@@ -92,7 +92,7 @@ class ClientRequestPropertiesTest {
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionTimespan);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
-        Assertions.assertEquals(clientRequestProperties.getTimeoutAsTimespan(), expectedTimespan);
+        Assertions.assertEquals(clientRequestProperties.getTimeoutAsCslTimespan(), expectedTimespan);
     }
 
     @Test

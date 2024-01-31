@@ -227,7 +227,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
         Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
         if (timeoutObj != null) {
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsTimespan(timeoutObj));
+            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsCslTimespan(timeoutObj));
         }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
@@ -327,11 +327,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
      * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
-     * @Deprecated use {@link #getTimeoutAsTimespan(Object)} instead.
+     * @Deprecated use {@link #getTimeoutAsCslTimespan(Object)} instead.
      */
     @Deprecated
     String getTimeoutAsString(Object timeoutObj) {
-        return getTimeoutAsTimespan(timeoutObj);
+        return getTimeoutAsCslTimespan(timeoutObj);
     }
 
     /**
@@ -339,7 +339,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
-    String getTimeoutAsTimespan(Object timeoutObj) {
+    String getTimeoutAsCslTimespan(Object timeoutObj) {
         Long timeoutInMilliSec = getTimeoutInMilliSec(timeoutObj);
 
         if (timeoutInMilliSec == null) {
@@ -354,7 +354,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
      * Value must be between 1 minute and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
-    String getTimeoutAsTimespan() {
-        return getTimeoutAsTimespan(getOption(OPTION_SERVER_TIMEOUT));
+    String getTimeoutAsCslTimespan() {
+        return getTimeoutAsCslTimespan(getOption(OPTION_SERVER_TIMEOUT));
     }
 }
