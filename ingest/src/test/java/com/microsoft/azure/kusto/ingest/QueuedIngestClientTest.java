@@ -311,12 +311,11 @@ class QueuedIngestClientTest {
     @MethodSource("provideParametersForAutoCorrectEndpoint")
     void autoCorrectEndpoint(boolean shouldAutoCorrectEndpoint, String inputUrl, String expectedUrl) throws URISyntaxException {
         /*
-         *  Would be better to pass resourceManagerMock and azureStorageClientMock so we can ensure no external calls or
-         *   other heavy actions are taken in this unit test, but the QueuedIngestClientImpl constructor either takes
-         *   the component parts (CSB + properties + autoCorrectEndpoint boolean) and then uses these to set the 2 main members
-         *   it requires (ResourceManager + AzureStorageClient), or accepts these 2 main members directly without the
-         *   component parts because they aren't needed in that case. We close the client in the @AfterEach method, so
-         *   this may be hardly heavier to execute than if it were a pure unit test.
+         * Would be better to pass resourceManagerMock and azureStorageClientMock so we can ensure no external calls or other heavy actions are taken in this
+         * unit test, but the QueuedIngestClientImpl constructor either takes the component parts (CSB + properties + autoCorrectEndpoint boolean) and then uses
+         * these to set the 2 main members it requires (ResourceManager + AzureStorageClient), or accepts these 2 main members directly without the component
+         * parts because they aren't needed in that case. We close the client in the @AfterEach method, so this may be hardly heavier to execute than if it were
+         * a pure unit test.
          */
         queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(inputUrl), null, shouldAutoCorrectEndpoint);
         assertNotNull(queuedIngestClient);
