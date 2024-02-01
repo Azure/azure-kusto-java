@@ -125,6 +125,8 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            ingestClient.close();
+            managedStreamingIngestClient.close();
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
@@ -675,27 +677,28 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
-        IngestionResourceManager resourceManager = new ResourceManager(dmCslClient, null);
-        ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
-        AzureStorageClient azureStorageClient = new AzureStorageClient();
+        try (ResourceManager resourceManager = new ResourceManager(dmCslClient, null)) {
+            ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
+            AzureStorageClient azureStorageClient = new AzureStorageClient();
 
-        for (TestDataItem item : dataForTests) {
-            if (item.testOnstreamingIngestion) {
-                String blobName = String.format("%s__%s.%s.gz",
-                        "testStreamingIngestFromBlob",
-                        UUID.randomUUID(),
-                        item.ingestionProperties.getDataFormat());
+            for (TestDataItem item : dataForTests) {
+                if (item.testOnstreamingIngestion) {
+                    String blobName = String.format("%s__%s.%s.gz",
+                            "testStreamingIngestFromBlob",
+                            UUID.randomUUID(),
+                            item.ingestionProperties.getDataFormat());
 
-                String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+                    String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
 
-                azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
-                        container.getContainer(), !item.file.getName().endsWith(".gz"));
-                try {
-                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
-                } catch (Exception ex) {
-                    Assertions.fail(ex);
+                    azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
+                            container.getContainer(), !item.file.getName().endsWith(".gz"));
+                    try {
+                        streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                    } catch (Exception ex) {
+                        Assertions.fail(ex);
+                    }
+                    assertRowCount(item.rows, false);
                 }
-                assertRowCount(item.rows, false);
             }
         }
     }

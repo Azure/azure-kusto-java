@@ -13,19 +13,20 @@ import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.exporters.logging.LoggingSpanExporter;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.semconv.ResourceAttributes;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.net.URISyntaxException;
-import java.util.*;
-
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.exporters.logging.LoggingSpanExporter;
-import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.trace.SdkTracerProvider;
-import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
-import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
+import java.util.List;
+import java.util.Scanner;
+import java.util.UUID;
 
 /**
  * SourceType - represents the type of files used for ingestion
@@ -167,7 +168,7 @@ class ConfigJson {
     /// Recommended default: True
     /// Toggle to False to execute this script "unattended"
     private boolean waitForUser;
-    /// Ignores the first record in a "X-seperated value" type file
+    /// Ignores the first record in a "X-separated value" type file
     private boolean ignoreFirstRecord;
     /// Sleep time to allow for queued ingestion to complete.
     private int waitForIngestSeconds;
@@ -301,7 +302,7 @@ public class SampleApp {
             preIngestionQuerying(config, kustoClient);
 
             if (config.isIngestData()) {
-                ingestion(config, kustoClient, ingestClient);
+                ingest(config, kustoClient, ingestClient);
             }
             if (config.isQueryData()) {
                 postIngestionQuerying(kustoClient, config.getDatabaseName(), config.getTableName(), config.isIngestData());
@@ -487,7 +488,7 @@ public class SampleApp {
      * @param kustoClient  Client to run commands
      * @param ingestClient Client to ingest data
      */
-    private static void ingestion(ConfigJson config, Client kustoClient, IngestClient ingestClient) {
+    private static void ingest(ConfigJson config, Client kustoClient, IngestClient ingestClient) {
         for (ConfigData dataSource : config.getData()) {
             // Tip: This is generally a one-time configuration.
             // Learn More: For more information about providing inline mappings and mapping references, see:
@@ -497,7 +498,7 @@ public class SampleApp {
 
             // Learn More: For more information about ingesting data to Kusto in Java, see:
             // https://docs.microsoft.com/azure/data-explorer/java-ingest-data
-            ingest_data(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName(),
+            ingestData(dataSource, dataSource.getFormat(), ingestClient, config.getDatabaseName(), config.getTableName(), dataSource.getMappingName(),
                     config.isIgnoreFirstRecord());
         }
 
@@ -538,7 +539,7 @@ public class SampleApp {
     /**
      * Ingest data from given source
      *
-     * @param data_source       Given data source
+     * @param dataSource       Given data source
      * @param dataFormat        Given data format
      * @param ingestClient      Client to ingest data
      * @param databaseName      DB name
@@ -546,10 +547,10 @@ public class SampleApp {
      * @param mappingName       Desired mapping name
      * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
      */
-    private static void ingest_data(ConfigData data_source, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
+    private static void ingestData(ConfigData dataSource, IngestionProperties.DataFormat dataFormat, IngestClient ingestClient, String databaseName,
             String tableName, String mappingName, boolean ignoreFirstRecord) {
-        SourceType sourceType = data_source.getSourceType();
-        String uri = data_source.getDataSourceUri();
+        SourceType sourceType = dataSource.getSourceType();
+        String uri = dataSource.getDataSourceUri();
         waitForUserToProceed(String.format("Ingest '%s' from '%s'", uri, sourceType.toString()));
         // Tip: When ingesting json files, if each line represents a single-line json, use MULTIJSON format even if the file only contains one line.
         // If the json contains whitespace formatting, use SINGLEJSON. In this case, only one data row json object is allowed per file.
@@ -559,8 +560,8 @@ public class SampleApp {
 
         // Tip: Kusto's Java SDK can ingest data from files, blobs, java.sql.ResultSet objects, and open streams.
         // See the SDK's kusto-samples module and the E2E tests in kusto-ingest for additional references.
-        // Note: No need to add "nosource" option as in that case the "ingestData" flag will be set to false, and it will be imppossible to reach this code
-        // segemnt.
+        // Note: No need to add "nosource" option as in that case the "ingestData" flag will be set to false, and it will be impossible to reach this code
+        // segment.
         switch (sourceType) {
             case LOCAL_FILE_SOURCE:
                 Utils.Ingestion.ingestFromFile(ingestClient, databaseName, tableName, uri, dataFormat, mappingName, ignoreFirstRecord);

@@ -9,11 +9,11 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -32,17 +32,21 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
-public class ResourceManager implements Closeable, IngestionResourceManager {
+class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
@@ -59,13 +63,9 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
     private RequestRetryOptions queueRequestOptions = null;
     private RankedStorageAccountSet storageAccountSet;
     private String identityToken;
-    private IngestionResource<ContainerWithSas> containers;
-    private IngestionResource<TableWithSas> statusTable;
-    private IngestionResource<QueueWithSas> queues;
-    private IngestionResource<QueueWithSas> successfulIngestionsQueues;
-    private IngestionResource<QueueWithSas> failedIngestionsQueues;
+    private IngestionResourceSet ingestionResourceSet;
 
-    ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
         this.client = client;
@@ -79,16 +79,20 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         init();
     }
 
-    ResourceManager(Client client, @Nullable HttpClient httpClient) {
+    public ResourceManager(Client client, @Nullable HttpClient httpClient) {
         this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
     @Override
     public void close() {
-        Timer closeTimer = timer;
+        timer.cancel();
+        timer.purge();
         timer = null;
-        closeTimer.cancel();
-        closeTimer.purge();
+        try {
+            client.close();
+        } catch (IOException e) {
+            log.error("Couldn't close client: " + e.getMessage(), e);
+        }
     }
 
     private void init() {
@@ -128,25 +132,25 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public List<ContainerWithSas> getShuffledContainers() throws IngestionClientException, IngestionServiceException {
-        IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.containers);
+        IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.ingestionResourceSet.containers);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), containers.getResourcesList());
     }
 
     public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
-        IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.queues);
+        IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.ingestionResourceSet.queues);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), queues.getResourcesList());
     }
 
     public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
-        return getResource(() -> this.statusTable);
+        return getResource(() -> this.ingestionResourceSet.statusTable);
     }
 
     public QueueWithSas getFailedQueue() throws IngestionClientException, IngestionServiceException {
-        return getResource(() -> this.failedIngestionsQueues);
+        return getResource(() -> this.ingestionResourceSet.failedIngestionsQueues);
     }
 
     public QueueWithSas getSuccessfulQueue() throws IngestionClientException, IngestionServiceException {
-        return getResource(() -> this.successfulIngestionsQueues);
+        return getResource(() -> this.ingestionResourceSet.successfulIngestionsQueues);
     }
 
     public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
@@ -201,23 +205,23 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         return resource;
     }
 
-    private void addIngestionResource(String resourceTypeName, String storageUrl) throws URISyntaxException {
+    private void addIngestionResource(IngestionResourceSet ingestionResourceSet, String resourceTypeName, String storageUrl) throws URISyntaxException {
         ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
         switch (resourceType) {
             case TEMP_STORAGE:
-                this.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
+                ingestionResourceSet.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
                 break;
             case INGESTIONS_STATUS_TABLE:
-                this.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
+                ingestionResourceSet.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
                 break;
             case SECURED_READY_FOR_AGGREGATION_QUEUE:
-                this.queues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                ingestionResourceSet.queues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             case SUCCESSFUL_INGESTIONS_QUEUE:
-                this.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                ingestionResourceSet.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             case FAILED_INGESTIONS_QUEUE:
-                this.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                ingestionResourceSet.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + resourceType);
@@ -237,11 +241,7 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         if (ingestionResourcesLock.writeLock().tryLock()) {
             try {
                 log.info("Refreshing Ingestion Resources");
-                this.containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
-                this.queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-                this.successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);
-                this.failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);
-                this.statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);
+                IngestionResourceSet ingestionResourceSet = new IngestionResourceSet();
                 Retry retry = Retry.of("get ingestion resources", this.retryConfig);
                 CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
                         () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
@@ -252,10 +252,11 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
                     while (table.next()) {
                         String resourceTypeName = table.getString(0);
                         String storageUrl = table.getString(1);
-                        addIngestionResource(resourceTypeName, storageUrl);
+                        addIngestionResource(ingestionResourceSet, resourceTypeName, storageUrl);
                     }
                 }
-                populateStorageAccounts();
+                populateStorageAccounts(ingestionResourceSet);
+                this.ingestionResourceSet = ingestionResourceSet;
                 log.info("Refreshing Ingestion Resources Finished");
             } catch (DataServiceException e) {
                 throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
@@ -269,10 +270,12 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         }
     }
 
-    private void populateStorageAccounts() {
+    private void populateStorageAccounts(IngestionResourceSet ingestionResourceSet) {
         RankedStorageAccountSet tempAccount = new RankedStorageAccountSet();
-        Stream<? extends ResourceWithSas<?>> queueStream = (this.queues == null ? Stream.empty() : this.queues.getResourcesList().stream());
-        Stream<? extends ResourceWithSas<?>> containerStream = (this.containers == null ? Stream.empty() : this.containers.getResourcesList().stream());
+        Stream<? extends ResourceWithSas<?>> queueStream = (ingestionResourceSet.queues == null ? Stream.empty()
+                : ingestionResourceSet.queues.getResourcesList().stream());
+        Stream<? extends ResourceWithSas<?>> containerStream = (ingestionResourceSet.containers == null ? Stream.empty()
+                : ingestionResourceSet.containers.getResourcesList().stream());
 
         Stream.concat(queueStream, containerStream).forEach(resource -> {
             String accountName = resource.getAccountName();
@@ -404,7 +407,15 @@ public class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         boolean empty() {
-            return this.resourcesList.size() == 0;
+            return this.resourcesList.isEmpty();
         }
+    }
+
+    private static class IngestionResourceSet {
+        IngestionResource<ContainerWithSas> containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);;
+        IngestionResource<TableWithSas> statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);;
+        IngestionResource<QueueWithSas> queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);;
+        IngestionResource<QueueWithSas> successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);;
+        IngestionResource<QueueWithSas> failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);;
     }
 }
