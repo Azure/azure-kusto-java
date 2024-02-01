@@ -4,6 +4,8 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -17,15 +19,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Collections;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -292,6 +299,28 @@ class QueuedIngestClientTest {
             String stringContent = new String(streamContent);
             assertEquals(stringContent, getSampleResultSetDump());
         }
+    }
+
+    private static Stream<Arguments> provideParametersForAutoCorrectEndpoint() {
+        return Stream.of(
+                Arguments.of(true, "https://testendpoint.dev.kusto.windows.net", "https://ingest-testendpoint.dev.kusto.windows.net"),
+                Arguments.of(false, "https://testendpoint.dev.kusto.windows.net", "https://testendpoint.dev.kusto.windows.net"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForAutoCorrectEndpoint")
+    void autoCorrectEndpoint(boolean shouldAutoCorrectEndpoint, String inputUrl, String expectedUrl) throws URISyntaxException {
+        /*
+         *  Would be better to pass resourceManagerMock and azureStorageClientMock so we can ensure no external calls or
+         *   other heavy actions are taken in this unit test, but the QueuedIngestClientImpl constructor either takes
+         *   the component parts (CSB + properties + autoCorrectEndpoint boolean) and then uses these to set the 2 main members
+         *   it requires (ResourceManager + AzureStorageClient), or accepts these 2 main members directly without the
+         *   component parts because they aren't needed in that case. We close the client in the @AfterEach method, so
+         *   this may be hardly heavier to execute than if it were a pure unit test.
+         */
+        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(inputUrl), null, shouldAutoCorrectEndpoint);
+        assertNotNull(queuedIngestClient);
+        assertEquals(expectedUrl, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
     }
 
     @Test
