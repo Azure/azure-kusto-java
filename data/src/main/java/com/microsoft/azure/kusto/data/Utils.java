@@ -67,21 +67,27 @@ public class Utils {
     }
 
     public static String formatDurationAsTimespan(Duration duration) {
-        long seconds = duration.getSeconds();
+        long durationInSeconds = duration.getSeconds();
         int nanos = duration.getNano();
-        long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
-        long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
-        long secs = seconds % TimeUnit.MINUTES.toSeconds(1);
-        long days = TimeUnit.SECONDS.toDays(seconds);
-        String positive = String.format(
-                "%02d.%02d:%02d:%02d.%.3s",
-                days,
+        long hours = TimeUnit.SECONDS.toHours(durationInSeconds) % TimeUnit.DAYS.toHours(1);
+        long minutes = TimeUnit.SECONDS.toMinutes(durationInSeconds) % TimeUnit.HOURS.toMinutes(1);
+        long seconds = durationInSeconds % TimeUnit.MINUTES.toSeconds(1);
+        long days = TimeUnit.SECONDS.toDays(durationInSeconds);
+
+        String absoluteVal = "";
+        if (days != 0) {
+            absoluteVal += String.format("%02d.", days);
+        }
+        absoluteVal += String.format(
+                "%02d:%02d:%02d",
                 hours,
                 minutes,
-                secs,
-                nanos);
+                seconds);
+        if (nanos != 0) {
+            absoluteVal += String.format(".%.3s", nanos);
+        }
 
-        return seconds < 0 ? "-" + positive : positive;
+        return durationInSeconds < 0 ? "-" + absoluteVal : absoluteVal;
     }
 
     public static boolean isRetriableIOException(IOException ex) {
