@@ -165,7 +165,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
             return null;
         }
 
-
         Long timeout = null;
         if (timeoutObj instanceof Long) {
             timeout = (Long) timeoutObj;

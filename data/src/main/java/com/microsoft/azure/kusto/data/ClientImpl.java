@@ -411,6 +411,7 @@ class ClientImpl extends BaseClient {
 
     // No implementation as the HTTP Client is no longer a closeable
     @Override
-    public void close() throws IOException {}
+    public void close() throws IOException {
+    }
 
 }
