@@ -51,7 +51,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
-    public static int UPLOAD_TIMEOUT_MINUTES = 10;
+    public static final int UPLOAD_TIMEOUT_MINUTES = 10;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Timer timer;

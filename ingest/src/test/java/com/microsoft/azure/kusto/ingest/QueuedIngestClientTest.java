@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -14,7 +15,10 @@ import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
 import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -297,48 +301,25 @@ class QueuedIngestClientTest {
         }
     }
 
-    private static Stream<Arguments> provideStringsForAutoCorrectEndpointTruePass() {
+    private static Stream<Arguments> provideParametersForAutoCorrectEndpoint() {
         return Stream.of(
-                Arguments.of("https://testendpoint.dev.kusto.windows.net", "https://ingest-testendpoint.dev.kusto.windows.net"),
-                Arguments.of("https://shouldwork", "https://ingest-shouldwork"),
-                Arguments.of("https://192.shouldwork.1.1", "https://ingest-192.shouldwork.1.1"),
-                Arguments.of("https://2345:shouldwork:0425", "https://ingest-2345:shouldwork:0425"),
-                Arguments.of("https://376.568.1564.1564", "https://ingest-376.568.1564.1564"),
-                Arguments.of("https://192.168.1.1", "https://192.168.1.1"),
-                Arguments.of("https://2345:0425:2CA1:0000:0000:0567:5673:23b5", "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]"),
-                Arguments.of("https://127.0.0.1", "https://127.0.0.1"),
-                Arguments.of("https://localhost", "https://localhost"),
-                Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
+                Arguments.of(true, "https://testendpoint.dev.kusto.windows.net", "https://ingest-testendpoint.dev.kusto.windows.net"),
+                Arguments.of(false, "https://testendpoint.dev.kusto.windows.net", "https://testendpoint.dev.kusto.windows.net"));
     }
 
     @ParameterizedTest
-    @MethodSource("provideStringsForAutoCorrectEndpointTruePass")
-    void autoCorrectEndpoint_True_Pass(String csb, String toCompare) throws URISyntaxException {
-        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, true);
+    @MethodSource("provideParametersForAutoCorrectEndpoint")
+    void autoCorrectEndpoint(boolean shouldAutoCorrectEndpoint, String inputUrl, String expectedUrl) throws URISyntaxException {
+        /*
+         * Would be better to pass resourceManagerMock and azureStorageClientMock so we can ensure no external calls or other heavy actions are taken in this
+         * unit test, but the QueuedIngestClientImpl constructor either takes the component parts (CSB + properties + autoCorrectEndpoint boolean) and then uses
+         * these to set the 2 main members it requires (ResourceManager + AzureStorageClient), or accepts these 2 main members directly without the component
+         * parts because they aren't needed in that case. We close the client in the @AfterEach method, so this may be hardly heavier to execute than if it were
+         * a pure unit test.
+         */
+        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(inputUrl), null, shouldAutoCorrectEndpoint);
         assertNotNull(queuedIngestClient);
-        assertEquals(toCompare, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
-    }
-
-    private static Stream<Arguments> provideStringsForAutoCorrectEndpointFalsePass() {
-        return Stream.of(
-                Arguments.of("https://testendpoint.dev.kusto.windows.net", "https://testendpoint.dev.kusto.windows.net"),
-                Arguments.of("https://shouldwork", "https://shouldwork"),
-                Arguments.of("https://192.shouldwork.1.1", "https://192.shouldwork.1.1"),
-                Arguments.of("https://2345:shouldwork:0425", "https://2345:shouldwork:0425"),
-                Arguments.of("https://376.568.1564.1564", "https://376.568.1564.1564"),
-                Arguments.of("https://192.168.1.1", "https://192.168.1.1"),
-                Arguments.of("https://2345:0425:2CA1:0000:0000:0567:5673:23b5", "https://[2345:0425:2ca1:0000:0000:0567:5673:23b5]"),
-                Arguments.of("https://127.0.0.1", "https://127.0.0.1"),
-                Arguments.of("https://localhost", "https://localhost"),
-                Arguments.of("https://onebox.dev.kusto.windows.net", "https://onebox.dev.kusto.windows.net"));
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideStringsForAutoCorrectEndpointFalsePass")
-    void autoCorrectEndpoint_False_Pass(String csb, String toCompare) throws URISyntaxException {
-        queuedIngestClient = IngestClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(csb), null, false);
-        assertNotNull(queuedIngestClient);
-        assertEquals(toCompare, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
+        assertEquals(expectedUrl, ((QueuedIngestClientImpl) queuedIngestClient).connectionDataSource);
     }
 
     @Test
