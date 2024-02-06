@@ -20,8 +20,8 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Setup (please complete the following information):**
- - JRE Version: [e.g. Open JDK 8]
- - SDK Version: [e.g. 1.35.0]
+ - JRE Version: [e.g. OpenJDK 8]
+ - SDK Version: [e.g. 5.0.4]
 
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS]
