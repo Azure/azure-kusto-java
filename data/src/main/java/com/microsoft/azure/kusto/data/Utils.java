@@ -16,6 +16,8 @@ import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.Writer;
+import java.io.InputStreamReader;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.time.Duration;
