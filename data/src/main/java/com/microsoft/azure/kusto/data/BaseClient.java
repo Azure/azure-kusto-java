@@ -39,8 +39,9 @@ public abstract class BaseClient implements Client, StreamingClient {
 
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = response.getBodyAsBinaryData().toString();
-
+            String responseBody = response.getBodyAsInputStream()
+                    .map(Utils::gzipedInputToString)
+                    .block();
             if (responseBody != null) {
                 switch (response.getStatusCode()) {
                     case HttpStatus.OK:

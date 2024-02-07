@@ -18,13 +18,12 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
@@ -111,7 +110,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 }
                 return null;
             });
-
         }
     }
 
@@ -124,13 +122,24 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
             // trace CloudInfo.httpCall
-            HttpResponse response = MonitoredActivity.invoke(
+            try (HttpResponse response = MonitoredActivity.invoke(
                     (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, Context.NONE),
-                    "CloudInfo.httpCall");
-            try {
+                    "CloudInfo.httpCall")) {
                 int statusCode = response.getStatusCode();
                 if (statusCode == HttpStatus.OK) {
-                    String content = response.getBodyAsBinaryData().toString();
+                    String content = null;
+                    Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+                    if (contentEncoding.isPresent()) {
+                        if (contentEncoding.get().getValue().contains("gzip")) {
+                            content = response.getBodyAsInputStream()
+                                    .map(Utils::gzipedInputToString)
+                                    .block();
+                        }
+                    } else {
+                        response
+                            .getBodyAsString()
+                            .block();
+                    }
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
@@ -146,10 +155,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
                             "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS);
                 }
-            } finally {
-                if (response != null) {
-                    response.close();
-                }
             }
         } finally {
             if (givenHttpClient == null && localHttpClient != null) {
@@ -158,7 +163,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
         cache.put(clusterUrl, result);
         return result;
-        // });
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {

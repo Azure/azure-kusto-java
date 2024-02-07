@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.implementation.StringBuilderWriter;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.zip.GZIPInputStream;
 
 public class Utils {
     private static final int MAX_RETRY_ATTEMPTS = 4;
@@ -110,5 +112,32 @@ public class Utils {
                 .intervalFunction(sleepConfig)
                 .retryOnException(predicate)
                 .build();
+    }
+
+    // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
+    public static String gzipedInputToString(InputStream in){
+        try(GZIPInputStream gz = new GZIPInputStream(in)){
+            StringBuilder stringBuilder = new StringBuilder();
+            try(StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
+                copy(gz, sw);
+                return stringBuilder.toString();
+            }
+        } catch (IOException ignored) {
+        }
+
+        return  null;
+    }
+
+    public static int copy(final InputStream input, final Writer writer)
+            throws IOException {
+        final InputStreamReader reader = new InputStreamReader(input);
+        final char[] buffer = new char[1024];
+        int count = 0;
+        int n;
+        while (-1 != (n = reader.read(buffer))) {
+            writer.write(buffer, 0, n);
+            count += n;
+        }
+        return count;
     }
 }

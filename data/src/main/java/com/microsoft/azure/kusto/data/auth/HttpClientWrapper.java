@@ -1,14 +1,14 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.*;
-import com.azure.core.util.BinaryData;
 import com.azure.core.util.Context;
+import com.azure.core.util.CoreUtils;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
 
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class wraps both of the azure http client interfaces - IHttpClient and HttpClient to use our apache http client.
@@ -38,7 +38,6 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
     @Override
     public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) {
         HttpMethod method;
-
         switch (httpRequest.httpMethod()) {
             case GET:
                 method = HttpMethod.GET;
@@ -51,31 +50,18 @@ public class HttpClientWrapper implements HttpClient, IHttpClient {
         }
 
         // Generate an azure core HttpRequest from the existing msal4j HttpRequest
-        HttpRequest request = new HttpRequest(method, httpRequest.url(), new HttpHeaders(httpRequest.headers()),
-                BinaryData.fromString(httpRequest.body()));
-
-        // TODO Ohad - But we are in Sync mode - so its ok to block, maybe take code from this reference :
-        // https://github.com/Azure/azure-sdk-for-java/blob/6732ed81c3364bc418c4c80b8d781e6b1f741536/sdk/identity/azure-identity/src/main/java/com/azure/identity/implementation/HttpPipelineAdapter.java#L18
-        com.microsoft.aad.msal4j.HttpResponse msalResponse;
-        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-
-            msalResponse = new com.microsoft.aad.msal4j.HttpResponse();
-            msalResponse.statusCode(response.getStatusCode());
-            msalResponse.body(response.getBodyAsBinaryData().toString());
+        HttpRequest request = new HttpRequest(method, httpRequest.url(), new HttpHeaders(httpRequest.headers()));
+        if (!CoreUtils.isNullOrEmpty(httpRequest.body())) {
+            request.setBody(httpRequest.body());
         }
 
-        Map<String, List<String>> headers = new HashMap<>();
-
-        // Java 11 will make this much more concise
-        httpRequest.headers().entrySet().stream()
-                .filter(entry -> isNotContentLength(entry.getKey()))
-                .forEach(entry -> {
-                    List<String> values = new ArrayList<>();
-                    values.add(entry.getValue());
-                    headers.put(entry.getKey(), values);
-                });
-
-        msalResponse.addHeaders(headers);
-        return msalResponse;
+        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
+            com.microsoft.aad.msal4j.HttpResponse msalResponse = new com.microsoft.aad.msal4j.HttpResponse();
+            msalResponse.statusCode(response.getStatusCode());
+            msalResponse.body(response.getBodyAsBinaryData().toString());
+            msalResponse.addHeaders(response.getHeaders().stream().collect(Collectors.toMap(HttpHeader::getName,
+                    HttpHeader::getValuesList)));
+            return msalResponse;
+        }
     }
 }
