@@ -147,7 +147,6 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                         } else {
                             throw new KustoServiceQueryError((ArrayNode) node.get(ONE_API_ERRORS_PROPERTY_NAME), true, EXCEPTIONS_MESSAGE);
                         }
-
                     }
                     if (frameType.equals(DATA_TABLE_FRAME_TYPE_PROPERTY_VALUE)) {
                         resultTables.add(new KustoResultSetTable(node));
