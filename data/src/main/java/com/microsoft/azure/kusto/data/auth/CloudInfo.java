@@ -137,8 +137,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                         }
                     } else {
                         response
-                            .getBodyAsString()
-                            .block();
+                                .getBodyAsString()
+                                .block();
                     }
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);

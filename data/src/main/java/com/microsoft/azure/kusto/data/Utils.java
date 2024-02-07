@@ -117,17 +117,17 @@ public class Utils {
     }
 
     // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
-    public static String gzipedInputToString(InputStream in){
-        try(GZIPInputStream gz = new GZIPInputStream(in)){
+    public static String gzipedInputToString(InputStream in) {
+        try (GZIPInputStream gz = new GZIPInputStream(in)) {
             StringBuilder stringBuilder = new StringBuilder();
-            try(StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
+            try (StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
                 copy(gz, sw);
                 return stringBuilder.toString();
             }
         } catch (IOException ignored) {
         }
 
-        return  null;
+        return null;
     }
 
     public static int copy(final InputStream input, final Writer writer)
