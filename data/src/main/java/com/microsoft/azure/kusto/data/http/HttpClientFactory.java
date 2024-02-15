@@ -38,9 +38,11 @@ public class HttpClientFactory {
                 .setMaxConnTotal(properties.maxConnectionTotal())
                 .setMaxConnPerRoute(properties.maxConnectionRoute())
                 .evictExpiredConnections()
-                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS)
-                .disableRedirectHandling();
+                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
 
+        if (properties.isDisableRetries()){
+            httpClientBuilder.disableAutomaticRetries();
+        }
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);

@@ -4,9 +4,11 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.net.URISyntaxException;
+import java.util.Optional;
 
 public class ClientFactory {
     private ClientFactory() {
@@ -73,7 +75,9 @@ public class ClientFactory {
      * @throws URISyntaxException if the cluster URL is invalid
      */
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
-        return new ClientImpl(csb, properties);
+        HttpClientProperties httpClientProperties = Optional.ofNullable(properties)
+                .orElse(HttpClientProperties.builder().disableRetries().build());
+        return new ClientImpl(csb, HttpClientFactory.create(httpClientProperties),false);
     }
 
     /**

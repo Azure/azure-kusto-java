@@ -14,6 +14,8 @@ public class HttpClientProperties {
     private final Integer maxConnectionRoute;
     private final HttpHost proxy;
 
+    private final boolean disableRetries;
+
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
         this.keepAlive = builder.keepAlive;
@@ -21,6 +23,7 @@ public class HttpClientProperties {
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
         this.proxy = builder.proxy;
+        this.disableRetries = builder.disableRetries;
     }
 
     /**
@@ -98,6 +101,10 @@ public class HttpClientProperties {
         return proxy;
     }
 
+    public boolean isDisableRetries() {
+        return disableRetries;
+    }
+
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -106,6 +113,7 @@ public class HttpClientProperties {
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
         private HttpHost proxy = null;
+        private boolean disableRetries;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -187,6 +195,16 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder proxy(HttpHost proxy) {
             this.proxy = proxy;
+            return this;
+        }
+
+        /**
+         * Disable all http client internal retries.
+         *
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder disableRetries() {
+            this.disableRetries = true;
             return this;
         }
 

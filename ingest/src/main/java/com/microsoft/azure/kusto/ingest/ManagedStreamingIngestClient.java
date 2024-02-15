@@ -376,6 +376,13 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
+    private IngestionResult sendStreamToQueuedIngestion(InputStream inputStream, StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, int size) throws IngestionClientException, IngestionServiceException {
+        log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", size);
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(inputStream,
+        streamSourceInfo.isLeaveOpen(), streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType());
+        return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
+    }
+
     @Override
     protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
@@ -390,28 +397,26 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             sourceId = UUID.randomUUID();
         }
 
-        InputStream byteArrayStream = streamSourceInfo.getStream();
+        streamSourceInfo.setSourceId(sourceId);
         byte[] streamingBytes;
-        long size = streamSourceInfo.getRawSizeInBytes();
+        ByteArrayInputStream byteArrayStream;
 
-        // Trust ByteArrayInputStream to be resetable
-        if (streamSourceInfo.getRawSizeInBytes() <= 0 || (streamSourceInfo.getStream() instanceof ByteArrayInputStream)) {
-            try {
+        try{
+            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream){
+                // We can't rely on other InputStream implementations of available()
+                byteArrayStream = (ByteArrayInputStream)streamSourceInfo.getStream();
+            } else {
                 streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
-            } catch (IOException e) {
-                throw new IngestionClientException("Failed to read from stream.", e);
+                byteArrayStream = new ByteArrayInputStream(streamingBytes);
+                // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
             }
-            // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
-            byteArrayStream = new ByteArrayInputStream(streamingBytes);
-            size = streamingBytes.length;
+        } catch (IOException e) {
+            throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-
-        if (size > MAX_STREAMING_SIZE_BYTES) {
-            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", size);
-            StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                    streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
-            return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
+        if (shouldUseQueuedIngestion(streamSourceInfo, ingestionProperties.getDataFormat())) {
+            return sendStreamToQueuedIngestion(
+                    new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()), streamSourceInfo,ingestionProperties,byteArrayStream.available());
         }
 
         if (!streamSourceInfo.isLeaveOpen()) {
@@ -438,6 +443,24 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                 log.warn("Failed to close byte stream", e);
             }
         }
+    }
+
+    private boolean shouldUseQueuedIngestion(StreamSourceInfo streamSourceInfo, IngestionProperties.DataFormat dataFormat) throws IOException {
+        if (streamSourceInfo.getRawSizeInBytes() > 0){
+            return streamSourceInfo.getRawSizeInBytes() > MAX_STREAMING_SIZE_BYTES;
+        }
+
+        long size = streamSourceInfo.getStream().available();
+        if (dataFormat.isCompressible()){
+            // Binary format
+            return (size * 1.5) > MAX_STREAMING_SIZE_BYTES;
+        }
+
+
+        // if size is given - use it, else use available, according to format and compression
+        return streamSourceInfo.getStream().available() > 0
+                ? streamSourceInfo.getStream().available()
+                : byteArrayStream.available();
     }
 
     @Override
