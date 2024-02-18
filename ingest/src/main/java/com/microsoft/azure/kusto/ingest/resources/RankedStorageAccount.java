@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.ingest.resources;
 import com.microsoft.azure.kusto.ingest.utils.TimeProvider;
 
 import java.util.ArrayDeque;
+import java.util.Iterator;
 
 public class RankedStorageAccount {
     static class Bucket {
@@ -82,8 +83,9 @@ public class RankedStorageAccount {
         // For each bucket, calculate the success rate ( success / total ) and multiply it by the bucket weight.
         // The older the bucket, the less weight it has. For example, if there are 3 buckets, the oldest bucket will have
         // a weight of 1, the middle bucket will have a weight of 2 and the newest bucket will have a weight of 3.
-
-        for (Bucket bucket : buckets) {
+        Iterator<Bucket> iterator = buckets.iterator();
+        while(iterator.hasNext()) {
+            Bucket bucket = iterator.next();
             if (bucket.totalCount == 0) {
                 bucketWeight--;
                 continue;
@@ -99,5 +101,4 @@ public class RankedStorageAccount {
     public String getAccountName() {
         return accountName;
     }
-
 }
