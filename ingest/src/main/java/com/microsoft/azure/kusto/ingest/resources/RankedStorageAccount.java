@@ -84,7 +84,7 @@ public class RankedStorageAccount {
         // The older the bucket, the less weight it has. For example, if there are 3 buckets, the oldest bucket will have
         // a weight of 1, the middle bucket will have a weight of 2 and the newest bucket will have a weight of 3.
         Iterator<Bucket> iterator = buckets.iterator();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             Bucket bucket = iterator.next();
             if (bucket.totalCount == 0) {
                 bucketWeight--;
