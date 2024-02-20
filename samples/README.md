@@ -1,9 +1,9 @@
 # Getting Started with Kusto Java SDK
 
 ### Prerequisites
-  - A Java Developer Kit (JDK), version 11 or later
-  - Maven
-  - Clone the project and enter the samples directory: 
+- A Java Developer Kit (JDK), version 11 or later
+- Maven
+- Clone the project and enter the samples directory:
 ```sh
       git clone https://github.com/Azure/azure-kusto-java.git
       cd samples
@@ -16,8 +16,8 @@ This sample will demonstrate how to execute a query.
 
 ### Prerequisites
 
-  - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
-  - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
 
 ### Steps to follow
 
@@ -25,11 +25,11 @@ This sample will demonstrate how to execute a query.
 
 ```java
 ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
-Client client = ClientFactory.createClient(csb);
+        System.getProperty("clusterPath"),
+        System.getProperty("appId"),
+        System.getProperty("appKey"),
+        System.getProperty("appTenant"));
+        Client client = ClientFactory.createClient(csb);
 ```
 
 If you'd like to tweak the underlying HTTP client used to make the requests, build an HTTP client properties object
@@ -42,14 +42,14 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
         System.getProperty("appKey"),
         System.getProperty("appTenant"));
 
-HttpClientProperties properties = HttpClientProperties.builder()
+        HttpClientProperties properties = HttpClientProperties.builder()
         .keepAlive(true)
         .maxKeepAliveTime(120)
         .maxConnectionsPerRoute(40)
         .maxConnectionsTotal(40)
         .build();
 
-Client client = ClientFactory.createClient(csb, properties);
+        Client client = ClientFactory.createClient(csb, properties);
 ```
 
 2. Execute query
@@ -141,11 +141,11 @@ This sample will demonstrate how to ingest data from a file into table.
 
 ### Prerequisites
 
-  - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
-  - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
-  - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
-  - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
-   
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
+- [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
+- [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
+
 ### Steps to follow
 
 1. Build connection string and initialize
@@ -197,14 +197,14 @@ This sample will demonstrate how to ingest data using the streaming ingest clien
 
 ### Prerequisites
 
-  - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
-  - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
-  - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table):
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
+- [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table):
 ```kql
 .create table StreamingIngest (rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)
 ```
 
-  - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping) :
+- [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping) :
 ```kql
 .create table StreamingIngest ingestion json mapping "JsonMapping" '[{"column":"rownumber","path": "$.rownumber", "datatype":"int" },{"column":"rowguid", "path":"$.rowguid","datatype":"string" },{"column":"xdouble", "path":"$.xdouble", "datatype":"real" },{"column":"xfloat", "path":"$.xfloat", "datatype":"real" },{"column":"xbool", "path":"$.xbool", "datatype":"bool" },{"column":"xint16", "path":"$.xint16", "datatype":"int" },{"column":"xint32", "path":"$.xint32", "datatype":"int" },{"column":"xint64", "path":"$.xint64", "datatype":"long" },{"column":"xuint8", "path":"$.xuint8", "datatype":"long"},{"column":"xuint16", "path":"$.xuint16", "datatype":"long"},{"column":"xuint32", "path":"$.xuint32", "datatype":"long"},{"column":"xuint64", "path":"$.xuint64", "datatype":"long"},{"column":"xdate", "path":"$.xdate", "datatype":"datetime"},{"column":"xsmalltext", "path":"$.xsmalltext","datatype":"string"},{"column":"xtext", "path":"$.xtext","datatype":"string"},{"column":"xnumberAsText", "path":"$.xnumberAsText","datatype":"string"},{"column":"xtime", "path":"$.xtime","datatype":"timespan"}, {"column":"xtextWithNulls", "path":"$.xtextWithNulls","datatype":"string"}, {"column":"xdynamicWithNulls", "path":"$.xdynamicWithNulls","datatype":"dynamic"}]'
 ```
@@ -287,10 +287,10 @@ This sample will demonstrate how to retrieve ingestion status.
 
 ### Prerequisites
 
-  - [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
-  - [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
-  - [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
-  - [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
+- [Create Azure Data Explorer Cluster and DB](https://docs.microsoft.com/en-us/azure/data-explorer/create-cluster-database-portal)
+- [Create Azure Active Directory App Registration and grant it permissions to DB](https://docs.microsoft.com/en-us/azure/kusto/management/access-control/how-to-provision-aad-app) (save the app key and the application ID for later)
+- [Create a table in the DB](https://docs.microsoft.com/en-us/azure/kusto/management/tables/#create-table)
+- [Create a mapping between the file and the table](https://docs.microsoft.com/en-us/azure/kusto/management/tables#create-ingestion-mapping)
 
 ### Steps to follow
 
@@ -358,7 +358,21 @@ mvn clean compile exec:java -Dexec.mainClass="TableStatus" \
                             -DtimeoutInSec=300
 ``` 
 
-### More information 
+6. Simple Jmeter sample to test stress test of the clients and cluster
+
+### Running this sample
+Fill the right parameters in jmeter_test_load.properties file, the application provided should be
+granted User and Ingestor permissions on the database.
+The performance we tested here was of the client, and therefore we use the logs to compare 
+total run time of each request.
+A warn log is logged for each request with and can be parsed as one TXT 
+(given column name is 'data') with the following KQL:
+
+jmeterLog
+| parse-where data with Datetime:string " WARN " Text:string "after: " ms:int *
+| summarize percentiles(ms, 5,80, 90,95),count(), avg(ms) by substring(Text,39)
+
+### More information
 
 [http://azure.com/java](http://azure.com/java)
 
