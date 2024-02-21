@@ -8,7 +8,7 @@
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java-funk-client\ingest\target\kusto-ingest-6.0.0-jar-with-dependencies.jar</stringProp>
+      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java-funk-client\ingest\target\kusto-ingest-6.0.1-jar-with-dependencies.jar</stringProp>
     </TestPlan>
     <hashTree>
       <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
@@ -18,6 +18,36 @@
             <stringProp name="Argument.desc">secret of app key</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
             <stringProp name="Argument.value">${__P(appKey,1)}</stringProp>
+          </elementProp>
+          <elementProp name="appId" elementType="Argument">
+            <stringProp name="Argument.name">appId</stringProp>
+            <stringProp name="Argument.value">${__P(appId,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="cluster" elementType="Argument">
+            <stringProp name="Argument.name">cluster</stringProp>
+            <stringProp name="Argument.value">${__P(cluster,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="tenant" elementType="Argument">
+            <stringProp name="Argument.name">tenant</stringProp>
+            <stringProp name="Argument.value">${__P(tenant,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="queryTable" elementType="Argument">
+            <stringProp name="Argument.name">queryTable</stringProp>
+            <stringProp name="Argument.value">${__P(queryTable,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="database" elementType="Argument">
+            <stringProp name="Argument.name">database</stringProp>
+            <stringProp name="Argument.value">${__P(database,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="ingestCluster" elementType="Argument">
+            <stringProp name="Argument.name">ingestCluster</stringProp>
+            <stringProp name="Argument.value">${__P(ingestCluster,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
       </Arguments>
@@ -37,7 +67,7 @@
         <stringProp name="ThreadGroup.num_threads">${__P(threadCountQuery,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query.Query" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query" enabled="true">
           <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -45,14 +75,14 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import org.apache.commons.lang3.time.StopWatch;
 
-String databaseName = &quot;ohtst&quot;;
+String databaseName = bsh.args[5];
 String testName = &quot;simple query test &quot;+ ${__threadNum};
-log.info(&quot;Start &quot; + testName);
+
 ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-      &quot;https://ohadev.swedencentral.dev.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
+      bsh.args[2],
+      bsh.args[1],
     	 bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+      bsh.args[3]);
 
 HttpClientProperties properties = HttpClientProperties.builder()
            .keepAlive(true)
@@ -63,7 +93,7 @@ HttpClientProperties properties = HttpClientProperties.builder()
 
 KustoOperationResult results;
 Client client = ClientFactory.createClient(csb, properties);
-String query = &quot;set notruncation;javaLoadTest | take 200&quot;;
+String query = &quot;set notruncation;&quot; + bsh.args[4];
 StopWatch stopWatch = new StopWatch();
 stopWatch.start();
 
@@ -86,9 +116,8 @@ try {
 stopWatch.stop();
 long timeConvertedToJavaObj = stopWatch.getTime();
 log.warn(&quot;Finished simple query successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot;);
-
 </stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
+          <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${queryTable} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">true</boolProp>
         </BeanShellSampler>
         <hashTree/>
@@ -145,7 +174,7 @@ log.warn(&quot;Finished simple query successfully after: &quot; + timeConvertedT
         <stringProp name="ThreadGroup.num_threads">${__P(threadCountQueryStreaming,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query.Query - streaming" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query - streaming" enabled="true">
           <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -166,10 +195,11 @@ import java.util.Calendar;
 String databaseName = &quot;ohtst&quot;;
 String testName = &quot;Streaming query test &quot;+ ${__threadNum};
 ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-      &quot;https://ohadev.swedencentral.dev.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-       bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+       bsh.args[2],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
+           
 HttpClientProperties properties = HttpClientProperties.builder()
            .keepAlive(true)
            .maxKeepAliveTime(120)
@@ -194,7 +224,7 @@ Runnable runnable = new Runnable() {
                try {
                	// Full table takes 7s if no stress
                	// Maybe test also for best time vs best time
-                   String query = &quot;set notruncation;javaLoadTest | take 200&quot;;
+                   String query = &quot;set notruncation;&quot; + bsh.args[4];
                    is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
                    log.info(&quot;start query: &quot; + testName);
 
@@ -244,7 +274,7 @@ try{
 	CompletableFuture.allOf(futures).join();
 	executorService.shutdown();
 }</stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
+          <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${queryTable} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">true</boolProp>
         </BeanShellSampler>
         <hashTree/>
@@ -325,18 +355,18 @@ import java.util.Calendar;
 
 String testName = &quot;Upload ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
-String databaseName = &quot;ohtst&quot;;
+String databaseName = bsh.args[5];
 ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-      &quot;https://ohadev.swedencentral.dev.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-      bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+      bsh.args[2],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 
 ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-      &quot;https://sdkse2etest.eastus.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-      bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+     bsh.args[4],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 HttpClientProperties properties = HttpClientProperties.builder()
       .keepAlive(true)
@@ -413,7 +443,7 @@ try {
 	ResponseCode = 500;
 	IsSuccess = false;
 }</stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
+          <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
@@ -496,18 +526,18 @@ String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 //int timeoutInSec = 150; use if we do want to confirm ingestion
 // We don&apos;t set here ingestion batching policy - one should configure beforehand at database
-String databaseName = &quot;ohtst&quot;;
+String databaseName = bsh.args[5];
 ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-	 &quot;https://ohadev.swedencentral.dev.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-      bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+	  bsh.args[2],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 
 ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-	 &quot;https://ingest-sdkse2etest.eastus.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f\n&quot;,
-      bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+	bsh.args[4],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 
 
@@ -589,7 +619,7 @@ try {
 	IsSuccess = false;
 }
 </stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
+          <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree/>
@@ -673,13 +703,12 @@ import org.apache.commons.lang3.time.StopWatch;
 String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 
-
-String databaseName = &quot;ohtst&quot;;
+String databaseName = bsh.args[5];
 ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-	 &quot;https://ohadev.swedencentral.dev.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-      bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
+	 bsh.args[2],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 
@@ -758,7 +787,7 @@ try {
 	IsSuccess = false;
 }
 </stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
+          <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
