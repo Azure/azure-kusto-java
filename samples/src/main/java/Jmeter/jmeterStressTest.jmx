@@ -52,7 +52,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group Query.Query" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Query" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
@@ -103,7 +103,7 @@ clientRequestProperties.setClientRequestId(cid);
 
 try {
 	results = client.execute(databaseName, query, clientRequestProperties);
-} catch (Exception e){
+} catch (Throwable e){
 	stopWatch.stop();
 	long timeConvertedToJavaObj = stopWatch.getTime();
      log.error(&quot;Failed &quot; + testName + &quot; cid: &quot; + cid + &quot;. after: &quot; + timeConvertedToJavaObj + &quot; ms ,error: &quot; + e.getMessage(), e);
@@ -159,7 +159,7 @@ log.warn(&quot;Finished simple query successfully after: &quot; + timeConvertedT
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group streaming Query.Query " enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming-Query" enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
@@ -317,7 +317,7 @@ try{
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Upload test" enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
@@ -486,7 +486,7 @@ try {
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Queue test - Table report " enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
@@ -662,7 +662,7 @@ try {
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming ingestion" enabled="false">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
           <stringProp name="LoopController.loops">1</stringProp>
@@ -703,7 +703,8 @@ import org.apache.commons.lang3.time.StopWatch;
 String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 
-String databaseName = bsh.args[5];
+String databaseName = bsh.args[4];
+
 ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
 	 bsh.args[2],
       bsh.args[1],
@@ -729,7 +730,6 @@ for (int i = 0; i &lt; rows; i++) {
      outputStream.write(byteData);
  }
 
-}
 outputStream.close();
 ByteArrayInputStream input = new ByteArrayInputStream(outputStream.toByteArray());
 String tableName = &quot;StreamingIngest&quot; + new SimpleDateFormat(&quot;yyyy_MM_dd_hh_mm_ss_SSS&quot;).format(Calendar.getInstance().getTime());
@@ -786,6 +786,7 @@ try {
 	ResponseCode = 500;
 	IsSuccess = false;
 }
+
 </stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
@@ -829,122 +830,6 @@ try {
           </ResultCollector>
           <hashTree/>
         </hashTree>
-      </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="for debug only" enabled="false">
-        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <stringProp name="LoopController.loops">1</stringProp>
-          <boolProp name="LoopController.continue_forever">false</boolProp>
-        </elementProp>
-        <stringProp name="ThreadGroup.num_threads">1</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">false</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-      </ThreadGroup>
-      <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="for debug only" enabled="true">
-          <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.data.*;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-
-import org.apache.commons.lang3.time.StopWatch;
-
-String databaseName = &quot;sdktestdb&quot;;
-String testName = &quot;simple query test &quot;+ ${__threadNum};
-log.info(&quot;Start &quot; + testName);
-ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-      &quot;https://sdkse2etest.eastus.kusto.windows.net/&quot;,
-      &quot;b699d721-4f6f-4320-bc9a-88d578dfe68f&quot;,
-    	 bsh.args[0],
-      &quot;72f988bf-86f1-41af-91ab-2d7cd011db47&quot;);
-
-HttpClientProperties properties = HttpClientProperties.builder()
-           .keepAlive(true)
-           .maxKeepAliveTime(120)
-           .maxConnectionsPerRoute(40)
-           .maxConnectionsTotal(40)
-           .build();
-
-KustoOperationResult results;
-Client client = ClientFactory.createClient(csb, properties);
-String query = &quot;set notruncation;javaLoadTest | take 1&quot;;
-StopWatch stopWatch = new StopWatch();
-stopWatch.start();
-boolean differenceInFile = false;
-
-SampleResult.setSuccessful(differenceInFile);
-IsSuccess = false;
-SampleResult.setResponseCode(&quot;500&quot;);
-SampleResult.setResponseMessage(&quot;Files are different&quot;);
-String cid = &quot;KJC.executeQueryTest;&quot; + UUID.randomUUID();
-ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-clientRequestProperties.setClientRequestId(cid);
-//try{
-	try {
-		results = client.execute(databaseName, query, clientRequestProperties);
-	} catch (Exception e){
-		IsSuccess = false;
-	     log.error(&quot;Failed &quot; + testName + &quot; cid: &quot; + cid + &quot; ,error: &quot; + e.getMessage(), e);
-	  	throw new RuntimeException(e);
-	}finally{
-		client.close();
-	}
-//}
-//catch(Throwable t){
-//	log.error(&quot;failed test: &quot;+ testName,t)
-//}
-ResponseMessage =&quot;good&quot;;
-stopWatch.stop();
-long timeConvertedToJavaObj = stopWatch.getTime();
-log.info(&quot;Finished simple query successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot;);
-
-</stringProp>
-          <stringProp name="BeanShellSampler.parameters">${appKey}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
-        </BeanShellSampler>
-        <hashTree/>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
-          <boolProp name="ResultCollector.error_logging">true</boolProp>
-          <objProp>
-            <name>saveConfig</name>
-            <value class="SampleSaveConfiguration">
-              <time>true</time>
-              <latency>true</latency>
-              <timestamp>true</timestamp>
-              <success>true</success>
-              <label>true</label>
-              <code>true</code>
-              <message>true</message>
-              <threadName>true</threadName>
-              <dataType>true</dataType>
-              <encoding>false</encoding>
-              <assertions>true</assertions>
-              <subresults>true</subresults>
-              <responseData>false</responseData>
-              <samplerData>false</samplerData>
-              <xml>true</xml>
-              <fieldNames>true</fieldNames>
-              <responseHeaders>false</responseHeaders>
-              <requestHeaders>false</requestHeaders>
-              <responseDataOnError>false</responseDataOnError>
-              <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
-              <assertionsResultsToSave>0</assertionsResultsToSave>
-              <bytes>true</bytes>
-              <sentBytes>true</sentBytes>
-              <url>true</url>
-              <threadCounts>true</threadCounts>
-              <sampleCount>true</sampleCount>
-              <idleTime>true</idleTime>
-              <connectTime>true</connectTime>
-            </value>
-          </objProp>
-          <stringProp name="filename"></stringProp>
-        </ResultCollector>
-        <hashTree/>
       </hashTree>
     </hashTree>
   </hashTree>
