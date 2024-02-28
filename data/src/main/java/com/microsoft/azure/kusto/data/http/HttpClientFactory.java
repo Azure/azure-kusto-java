@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
 import com.azure.core.util.HttpClientOptions;
 
 import org.slf4j.Logger;
@@ -36,6 +37,8 @@ public class HttpClientFactory {
         HttpClientOptions options = new HttpClientOptions();
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
+        // If changed to OKHttp - chang in ResourceManager - as well
+//        options.setHttpClientProvider(OkHttpAsyncClientProvider.class);
 
         if (properties.getProxy() != null) {
             options.setProxyOptions(properties.getProxy());
@@ -59,7 +62,7 @@ public class HttpClientFactory {
         // And in HTTP3, TCP is no longer used as the underlying communication channel. HTTP3 is instead UDP based.
         // See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
 
-        return HttpClient.createDefault(options);
+        return new NettyAsyncHttpClientProvider().createInstance(options);
     }
 
 }

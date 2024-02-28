@@ -157,7 +157,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 }
             }
         } finally {
-            if (givenHttpClient == null && localHttpClient != null) {
+            if (givenHttpClient == null && localHttpClient instanceof Closeable) {
                 ((Closeable) localHttpClient).close();
             }
         }

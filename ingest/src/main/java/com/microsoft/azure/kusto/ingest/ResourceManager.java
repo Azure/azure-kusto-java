@@ -4,13 +4,13 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
+import com.azure.core.util.HttpClientOptions;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
@@ -72,8 +72,8 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         timer = new Timer(true);
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
-                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
-                : new HttpClientWrapper(httpClient);
+                ? new NettyAsyncHttpClientProvider().createInstance(new HttpClientOptions().setResponseTimeout(Duration.ofDays(UPLOAD_TIMEOUT_MINUTES)))
+                : httpClient;
         retryConfig = Utils.buildRetryConfig(ThrottleException.class);
         storageAccountSet = new RankedStorageAccountSet();
         init();

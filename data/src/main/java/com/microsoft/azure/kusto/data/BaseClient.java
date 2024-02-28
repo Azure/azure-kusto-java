@@ -39,9 +39,13 @@ public abstract class BaseClient implements Client, StreamingClient {
 
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = response.getBodyAsInputStream()
-                    .map(Utils::gzipedInputToString)
-                    .block();
+            Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+            String responseBody = contentEncoding.isPresent() && (contentEncoding.get().getValue().contains("gzip")) ?
+                     response.getBodyAsInputStream()
+                            .map(Utils::gzipedInputToString)
+                            .block()
+                    : response.getBodyAsString().block();
+
             if (responseBody != null) {
                 switch (response.getStatusCode()) {
                     case HttpStatus.OK:

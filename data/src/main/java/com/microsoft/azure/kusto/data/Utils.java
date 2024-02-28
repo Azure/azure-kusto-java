@@ -124,10 +124,9 @@ public class Utils {
                 copy(gz, sw);
                 return stringBuilder.toString();
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        return null;
     }
 
     public static int copy(final InputStream input, final Writer writer)
