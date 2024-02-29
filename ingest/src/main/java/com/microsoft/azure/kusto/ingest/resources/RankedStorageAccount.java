@@ -3,6 +3,8 @@ package com.microsoft.azure.kusto.ingest.resources;
 import com.microsoft.azure.kusto.ingest.utils.TimeProvider;
 
 import java.util.ArrayDeque;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class RankedStorageAccount {
     static class Bucket {
@@ -16,6 +18,7 @@ public class RankedStorageAccount {
     }
 
     private final ArrayDeque<Bucket> buckets = new ArrayDeque<>();
+    private final ReadWriteLock bucketsLock = new ReentrantReadWriteLock();
     private final String accountName;
     private final int maxNumberOfBuckets;
     private final int bucketDurationMillis;
@@ -42,7 +45,12 @@ public class RankedStorageAccount {
     private Bucket adjustForTimePassed() {
         if (buckets.isEmpty()) {
             Bucket b = new Bucket();
-            buckets.push(b);
+            try {
+                bucketsLock.writeLock().lock();
+                buckets.push(b);
+            } finally {
+                bucketsLock.writeLock().unlock();
+            }
             lastActionTimestamp = timeProvider.currentTimeMillis();
             return b;
         }
@@ -53,16 +61,21 @@ public class RankedStorageAccount {
             return buckets.peek();
         }
 
-        if (bucketsToCreate >= maxNumberOfBuckets) {
-            buckets.clear();
-            buckets.push(new Bucket());
-        } else {
-            for (int i = 0; i < bucketsToCreate; i++) {
+        try {
+            bucketsLock.writeLock().lock();
+            if (bucketsToCreate >= maxNumberOfBuckets) {
+                buckets.clear();
                 buckets.push(new Bucket());
-                if (buckets.size() > maxNumberOfBuckets) {
-                    buckets.poll();
+            } else {
+                for (int i = 0; i < bucketsToCreate; i++) {
+                    buckets.push(new Bucket());
+                    if (buckets.size() > maxNumberOfBuckets) {
+                        buckets.poll();
+                    }
                 }
             }
+        } finally {
+            bucketsLock.writeLock().unlock();
         }
 
         lastActionTimestamp = timeProvider.currentTimeMillis();
@@ -82,16 +95,20 @@ public class RankedStorageAccount {
         // For each bucket, calculate the success rate ( success / total ) and multiply it by the bucket weight.
         // The older the bucket, the less weight it has. For example, if there are 3 buckets, the oldest bucket will have
         // a weight of 1, the middle bucket will have a weight of 2 and the newest bucket will have a weight of 3.
-
-        for (Bucket bucket : buckets) {
-            if (bucket.totalCount == 0) {
+        try {
+            bucketsLock.readLock().lock();
+            for (Bucket bucket : buckets) {
+                if (bucket.totalCount == 0) {
+                    bucketWeight--;
+                    continue;
+                }
+                double successRate = (double) bucket.successCount / bucket.totalCount;
+                rank += successRate * bucketWeight;
+                totalWeight += bucketWeight;
                 bucketWeight--;
-                continue;
             }
-            double successRate = (double) bucket.successCount / bucket.totalCount;
-            rank += successRate * bucketWeight;
-            totalWeight += bucketWeight;
-            bucketWeight--;
+        } finally {
+            bucketsLock.readLock().unlock();
         }
         return rank / totalWeight;
     }
@@ -99,5 +116,4 @@ public class RankedStorageAccount {
     public String getAccountName() {
         return accountName;
     }
-
 }
