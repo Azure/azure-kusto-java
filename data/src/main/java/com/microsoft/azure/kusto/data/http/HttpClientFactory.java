@@ -1,13 +1,17 @@
 package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
+import com.azure.core.util.Header;
 import com.azure.core.util.HttpClientOptions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,16 +22,17 @@ public class HttpClientFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
 
     /**
-     * Creates a new Apache HTTP client.
+     * Creates a new HTTP client.
      *
      * @param providedProperties custom HTTP client properties
-     * @return a new Apache HTTP client
+     * @return a new HTTP client
      */
     public static HttpClient create(HttpClientProperties providedProperties) {
         LOGGER.info("Creating new HTTP Client");
         final HttpClientProperties properties = Optional.ofNullable(providedProperties)
                 .orElse(HttpClientProperties.builder().build());
 
+        // Docs: https://learn.microsoft.com/en-us/java/api/com.azure.core.util.httpclientoptions?view=azure-java-stable
         HttpClientOptions options = new HttpClientOptions();
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
@@ -36,30 +41,28 @@ public class HttpClientFactory {
         options.setResponseTimeout(properties.timeout());
 
         // If null (as it is in the builder) the first discovered HttpClientProvider class is loaded.
-        // Netty is included by default in azure-core but can be excluded by excluding azure-core-http-netty
+        // Netty is included by default in azure-core but can be excluded in the pom by excluding azure-core-http-netty.
         options.setHttpClientProvider(properties.provider());
+
+        // Set Keep-Alive headers if they were requested.
+        // NOTE: Servers are not obligated to honor client requested Keep-Alive values
+        if (properties.isKeepAlive()) {
+            Header keepAlive = new Header(HttpHeaderName.CONNECTION.getCaseSensitiveName(), "Keep-Alive");
+            // Keep-Alive is Non-standard from the client so core does not have an enum for it
+            Header keepAliveTimeout = new Header("Keep-Alive", "timeout=" + properties.maxKeepAliveTime());
+
+            List<Header> headers = new ArrayList<>();
+            headers.add(keepAlive);
+            headers.add(keepAliveTimeout);
+
+            options.setHeaders(headers);
+        }
 
         if (properties.getProxy() != null) {
             options.setProxyOptions(properties.getProxy());
         }
 
-        // Is the per route connection maximum needed anymore?
-
-        // Todo: missing keepalive and per-route connections.
-        // NOTE: Keep-Alive is provided by 2 headers that can be placed on any HTTP request or response.
-        // It looks like one of the headers, Connection: Keep-Alive, is already configured when setting up tracing
-        // See HttpRequestBuilder withTracing() method for details.
-        // We could easily add the second header, Keep-Alive: timeout=numSeconds, max=numConnections
-        // Will add this to builder if wanted
-
-        // NOTE: Keep-Alive is usually dictated by the server. The client makes requests but the server is under
-        // no obligation to honor the Keep-Alive headers passed from the client, and will often replace them.
-        // See: https://stackoverflow.com/questions/19155201/http-keep-alive-timeout
-
-        // Keep-Alive is additionally prohibited in HTTP2 and HTTP3 requests
-        // This is because in HTTP2 the default option is to hold open a single TCP channel for all requests
-        // And in HTTP3, TCP is no longer used as the underlying communication channel. HTTP3 is instead UDP based.
-        // See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive
+        // Todo: Is the per route connection maximum needed anymore?
 
         return new NettyAsyncHttpClientProvider().createInstance(options);
     }

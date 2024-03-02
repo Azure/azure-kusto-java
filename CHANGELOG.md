@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2024-03-01
+### Changed
+- Replaced Apache CloseableHttpClient with configurable azure-core client.
+- (Breaking) HttpClientFactory now accepts clients implementing azure-core HttpClient.
+- (Breaking) HttpClientProperties and HttpClientPropertiesBuilder now use azure-core ProxyOptions.
+- Data client now wraps internal HTTP client.
+- Moved HTTP request tracing logic into a builder class.
+- Moved HTTP request building logic into a builder class.
+
 ## [5.0.4] - 2024-01-23
 ### Fixed
 - Getting ingestion resources could fail with containers list being empty.
