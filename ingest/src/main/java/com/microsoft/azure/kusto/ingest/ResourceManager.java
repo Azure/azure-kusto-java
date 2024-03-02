@@ -14,6 +14,8 @@ import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -72,7 +74,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         timer = new Timer(true);
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
-                ? new NettyAsyncHttpClientProvider().createInstance(new HttpClientOptions().setResponseTimeout(Duration.ofDays(UPLOAD_TIMEOUT_MINUTES)))
+                ? HttpClientFactory.create(HttpClientProperties.builder().timeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build())
                 : httpClient;
         retryConfig = Utils.buildRetryConfig(ThrottleException.class);
         storageAccountSet = new RankedStorageAccountSet();

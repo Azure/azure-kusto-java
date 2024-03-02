@@ -35,7 +35,8 @@ public class HttpClientFactory {
         // properties.timeout() value could be null, Azure Core JavaDocs indicate this is OK.
         options.setResponseTimeout(properties.timeout());
 
-        // If changed to OKHttp - change in ResourceManager - as well
+        // If null (as it is in the builder) the first discovered HttpClientProvider class is loaded.
+        // Netty is included by default in azure-core but can be excluded by excluding azure-core-http-netty
         options.setHttpClientProvider(properties.provider());
 
         if (properties.getProxy() != null) {

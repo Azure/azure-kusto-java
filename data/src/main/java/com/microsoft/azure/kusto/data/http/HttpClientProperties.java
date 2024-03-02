@@ -131,7 +131,7 @@ public class HttpClientProperties {
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
         private Duration timeout = null;
-        private Class<? extends HttpClientProvider> provider = NettyAsyncHttpClientProvider.class;
+        private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
 
         private HttpClientPropertiesBuilder() {
