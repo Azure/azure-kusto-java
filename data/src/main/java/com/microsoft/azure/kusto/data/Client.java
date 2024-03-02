@@ -27,7 +27,6 @@ public interface Client extends Closeable {
 
     KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    // Use this if the response is ignored or if you can use the result as unstructured string
     String executeToJsonResult(String database) throws DataServiceException, DataClientException;
 
     String executeToJsonResult(String database, String command) throws DataServiceException, DataClientException;
