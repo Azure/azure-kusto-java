@@ -1,6 +1,10 @@
 package com.microsoft.azure.kusto.data.http;
 
+import com.azure.core.http.HttpClientProvider;
 import com.azure.core.http.ProxyOptions;
+import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
+
+import java.time.Duration;
 
 /**
  * HTTP client properties.
@@ -11,6 +15,8 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
+    private final Duration timeout;
+    private final Class<? extends HttpClientProvider> provider;
     private final ProxyOptions proxy;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
@@ -19,6 +25,8 @@ public class HttpClientProperties {
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
+        this.timeout = builder.timeout;
+        this.provider = builder.provider;
         this.proxy = builder.proxy;
     }
 
@@ -89,6 +97,24 @@ public class HttpClientProperties {
     }
 
     /**
+     * The default response timeout to apply to HTTP requests
+     *
+     * @return the timeout
+     */
+    public Duration timeout() {
+        return timeout;
+    }
+
+    /**
+     * Gets the HTTP Client Provider used by Azure Core when constructing HTTP Client instances.
+     *
+     * @return the provider
+     */
+    public Class<? extends HttpClientProvider> provider() {
+        return provider;
+    }
+
+    /**
      * The proxy to use when connecting to the remote server.
      *
      * @return the proxy
@@ -104,6 +130,8 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
+        private Duration timeout = null;
+        private Class<? extends HttpClientProvider> provider = NettyAsyncHttpClientProvider.class;
         private ProxyOptions proxy = null;
 
         private HttpClientPropertiesBuilder() {
@@ -175,6 +203,28 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder maxConnectionsPerRoute(Integer maxConnections) {
             this.maxConnectionsPerRoute = maxConnections;
+            return this;
+        }
+
+        /**
+         * Sets the HTTP Client Provider used by Azure Core when constructing HTTP Client instances.
+         *
+         * @param provider the requested HTTP Client provider class
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder provider(Class<? extends HttpClientProvider> provider) {
+            this.provider = provider;
+            return this;
+        }
+
+        /**
+         * Sets a response timeout to use by default on the client's requests.
+         *
+         * @param timeout the requested response timeout
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder timeout(Duration timeout) {
+            this.timeout = timeout;
             return this;
         }
 

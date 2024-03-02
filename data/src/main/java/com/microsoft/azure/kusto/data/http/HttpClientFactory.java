@@ -17,12 +17,6 @@ public class HttpClientFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
 
-    // Todo: for team consideration...
-    // With previous versions, this was configurable per request, now it's only configurable per client
-    // Because there is only 1 HTTP Client per KustoClient (ClientImpl) abstraction, this can only be configured universally for the instance
-    // For now I've put this value here as a placeholder, however this should be added to ClientOptions
-    private static final Long TIMEOUT = Duration.ofMinutes(10).toMillis();
-
     /**
      * Creates a new Apache HTTP client.
      *
@@ -37,8 +31,12 @@ public class HttpClientFactory {
         HttpClientOptions options = new HttpClientOptions();
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
-        // If changed to OKHttp - chang in ResourceManager - as well
-//        options.setHttpClientProvider(OkHttpAsyncClientProvider.class);
+
+        // properties.timeout() value could be null, Azure Core JavaDocs indicate this is OK.
+        options.setResponseTimeout(properties.timeout());
+
+        // If changed to OKHttp - change in ResourceManager - as well
+        options.setHttpClientProvider(properties.provider());
 
         if (properties.getProxy() != null) {
             options.setProxyOptions(properties.getProxy());
