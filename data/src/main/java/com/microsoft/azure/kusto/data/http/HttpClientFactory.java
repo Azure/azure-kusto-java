@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaderName;
-import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
 import com.azure.core.util.Header;
 import com.azure.core.util.HttpClientOptions;
 
@@ -64,7 +63,7 @@ public class HttpClientFactory {
 
         // Todo: Is the per route connection maximum needed anymore?
 
-        return new NettyAsyncHttpClientProvider().createInstance(options);
+        return HttpClient.createDefault(options);
     }
 
 }
