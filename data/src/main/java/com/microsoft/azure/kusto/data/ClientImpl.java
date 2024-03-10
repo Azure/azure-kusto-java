@@ -74,7 +74,7 @@ class ClientImpl implements Client, StreamingClient {
     public ClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean leaveHttpClientOpen) throws URISyntaxException {
         URI clusterUrlForParsing = new URI(csb.getClusterUrl());
         String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri.authority");
+        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null) {
             host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);

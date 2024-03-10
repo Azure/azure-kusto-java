@@ -1,4 +1,10 @@
 name: release
+permissions:
+    checks: write
+    pull-requests: write
+    packages: write
+    deployments: write
+    contents: write
 
 on:
   push:
@@ -63,7 +69,7 @@ jobs:
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
       - name: Github Release
-        uses: anton-yurchenko/git-release@v6.0.0
+        uses: docker://antonyurchenko/git-release:v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
