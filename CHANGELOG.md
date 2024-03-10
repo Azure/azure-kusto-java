@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [6.0.0] - 2024-03-01
+## [6.0.0] - 2024-03-07
 ### Changed
 - Replaced Apache CloseableHttpClient with configurable azure-core client.
 - (Breaking) HttpClientFactory now accepts clients implementing azure-core HttpClient.
@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Data client now wraps internal HTTP client.
 - Moved HTTP request tracing logic into a builder class.
 - Moved HTTP request building logic into a builder class.
+
+## [5.0.5] - 2024-03-06
+### Fixed
+- Fixed bugs in how ClientRequestProperties' servertimeout is set/get, and aligned the 3 different ways to set/get this option
+- Replaced deprecated OpenTelemetry dependency
+- Fixed ConcurrentModificationException bug in ranked storage account buckets
 
 ## [5.0.4] - 2024-01-23
 ### Fixed
