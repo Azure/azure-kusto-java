@@ -70,7 +70,7 @@ class AzureStorageClientTest {
         QueueClient queue = TestUtils.queueWithSasFromQueueName("queue1").getQueue();
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.postMessageToQueue(queue, "a mssage"));
+                () -> azureStorageClient.postMessageToQueue(queue, null));
     }
 
     @Test
