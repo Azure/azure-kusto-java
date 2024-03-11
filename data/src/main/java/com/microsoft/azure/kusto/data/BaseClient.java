@@ -5,11 +5,9 @@ import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.azure.kusto.data.exceptions.*;
-import com.microsoft.azure.kusto.data.http.CloseParentResourcesStream;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.EofSensorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +77,7 @@ public abstract class BaseClient implements Client, StreamingClient {
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == HttpStatus.OK) {
-                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
+                InputStream contentStream = httpResponse.getBodyAsBinaryData().toStream();
                 Optional<HttpHeader> contentEncoding = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
                 if (contentEncoding.isPresent()) {
                     if (contentEncoding.get().getValue().contains("gzip")) {
