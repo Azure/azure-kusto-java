@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,9 +21,19 @@ abstract class AbstractSourceInfo implements SourceInfo, TraceableAttributes {
         this.sourceId = sourceId;
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data
+    private long rawSizeInBytes;
+
+    public long getRawSizeInBytes() {
+        return rawSizeInBytes;
+    }
+
+    public void setRawSizeInBytes(long rawSizeInBytes) {
+        this.rawSizeInBytes = rawSizeInBytes;
+    }
+
     @Override
     public Map<String, String> getTracingAttributes() {
         return new HashMap<>();
     }
-
 }

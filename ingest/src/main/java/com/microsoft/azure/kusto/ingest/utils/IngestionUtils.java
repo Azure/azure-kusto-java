@@ -34,7 +34,7 @@ public class IngestionUtils {
             stream = new ResettableFileInputStream((FileInputStream) stream);
         }
 
-        return new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
+        return new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath), fileSourceInfo.getRawSizeInBytes());
     }
 
     @NotNull

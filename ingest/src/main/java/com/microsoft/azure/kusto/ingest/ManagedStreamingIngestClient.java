@@ -24,10 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.SequenceInputStream;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.UUID;
@@ -393,18 +390,25 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             sourceId = UUID.randomUUID();
         }
 
+        InputStream byteArrayStream = streamSourceInfo.getStream();
         byte[] streamingBytes;
-        try {
-            streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
-        } catch (IOException e) {
-            throw new IngestionClientException("Failed to read from stream.", e);
+        long size = streamSourceInfo.getRawSizeInBytes();
+
+        // Trust ByteArrayInputStream to be resetable
+        if (streamSourceInfo.getRawSizeInBytes() <= 0 || (streamSourceInfo.getStream() instanceof ByteArrayInputStream)) {
+            try {
+                streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
+            } catch (IOException e) {
+                throw new IngestionClientException("Failed to read from stream.", e);
+            }
+            // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
+            byteArrayStream = new ByteArrayInputStream(streamingBytes);
+            size = streamingBytes.length;
         }
 
-        // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
-        ByteArrayInputStream byteArrayStream = new ByteArrayInputStream(streamingBytes);
 
-        if (streamingBytes.length > MAX_STREAMING_SIZE_BYTES) {
-            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", streamingBytes.length);
+        if (size > MAX_STREAMING_SIZE_BYTES) {
+            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", size);
             StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
                     streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
             return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);

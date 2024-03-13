@@ -51,21 +51,23 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     }
 
     public StreamSourceInfo(InputStream stream, boolean leaveOpen) {
+        this(stream);
         setLeaveOpen(leaveOpen);
-        setStream(stream);
     }
 
     public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId) {
-        setLeaveOpen(leaveOpen);
-        setStream(stream);
+        this(stream, leaveOpen);
         setSourceId(sourceId);
     }
 
     public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType) {
-        setLeaveOpen(leaveOpen);
-        setStream(stream);
-        setSourceId(sourceId);
+        this(stream, leaveOpen, sourceId);
         setCompressionType(compressionType);
+    }
+
+    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType, long size) {
+        this(stream, leaveOpen, sourceId, compressionType);
+        setRawSizeInBytes(size);
     }
 
     public void validate() {

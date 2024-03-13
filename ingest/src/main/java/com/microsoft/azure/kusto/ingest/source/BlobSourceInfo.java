@@ -24,28 +24,17 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.blobPath = blobPath;
     }
 
-    private long rawSizeInBytes;
-
-    public long getRawSizeInBytes() {
-        return rawSizeInBytes;
-    }
-
-    public void setRawSizeInBytes(long rawSizeInBytes) {
-        this.rawSizeInBytes = rawSizeInBytes;
-    }
-
     public BlobSourceInfo(String blobPath) {
         this.blobPath = blobPath;
     }
 
     public BlobSourceInfo(String blobPath, long rawSizeInBytes) {
-        this.blobPath = blobPath;
-        this.rawSizeInBytes = rawSizeInBytes;
+        this(blobPath);
+        this.setRawSizeInBytes(rawSizeInBytes);
     }
 
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
-        this.blobPath = blobPath;
-        this.rawSizeInBytes = rawSizeInBytes;
+        this(blobPath, rawSizeInBytes);
         this.setSourceId(sourceId);
     }
 
