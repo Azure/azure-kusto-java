@@ -1,5 +1,8 @@
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
+import com.azure.core.http.HttpResponse;
 import com.azure.core.implementation.StringBuilderWriter;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -22,9 +25,11 @@ import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
 public class Utils {
@@ -127,6 +132,36 @@ public class Utils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Checks if an HTTP response is GZIP compressed.
+     * @param response The HTTP response to check
+     * @return a boolean indicating if the CONTENT_ENCODING header contains "gzip"
+     */
+    public static boolean isGzipResponse(HttpResponse response) {
+        Optional<HttpHeader> contentEncoding =
+                Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+        return contentEncoding
+                .filter(header -> header.getValue().contains("gzip"))
+                .isPresent();
+    }
+
+    /**
+     * Gets an HTTP response body as an InputStream.
+     * @param response The response object to convert to an InputStream
+     * @return The response body as an InputStream
+     * @throws IOException An exception indicating an IO failure
+     */
+    public static InputStream getResponseAsStream(HttpResponse response) throws IOException {
+        InputStream contentStream = response.getBodyAsBinaryData().toStream();
+        String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
+        if (contentEncoding.contains("gzip")) {
+            return new GZIPInputStream(contentStream);
+        } else if (contentEncoding.contains("deflate")) {
+            return new DeflaterInputStream(contentStream);
+        }
+        return contentStream;
     }
 
     public static int copy(final InputStream input, final Writer writer)

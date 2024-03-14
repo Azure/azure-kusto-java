@@ -128,17 +128,10 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 int statusCode = response.getStatusCode();
                 if (statusCode == HttpStatus.OK) {
                     String content = null;
-                    Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
-                    if (contentEncoding.isPresent()) {
-                        if (contentEncoding.get().getValue().contains("gzip")) {
-                            content = response.getBodyAsInputStream()
-                                    .map(Utils::gzipedInputToString)
-                                    .block();
-                        }
+                    if (Utils.isGzipResponse(response)) {
+                        content = Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream());
                     } else {
-                        response
-                                .getBodyAsString()
-                                .block();
+                        content = response.getBodyAsBinaryData().toString();
                     }
                     if (content == null || content.equals("") || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);

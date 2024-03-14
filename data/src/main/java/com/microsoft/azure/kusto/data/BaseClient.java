@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.util.Optional;
-import java.util.zip.DeflaterInputStream;
-import java.util.zip.GZIPInputStream;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
@@ -37,11 +35,8 @@ public abstract class BaseClient implements Client, StreamingClient {
 
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
-            String responseBody = contentEncoding.isPresent() && (contentEncoding.get().getValue().contains("gzip")) ? response.getBodyAsInputStream()
-                    .map(Utils::gzipedInputToString)
-                    .block()
-                    : response.getBodyAsString().block();
+            String responseBody = Utils.isGzipResponse(response) ?
+                    Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream()) : response.getBodyAsBinaryData().toString();
 
             if (responseBody != null) {
                 switch (response.getStatusCode()) {
@@ -71,27 +66,13 @@ public abstract class BaseClient implements Client, StreamingClient {
         try {
 
             // Todo: Implement async version of this method
-
             httpResponse = httpClient.sendSync(request, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == HttpStatus.OK) {
-                InputStream contentStream = httpResponse.getBodyAsBinaryData().toStream();
-                Optional<HttpHeader> contentEncoding = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
-                if (contentEncoding.isPresent()) {
-                    if (contentEncoding.get().getValue().contains("gzip")) {
-                        GZIPInputStream gzipInputStream = new GZIPInputStream(contentStream);
-                        returnInputStream = true;
-                        return gzipInputStream;
-                    } else if (contentEncoding.get().getValue().contains("deflate")) {
-                        DeflaterInputStream deflaterInputStream = new DeflaterInputStream(contentStream);
-                        returnInputStream = true;
-                        return deflaterInputStream;
-                    }
-                }
                 returnInputStream = true;
-                return contentStream;
+                return Utils.getResponseAsStream(httpResponse);
             }
 
             errorFromResponse = httpResponse.getBodyAsBinaryData().toString();
