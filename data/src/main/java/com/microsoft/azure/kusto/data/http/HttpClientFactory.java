@@ -11,10 +11,9 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * A singleton factory of HTTP clients.
+ * A static factory for HTTP clients.
  */
 public class HttpClientFactory {
 
@@ -23,13 +22,14 @@ public class HttpClientFactory {
     /**
      * Creates a new HTTP client.
      *
-     * @param providedProperties custom HTTP client properties
+     * @param properties custom HTTP client properties
      * @return a new HTTP client
      */
-    public static HttpClient create(HttpClientProperties providedProperties) {
+    public static HttpClient create(HttpClientProperties properties) {
         LOGGER.info("Creating new HTTP Client");
-        final HttpClientProperties properties = Optional.ofNullable(providedProperties)
-                .orElse(HttpClientProperties.builder().build());
+        if (properties == null) {
+            return HttpClient.createDefault();
+        }
 
         // Docs: https://learn.microsoft.com/en-us/java/api/com.azure.core.util.httpclientoptions?view=azure-java-stable
         HttpClientOptions options = new HttpClientOptions();
