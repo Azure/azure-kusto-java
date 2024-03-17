@@ -140,8 +140,7 @@ public class Utils {
      * @return a boolean indicating if the CONTENT_ENCODING header contains "gzip"
      */
     public static boolean isGzipResponse(HttpResponse response) {
-        Optional<HttpHeader> contentEncoding =
-                Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+        Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
         return contentEncoding
                 .filter(header -> header.getValue().contains("gzip"))
                 .isPresent();
