@@ -53,6 +53,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 
 class E2ETest {
@@ -618,7 +619,7 @@ class E2ETest {
         clientImpl.execute(databaseName, query, clientRequestProperties);
 
         // Todo potentially need a try with resources here
-        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), Context.NONE);
+        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE));
     }
 
     @Test
