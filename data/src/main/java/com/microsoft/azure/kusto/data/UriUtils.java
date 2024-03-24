@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
@@ -15,7 +16,11 @@ public class UriUtils {
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         path = StringUtils.prependIfMissing(path, "/");
 
-        String pathString = new URIBuilder(uri).setPath(path).build().toString();
+        String pathString = new URIBuilder(uri)
+                .setPath(path)
+                .build()
+                .toString();
+
         if (ensureTrailingSlash) {
             pathString = StringUtils.appendIfMissing(pathString, "/");
         }

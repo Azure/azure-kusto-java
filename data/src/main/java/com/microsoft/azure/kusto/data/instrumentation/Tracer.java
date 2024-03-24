@@ -48,7 +48,7 @@ public class Tracer {
         public void close() {
             if (tracer != null && span != null) {
                 String errorCondition = "success";
-                if (throwable != null) {
+                if (throwable != null && throwable.getMessage() != null) {
                     errorCondition = throwable.getLocalizedMessage();
                 }
                 tracer.end(errorCondition, throwable, span);

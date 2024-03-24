@@ -5,7 +5,9 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.storage.common.policy.RequestRetryOptions;
 
-public interface QueuedIngestClient extends IngestClient {
+import java.io.Closeable;
+
+public interface QueuedIngestClient extends IngestClient, Closeable {
     /**
      * Setter for QueueRequestOptions used by the client on adding ingest message to the Azure queue, read here
      * https://docs.microsoft.com/azure/data-explorer/kusto/api/netfx/about-kusto-ingest#ingest-client-flavors
