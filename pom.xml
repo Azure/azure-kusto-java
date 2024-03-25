@@ -36,7 +36,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <!-- Use 1.0.6 for fasterxml v 2.12.x (good for databricks runtime 2.10.x) -->
-        <azure-bom-version>1.2.18</azure-bom-version>
+        <azure-bom-version>1.2.21</azure-bom-version>
 
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
         <!-- Ideally, versions below should align with latest databricks runtime dependency versions -->
@@ -44,31 +44,30 @@
         <slf4j.version>1.7.36</slf4j.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
         <commons-text.version>1.11.0</commons-text.version>
-        <commons-codec.version>1.16.0</commons-codec.version>
-        <msal4j.version>1.13.10</msal4j.version>
+        <commons-codec.version>1.16.1</commons-codec.version>
+        <msal4j.version>1.14.3</msal4j.version>
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
         <httpcore.version>4.4.16</httpcore.version>
-        <fasterxml.jackson.core.version>2.15.2</fasterxml.jackson.core.version>
-        <reactor-core.version>3.4.34</reactor-core.version>
+        <fasterxml.jackson.core.version>2.16.1</fasterxml.jackson.core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <resilience4j.version>1.7.1</resilience4j.version>
-        <io.vavr.version>0.10.2</io.vavr.version>
+        <io.vavr.version>0.10.4</io.vavr.version>
         <!-- Test dependencies -->
         <bouncycastle.version>1.77</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>
-        <sqlite-jdbc.version>3.44.1.0</sqlite-jdbc.version>
-        <annotations.version>22.0.0</annotations.version>
+        <sqlite-jdbc.version>3.45.2.0</sqlite-jdbc.version>
+        <annotations.version>24.1.0</annotations.version>
 
         <!-- Other dependencies -->
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
-        <maven-surefire-plugin.version>3.2.1</maven-surefire-plugin.version>
-        <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <maven-dependency-plugin.version>3.1.2</maven-dependency-plugin.version>
-        <flatten-maven-plugin.version>1.2.5</flatten-maven-plugin.version>
-        <junit.version>5.8.2</junit.version>
-        <mockito.version>5.7.0</mockito.version>
+        <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
+        <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
+        <junit.version>5.10.2</junit.version>
+        <mockito.version>5.11.0</mockito.version>
         <jacoco.version>0.8.11</jacoco.version>
     </properties>
     <profiles>
