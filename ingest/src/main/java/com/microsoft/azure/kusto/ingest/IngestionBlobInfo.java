@@ -30,8 +30,10 @@ public final class IngestionBlobInfo {
     private Boolean flushImmediately;
     private IngestionStatusInTableDescription ingestionStatusInTable;
     private Map<String, String> additionalProperties;
+    private String applicationForTracing;
+    private String clientVersionForTracing;
 
-    public IngestionBlobInfo(String blobPath, String databaseName, String tableName) {
+    public IngestionBlobInfo(String blobPath, String databaseName, String tableName, String applicationForTracing, String clientVersionForTracing) {
         this.blobPath = blobPath;
         this.databaseName = databaseName;
         this.tableName = tableName;
@@ -41,6 +43,8 @@ public final class IngestionBlobInfo {
         reportMethod = IngestionProperties.IngestionReportMethod.QUEUE.getKustoValue();
         flushImmediately = false;
         sourceMessageCreationTime = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).toString();
+        this.applicationForTracing = applicationForTracing;
+        this.clientVersionForTracing = clientVersionForTracing;
     }
 
     public String getBlobPath() {
@@ -129,5 +133,21 @@ public final class IngestionBlobInfo {
 
     public void setValidationPolicy(ValidationPolicy validationPolicy) {
         this.validationPolicy = validationPolicy;
+    }
+
+    public String getApplicationForTracing() {
+        return applicationForTracing;
+    }
+
+    public void setApplicationForTracing(String applicationForTracing) {
+        this.applicationForTracing = applicationForTracing;
+    }
+
+    public String getClientVersionForTracing() {
+        return clientVersionForTracing;
+    }
+
+    public void setClientVersionForTracing(String clientVersionForTracing) {
+        this.clientVersionForTracing = clientVersionForTracing;
     }
 }
