@@ -102,6 +102,17 @@ class ClientImpl implements Client, StreamingClient {
     }
 
     @Override
+    public KustoOperationResult execute(KustoQuery kq) throws DataServiceException, DataClientException {
+        if (kq == null) {
+            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
+        }
+        if (kq.getDatabase() == null) {
+            kq.setDatabase(DEFAULT_DATABASE_NAME);
+        }
+        return execute(kq.getDatabase(), kq.getCommand(), kq.getProperties(), determineCommandType(kq.getCommand()));
+    }
+
+    @Override
     public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
         return execute(DEFAULT_DATABASE_NAME, command);
     }
@@ -180,6 +191,17 @@ class ClientImpl implements Client, StreamingClient {
         } catch (Exception e) {
             throw new DataClientException(clusterEndpoint, e.getMessage(), e);
         }
+    }
+
+    @Override
+    public String executeToJsonResult(KustoQuery kq) throws DataServiceException, DataClientException {
+        if (kq == null) {
+            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
+        }
+        if (kq.getDatabase() == null) {
+            kq.setDatabase(DEFAULT_DATABASE_NAME);
+        }
+        return executeToJsonResult(kq.getDatabase(), kq.getCommand(), kq.getProperties());
     }
 
     @Override

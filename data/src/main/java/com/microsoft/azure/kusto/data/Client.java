@@ -9,6 +9,9 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.io.Closeable;
 
 public interface Client extends Closeable {
+
+    KustoOperationResult execute(KustoQuery kq) throws DataServiceException, DataClientException;
+
     KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException;
@@ -26,6 +29,8 @@ public interface Client extends Closeable {
     KustoOperationResult executeMgmt(String database, String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+
+    String executeToJsonResult(KustoQuery kq) throws DataServiceException, DataClientException;
 
     String executeToJsonResult(String database) throws DataServiceException, DataClientException;
 
