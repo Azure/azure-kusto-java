@@ -44,6 +44,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
+    private String applicationForTracing;
+    private String clientVersionForTracing;
 
     QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         this(csb, properties == null ? null : HttpClientFactory.create(properties), autoCorrectEndpoint);
@@ -57,6 +59,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.resourceManager = new ResourceManager(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
+        this.applicationForTracing = csb.getApplicationNameForTracing();
+        this.clientVersionForTracing = csb.getClientVersionForTracing();
     }
 
     QueuedIngestClientImpl(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
@@ -83,6 +87,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
         blobSourceInfo.validate();
         ingestionProperties.validate();
+        ingestionProperties.setApplicationForTracing(this.applicationForTracing);
+        ingestionProperties.setClientVersionForTracing(this.clientVersionForTracing);
 
         try {
             ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
@@ -90,7 +96,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
             // Create the ingestion message
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
-                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName());
+                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), ingestionProperties.getApplicationForTracing(),
+                    ingestionProperties.getClientVersionForTracing());
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
                 ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
