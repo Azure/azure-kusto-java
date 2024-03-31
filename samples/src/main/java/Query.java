@@ -4,7 +4,7 @@
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -31,7 +31,7 @@ public class Query {
 
             Client client = ClientFactory.createClient(csb, properties);
 
-            KustoOperationResult results = client.execute(System.getProperty("dbName"), System.getProperty("query"));
+            KustoOperationResult results = client.execute(".show version");
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 

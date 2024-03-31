@@ -3,13 +3,11 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 
@@ -28,18 +26,20 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 
-// This class does not keep an open connection with the cluster - the results are evaluated once and can be get by getData()
+import static com.microsoft.azure.kusto.data.KustoOperationResult.ONE_API_ERRORS_PROPERTY_NAME;
+
+// This class does not keep an open connection with the cluster - the results are evaluated once and can be retrieved using getData()
 public class KustoResultSetTable {
-    private static final String TABLE_NAME_PROPERTY_NAME = "TableName";
-    private static final String TABLE_ID_PROPERTY_NAME = "TableId";
-    private static final String TABLE_KIND_PROPERTY_NAME = "TableKind";
-    private static final String COLUMNS_PROPERTY_NAME = "Columns";
-    private static final String COLUMN_NAME_PROPERTY_NAME = "ColumnName";
-    private static final String COLUMN_TYPE_PROPERTY_NAME = "ColumnType";
-    private static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
-    private static final String ROWS_PROPERTY_NAME = "Rows";
-    private static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
-    private static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
+    protected static final String TABLE_NAME_PROPERTY_NAME = "TableName";
+    protected static final String TABLE_ID_PROPERTY_NAME = "TableId";
+    protected static final String TABLE_KIND_PROPERTY_NAME = "TableKind";
+    protected static final String COLUMNS_PROPERTY_NAME = "Columns";
+    protected static final String COLUMN_NAME_PROPERTY_NAME = "ColumnName";
+    protected static final String COLUMN_TYPE_PROPERTY_NAME = "ColumnType";
+    protected static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
+    protected static final String ROWS_PROPERTY_NAME = "Rows";
+    protected static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
+    static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private static final String EMPTY_STRING = "";
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
@@ -82,7 +82,7 @@ public class KustoResultSetTable {
         this.tableKind = tableKind;
     }
 
-    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonProcessingException, JsonPropertyMissingException {
+    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonPropertyMissingException {
         if (jsonTable.has(TABLE_NAME_PROPERTY_NAME)) {
             tableName = jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText();
         }
@@ -100,8 +100,9 @@ public class KustoResultSetTable {
                 for (int i = 0; i < columnsJson.size(); i++) {
                     JsonNode jsonCol = columnsJson.get(i);
 
+                    // TODO yischoen Use CslFormat classes to validate columnType is valid, and that its value ("JsonNode obj" below) is valid for columnType
                     String columnType = jsonCol.has(COLUMN_TYPE_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_PROPERTY_NAME).asText() : EMPTY_STRING;
-                    if (columnType.equals("")) {
+                    if (columnType.isEmpty()) {
                         columnType = jsonCol.has(COLUMN_TYPE_SECOND_PROPERTY_NAME) ? jsonCol.get(COLUMN_TYPE_SECOND_PROPERTY_NAME).asText() : EMPTY_STRING;
                     }
                     if (jsonCol.has(COLUMN_NAME_PROPERTY_NAME)) {
@@ -130,12 +131,12 @@ public class KustoResultSetTable {
                     if (exceptions != null) {
                         if (exceptions.size() == 1) {
                             String message = exceptions.get(0).asText();
-                            throw new KustoServiceQueryError(message);
+                            throw new KustoServiceQueryError(exceptions, true, message);
                         } else {
                             throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
                         }
                     } else {
-                        throw new KustoServiceQueryError((ArrayNode) row.get("OneApiErrors"), true, EXCEPTIONS_MESSAGE);
+                        throw new KustoServiceQueryError((ArrayNode) row.get(ONE_API_ERRORS_PROPERTY_NAME), true, EXCEPTIONS_MESSAGE);
                     }
                 }
                 ArrayNode rowAsJsonArray = (ArrayNode) jsonRows.get(i);
@@ -209,12 +210,17 @@ public class KustoResultSetTable {
         return currentRow.get(columnIndex);
     }
 
-    private Object get(String colName) {
-        return currentRow.get(findColumn(colName));
+    private Object get(String columnName) {
+        return currentRow.get(findColumn(columnName));
     }
 
     public String getString(int columnIndex) {
-        return get(columnIndex).toString();
+        Object obj = get(columnIndex);
+        if (obj == null) {
+            return null;
+        }
+
+        return obj.toString();
     }
 
     public boolean getBoolean(int columnIndex) {
@@ -226,23 +232,27 @@ public class KustoResultSetTable {
     }
 
     public byte getByte(int columnIndex) {
-        return (byte) get(columnIndex);
+        Object obj = get(columnIndex);
+        if (obj instanceof Integer) {
+            return ((Integer) obj).byteValue();
+        }
+        return (byte) obj;
     }
 
-    public short getShort(int columnIndex) {
+    private Object getShortGeneric(int columnIndex) {
         Object obj = get(columnIndex);
         if (obj instanceof Integer) {
             return ((Integer) obj).shortValue();
         }
-        return (short) get(columnIndex);
+        return obj;
+    }
+
+    public short getShort(int columnIndex) {
+        return (short) getShortGeneric(columnIndex);
     }
 
     public Short getShortObject(int columnIndex) {
-        Object obj = get(columnIndex);
-        if (obj == null) {
-            return null;
-        }
-        return getShort(columnIndex);
+        return (Short) getShortGeneric(columnIndex);
     }
 
     public int getInt(int columnIndex) {
@@ -253,44 +263,60 @@ public class KustoResultSetTable {
         return (Integer) get(columnIndex);
     }
 
-    public long getLong(int columnIndex) {
+    private Object getLongGeneric(int columnIndex) {
         Object obj = get(columnIndex);
         if (obj instanceof Integer) {
             return ((Integer) obj).longValue();
         }
-        return (long) obj;
+        return obj;
+    }
+
+    public long getLong(int columnIndex) {
+        return (long) getLongGeneric(columnIndex);
     }
 
     public Long getLongObject(int columnIndex) {
+        return (Long) getLongGeneric(columnIndex);
+    }
+
+    private Object getFloatGeneric(int columnIndex) {
         Object obj = get(columnIndex);
-        if (obj instanceof Integer) {
-            return ((Integer) obj).longValue();
+        if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).floatValue();
         }
-        return (Long) obj;
+        return obj;
     }
 
     public float getFloat(int columnIndex) {
-        return (float) get(columnIndex);
+        return (float) getFloatGeneric(columnIndex);
     }
 
     public Float getFloatObject(int columnIndex) {
-        return (Float) get(columnIndex);
+        return (Float) getFloatGeneric(columnIndex);
+    }
+
+    private Object getDoubleGeneric(int columnIndex) {
+        Object obj = get(columnIndex);
+        if (obj instanceof BigDecimal) {
+            return ((BigDecimal) obj).doubleValue();
+        }
+        return obj;
     }
 
     public double getDouble(int columnIndex) {
-        return (double) get(columnIndex);
+        return (double) getDoubleGeneric(columnIndex);
     }
 
     public Double getDoubleObject(int columnIndex) {
-        Object d = get(columnIndex);
-        if (d instanceof BigDecimal) {
-            return ((BigDecimal) d).doubleValue();
-        }
-        return (Double) get(columnIndex);
+        return (Double) getDoubleGeneric(columnIndex);
     }
 
     public byte[] getBytes(int columnIndex) {
-        return (byte[]) get(columnIndex);
+        Object obj = get(columnIndex);
+        if (obj instanceof String) {
+            return ((String) obj).getBytes();
+        }
+        return (byte[]) obj;
     }
 
     public Date getDate(int columnIndex) throws SQLException {
@@ -335,19 +361,19 @@ public class KustoResultSetTable {
     }
 
     public String getString(String columnName) {
-        return get(columnName).toString();
+        return getString(findColumn(columnName));
     }
 
     public boolean getBoolean(String columnName) {
-        return (boolean) get(columnName);
+        return getBoolean(findColumn(columnName));
     }
 
     public Boolean getBooleanObject(String columnName) {
-        return (Boolean) get(columnName);
+        return getBooleanObject(findColumn(columnName));
     }
 
     public byte getByte(String columnName) {
-        return (byte) get(columnName);
+        return getByte(findColumn(columnName));
     }
 
     public short getShort(String columnName) {
@@ -359,7 +385,7 @@ public class KustoResultSetTable {
     }
 
     public int getInt(String columnName) {
-        return (int) get(columnName);
+        return getInt(findColumn(columnName));
     }
 
     public Integer getIntegerObject(String columnName) {
@@ -367,7 +393,7 @@ public class KustoResultSetTable {
     }
 
     public long getLong(String columnName) {
-        return (long) get(columnName);
+        return getLong(findColumn(columnName));
     }
 
     public Long getLongObject(String columnName) {
@@ -375,7 +401,7 @@ public class KustoResultSetTable {
     }
 
     public float getFloat(String columnName) {
-        return (float) get(columnName);
+        return getFloat(findColumn(columnName));
     }
 
     public Float getFloatObject(String columnName) {
@@ -383,15 +409,15 @@ public class KustoResultSetTable {
     }
 
     public double getDouble(String columnName) {
-        return (double) get(columnName);
+        return getDouble(findColumn(columnName));
     }
 
     public Double getDoubleObject(String columnName) {
-        return (Double) get(columnName);
+        return getDoubleObject(findColumn(columnName));
     }
 
     public byte[] getBytes(String columnName) {
-        return (byte[]) get(columnName);
+        return getBytes(findColumn(columnName));
     }
 
     public Date getDate(String columnName) throws SQLException {
@@ -422,8 +448,8 @@ public class KustoResultSetTable {
         return get(columnName);
     }
 
-    public JsonNode getJSONObject(String colName) {
-        return getJSONObject(findColumn(colName));
+    public JsonNode getJSONObject(String columnName) {
+        return getJSONObject(findColumn(columnName));
     }
 
     public JsonNode getJSONObject(int columnIndex) {
@@ -455,11 +481,12 @@ public class KustoResultSetTable {
     }
 
     public BigDecimal getBigDecimal(int columnIndex) {
-        if (get(columnIndex) == null) {
+        Object obj = get(columnIndex);
+        if (obj == null) {
             return null;
         }
 
-        return new BigDecimal(getString(columnIndex));
+        return new BigDecimal(obj.toString());
     }
 
     public BigDecimal getBigDecimal(String columnName) {

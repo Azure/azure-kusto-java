@@ -169,10 +169,6 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core-http-netty</artifactId>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -199,6 +195,11 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${apache.httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -245,22 +246,10 @@
             <artifactId>annotations</artifactId>
             <version>${annotations.version}</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>httpcore</artifactId>
-                    <groupId>org.apache.httpcomponents</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.11</version>
+            <version>${commons-codec.version}</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
@@ -270,11 +259,6 @@
         <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
-            <version>${resilience4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-core</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
         <dependency>

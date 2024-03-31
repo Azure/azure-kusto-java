@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.http.HttpClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -10,6 +11,8 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.queue.models.QueueStorageException;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
@@ -18,7 +21,6 @@ import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +45,14 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
 
-    QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties) throws URISyntaxException {
-        this(csb, properties == null ? null : HttpClientFactory.create(properties));
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+        this(csb, properties == null ? null : HttpClientFactory.create(properties), autoCorrectEndpoint);
     }
 
-    QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
-        csbWithEndpoint.setClusterUrl(getIngestionEndpoint(csbWithEndpoint.getClusterUrl()));
+        csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getIngestionEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
         Client client = ClientFactory.createClient(csbWithEndpoint, httpClient);
         this.resourceManager = new ResourceManager(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
@@ -138,8 +140,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
@@ -180,8 +180,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from file", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
@@ -230,8 +228,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
@@ -283,7 +279,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.connectionDataSource = connectionDataSource;
     }
 
-    @Override
     public void close() {
         this.resourceManager.close();
     }

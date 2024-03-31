@@ -1,12 +1,17 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+
+import java.net.URI;
+
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
+import org.apache.http.conn.util.InetAddressUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,19 +25,29 @@ public abstract class IngestClientBase implements IngestClient {
     }
 
     static String getIngestionEndpoint(String clusterUrl) {
-        if (clusterUrl.contains(INGEST_PREFIX)) {
+        if (clusterUrl == null || clusterUrl.contains(INGEST_PREFIX) || isReservedHostname(clusterUrl)) {
             return clusterUrl;
-        } else {
+        }
+        if (clusterUrl.contains(PROTOCOL_SUFFIX)) {
             return clusterUrl.replaceFirst(PROTOCOL_SUFFIX, PROTOCOL_SUFFIX + INGEST_PREFIX);
         }
+        return INGEST_PREFIX + clusterUrl;
     }
 
     static String getQueryEndpoint(String clusterUrl) {
-        if (clusterUrl.contains(INGEST_PREFIX)) {
-            return clusterUrl.replaceFirst(INGEST_PREFIX, "");
-        } else {
-            return clusterUrl;
+        return (clusterUrl == null || isReservedHostname(clusterUrl)) ? clusterUrl : clusterUrl.replaceFirst(INGEST_PREFIX, "");
+    }
+
+    static boolean isReservedHostname(String rawUri) {
+        URI uri = URI.create(rawUri);
+        if (!uri.isAbsolute()) {
+            return true;
         }
+        String authority = uri.getAuthority().toLowerCase();
+        boolean isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
+        boolean isLocalFlag = authority.contains("localhost");
+
+        return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)

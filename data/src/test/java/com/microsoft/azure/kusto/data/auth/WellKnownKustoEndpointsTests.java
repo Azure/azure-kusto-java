@@ -204,6 +204,7 @@ public class WellKnownKustoEndpointsTests {
                 String.format("https://kusto.aria.microsoft.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
                 String.format("https://adx.monitor.azure.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
                 String.format("https://cluster.playfab.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
+                String.format("https://cluster.playfab.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
                 String.format("https://cluster.playfabapi.com,%s", DEFAULT_PUBLIC_LOGIN_URL),
                 String.format("https://cluster.playfab.cn,%s", chinaCloudLogin),
         }) {

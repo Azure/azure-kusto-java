@@ -6,7 +6,7 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -16,10 +16,9 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 
-import com.microsoft.azure.kusto.ingest.utils.ExponentialRetry;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +50,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
-    private CloseableHttpClient httpClient = null;
+    private HttpClient httpClient = null;
 
     /**
      * @param dmConnectionString dm connection string
@@ -131,6 +130,17 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     /**
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
      * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
+        this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, autoCorrectEndpoint);
+    }
+
+    /**
+     * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
+     * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
      * @param properties                               - Additional properties to configure the http client
      * @throws URISyntaxException if the connection string is invalid
      * @deprecated - This method is slated to be private.  Use
@@ -140,26 +150,80 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
             ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties);
-        streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties);
+        queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
+        streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
-        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties);
-        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties);
-        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
-    }
-
+    /**
+     * @param connectionStringBuilder - Client connection string
+     * @param properties - Additional properties to configure the http client
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
-        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient);
-        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient);
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, autoCorrectEndpoint);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, autoCorrectEndpoint);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    /**
+     * @param connectionStringBuilder - Client connection string
+     * @param httpClient - HTTP client
+     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
+        this.httpClient = httpClient;
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    /**
+     * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
+     * @param queryEndpointConnectionStringBuilder - Endpoint for querying data, does not include "ingest-"
+     * @param properties                               - Additional properties to configure the http client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+            @Nullable HttpClientProperties properties) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, true);
+        streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, true);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    /***
+     * @param connectionStringBuilder - Client connection string
+     * @param properties - Additional properties to configure the http client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable HttpClientProperties properties) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, true);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, true);
+        exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    }
+
+    /***
+     * @param connectionStringBuilder - Client connection string
+     * @param httpClient - HTTP client
+     * @throws URISyntaxException if the connection string is invalid
+     */
+    public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
+        log.info("Creating a new ManagedStreamingIngestClient from connection strings");
+        queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
+        streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, true);
         this.httpClient = httpClient;
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
@@ -180,7 +244,13 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
     }
 
-    ManagedStreamingIngestClient(ResourceManager resourceManager,
+    /**
+     * @param resourceManager ingestion resources manager
+     * @param storageClient - storage utilities
+     * @param streamingClient - the streaming client
+     * @param retryTemplate - retry template
+     */
+    public ManagedStreamingIngestClient(ResourceManager resourceManager,
             AzureStorageClient storageClient,
             StreamingClient streamingClient,
             ExponentialRetry retryTemplate) {
@@ -251,7 +321,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)
             throws IngestionClientException, IngestionServiceException {
-        ExponentialRetry retry = new ExponentialRetry(exponentialRetryTemplate);
+        ExponentialRetry<IngestionClientException, IngestionServiceException> retry = new ExponentialRetry<>(
+                exponentialRetryTemplate);
         return retry.execute(currentAttempt -> {
             try {
                 if (blobClient != null) {
@@ -369,10 +440,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         return CLASS_NAME;
     }
 
-    @Override
     public void close() throws IOException {
         queuedIngestClient.close();
-        streamingIngestClient.close();
     }
 
     @Override

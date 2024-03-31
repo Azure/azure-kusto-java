@@ -6,10 +6,9 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import java.io.Closeable;
 import java.io.InputStream;
 
-public interface StreamingClient extends Closeable {
+public interface StreamingClient {
     /**
      * <p>Ingest data from a given stream directly into Kusto database.</p>
      * This method ingests the data from a given stream directly into Kusto database, using streaming ingestion endpoint,

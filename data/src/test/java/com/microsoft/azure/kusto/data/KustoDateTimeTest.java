@@ -11,9 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 
 public class KustoDateTimeTest {
-
     @Test
-    void KustoResultSet() throws Exception {
+    void kustoResultSet() throws Exception {
         ObjectMapper mapper = Utils.getObjectMapper();
         DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
                 .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
@@ -54,7 +53,7 @@ public class KustoDateTimeTest {
                 "\"Columns\":" + columns + ",\"Rows\":" +
                 rows + "}"));
 
-        Integer rowNum = 0;
+        int rowNum = 0;
         while (res.next()) {
             Assertions.assertEquals(
                     LocalDateTime.parse(rows.get(rowNum).get(0).toString(), kustoDateTimeFormatter),

@@ -1,63 +1,43 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
+import com.azure.core.http.HttpResponse;
+import com.azure.core.implementation.StringBuilderWriter;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.exceptions.*;
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.core.lang.Nullable;
+import io.github.resilience4j.retry.RetryConfig;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.EofSensorInputStream;
-import org.apache.http.entity.AbstractHttpEntity;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.InterruptedIOException;
+import java.io.Writer;
+import java.io.InputStreamReader;
+import java.net.NoRouteToHostException;
+import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
 public class Utils {
-    private static final int MAX_REDIRECT_COUNT = 1;
-    private static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final int MAX_RETRY_ATTEMPTS = 4;
+    private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
+    private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
 
-    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to loose precision while auto deserialization to
+    // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
     // double value
     public static ObjectMapper getObjectMapper() {
         return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
@@ -65,220 +45,22 @@ public class Utils {
                         JsonNodeFactory.withExactBigDecimals(true));
     }
 
+    private static final HashSet<Class<? extends IOException>> nonRetriableClasses = new HashSet<Class<? extends IOException>>() {
+        {
+            add(InterruptedIOException.class);
+            add(UnknownHostException.class);
+            add(NoRouteToHostException.class);
+            add(SSLException.class);
+        }
+    };
+
+    static private final IntervalFunction sleepConfig = IntervalFunction.ofExponentialRandomBackoff(BASE_INTERVAL,
+            IntervalFunction.DEFAULT_MULTIPLIER,
+            IntervalFunction.DEFAULT_RANDOMIZATION_FACTOR,
+            MAX_RETRY_INTERVAL);
+
     private Utils() {
         // Hide constructor, as this is a static utility class
-    }
-
-    static String post(CloseableHttpClient httpClient, String urlStr, AbstractHttpEntity requestEntity, long timeoutMs,
-            Map<String, String> headers)
-            throws DataServiceException, DataClientException {
-        URI url = parseUriFromUrlString(urlStr);
-
-        try {
-            HttpPost request = setupHttpPostRequest(url, requestEntity, headers);
-            int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
-            request.setConfig(requestConfig);
-
-            // Execute and get the response
-            HttpResponse response = httpClient.execute(request);
-
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                StatusLine statusLine = response.getStatusLine();
-                String responseContent = EntityUtils.toString(entity);
-                switch (statusLine.getStatusCode()) {
-                    case HttpStatus.SC_OK:
-                        return responseContent;
-                    case HttpStatus.SC_TOO_MANY_REQUESTS:
-                        throw new ThrottleException(urlStr);
-                    default:
-                        throw createExceptionFromResponse(urlStr, response, null, responseContent);
-                }
-            }
-        } catch (SocketTimeoutException e) {
-            throw new DataServiceException(urlStr, "Timed out in post request:" + e.getMessage(), false);
-        } catch (IOException e) {
-            throw new DataClientException(urlStr, "Error in post request:" + e.getMessage(), e);
-        }
-        return null;
-    }
-
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers)
-            throws DataServiceException, DataClientException {
-        return postToStreamingOutput(httpClient, url, payload, timeoutMs, headers, 0);
-    }
-
-    static InputStream postToStreamingOutput(CloseableHttpClient httpClient, String url, String payload, long timeoutMs, Map<String, String> headers,
-            int redirectCount)
-            throws DataServiceException, DataClientException {
-        long timeoutTimeMs = System.currentTimeMillis() + timeoutMs;
-        URI uri = parseUriFromUrlString(url);
-
-        boolean returnInputStream = false;
-        String errorFromResponse = null;
-        /*
-         * The caller must close the inputStream to close the following underlying resources (httpClient and httpResponse). We use CloseParentResourcesStream so
-         * that when the stream is closed, these resources are closed as well. We shouldn't need to do that, per
-         * https://hc.apache.org/httpcomponents-client-4.5.x/current/tutorial/html/fundamentals.html: "In order to ensure proper release of system resources one
-         * must close either the content stream associated with the entity or the response itself." However, in my testing this wasn't reliably the case. We
-         * further use EofSensorInputStream to close the stream even if not explicitly closed, once all content is consumed.
-         */
-        CloseableHttpResponse httpResponse = null;
-        try {
-            StringEntity requestEntity = new StringEntity(payload, ContentType.APPLICATION_JSON);
-            HttpPost httpPost = setupHttpPostRequest(uri, requestEntity, headers);
-            int requestTimeout = Math.toIntExact(timeoutTimeMs - System.currentTimeMillis());
-            RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(requestTimeout).build();
-            httpPost.setConfig(requestConfig);
-
-            httpResponse = httpClient.execute(httpPost);
-
-            int responseStatusCode = httpResponse.getStatusLine().getStatusCode();
-
-            if (responseStatusCode == HttpStatus.SC_OK) {
-                InputStream contentStream = new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
-                Optional<Header> contentEncoding = Arrays.stream(httpResponse.getHeaders(HttpHeaders.CONTENT_ENCODING)).findFirst();
-                if (contentEncoding.isPresent()) {
-                    if (contentEncoding.get().getValue().contains("gzip")) {
-                        GZIPInputStream gzipInputStream = new GZIPInputStream(contentStream);
-                        returnInputStream = true;
-                        return gzipInputStream;
-                    } else if (contentEncoding.get().getValue().contains("deflate")) {
-                        DeflaterInputStream deflaterInputStream = new DeflaterInputStream(contentStream);
-                        returnInputStream = true;
-                        return deflaterInputStream;
-                    }
-                }
-                // Though the server responds with a gzip/deflate Content-Encoding header, we reach here because httpclient uses LazyDecompressingStream which
-                // handles the above logic
-                returnInputStream = true;
-                return contentStream;
-            }
-
-            errorFromResponse = EntityUtils.toString(httpResponse.getEntity());
-            // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
-            httpResponse.close();
-
-            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
-                Optional<Header> redirectLocation = Arrays.stream(httpResponse.getHeaders(HttpHeaders.LOCATION)).findFirst();
-                if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(url)) {
-                    return postToStreamingOutput(httpClient, redirectLocation.get().getValue(), payload, timeoutMs, headers, redirectCount + 1);
-                }
-            }
-        } catch (IOException ex) {
-            throw new DataServiceException(url, "postToStreamingOutput failed to get or decompress response stream",
-                    ex, false);
-        } catch (Exception ex) {
-            throw createExceptionFromResponse(url, httpResponse, ex, errorFromResponse);
-        } finally {
-            closeResourcesIfNeeded(returnInputStream, httpResponse);
-        }
-
-        throw createExceptionFromResponse(url, httpResponse, null, errorFromResponse);
-    }
-
-    static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {
-        if (httpResponse == null) {
-            return new DataServiceException(url, "POST failed to send request", thrownException, false);
-        } else {
-            /*
-             * TODO: When we add another streaming API that returns a KustoOperationResult, we'll need to handle the 2 types of content errors this API can
-             * return: (1) Inline error (engine identifies error after it starts building the json result), or (2) in the KustoOperationResult's
-             * QueryCompletionInformation, both of which present with "200 OK". See .Net's DataReaderParser.
-             */
-            String activityId = determineActivityId(httpResponse);
-            String message = errorFromResponse;
-            WebException formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
-            boolean isPermanent = false;
-            if (!StringUtils.isBlank(errorFromResponse)) {
-                try {
-                    JsonNode jsonObject = getObjectMapper().readTree(errorFromResponse);
-                    if (jsonObject.has("error")) {
-                        formattedException = new DataWebException(errorFromResponse, httpResponse, thrownException);
-                        OneApiError apiError = ((DataWebException) formattedException).getApiError();
-                        message = apiError.getDescription();
-                        isPermanent = apiError.isPermanent();
-                    } else if (jsonObject.has("message")) {
-                        message = jsonObject.get("message").asText();
-                    }
-                } catch (JsonProcessingException e) {
-                    // It's not ideal to use an exception here for control flow, but we can't know if it's a valid JSON until we try to parse it
-                    LOGGER.debug("json processing error happened while parsing errorFromResponse {}" + e.getMessage(), e);
-                }
-            } else {
-                message = String.format("Http StatusCode='%s'", httpResponse.getStatusLine().toString());
-            }
-
-            return new DataServiceException(
-                    url,
-                    String.format("%s, ActivityId='%s'", message, activityId),
-                    formattedException,
-                    isPermanent);
-        }
-    }
-
-    private static void closeResourcesIfNeeded(boolean returnInputStream, CloseableHttpResponse httpResponse) {
-        // If we close the resources after returning the InputStream to the caller, they won't be able to read from it
-        if (!returnInputStream) {
-            try {
-                if (httpResponse != null) {
-                    httpResponse.close();
-                }
-            } catch (IOException ex) {
-                // There's nothing we can do if the resources can't be closed, and we don't want to add an exception to the signature
-                LOGGER.error("Couldn't close HttpResponse. This won't affect the POST call, but should be investigated.");
-            }
-        }
-    }
-
-    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
-        return (status == HttpStatus.SC_MOVED_TEMPORARILY || status == HttpStatus.SC_TEMPORARY_REDIRECT)
-                && redirectCount + 1 <= MAX_REDIRECT_COUNT;
-    }
-
-    private static String determineActivityId(HttpResponse httpResponse) {
-        String activityId = "";
-        Optional<Header> activityIdHeader = Arrays.stream(httpResponse.getHeaders("x-ms-activity-id")).findFirst();
-        if (activityIdHeader.isPresent()) {
-            activityId = activityIdHeader.get().getValue();
-        }
-        return activityId;
-    }
-
-    private static HttpPost setupHttpPostRequest(URI uri, AbstractHttpEntity requestEntity, Map<String, String> headers) {
-        HttpPost request = new HttpPost(uri);
-
-        // Request parameters and other properties
-        request.setEntity(requestEntity);
-
-        request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
-        request.addHeader(HttpHeaders.ACCEPT, "application/json");
-
-        // TODO - maybe save this in a resouce
-        String KUSTO_API_VERSION = "2019-02-13";
-        request.addHeader("x-ms-version", KUSTO_API_VERSION);
-        for (Map.Entry<String, String> entry : headers.entrySet()) {
-            request.addHeader(entry.getKey(), entry.getValue());
-        }
-
-        return request;
-    }
-
-    @NotNull
-    private static URI parseUriFromUrlString(String url) throws DataClientException {
-        try {
-            URL cleanUrl = new URL(url);
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.toLowerCase().startsWith(CloudInfo.LOCALHOST)) {
-                return new URI(cleanUrl.getProtocol(), cleanUrl.getUserInfo(), cleanUrl.getHost(), cleanUrl.getPort(), cleanUrl.getPath(), cleanUrl.getQuery(),
-                        cleanUrl.getRef());
-            } else {
-                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
-                        "channel (http://)");
-            }
-        } catch (URISyntaxException | MalformedURLException e) {
-            throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);
-        }
     }
 
     public static String getPackageVersion() {
@@ -294,20 +76,103 @@ public class Utils {
     }
 
     public static String formatDurationAsTimespan(Duration duration) {
-        long seconds = duration.getSeconds();
+        long durationInSeconds = duration.getSeconds();
         int nanos = duration.getNano();
-        long hours = TimeUnit.SECONDS.toHours(seconds) % TimeUnit.DAYS.toHours(1);
-        long minutes = TimeUnit.SECONDS.toMinutes(seconds) % TimeUnit.MINUTES.toSeconds(1);
-        long secs = seconds % TimeUnit.MINUTES.toSeconds(1);
-        long days = TimeUnit.SECONDS.toDays(seconds);
-        String positive = String.format(
-                "%02d.%02d:%02d:%02d.%.3s",
-                days,
+        long hours = TimeUnit.SECONDS.toHours(durationInSeconds) % TimeUnit.DAYS.toHours(1);
+        long minutes = TimeUnit.SECONDS.toMinutes(durationInSeconds) % TimeUnit.HOURS.toMinutes(1);
+        long seconds = durationInSeconds % TimeUnit.MINUTES.toSeconds(1);
+        long days = TimeUnit.SECONDS.toDays(durationInSeconds);
+
+        String absoluteVal = "";
+        if (days != 0) {
+            absoluteVal += String.format("%02d.", days);
+        }
+        absoluteVal += String.format(
+                "%02d:%02d:%02d",
                 hours,
                 minutes,
-                secs,
-                nanos);
+                seconds);
+        if (nanos != 0) {
+            absoluteVal += String.format(".%.3s", nanos);
+        }
 
-        return seconds < 0 ? "-" + positive : positive;
+        return durationInSeconds < 0 ? "-" + absoluteVal : absoluteVal;
+    }
+
+    public static boolean isRetriableIOException(IOException ex) {
+        return !nonRetriableClasses.contains(ex.getClass()) &&
+                ex.getMessage() != null && ex.getMessage().contains("timed out");
+
+    }
+
+    public static RetryConfig buildRetryConfig(@Nullable Class<? extends Throwable>... errorClasses) {
+        return RetryConfig.custom()
+                .maxAttempts(MAX_RETRY_ATTEMPTS)
+                .intervalFunction(sleepConfig)
+                .retryExceptions(errorClasses)
+                .build();
+    }
+
+    public static RetryConfig buildRetryConfig(Predicate<Throwable> predicate) {
+        return RetryConfig.custom()
+                .maxAttempts(MAX_RETRY_ATTEMPTS)
+                .intervalFunction(sleepConfig)
+                .retryOnException(predicate)
+                .build();
+    }
+
+    // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
+    public static String gzipedInputToString(InputStream in) {
+        try (GZIPInputStream gz = new GZIPInputStream(in)) {
+            StringBuilder stringBuilder = new StringBuilder();
+            try (StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
+                copy(gz, sw);
+                return stringBuilder.toString();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Checks if an HTTP response is GZIP compressed.
+     * @param response The HTTP response to check
+     * @return a boolean indicating if the CONTENT_ENCODING header contains "gzip"
+     */
+    public static boolean isGzipResponse(HttpResponse response) {
+        Optional<HttpHeader> contentEncoding = Optional.ofNullable(response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING));
+        return contentEncoding
+                .filter(header -> header.getValue().contains("gzip"))
+                .isPresent();
+    }
+
+    /**
+     * Gets an HTTP response body as an InputStream.
+     * @param response The response object to convert to an InputStream
+     * @return The response body as an InputStream
+     * @throws IOException An exception indicating an IO failure
+     */
+    public static InputStream getResponseAsStream(HttpResponse response) throws IOException {
+        InputStream contentStream = response.getBodyAsBinaryData().toStream();
+        String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
+        if (contentEncoding.contains("gzip")) {
+            return new GZIPInputStream(contentStream);
+        } else if (contentEncoding.contains("deflate")) {
+            return new DeflaterInputStream(contentStream);
+        }
+        return contentStream;
+    }
+
+    public static int copy(final InputStream input, final Writer writer)
+            throws IOException {
+        final InputStreamReader reader = new InputStreamReader(input);
+        final char[] buffer = new char[1024];
+        int count = 0;
+        int n;
+        while (-1 != (n = reader.read(buffer))) {
+            writer.write(buffer, 0, n);
+            count += n;
+        }
+        return count;
     }
 }
