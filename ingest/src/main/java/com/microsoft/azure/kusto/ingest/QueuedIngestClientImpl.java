@@ -87,8 +87,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
         blobSourceInfo.validate();
         ingestionProperties.validate();
-        ingestionProperties.setApplicationForTracing(this.applicationForTracing);
-        ingestionProperties.setClientVersionForTracing(this.clientVersionForTracing);
 
         try {
             ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
@@ -96,8 +94,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
             // Create the ingestion message
             IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
-                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), ingestionProperties.getApplicationForTracing(),
-                    ingestionProperties.getClientVersionForTracing());
+                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), this.applicationForTracing,
+                    this.clientVersionForTracing);
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
             if (blobSourceInfo.getRawSizeInBytes() > 0L) {
                 ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());

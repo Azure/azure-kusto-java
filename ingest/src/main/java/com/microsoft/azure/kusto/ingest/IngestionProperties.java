@@ -40,8 +40,6 @@ public class IngestionProperties implements TraceableAttributes {
     private ValidationPolicy validationPolicy;
     private Map<String, String> additionalProperties;
     private DataFormat dataFormat;
-    private String applicationForTracing;
-    private String clientVersionForTracing;
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     /**
@@ -73,8 +71,6 @@ public class IngestionProperties implements TraceableAttributes {
         this.additionalTags = new ArrayList<>();
         this.ingestionMapping = new IngestionMapping();
         this.dataFormat = DataFormat.CSV;
-        this.applicationForTracing = null;
-        this.clientVersionForTracing = null;
     }
 
     /**
@@ -101,8 +97,6 @@ public class IngestionProperties implements TraceableAttributes {
         if (other.validationPolicy != null) {
             this.validationPolicy = new ValidationPolicy(other.validationPolicy);
         }
-        this.applicationForTracing = null;
-        this.clientVersionForTracing = null;
     }
 
     public ValidationPolicy getValidationPolicy() {
@@ -396,22 +390,6 @@ public class IngestionProperties implements TraceableAttributes {
         attributes.put("database", databaseName);
         attributes.put("table", tableName);
         return attributes;
-    }
-
-    protected String getApplicationForTracing() {
-        return applicationForTracing;
-    }
-
-    protected void setApplicationForTracing(String applicationForTracing) {
-        this.applicationForTracing = applicationForTracing;
-    }
-
-    protected String getClientVersionForTracing() {
-        return clientVersionForTracing;
-    }
-
-    protected void setClientVersionForTracing(String clientVersionForTracing) {
-        this.clientVersionForTracing = clientVersionForTracing;
     }
 
     public enum DataFormat {
