@@ -398,19 +398,19 @@ public class IngestionProperties implements TraceableAttributes {
         return attributes;
     }
 
-    public String getApplicationForTracing() {
+    protected String getApplicationForTracing() {
         return applicationForTracing;
     }
 
-    public void setApplicationForTracing(String applicationForTracing) {
+    protected void setApplicationForTracing(String applicationForTracing) {
         this.applicationForTracing = applicationForTracing;
     }
 
-    public String getClientVersionForTracing() {
+    protected String getClientVersionForTracing() {
         return clientVersionForTracing;
     }
 
-    public void setClientVersionForTracing(String clientVersionForTracing) {
+    protected void setClientVersionForTracing(String clientVersionForTracing) {
         this.clientVersionForTracing = clientVersionForTracing;
     }
 
