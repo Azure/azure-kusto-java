@@ -59,8 +59,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.resourceManager = new ResourceManager(client, httpClient);
         this.azureStorageClient = new AzureStorageClient();
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
-        this.applicationForTracing = csb.getApplicationNameForTracing();
-        this.clientVersionForTracing = csb.getClientVersionForTracing();
+        ClientDetails clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
+        this.applicationForTracing = clientDetails.getApplicationForTracing();
+        this.clientVersionForTracing = clientDetails.getClientVersionForTracing();
     }
 
     QueuedIngestClientImpl(ResourceManager resourceManager, AzureStorageClient azureStorageClient) {
