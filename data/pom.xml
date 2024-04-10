@@ -106,6 +106,10 @@
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
                     <failOnWarning>true</failOnWarning>
+                    <ignoredUsedUndeclaredDependencies>
+                        <dependency>com.microsoft.azure:msal4j:jar</dependency>
+                        <dependency>io.projectreactor:reactor-core:jar</dependency>
+                    </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
