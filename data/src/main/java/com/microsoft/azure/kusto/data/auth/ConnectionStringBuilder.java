@@ -33,6 +33,7 @@ public class ConnectionStringBuilder {
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
+    private boolean useAzureCli;
     private boolean useUserPromptAuth;
     private String userNameForTracing;
     private String appendedClientVersionForTracing;
@@ -87,6 +88,7 @@ public class ConnectionStringBuilder {
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
+        this.useAzureCli = false;
         this.useUserPromptAuth = false;
         this.userNameForTracing = null;
         this.appendedClientVersionForTracing = null;
@@ -145,6 +147,7 @@ public class ConnectionStringBuilder {
         this.accessToken = other.accessToken;
         this.tokenProvider = other.tokenProvider;
         this.managedIdentityClientId = other.managedIdentityClientId;
+        this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
         this.useManagedIdentityAuth = other.useManagedIdentityAuth;
         this.useUserPromptAuth = other.useUserPromptAuth;
@@ -236,6 +239,10 @@ public class ConnectionStringBuilder {
 
     boolean isUseManagedIdentityAuth() {
         return useManagedIdentityAuth;
+    }
+
+    boolean isUseAzureCli() {
+        return useAzureCli;
     }
 
     boolean isUseUserPromptAuth() {
@@ -475,6 +482,17 @@ public class ConnectionStringBuilder {
         csb.clusterUrl = clusterUrl;
         csb.managedIdentityClientId = managedIdentityClientId;
         csb.useManagedIdentityAuth = true;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAzureCli(String clusterUrl) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
+        csb.useAzureCli = true;
         return csb;
     }
 

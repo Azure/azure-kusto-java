@@ -48,6 +48,8 @@ public class TokenProviderFactory {
             return new DeviceAuthTokenProvider(clusterUrl, authorityId, httpClient);
         } else if (csb.isUseManagedIdentityAuth()) {
             return new ManagedIdentityTokenProvider(clusterUrl, csb.getManagedIdentityClientId(), httpClient);
+        } else if (csb.isUseAzureCli()) {
+            return new AzureCliTokenProvider(clusterUrl, httpClient);
         } else if (csb.isUseUserPromptAuth()) {
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();
