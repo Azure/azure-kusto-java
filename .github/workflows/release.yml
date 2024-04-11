@@ -5,6 +5,7 @@ permissions:
     packages: write
     deployments: write
     contents: write
+    id-token: write
 
 on:
   push:
@@ -32,6 +33,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: build
     strategy:
       matrix:
         java: [ '8' ]
@@ -40,6 +42,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Setup java ${{ matrix.java }}
         uses: actions/setup-java@v3
         with:
@@ -53,7 +61,6 @@ jobs:
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
           TEST_DATABASE: e2e
           APP_ID: ${{ secrets.APP_ID }}
-          APP_KEY: ${{ secrets.APP_KEY }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
           CI_EXECUTION: 1
       - name: Get version
