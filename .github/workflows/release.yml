@@ -46,7 +46,7 @@ jobs:
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.APP_ID }}
-          tenant-id: ${{ secrets.AUTH_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Setup java ${{ matrix.java }}
         uses: actions/setup-java@v3
