@@ -40,6 +40,8 @@ jobs:
           DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
           TEST_DATABASE: e2e
+          APP_ID: ${{ secrets.APP_ID }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
           CI_EXECUTION: 1
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2

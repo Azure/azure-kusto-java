@@ -465,12 +465,14 @@ class E2ETest {
 
     @Test
     void testCreateWithAadApplicationCredentials() {
+        Assumptions.assumeTrue(appKey != null);
         ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithConnectionStringAndAadApplicationCredentials() {
+        Assumptions.assumeTrue(appKey != null);
         ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
                 "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";AppClientId=" + appId + ";AppKey=" + appKey + ";Authority ID=" + tenantId);
         assertTrue(canAuthenticate(engineCsb));
