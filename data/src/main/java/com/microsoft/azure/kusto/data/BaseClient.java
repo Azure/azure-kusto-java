@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.*;
 import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,11 +12,14 @@ import com.microsoft.azure.kusto.data.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
@@ -24,33 +29,86 @@ public abstract class BaseClient implements Client, StreamingClient {
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final HttpClient httpClient;
+    private TokenCredential tokenCredential;
+    private final TokenRequestContext tokenRequestContext = new TokenRequestContext();
 
     public BaseClient(HttpClient httpClient) {
         this.httpClient = httpClient;
     }
 
     protected String post(HttpRequest request) throws DataServiceException {
-
-        // Todo: Add async version of this method
-
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
-                    : response.getBodyAsBinaryData().toString();
+            return processResponseBody(response);
+        }
+    }
 
-            if (responseBody != null) {
-                switch (response.getStatusCode()) {
-                    case HttpStatus.OK:
-                        return responseBody;
-                    case HttpStatus.TOO_MANY_REQS:
-                        throw new ThrottleException(request.getUrl().toString());
-                    default:
-                        throw createExceptionFromResponse(request.getUrl().toString(), response, null, responseBody);
-                }
+    protected Mono<String> postAsync(HttpRequest request) {
+        // Execute and get the response
+        return httpClient.send(request)
+                .handle(processResponseBodyAsync);
+    }
+
+    // TODO: Asaf and Ohad, thoughts?
+    private final BiConsumer<HttpResponse, SynchronousSink<String>> processResponseBodyAsync = (response, sink) -> {
+        // To the best of my knowledge, reactive pipelines cannot throw checked exceptions, as they must always complete normally.
+
+        // So, in the case of reactive streams we do not want to throw exceptions,
+        // but instead insert them into the pipeline as an error state.
+
+        // This leaves two simple options:
+        // 1. Slightly abandon DRY and repeat some lines of code when doing synchronous transformations.
+        // 2. Use exceptions from synchronous methods as flow control and take a slight performance hit.
+
+        // In short, instead of making the sync methods blocking wrappers of the async methods, I recommended wrapping
+        // synchronous transformations like those done below, in order to fit them into a reactive pipeline appropriately.
+
+        // Commented code below is an alternative approach that doesn't duplicate code but instead uses exceptions as flow control.
+        // It is slightly slower on error due to a performance hit from catching exceptions
+        //try {
+        //    String body = processResponseBody(response);
+        //    if (body != null) {
+        //        sink.next(body);
+        //    }
+        //    sink.complete();
+        //} catch (Exception e) {
+        //    sink.error(e);
+        //}
+
+        // And here's the main idea, it is slightly redundant/less DRY but uses sink and completes normally without using exceptions as flow control, which is generally not good.
+        String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
+                : response.getBodyAsBinaryData().toString();
+
+        if (responseBody != null) {
+            switch (response.getStatusCode()) {
+                case HttpStatus.OK:
+                    sink.next(responseBody);
+                case HttpStatus.TOO_MANY_REQS:
+                    sink.error(new ThrottleException(response.getRequest().getUrl().toString()));
+                default:
+                    sink.error(createExceptionFromResponse(response.getRequest().getUrl().toString(), response, null, responseBody));
             }
         }
+        // If null, complete void
+        sink.complete();
+    };
 
-        return null;
+
+        private String processResponseBody(HttpResponse response) throws DataServiceException {
+        String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
+                : response.getBodyAsBinaryData().toString();
+
+        if (responseBody == null) {
+            return null;
+        }
+        switch (response.getStatusCode()) {
+            case HttpStatus.OK:
+                return responseBody;
+            case HttpStatus.TOO_MANY_REQS:
+                throw new ThrottleException(response.getRequest().getUrl().toString());
+            default:
+                throw createExceptionFromResponse(response.getRequest().getUrl().toString(), response, null, responseBody);
+        }
     }
 
     protected InputStream postToStreamingOutput(HttpRequest request) throws DataServiceException {
