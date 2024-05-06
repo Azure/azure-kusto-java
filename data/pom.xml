@@ -106,6 +106,10 @@
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
                     <failOnWarning>true</failOnWarning>
+                    <ignoredUsedUndeclaredDependencies>
+                        <dependency>com.microsoft.azure:msal4j:jar</dependency>
+                        <dependency>io.projectreactor:reactor-core:jar</dependency>
+                    </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
@@ -208,11 +212,6 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>${reactor-core.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
             <version>${bouncycastle.version}</version>
@@ -247,12 +246,6 @@
             <artifactId>jsonassert</artifactId>
             <version>${jsonassert.version}</version>
             <scope>test</scope>
-        </dependency>
-        <!--Msal version taken from com.azure.identity-->
-        <dependency>
-            <groupId>com.microsoft.azure</groupId>
-            <artifactId>msal4j</artifactId>
-            <version>${msal4j.version}</version>
         </dependency>
         <!-- added this dependency since mvn dependency:tree failing with following error - Used undeclared dependencies found -->
         <dependency>
