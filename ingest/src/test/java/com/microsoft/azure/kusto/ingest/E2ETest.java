@@ -114,7 +114,7 @@ class E2ETest {
     }
 
     private static @NotNull ConnectionStringBuilder createConnection(String connectionString) {
-        if (appKey == null) {
+        if (appKey == null || appKey.isEmpty()) {
             return ConnectionStringBuilder.createWithAzureCli(connectionString);
         }
 
@@ -125,9 +125,9 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
