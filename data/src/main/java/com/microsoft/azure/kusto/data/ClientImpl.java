@@ -206,24 +206,14 @@ class ClientImpl extends BaseClient {
         if (kq == null) {
             throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
         }
-        if (kq.getDatabase() == null) {
-            kq.setDatabase(DEFAULT_DATABASE_NAME);
-        }
-        // Argument validation
-        if (StringUtils.isEmpty(kq.getDatabase())) {
-            throw new IllegalArgumentException("Database is empty");
-        }
-        if (StringUtils.isEmpty(kq.getCommand())) {
-            throw new IllegalArgumentException("Command is empty");
-        }
-        kq.setCommand(kq.getCommand().trim());
-        if (kq.getCommandType() == null) {
-            kq.setCommandType(determineCommandType(kq.getCommand()));
-        }
+
+        // Validate and optimize the query object
+        kq.validateAndOptimize();
+
         String clusterEndpoint = String.format(kq.getCommandType().getEndpoint(), clusterUrl);
         String authorization = getAuthorizationHeaderValue();
 
-        // Validate the endpoint
+        // Validate the endpoint (?)
         validateEndpoint();
 
         // Build the tracing object
@@ -406,15 +396,19 @@ class ClientImpl extends BaseClient {
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
             throws DataServiceException, DataClientException {
-        if (StringUtils.isEmpty(database)) {
-            throw new IllegalArgumentException("Database is empty");
+        KustoQuery kq = new KustoQuery(command, database, properties);
+        return executeStreamingQuery(kq);
+    }
+
+    public InputStream executeStreamingQuery(KustoQuery kq) throws DataServiceException, DataClientException {
+        if (kq == null) {
+            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
         }
-        if (StringUtils.isEmpty(command)) {
-            throw new IllegalArgumentException("Command is empty");
-        }
-        command = command.trim();
-        CommandType commandType = determineCommandType(command);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+
+        // Validate and optimize the query object
+        kq.validateAndOptimize();
+
+        String clusterEndpoint = String.format(kq.getCommandType().getEndpoint(), clusterUrl);
         String authorization = getAuthorizationHeaderValue();
 
         // Validate the endpoint
@@ -423,16 +417,16 @@ class ClientImpl extends BaseClient {
         // Build the tracing object
         HttpTracing tracing = HttpTracing
                 .newBuilder()
-                .withProperties(properties)
+                .withProperties(kq.getProperties())
                 .withRequestPrefix("KJC.executeStreaming")
-                .withActivitySuffix(commandType.getActivityTypeSuffix())
+                .withActivitySuffix(kq.getCommandType().getActivityTypeSuffix())
                 .withClientDetails(clientDetails)
                 .build();
 
         // Build the HTTP request
         HttpRequest request = HttpRequestBuilder
                 .newPost(clusterEndpoint)
-                .createCommandPayload(database, command, properties)
+                .createCommandPayload(kq)
                 .withTracing(tracing)
                 .withAuthorization(authorization)
                 .build();
@@ -440,7 +434,7 @@ class ClientImpl extends BaseClient {
         // Get the response and trace the call
         return MonitoredActivity.invoke(
                 (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request),
-                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
+                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kq.getDatabase(), kq.getProperties()));
     }
 
     private CommandType determineCommandType(String command) {
