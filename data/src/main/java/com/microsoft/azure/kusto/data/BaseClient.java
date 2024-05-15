@@ -1,7 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.credential.TokenCredential;
-import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.*;
 import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,8 +27,6 @@ public abstract class BaseClient implements Client, StreamingClient {
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final HttpClient httpClient;
-    private TokenCredential tokenCredential;
-    private final TokenRequestContext tokenRequestContext = new TokenRequestContext();
 
     public BaseClient(HttpClient httpClient) {
         this.httpClient = httpClient;
