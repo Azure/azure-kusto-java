@@ -17,10 +17,12 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.data.req.KustoQuery;
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -85,13 +87,38 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult execute(KustoQuery kq) throws DataServiceException, DataClientException {
-        if (kq == null) {
-            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
+        return executeImpl(kq);
+    }
+
+    @Override
+    public KustoOperationResult executeQuery(KustoQuery kq) throws DataServiceException, DataClientException {
+        if (kq != null && kq.getCommandType() != CommandType.QUERY) {
+            kq.setCommandType(CommandType.QUERY);
         }
-        if (kq.getDatabase() == null) {
-            kq.setDatabase(DEFAULT_DATABASE_NAME);
+        return executeImpl(kq);
+    }
+
+    @Override
+    public KustoOperationResult executeMgmt(KustoQuery kq) throws DataServiceException, DataClientException {
+        if (kq != null && kq.getCommandType() != CommandType.ADMIN_COMMAND) {
+            kq.setCommandType(CommandType.ADMIN_COMMAND);
         }
-        return execute(kq.getDatabase(), kq.getCommand(), kq.getProperties(), determineCommandType(kq.getCommand()));
+        return executeImpl(kq);
+    }
+
+    @Override
+    public Mono<KustoOperationResult> executeAsync(KustoQuery kq) {
+        return null;
+    }
+
+    @Override
+    public Mono<KustoOperationResult> executeQueryAsync(KustoQuery kq) {
+        return null;
+    }
+
+    @Override
+    public Mono<KustoOperationResult> executeMgmtAsync(KustoQuery kq) {
+        return null;
     }
 
     @Override
@@ -111,9 +138,9 @@ class ClientImpl extends BaseClient {
 
     private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
             throws DataServiceException, DataClientException {
+        KustoQuery kq = new KustoQuery(command, database, properties, commandType);
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
-                        commandType),
+                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(kq),
                 commandType.getActivityTypeSuffix().concat(".execute"),
                 updateAndGetExecuteTracingAttributes(database, properties));
     }
@@ -161,10 +188,9 @@ class ClientImpl extends BaseClient {
     }
 
     @NotNull
-    private KustoOperationResult executeImpl(String database, String command, ClientRequestProperties properties, CommandType commandType)
-            throws DataServiceException, DataClientException {
-        String response = executeToJsonResult(database, command, properties);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+    private KustoOperationResult executeImpl(KustoQuery kq) throws DataServiceException, DataClientException {
+        String response = executeToJsonResult(kq);
+        String clusterEndpoint = String.format(kq.getCommandType().getEndpoint(), clusterUrl);
         try {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
@@ -183,7 +209,49 @@ class ClientImpl extends BaseClient {
         if (kq.getDatabase() == null) {
             kq.setDatabase(DEFAULT_DATABASE_NAME);
         }
-        return executeToJsonResult(kq.getDatabase(), kq.getCommand(), kq.getProperties());
+        // Argument validation
+        if (StringUtils.isEmpty(kq.getDatabase())) {
+            throw new IllegalArgumentException("Database is empty");
+        }
+        if (StringUtils.isEmpty(kq.getCommand())) {
+            throw new IllegalArgumentException("Command is empty");
+        }
+        kq.setCommand(kq.getCommand().trim());
+        if (kq.getCommandType() == null) {
+            kq.setCommandType(determineCommandType(kq.getCommand()));
+        }
+        String clusterEndpoint = String.format(kq.getCommandType().getEndpoint(), clusterUrl);
+        String authorization = getAuthorizationHeaderValue();
+
+        // Validate the endpoint
+        validateEndpoint();
+
+        // Build the tracing object
+        HttpTracing tracing = HttpTracing
+                .newBuilder()
+                .withProperties(kq.getProperties())
+                .withRequestPrefix("KJC.execute")
+                .withActivitySuffix(kq.getCommandType().getActivityTypeSuffix())
+                .withClientDetails(clientDetails)
+                .build();
+
+        // Build the HTTP request
+        HttpRequest request = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .createCommandPayload(kq)
+                .withTracing(tracing)
+                .withAuthorization(authorization)
+                .build();
+
+        // Get the response and trace the call
+        return MonitoredActivity.invoke(
+                (SupplierOneException<String, DataServiceException>) () -> post(request),
+                kq.getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
+    }
+
+    @Override
+    public Mono<String> executeToJsonResultAsync(KustoQuery kq) {
+        return null;
     }
 
     @Override
@@ -198,42 +266,8 @@ class ClientImpl extends BaseClient {
 
     @Override
     public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        // Argument validation
-        if (StringUtils.isEmpty(database)) {
-            throw new IllegalArgumentException("Database is empty");
-        }
-        if (StringUtils.isEmpty(command)) {
-            throw new IllegalArgumentException("Command is empty");
-        }
-        command = command.trim();
-        CommandType commandType = determineCommandType(command);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
-        String authorization = getAuthorizationHeaderValue();
-
-        // Validate the endpoint
-        validateEndpoint();
-
-        // Build the tracing object
-        HttpTracing tracing = HttpTracing
-                .newBuilder()
-                .withProperties(properties)
-                .withRequestPrefix("KJC.execute")
-                .withActivitySuffix(commandType.getActivityTypeSuffix())
-                .withClientDetails(clientDetails)
-                .build();
-
-        // Build the HTTP request
-        HttpRequest request = HttpRequestBuilder
-                .newPost(clusterEndpoint)
-                .createCommandPayload(database, command, properties)
-                .withTracing(tracing)
-                .withAuthorization(authorization)
-                .build();
-
-        // Get the response and trace the call
-        return MonitoredActivity.invoke(
-                (SupplierOneException<String, DataServiceException>) () -> post(request),
-                commandType.getActivityTypeSuffix().concat(".executeToJsonResult"));
+        KustoQuery kq = new KustoQuery(command, database, properties);
+        return executeToJsonResult(kq);
     }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {

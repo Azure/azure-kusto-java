@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.req.KustoQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,13 +47,13 @@ public class HttpRequestBuilder {
         request = new HttpRequest(method, cleanURL);
     }
 
-    public HttpRequestBuilder createCommandPayload(String database, String command, ClientRequestProperties properties) {
+    public HttpRequestBuilder createCommandPayload(KustoQuery kq) {
         ObjectNode json = Utils.getObjectMapper().createObjectNode()
-                .put("db", database)
-                .put("csl", command);
+                .put("db", kq.getDatabase())
+                .put("csl", kq.getCommand());
 
-        if (properties != null) {
-            json.put("properties", properties.toString());
+        if (kq.getProperties() != null) {
+            json.put("properties", kq.getProperties().toString());
         }
 
         request.setBody(json.toString());
