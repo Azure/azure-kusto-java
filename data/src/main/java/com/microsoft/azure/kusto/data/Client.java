@@ -18,15 +18,15 @@ public interface Client extends Closeable {
 
     KustoOperationResult executeMgmt(KustoQuery kq) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeAsync(KustoQuery kq) throws DataServiceException, DataClientException;
+    Mono<KustoOperationResult> executeAsync(KustoQuery kq);
 
-    Mono<KustoOperationResult> executeQueryAsync(KustoQuery kq) throws DataServiceException, DataClientException;
+    Mono<KustoOperationResult> executeQueryAsync(KustoQuery kq);
 
-    Mono<KustoOperationResult> executeMgmtAsync(KustoQuery kq) throws DataServiceException, DataClientException;
+    Mono<KustoOperationResult> executeMgmtAsync(KustoQuery kq);
 
     String executeToJsonResult(KustoQuery kq) throws DataServiceException, DataClientException;
 
-    Mono<String> executeToJsonResultAsync(KustoQuery kq) throws DataServiceException, DataClientException;
+    Mono<String> executeToJsonResultAsync(KustoQuery kq);
 
     @Deprecated
     KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
