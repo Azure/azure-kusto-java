@@ -1,11 +1,11 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.BaseClient;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
@@ -42,8 +42,8 @@ class ResourceManagerTimerTest {
         });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
-        assertFalse(resourceManager.refreshIngestionResourcesTask.isRefreshedAtLeastOnce());
-        assertFalse(resourceManager.refreshIngestionAuthTokenTask.isRefreshedAtLeastOnce());
+        assertTrue(resourceManager.refreshIngestionResourcesTask.refreshedAtLeastOnce.isEmpty());
+        assertTrue(resourceManager.refreshIngestionAuthTokenTask.refreshedAtLeastOnce.isEmpty());
 
         int runtime = 0;
         while (!booleanHolder.gotHere && runtime < 5000) {
@@ -51,8 +51,8 @@ class ResourceManagerTimerTest {
             runtime += 100;
         }
 
-        assertTrue(resourceManager.refreshIngestionResourcesTask.isRefreshedAtLeastOnce());
-        assertTrue(resourceManager.refreshIngestionAuthTokenTask.isRefreshedAtLeastOnce());
+        assertTrue(resourceManager.refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce());
+        assertTrue(resourceManager.refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce());
         assertEquals(1, refreshTimestamps.size());
         Thread.sleep(1100);
         assertEquals(2, refreshTimestamps.size());
@@ -62,7 +62,7 @@ class ResourceManagerTimerTest {
     }
 
     @Test
-    void timerTestFailureGettingResources() throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError, IOException {
+    void timerTestFailureGettingResources() throws DataClientException, DataServiceException, InterruptedException {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
         class BooleanHolder {
@@ -70,11 +70,11 @@ class ResourceManagerTimerTest {
         }
         BooleanHolder booleanHolder = new BooleanHolder();
         when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenThrow(HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
+                .thenThrow(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
         when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             booleanHolder.gotHere = true;
-            throw HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
+            throw BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
         });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
@@ -84,15 +84,15 @@ class ResourceManagerTimerTest {
             runtime += 100;
         }
 
-        assertFalse(resourceManager.refreshIngestionResourcesTask.isRefreshedAtLeastOnce());
-        assertFalse(resourceManager.refreshIngestionAuthTokenTask.isRefreshedAtLeastOnce());
+        assertTrue(resourceManager.refreshIngestionResourcesTask.refreshedAtLeastOnce.isEmpty());
+        assertTrue(resourceManager.refreshIngestionAuthTokenTask.refreshedAtLeastOnce.isEmpty());
         assertEquals(1, refreshTimestamps.size());
         Thread.sleep(600);
         assertEquals(2, refreshTimestamps.size());
         Thread.sleep(600);
         assertEquals(3, refreshTimestamps.size());
-        assertFalse(resourceManager.refreshIngestionResourcesTask.isRefreshedAtLeastOnce());
-        assertFalse(resourceManager.refreshIngestionAuthTokenTask.isRefreshedAtLeastOnce());
+        assertNull(resourceManager.refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce(1));
+        assertNull(resourceManager.refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce(1));
 
         resourceManager.close();
     }
