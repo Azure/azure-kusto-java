@@ -58,6 +58,8 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private Timer refreshTasksTimer;
     private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
     private final ReadWriteLock ingestionAuthTokenLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock ingestionResourcesSchedulingLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock ingestionAuthTokenSchedulingLock = new ReentrantReadWriteLock();
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     private final HttpClient httpClient;
@@ -254,6 +256,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     }
                     refreshedAtLeastOnce.clear();
                     refreshedAtLeastOnce.put(true);
+                    log.info("Refreshing Ingestion Auth Token Finished");
                 } catch (DataServiceException e) {
                     throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
                 } catch (DataClientException e) {
@@ -321,24 +324,18 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     public String getIdentityToken() throws IngestionServiceException {
         if (identityToken == null) {
             // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionAuthTokenLock.writeLock().tryLock()) {
+            if (ingestionAuthTokenSchedulingLock.writeLock().tryLock()) {
                 try {
                     // Scheduling the task with no delay will force it to try now, with its normal retry logic
                     scheduleRefreshIngestionAuthTokenTask(0L);
                 } finally {
-                    ingestionAuthTokenLock.writeLock().unlock();
+                    ingestionAuthTokenSchedulingLock.writeLock().unlock();
                 }
             }
 
-            // If the write lock is locked (refresh is running), then the read will wait here until it ends
-            ingestionAuthTokenLock.readLock().lock();
-            try {
-                Boolean refreshedOnce = refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce();
-                if (identityToken == null) {
-                    throwNoResultException("Unable to get Identity token", refreshedOnce);
-                }
-            } finally {
-                ingestionAuthTokenLock.readLock().unlock();
+            Boolean refreshedOnce = refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce();
+            if (identityToken == null) {
+                throwNoResultException("Unable to get Identity token", refreshedOnce);
             }
         }
 
@@ -362,24 +359,20 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
         if (resource == null || resource.empty()) {
             // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionResourcesLock.writeLock().tryLock()) {
+            if (ingestionResourcesSchedulingLock.writeLock().tryLock()) {
                 try {
                     // Scheduling the task with no delay will force it to try now, with its normal retry logic
                     scheduleRefreshIngestionResourcesTask(0L);
                 } finally {
-                    ingestionResourcesLock.writeLock().unlock();
+                    ingestionResourcesSchedulingLock.writeLock().unlock();
                 }
             }
 
             // If the write lock is locked (refresh is running), then the read will wait here until it ends
-            ingestionResourcesLock.readLock().lock();
-            Boolean refreshedOnce = null;
+            Boolean refreshedOnce = refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce();
             try {
-                refreshedOnce = refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce();
                 resource = resourceGetter.call();
             } catch (Exception ignore) {
-            } finally {
-                ingestionResourcesLock.readLock().unlock();
             }
 
             if (resource == null || resource.empty()) {
@@ -393,7 +386,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
     private static void throwNoResultException(String baseMessage, Boolean refreshedOnce) throws IngestionServiceException {
         if (refreshedOnce == null) {
-            baseMessage += " because threat checking refresh job timed out or was interrupted";
+            baseMessage += " because thread checking refresh job timed out or was interrupted";
         } else if (!refreshedOnce) {
             baseMessage += " because refresh job failed";
         }
