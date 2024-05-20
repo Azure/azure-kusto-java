@@ -16,6 +16,7 @@ import reactor.core.publisher.SynchronousSink;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
@@ -46,20 +47,11 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private final BiConsumer<HttpResponse, SynchronousSink<String>> processResponseBodyAsync = (response, sink) -> {
-        String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
-                : response.getBodyAsBinaryData().toString();
-
-        if (responseBody != null) {
-            switch (response.getStatusCode()) {
-                case HttpStatus.OK:
-                    sink.next(responseBody);
-                case HttpStatus.TOO_MANY_REQS:
-                    sink.error(new ThrottleException(response.getRequest().getUrl().toString()));
-                default:
-                    sink.error(createExceptionFromResponse(response.getRequest().getUrl().toString(), response, null, responseBody));
-            }
+        try {
+            sink.next(Objects.requireNonNull(processResponseBody(response)));
+        } catch (Exception e) {
+            sink.error(e);
         }
-        // If null, complete void
         sink.complete();
     };
 
