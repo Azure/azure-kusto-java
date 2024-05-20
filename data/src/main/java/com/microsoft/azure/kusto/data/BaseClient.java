@@ -45,33 +45,7 @@ public abstract class BaseClient implements Client, StreamingClient {
                 .handle(processResponseBodyAsync);
     }
 
-    // TODO: Asaf and Ohad, thoughts?
     private final BiConsumer<HttpResponse, SynchronousSink<String>> processResponseBodyAsync = (response, sink) -> {
-        // To the best of my knowledge, reactive pipelines cannot throw checked exceptions, as they must always complete normally.
-
-        // So, in the case of reactive streams we do not want to throw exceptions,
-        // but instead insert them into the pipeline as an error state.
-
-        // This leaves two simple options:
-        // 1. Slightly abandon DRY and repeat some lines of code when doing synchronous transformations.
-        // 2. Use exceptions from synchronous methods as flow control and take a slight performance hit.
-
-        // In short, instead of making the sync methods blocking wrappers of the async methods, I recommended wrapping
-        // synchronous transformations like those done below, in order to fit them into a reactive pipeline appropriately.
-
-        // Commented code below is an alternative approach that doesn't duplicate code but instead uses exceptions as flow control.
-        // It is slightly slower on error due to a performance hit from catching exceptions
-        //try {
-        //    String body = processResponseBody(response);
-        //    if (body != null) {
-        //        sink.next(body);
-        //    }
-        //    sink.complete();
-        //} catch (Exception e) {
-        //    sink.error(e);
-        //}
-
-        // And here's the main idea, it is slightly redundant/less DRY but uses sink and completes normally without using exceptions as flow control, which is generally not good.
         String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
                 : response.getBodyAsBinaryData().toString();
 
@@ -111,6 +85,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         return postToStreamingOutput(request, 0);
     }
 
+    // Todo: Implement async version of this method
     protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
 
         boolean returnInputStream = false;
@@ -119,7 +94,6 @@ public abstract class BaseClient implements Client, StreamingClient {
         HttpResponse httpResponse = null;
         try {
 
-            // Todo: Implement async version of this method
             httpResponse = httpClient.sendSync(request, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();

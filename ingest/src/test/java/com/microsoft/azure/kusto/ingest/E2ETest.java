@@ -281,7 +281,7 @@ class E2ETest {
                     Assertions.assertNotNull(primaryResult, "Primary result cant be null since we need the row count");
                     actualRowsCount = (primaryResult.get("Rows")).get(0).get(0).asInt() - currentCount;
                 } else {
-                    KustoOperationResult result = queryClient.execute(databaseName, String.format("%s | count", tableName));
+                    KustoOperationResult result = queryClient.executeQuery(databaseName, String.format("%s | count", tableName));
                     KustoResultSetTable mainTableResult = result.getPrimaryResults();
                     mainTableResult.next();
                     actualRowsCount = mainTableResult.getInt(0) - currentCount;
@@ -309,7 +309,7 @@ class E2ETest {
         KustoOperationResult result = null;
         boolean found = false;
         try {
-            result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
+            result = localQueryClient.executeMgmt(databaseName, String.format(".show database %s principals", databaseName));
             // result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principals command", ex);
@@ -551,7 +551,7 @@ class E2ETest {
         String query = String.format(
                 "declare query_parameters(xdoubleParam:real, xboolParam:bool, xint16Param:int, xint64Param:long, xdateParam:datetime, xtextParam:string, xtimeParam:time); %s | where xdouble == xdoubleParam and xbool == xboolParam and xint16 == xint16Param and xint64 == xint64Param and xdate == xdateParam and xtext == xtextParam and xtime == xtimeParam",
                 tableName);
-        KustoOperationResult resultObj = queryClient.execute(databaseName, query, crp);
+        KustoOperationResult resultObj = queryClient.executeQuery(databaseName, query, crp);
         KustoResultSetTable mainTableResult = resultObj.getPrimaryResults();
         mainTableResult.next();
         String results = mainTableResult.getString(13);
@@ -566,7 +566,7 @@ class E2ETest {
 
         // Standard approach - API converts json to KustoOperationResult
         stopWatch.start();
-        KustoOperationResult resultObj = queryClient.execute(databaseName, query, clientRequestProperties);
+        KustoOperationResult resultObj = queryClient.executeQuery(databaseName, query, clientRequestProperties);
         stopWatch.stop();
         long timeConvertedToJavaObj = stopWatch.getTime();
         System.out.printf("Convert json to KustoOperationResult result count='%s' returned in '%s'ms%n", resultObj.getPrimaryResults().count(),
@@ -621,8 +621,8 @@ class E2ETest {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 1000";
 
-        clientImpl.execute(databaseName, query, clientRequestProperties);
-        clientImpl.execute(databaseName, query, clientRequestProperties);
+        clientImpl.executeQuery(databaseName, query, clientRequestProperties);
+        clientImpl.executeQuery(databaseName, query, clientRequestProperties);
 
         Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
     }
@@ -635,7 +635,7 @@ class E2ETest {
             try (Client client = ClientFactory.createClient(
                     ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"))) {
                 try {
-                    client.execute("db", "table");
+                    client.executeQuery("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertTrue(e.getMessage().contains("" + code));
@@ -660,7 +660,7 @@ class E2ETest {
             try (Client client = ClientFactory.createClient(
                     ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"))) {
                 try {
-                    client.execute("db", "table");
+                    client.executeQuery("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertTrue(e.getMessage().contains("" + code));

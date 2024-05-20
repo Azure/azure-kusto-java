@@ -47,10 +47,10 @@ class ResourceManagerTest {
     @BeforeAll
     static void setUp() throws DataClientException, DataServiceException {
         // Using answer so that we get a new result set with reset iterator
-        when(clientMock.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(clientMock.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
 
-        when(clientMock.execute(Commands.IDENTITY_GET_COMMAND))
+        when(clientMock.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
         setUpStorageResources(0);
@@ -195,10 +195,10 @@ class ResourceManagerTest {
             throws IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
         Client clientMockLocal = mock(Client.class);
-        when(clientMockLocal.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(clientMockLocal.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionResourcesResult());
 
-        when(clientMockLocal.execute(Commands.IDENTITY_GET_COMMAND))
+        when(clientMockLocal.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenAnswer(invocationOnMock -> generateIngestionAuthTokenResult());
 
         ResourceManager resourceManagerWithLowRefresh = new ResourceManager(clientMockLocal, waitTime, waitTime, null);
@@ -225,7 +225,7 @@ class ResourceManagerTest {
             public boolean shouldFail;
         }
         final Fail fail = new Fail();
-        when(clientMockFail.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(clientMockFail.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocationOnMock -> {
                     if (!fail.shouldFail) {
                         return generateIngestionResourcesResult();

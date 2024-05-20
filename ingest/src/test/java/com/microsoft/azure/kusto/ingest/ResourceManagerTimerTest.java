@@ -29,9 +29,9 @@ class ResourceManagerTimerTest {
             boolean gotHere = false;
         }
         BooleanHolder booleanHolder = new BooleanHolder();
-        when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
+        when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
-        when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
+        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             booleanHolder.gotHere = true;
             if (refreshTimestamps.size() == 2) {

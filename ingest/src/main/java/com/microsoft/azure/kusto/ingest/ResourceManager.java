@@ -4,16 +4,17 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -27,13 +28,11 @@ import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -41,305 +40,126 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
 class ResourceManager implements Closeable, IngestionResourceManager {
+    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
-    private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(1);
-    private static final long REFRESH_RESULT_POLL_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(15);
+    private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
     public static final int UPLOAD_TIMEOUT_MINUTES = 10;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private Timer refreshTasksTimer;
+    private Timer timer;
     private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionAuthTokenLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionResourcesSchedulingLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionAuthTokenSchedulingLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     private final HttpClient httpClient;
-    private final RetryConfig taskRetryConfig;
+    private final RetryConfig retryConfig;
     private RequestRetryOptions queueRequestOptions = null;
     private RankedStorageAccountSet storageAccountSet;
     private String identityToken;
     private IngestionResourceSet ingestionResourceSet;
-    protected RefreshIngestionAuthTokenTask refreshIngestionAuthTokenTask;
-    protected RefreshIngestionResourcesTask refreshIngestionResourcesTask;
 
-    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
-        this.client = client;
-        // Using ctor with client so that the dependency is used
-        this.httpClient = httpClient == null
-                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
-                : new HttpClientWrapper(httpClient);
-
-        // Refresh tasks
-        this.refreshTasksTimer = new Timer(true);
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
-        this.taskRetryConfig = Utils.buildRetryConfig(ThrottleException.class);
-        initRefreshTasks();
-
-        this.storageAccountSet = new RankedStorageAccountSet();
+        this.client = client;
+        timer = new Timer(true);
+        // Using ctor with client so that the dependency is used
+        this.httpClient = httpClient == null
+                ? HttpClientFactory.create(HttpClientProperties.builder().timeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build())
+                : httpClient;
+        retryConfig = Utils.buildRetryConfig(ThrottleException.class);
+        storageAccountSet = new RankedStorageAccountSet();
+        init();
     }
 
-    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
+    public ResourceManager(Client client, @Nullable HttpClient httpClient) {
         this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
     @Override
     public void close() {
-        refreshTasksTimer.cancel();
-        refreshTasksTimer.purge();
-        refreshTasksTimer = null;
-        try {
-            client.close();
-        } catch (IOException e) {
-            log.error("Couldn't close client: " + e.getMessage(), e);
-        }
+        timer.cancel();
+        timer.purge();
+        timer = null;
     }
 
-    abstract static class RefreshResourceTask extends TimerTask {
-        protected final BlockingQueue<Boolean> refreshedAtLeastOnce = new LinkedBlockingDeque<>();
-
-        public Boolean waitUntilRefreshedAtLeastOnce() {
-            return waitUntilRefreshedAtLeastOnce(REFRESH_RESULT_POLL_TIMEOUT_MILLIS);
-        }
-
-        public Boolean waitUntilRefreshedAtLeastOnce(long timeoutMillis) {
-            try {
-                Boolean refreshedAtLeastOncePollResult = refreshedAtLeastOnce.poll(timeoutMillis, TimeUnit.MILLISECONDS);
-                if (refreshedAtLeastOncePollResult != null) {
-                    refreshedAtLeastOnce.put(refreshedAtLeastOncePollResult); // Since the poll above removed the indication whether a refresh was done
-                    return refreshedAtLeastOncePollResult;
-                } else {
-                    return null;
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
-        }
-    }
-
-    class RefreshIngestionResourcesTask extends RefreshResourceTask {
-        @Override
-        public void run() {
-            try {
-                MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+    private void init() {
+        class RefreshIngestionResourcesTask extends TimerTask {
+            @Override
+            public void run() {
+                try {
                     refreshIngestionResources();
-                    return null;
-                }, "ResourceManager.refreshIngestionResource");
-            } catch (Exception e) {
-                log.error("Error in refreshIngestionResources: " + e.getMessage(), e);
-                scheduleRefreshIngestionResourcesTask(refreshTimeOnFailure);
-            }
-        }
-
-        private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
-            // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-            if (ingestionResourcesLock.writeLock().tryLock()) {
-                try {
-                    log.info("Refreshing Ingestion Resources");
-                    IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
-                    Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
-                    KustoOperationResult ingestionResourcesResults = retryExecute.apply();
-                    if (ingestionResourcesResults != null) {
-                        KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
-                        // Add the received values to the new ingestion resources
-                        while (table.next()) {
-                            String resourceTypeName = table.getString(0);
-                            String storageUrl = table.getString(1);
-                            addIngestionResource(newIngestionResourceSet, resourceTypeName, storageUrl);
-                        }
+                    timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
+                } catch (Exception e) {
+                    log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                     }
-                    populateStorageAccounts(newIngestionResourceSet);
-                    ingestionResourceSet = newIngestionResourceSet;
-                    refreshedAtLeastOnce.clear();
-                    refreshedAtLeastOnce.put(true);
-                    log.info("Refreshing Ingestion Resources Finished");
-                } catch (DataServiceException e) {
-                    throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
-                } catch (DataClientException e) {
-                    throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
-                } catch (Throwable e) {
-                    throw new IngestionClientException(e.getMessage(), e);
-                } finally {
-                    ingestionResourcesLock.writeLock().unlock();
                 }
             }
         }
 
-        private void addIngestionResource(IngestionResourceSet ingestionResourceSet, String resourceTypeName, String storageUrl) throws URISyntaxException {
-            ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
-            switch (resourceType) {
-                case TEMP_STORAGE:
-                    ingestionResourceSet.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
-                    break;
-                case INGESTIONS_STATUS_TABLE:
-                    ingestionResourceSet.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
-                    break;
-                case SECURED_READY_FOR_AGGREGATION_QUEUE:
-                    ingestionResourceSet.queues.addResource(new QueueWithSas(storageUrl, httpClient, queueRequestOptions));
-                    break;
-                case SUCCESSFUL_INGESTIONS_QUEUE:
-                    ingestionResourceSet.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, queueRequestOptions));
-                    break;
-                case FAILED_INGESTIONS_QUEUE:
-                    ingestionResourceSet.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, queueRequestOptions));
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + resourceType);
-            }
-        }
-
-        private void populateStorageAccounts(IngestionResourceSet ingestionResourceSet) {
-            RankedStorageAccountSet tempAccount = new RankedStorageAccountSet();
-            Stream<? extends ResourceWithSas<?>> queueStream = (ingestionResourceSet.queues == null ? Stream.empty()
-                    : ingestionResourceSet.queues.getResourcesList().stream());
-            Stream<? extends ResourceWithSas<?>> containerStream = (ingestionResourceSet.containers == null ? Stream.empty()
-                    : ingestionResourceSet.containers.getResourcesList().stream());
-
-            Stream.concat(queueStream, containerStream).forEach(resource -> {
-                String accountName = resource.getAccountName();
-                if (tempAccount.getAccount(accountName) != null) {
-                    return;
-                }
-
-                RankedStorageAccount previousAccount = storageAccountSet.getAccount(accountName);
-                if (previousAccount != null) {
-                    tempAccount.addAccount(previousAccount);
-                } else {
-                    tempAccount.addAccount(accountName);
-                }
-            });
-
-            storageAccountSet = tempAccount;
-        }
-    }
-
-    class RefreshIngestionAuthTokenTask extends RefreshResourceTask {
-        @Override
-        public void run() {
-            try {
-                MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+        class RefreshIngestionAuthTokenTask extends TimerTask {
+            @Override
+            public void run() {
+                try {
                     refreshIngestionAuthToken();
-                    return null;
-                }, "ResourceManager.refreshIngestionAuthToken");
-            } catch (Exception e) {
-                log.error("Error in refreshIngestionAuthToken: " + e.getMessage(), e);
-                scheduleRefreshIngestionAuthTokenTask(refreshTimeOnFailure);
-            }
-        }
-
-        private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
-            if (ingestionAuthTokenLock.writeLock().tryLock()) {
-                try {
-                    log.info("Refreshing Ingestion Auth Token");
-                    Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.IDENTITY_GET_COMMAND));
-                    KustoOperationResult identityTokenResult = retryExecute.apply();
-                    if (identityTokenResult != null
-                            && identityTokenResult.hasNext()
-                            && !identityTokenResult.getResultTables().isEmpty()) {
-                        KustoResultSetTable resultTable = identityTokenResult.next();
-                        resultTable.next();
-                        identityToken = resultTable.getString(0);
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
+                } catch (Exception e) {
+                    log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                     }
-                    refreshedAtLeastOnce.clear();
-                    refreshedAtLeastOnce.put(true);
-                    log.info("Refreshing Ingestion Auth Token Finished");
-                } catch (DataServiceException e) {
-                    throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
-                } catch (DataClientException e) {
-                    throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
-                } catch (Throwable e) {
-                    throw new IngestionClientException(e.getMessage(), e);
-                } finally {
-                    ingestionAuthTokenLock.writeLock().unlock();
                 }
             }
         }
-    }
 
-    private void initRefreshTasks() {
-        scheduleRefreshIngestionResourcesTask(0L);
-        scheduleRefreshIngestionAuthTokenTask(0L);
-    }
-
-    // If we combined these 2 methods, ensuring we're using distinct synchronized locks for both would be inelegant
-    private synchronized void scheduleRefreshIngestionResourcesTask(Long delay) {
-        if (refreshTasksTimer != null) {
-            if (refreshIngestionResourcesTask != null) {
-                refreshIngestionResourcesTask.cancel();
-            }
-
-            refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
-            refreshTasksTimer.schedule(refreshIngestionResourcesTask, delay, defaultRefreshTime);
-        }
-    }
-
-    private synchronized void scheduleRefreshIngestionAuthTokenTask(Long delay) {
-        if (refreshTasksTimer != null) {
-            if (refreshIngestionAuthTokenTask != null) {
-                refreshIngestionAuthTokenTask.cancel();
-            }
-
-            refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
-            refreshTasksTimer.schedule(refreshIngestionAuthTokenTask, delay, defaultRefreshTime);
-        }
+        timer.schedule(new RefreshIngestionAuthTokenTask(), 0);
+        timer.schedule(new RefreshIngestionResourcesTask(), 0);
     }
 
     @Override
-    public List<ContainerWithSas> getShuffledContainers() throws IngestionServiceException {
+    public List<ContainerWithSas> getShuffledContainers() throws IngestionClientException, IngestionServiceException {
         IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.ingestionResourceSet.containers);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), containers.getResourcesList());
     }
 
-    public List<QueueWithSas> getShuffledQueues() throws IngestionServiceException {
+    public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.ingestionResourceSet.queues);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), queues.getResourcesList());
     }
 
-    public TableWithSas getStatusTable() throws IngestionServiceException {
+    public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.statusTable);
     }
 
-    public QueueWithSas getFailedQueue() throws IngestionServiceException {
+    public QueueWithSas getFailedQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.failedIngestionsQueues);
     }
 
-    public QueueWithSas getSuccessfulQueue() throws IngestionServiceException {
+    public QueueWithSas getSuccessfulQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.successfulIngestionsQueues);
     }
 
-    public String getIdentityToken() throws IngestionServiceException {
+    public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
         if (identityToken == null) {
-            // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionAuthTokenSchedulingLock.writeLock().tryLock()) {
-                try {
-                    // Scheduling the task with no delay will force it to try now, with its normal retry logic
-                    scheduleRefreshIngestionAuthTokenTask(0L);
-                } finally {
-                    ingestionAuthTokenSchedulingLock.writeLock().unlock();
+            refreshIngestionAuthToken();
+            try {
+                authTokenLock.readLock().lock();
+                if (identityToken == null) {
+                    throw new IngestionServiceException("Unable to get Identity token");
                 }
-            }
-
-            Boolean refreshedOnce = refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce();
-            if (identityToken == null) {
-                throwNoResultException("Unable to get Identity token", refreshedOnce);
+            } finally {
+                authTokenLock.readLock().unlock();
             }
         }
-
         return identityToken;
     }
 
@@ -347,11 +167,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.queueRequestOptions = queueRequestOptions;
     }
 
-    private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionServiceException {
+    private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
         return getResourceSet(resourceGetter).nextResource();
     }
 
-    private <T> IngestionResource<T> getResourceSet(Callable<IngestionResource<T>> resourceGetter) throws IngestionServiceException {
+    private <T> IngestionResource<T> getResourceSet(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
         IngestionResource<T> resource = null;
         try {
             resource = resourceGetter.call();
@@ -359,48 +179,176 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         if (resource == null || resource.empty()) {
-            // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionResourcesSchedulingLock.writeLock().tryLock()) {
-                try {
-                    // Scheduling the task with no delay will force it to try now, with its normal retry logic
-                    scheduleRefreshIngestionResourcesTask(0L);
-                } finally {
-                    ingestionResourcesSchedulingLock.writeLock().unlock();
-                }
-            }
+            refreshIngestionResources();
 
-            // If the write lock is locked (refresh is running), then the read will wait here until it ends
-            Boolean refreshedOnce = refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce();
+            // If the write lock is locked, then the read will wait here.
+            // In other words if the refresh is running yet, then wait until it ends
+            ingestionResourcesLock.readLock().lock();
             try {
                 resource = resourceGetter.call();
-            } catch (Exception ignore) {
-            }
 
+            } catch (Exception ignore) {
+            } finally {
+                ingestionResourcesLock.readLock().unlock();
+            }
             if (resource == null || resource.empty()) {
-                throwNoResultException("Unable to get ingestion resources for this type: " +
-                        (resource == null ? "" : resource.resourceType), refreshedOnce);
+                throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
+                        (resource == null ? "" : resource.resourceType));
             }
         }
 
         return resource;
     }
 
-    private static void throwNoResultException(String baseMessage, Boolean refreshedOnce) throws IngestionServiceException {
-        if (refreshedOnce == null) {
-            baseMessage += " because thread checking refresh job timed out or was interrupted";
-        } else if (!refreshedOnce) {
-            baseMessage += " because refresh job failed";
+    private void addIngestionResource(IngestionResourceSet ingestionResourceSet, String resourceTypeName, String storageUrl) throws URISyntaxException {
+        ResourceType resourceType = ResourceType.findByResourceTypeName(resourceTypeName);
+        switch (resourceType) {
+            case TEMP_STORAGE:
+                ingestionResourceSet.containers.addResource(new ContainerWithSas(storageUrl, httpClient));
+                break;
+            case INGESTIONS_STATUS_TABLE:
+                ingestionResourceSet.statusTable.addResource(new TableWithSas(storageUrl, httpClient));
+                break;
+            case SECURED_READY_FOR_AGGREGATION_QUEUE:
+                ingestionResourceSet.queues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            case SUCCESSFUL_INGESTIONS_QUEUE:
+                ingestionResourceSet.successfulIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            case FAILED_INGESTIONS_QUEUE:
+                ingestionResourceSet.failedIngestionsQueues.addResource(new QueueWithSas(storageUrl, httpClient, this.queueRequestOptions));
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + resourceType);
         }
-        throw new IngestionServiceException(baseMessage);
+    }
+
+    private void refreshIngestionResources() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionResources
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionResourcesImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionResource");
+    }
+
+    private void refreshIngestionResourcesImpl() throws IngestionClientException, IngestionServiceException {
+        // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
+        if (ingestionResourcesLock.writeLock().tryLock()) {
+            try {
+                log.info("Refreshing Ingestion Resources");
+                IngestionResourceSet ingestionResourceSet = new IngestionResourceSet();
+                Retry retry = Retry.of("get ingestion resources", this.retryConfig);
+                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
+                        () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                KustoOperationResult ingestionResourcesResults = retryExecute.apply();
+                if (ingestionResourcesResults != null) {
+                    KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
+                    // Add the received values to the new ingestion resources
+                    while (table.next()) {
+                        String resourceTypeName = table.getString(0);
+                        String storageUrl = table.getString(1);
+                        addIngestionResource(ingestionResourceSet, resourceTypeName, storageUrl);
+                    }
+                }
+                populateStorageAccounts(ingestionResourceSet);
+                this.ingestionResourceSet = ingestionResourceSet;
+                log.info("Refreshing Ingestion Resources Finished");
+            } catch (DataServiceException e) {
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
+            } catch (DataClientException e) {
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
+            } catch (Throwable e) {
+                throw new IngestionClientException(e.getMessage(), e);
+            } finally {
+                ingestionResourcesLock.writeLock().unlock();
+            }
+        }
+    }
+
+    private void populateStorageAccounts(IngestionResourceSet ingestionResourceSet) {
+        RankedStorageAccountSet tempAccount = new RankedStorageAccountSet();
+        Stream<? extends ResourceWithSas<?>> queueStream = (ingestionResourceSet.queues == null ? Stream.empty()
+                : ingestionResourceSet.queues.getResourcesList().stream());
+        Stream<? extends ResourceWithSas<?>> containerStream = (ingestionResourceSet.containers == null ? Stream.empty()
+                : ingestionResourceSet.containers.getResourcesList().stream());
+
+        Stream.concat(queueStream, containerStream).forEach(resource -> {
+            String accountName = resource.getAccountName();
+            if (tempAccount.getAccount(accountName) != null) {
+                return;
+            }
+
+            RankedStorageAccount previousAccount = this.storageAccountSet.getAccount(accountName);
+            if (previousAccount != null) {
+                tempAccount.addAccount(previousAccount);
+            } else {
+                tempAccount.addAccount(accountName);
+            }
+        });
+
+        this.storageAccountSet = tempAccount;
+    }
+
+    private void refreshIngestionAuthToken() throws IngestionServiceException, IngestionClientException {
+        // trace refreshIngestionAuthToken
+        MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
+            refreshIngestionAuthTokenImpl();
+            return null;
+        }, "ResourceManager.refreshIngestionAuthToken");
+    }
+
+    private void refreshIngestionAuthTokenImpl() throws IngestionClientException, IngestionServiceException {
+        if (authTokenLock.writeLock().tryLock()) {
+            try {
+                log.info("Refreshing Ingestion Auth Token");
+                Retry retry = Retry.of("get Ingestion Auth Token resources", this.retryConfig);
+                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry, () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
+                KustoOperationResult identityTokenResult = retryExecute.apply();
+                if (identityTokenResult != null
+                        && identityTokenResult.hasNext()
+                        && !identityTokenResult.getResultTables().isEmpty()) {
+                    KustoResultSetTable resultTable = identityTokenResult.next();
+                    resultTable.next();
+                    identityToken = resultTable.getString(0);
+                }
+            } catch (DataServiceException e) {
+                throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
+            } catch (DataClientException e) {
+                throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
+            } catch (Throwable e) {
+                throw new IngestionClientException(e.getMessage(), e);
+            } finally {
+                authTokenLock.writeLock().unlock();
+            }
+        }
+    }
+
+    protected String retrieveServiceType() {
+        log.info("Getting version to determine endpoint's ServiceType");
+        try {
+            KustoOperationResult versionResult = client.executeMgmt(Commands.VERSION_SHOW_COMMAND);
+            if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
+                KustoResultSetTable resultTable = versionResult.next();
+                resultTable.next();
+                return resultTable.getString(SERVICE_TYPE_COLUMN_NAME);
+            }
+        } catch (DataServiceException e) {
+            log.warn("Couldn't retrieve ServiceType because of a service exception executing '.show version'");
+            return null;
+        } catch (DataClientException e) {
+            log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
+            return null;
+        }
+        log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        return null;
     }
 
     @Override
     public void reportIngestionResult(ResourceWithSas<?> resource, boolean success) {
         if (storageAccountSet == null) {
-            log.error("StorageAccountSet is null, so can't report ingestion result");
-        } else {
-            storageAccountSet.addResultToAccount(resource.getAccountName(), success);
+            log.warn("StorageAccountSet is null");
         }
+        storageAccountSet.addResultToAccount(resource.getAccountName(), success);
     }
 
     enum ResourceType {
@@ -459,10 +407,10 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     }
 
     private static class IngestionResourceSet {
-        IngestionResource<ContainerWithSas> containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
-        IngestionResource<TableWithSas> statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);
-        IngestionResource<QueueWithSas> queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-        IngestionResource<QueueWithSas> successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);
-        IngestionResource<QueueWithSas> failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);
+        IngestionResource<ContainerWithSas> containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);;
+        IngestionResource<TableWithSas> statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);;
+        IngestionResource<QueueWithSas> queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);;
+        IngestionResource<QueueWithSas> successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);;
+        IngestionResource<QueueWithSas> failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);;
     }
 }
