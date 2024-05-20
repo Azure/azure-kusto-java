@@ -13,25 +13,27 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.*;
 import com.microsoft.azure.kusto.data.http.*;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
+import com.microsoft.azure.kusto.data.instrumentation.*;
 import com.microsoft.azure.kusto.data.req.KustoQuery;
+import com.microsoft.azure.kusto.data.req.KustoRequest;
+import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.function.BiConsumer;
+
+import static reactor.core.publisher.Mono.just;
 
 class ClientImpl extends BaseClient {
-    private static final String ADMIN_COMMANDS_PREFIX = ".";
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
@@ -40,8 +42,6 @@ class ClientImpl extends BaseClient {
     public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     private final TokenProviderBase aadAuthenticationHelper;
 
-    // Todo: Add Keep-Alive?
-    // private final String keepAlive;
     private final String clusterUrl;
     private final ClientDetails clientDetails;
     private boolean endpointValidated = false;
@@ -85,64 +85,56 @@ class ClientImpl extends BaseClient {
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
     }
 
-    @Override
-    public KustoOperationResult execute(KustoQuery kq) throws DataServiceException, DataClientException {
-        return executeImpl(kq);
-    }
-
-    @Override
-    public KustoOperationResult executeQuery(KustoQuery kq) throws DataServiceException, DataClientException {
-        if (kq != null && kq.getCommandType() != CommandType.QUERY) {
-            kq.setCommandType(CommandType.QUERY);
-        }
-        return executeImpl(kq);
-    }
-
-    @Override
-    public KustoOperationResult executeMgmt(KustoQuery kq) throws DataServiceException, DataClientException {
-        if (kq != null && kq.getCommandType() != CommandType.ADMIN_COMMAND) {
-            kq.setCommandType(CommandType.ADMIN_COMMAND);
-        }
-        return executeImpl(kq);
-    }
-
-    @Override
-    public Mono<KustoOperationResult> executeAsync(KustoQuery kq) {
-        return null;
-    }
-
-    @Override
-    public Mono<KustoOperationResult> executeQueryAsync(KustoQuery kq) {
-        return null;
-    }
-
-    @Override
-    public Mono<KustoOperationResult> executeMgmtAsync(KustoQuery kq) {
-        return null;
-    }
-
-    @Override
-    public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
-        return execute(DEFAULT_DATABASE_NAME, command);
-    }
-
-    @Override
-    public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
-        return execute(database, command, null);
-    }
-
-    @Override
-    public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        return execute(database, command, properties, determineCommandType(command));
-    }
-
     private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
             throws DataServiceException, DataClientException {
         KustoQuery kq = new KustoQuery(command, database, properties, commandType);
+
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(kq),
                 commandType.getActivityTypeSuffix().concat(".execute"),
                 updateAndGetExecuteTracingAttributes(database, properties));
+    }
+
+    @Override
+    public Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoQuery kq) {
+        if (kq.getCommandType() != CommandType.QUERY) {
+            kq.setCommandType(CommandType.QUERY);
+        }
+        return executeAsync(kq);
+    }
+
+    @Override
+    public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoQuery kq) {
+        if (kq.getCommandType() != CommandType.ADMIN_COMMAND) {
+            kq.setCommandType(CommandType.ADMIN_COMMAND);
+        }
+        return executeAsync(kq);
+    }
+
+    private Mono<KustoOperationResult> executeAsync(KustoQuery kq) {
+
+        Mono<String> resultMono = executeToJsonAsync(kq);
+        Mono<String> endpointMono = Mono.just(String.format(kq.getCommandType().getEndpoint(), clusterUrl));
+
+        return Mono.zip(resultMono, endpointMono)
+                        .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
+                        .handle(processJsonResultAsync);
+    }
+
+    BiConsumer<JsonResult, SynchronousSink<KustoOperationResult>> processJsonResultAsync = (result, sink) -> {
+        try {
+            sink.next(processJsonResult(result));
+        } catch (Exception e) {
+            sink.error(e);
+        }
+        sink.complete();
+    };
+
+    @Override
+    public Mono<String> executeToJsonAsync(KustoQuery kq) {
+        return just(kq)
+                .handle(prepareRequestAsync)
+                .flatMap(this::processRequestAsync);
     }
 
     @Override
@@ -187,22 +179,24 @@ class ClientImpl extends BaseClient {
         return attributes;
     }
 
-    @NotNull
     private KustoOperationResult executeImpl(KustoQuery kq) throws DataServiceException, DataClientException {
         String response = executeToJsonResult(kq);
         String clusterEndpoint = String.format(kq.getCommandType().getEndpoint(), clusterUrl);
+        return processJsonResult(new JsonResult(response, clusterEndpoint));
+    }
+
+    private KustoOperationResult processJsonResult(JsonResult res) throws DataServiceException, DataClientException {
         try {
-            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+            return new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
-            throw new DataServiceException(clusterEndpoint,
+            throw new DataServiceException(res.getEndpoint(),
                     "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
         } catch (Exception e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            throw new DataClientException(res.getEndpoint(), e.getMessage(), e);
         }
     }
 
-    @Override
-    public String executeToJsonResult(KustoQuery kq) throws DataServiceException, DataClientException {
+    KustoRequest prepareRequest(KustoQuery kq) throws DataServiceException, DataClientException {
         if (kq == null) {
             throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
         }
@@ -233,16 +227,19 @@ class ClientImpl extends BaseClient {
                 .withAuthorization(authorization)
                 .build();
 
-        // Get the response and trace the call
-        return MonitoredActivity.invoke(
-                (SupplierOneException<String, DataServiceException>) () -> post(request),
-                kq.getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
+        // Wrap the Http request and SDK request in a singular object, so we can use BiConsumer later.
+        return new KustoRequest(kq, request);
     }
 
-    @Override
-    public Mono<String> executeToJsonResultAsync(KustoQuery kq) {
-        return null;
-    }
+    public BiConsumer<KustoQuery, SynchronousSink<KustoRequest>> prepareRequestAsync = (kq, sink) -> {
+        try {
+
+            sink.next(prepareRequest(kq));
+        } catch (Exception e) {
+            sink.error(e);
+        }
+        sink.complete();
+    };
 
     @Override
     public String executeToJsonResult(String command) throws DataServiceException, DataClientException {
@@ -258,6 +255,21 @@ class ClientImpl extends BaseClient {
     public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
         KustoQuery kq = new KustoQuery(command, database, properties);
         return executeToJsonResult(kq);
+    }
+
+    private String executeToJsonResult(KustoQuery kq) throws DataServiceException, DataClientException {
+
+        KustoRequest request = prepareRequest(kq);
+
+        // Get the response and trace the call
+        return MonitoredActivity.invoke(
+                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest()),
+                request.getKq().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
+    }
+
+    public Mono<String> processRequestAsync(KustoRequest request) {
+        return MonitoredActivity.invoke((SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest()),
+                request.getKq().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
@@ -437,13 +449,6 @@ class ClientImpl extends BaseClient {
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kq.getDatabase(), kq.getProperties()));
     }
 
-    private CommandType determineCommandType(String command) {
-        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            return CommandType.ADMIN_COMMAND;
-        }
-        return CommandType.QUERY;
-    }
-
     private String getAuthorizationHeaderValue() throws DataServiceException, DataClientException {
         if (aadAuthenticationHelper != null) {
             return String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken());
@@ -457,11 +462,6 @@ class ClientImpl extends BaseClient {
 
     ClientDetails getClientDetails() {
         return clientDetails;
-    }
-
-    // No implementation as the HTTP Client is no longer a closeable
-    @Override
-    public void close() throws IOException {
     }
 
 }

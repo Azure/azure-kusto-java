@@ -4,8 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
-import com.azure.core.util.HttpClientOptions;
+
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -34,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -90,11 +88,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         timer.cancel();
         timer.purge();
         timer = null;
-        try {
-            client.close();
-        } catch (IOException e) {
-            log.error("Couldn't close client: " + e.getMessage(), e);
-        }
     }
 
     private void init() {
@@ -246,7 +239,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 IngestionResourceSet ingestionResourceSet = new IngestionResourceSet();
                 Retry retry = Retry.of("get ingestion resources", this.retryConfig);
                 CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                        () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                        () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                 KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                 if (ingestionResourcesResults != null) {
                     KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
@@ -309,7 +302,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             try {
                 log.info("Refreshing Ingestion Auth Token");
                 Retry retry = Retry.of("get Ingestion Auth Token resources", this.retryConfig);
-                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry, () -> client.execute(Commands.IDENTITY_GET_COMMAND));
+                CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry, () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
                 KustoOperationResult identityTokenResult = retryExecute.apply();
                 if (identityTokenResult != null
                         && identityTokenResult.hasNext()
@@ -333,7 +326,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     protected String retrieveServiceType() {
         log.info("Getting version to determine endpoint's ServiceType");
         try {
-            KustoOperationResult versionResult = client.execute(Commands.VERSION_SHOW_COMMAND);
+            KustoOperationResult versionResult = client.executeMgmt(Commands.VERSION_SHOW_COMMAND);
             if (versionResult != null && versionResult.hasNext() && !versionResult.getResultTables().isEmpty()) {
                 KustoResultSetTable resultTable = versionResult.next();
                 resultTable.next();
