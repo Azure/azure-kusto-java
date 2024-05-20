@@ -196,10 +196,7 @@ class ClientImpl extends BaseClient {
         }
     }
 
-    KustoRequest prepareRequest(KustoQuery kq) throws DataServiceException, DataClientException {
-        if (kq == null) {
-            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
-        }
+    KustoRequest prepareRequest(@NotNull KustoQuery kq) throws DataServiceException, DataClientException {
 
         // Validate and optimize the query object
         kq.validateAndOptimize();
@@ -231,9 +228,8 @@ class ClientImpl extends BaseClient {
         return new KustoRequest(kq, request);
     }
 
-    public BiConsumer<KustoQuery, SynchronousSink<KustoRequest>> prepareRequestAsync = (kq, sink) -> {
+    BiConsumer<KustoQuery, SynchronousSink<KustoRequest>> prepareRequestAsync = (kq, sink) -> {
         try {
-
             sink.next(prepareRequest(kq));
         } catch (Exception e) {
             sink.error(e);
@@ -412,10 +408,7 @@ class ClientImpl extends BaseClient {
         return executeStreamingQuery(kq);
     }
 
-    public InputStream executeStreamingQuery(KustoQuery kq) throws DataServiceException, DataClientException {
-        if (kq == null) {
-            throw new IllegalArgumentException("KustoQuery object cannot be null in order to be executed.");
-        }
+    public InputStream executeStreamingQuery(@NotNull KustoQuery kq) throws DataServiceException, DataClientException {
 
         // Validate and optimize the query object
         kq.validateAndOptimize();
