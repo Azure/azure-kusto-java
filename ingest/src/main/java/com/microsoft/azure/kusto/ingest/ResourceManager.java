@@ -396,9 +396,10 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     @Override
     public void reportIngestionResult(ResourceWithSas<?> resource, boolean success) {
         if (storageAccountSet == null) {
-            log.warn("StorageAccountSet is null");
+            log.error("StorageAccountSet is null, so can't report ingestion result");
+        } else {
+            storageAccountSet.addResultToAccount(resource.getAccountName(), success);
         }
-        storageAccountSet.addResultToAccount(resource.getAccountName(), success);
     }
 
     enum ResourceType {
