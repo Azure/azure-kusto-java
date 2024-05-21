@@ -112,7 +112,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getIngestionResource_TempStorage_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void getIngestionResource_TempStorage_VerifyRoundRobin() throws IngestionServiceException, IngestionClientException {
         List<ContainerWithSas> storages = resourceManager.getShuffledContainers();
         Pattern pattern = Pattern.compile("container_(\\d+)_(\\d+)");
 
@@ -139,7 +139,7 @@ class ResourceManagerTest {
     }
 
     @Test
-    void getIngestionResource_AggregationQueue_VerifyRoundRubin() throws IngestionServiceException, IngestionClientException {
+    void getIngestionResource_AggregationQueue_VerifyRoundRobin() throws IngestionServiceException, IngestionClientException {
         List<QueueWithSas> queues = resourceManager.getShuffledQueues();
 
         Pattern pattern = Pattern.compile("queue_(\\d+)_(\\d+)");
@@ -192,7 +192,7 @@ class ResourceManagerTest {
 
     @Test
     void getIngestionResource_WhenNewStorageContainersArrive_ShouldReturnOnlyNewResources()
-            throws InterruptedException, IngestionClientException, IngestionServiceException, DataServiceException, DataClientException {
+            throws IngestionServiceException, DataServiceException, DataClientException {
         long waitTime = 1000;
         Client clientMockLocal = mock(Client.class);
         when(clientMockLocal.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
