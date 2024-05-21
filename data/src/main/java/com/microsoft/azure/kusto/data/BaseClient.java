@@ -55,8 +55,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         sink.complete();
     };
 
-
-        private String processResponseBody(HttpResponse response) throws DataServiceException {
+    private String processResponseBody(HttpResponse response) throws DataServiceException {
         String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
                 : response.getBodyAsBinaryData().toString();
 

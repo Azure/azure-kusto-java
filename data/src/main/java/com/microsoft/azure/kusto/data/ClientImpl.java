@@ -117,8 +117,8 @@ class ClientImpl extends BaseClient {
         Mono<String> endpointMono = Mono.just(String.format(kq.getCommandType().getEndpoint(), clusterUrl));
 
         return Mono.zip(resultMono, endpointMono)
-                        .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
-                        .handle(processJsonResultAsync);
+                .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
+                .handle(processJsonResultAsync);
     }
 
     BiConsumer<JsonResult, SynchronousSink<KustoOperationResult>> processJsonResultAsync = (result, sink) -> {

@@ -191,5 +191,5 @@ public class KustoQuery {
         }
         return CommandType.QUERY;
     }
-    
+
 }

@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -94,9 +93,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
-        timer.cancel();
-        timer.purge();
-        timer = null;
         refreshTasksTimer.cancel();
         refreshTasksTimer.purge();
         refreshTasksTimer = null;
@@ -147,7 +143,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
                     Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
                     CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                            () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                     KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                     if (ingestionResourcesResults != null) {
                         KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
@@ -243,7 +239,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     log.info("Refreshing Ingestion Auth Token");
                     Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
                     CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.IDENTITY_GET_COMMAND));
+                            () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
                     KustoOperationResult identityTokenResult = retryExecute.apply();
                     if (identityTokenResult != null
                             && identityTokenResult.hasNext()

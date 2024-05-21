@@ -69,9 +69,9 @@ class ResourceManagerTimerTest {
             boolean gotHere = false;
         }
         BooleanHolder booleanHolder = new BooleanHolder();
-        when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
+        when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenThrow(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
-        when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
+        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             booleanHolder.gotHere = true;
             throw BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
