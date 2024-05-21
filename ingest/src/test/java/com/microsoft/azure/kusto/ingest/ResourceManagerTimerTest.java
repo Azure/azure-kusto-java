@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.microsoft.azure.kusto.ingest.ResourceManagerTest.generateIngestionAuthTokenResult;
 import static com.microsoft.azure.kusto.ingest.ResourceManagerTest.generateIngestionResourcesResult;
@@ -21,19 +22,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ResourceManagerTimerTest {
+
     @Test
     void timerTest() throws DataClientException, DataServiceException, InterruptedException, KustoServiceQueryError, IOException {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
-        class BooleanHolder {
-            boolean gotHere = false;
-        }
-        BooleanHolder booleanHolder = new BooleanHolder();
+        AtomicBoolean gotHere = new AtomicBoolean(false);
         when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenReturn(generateIngestionAuthTokenResult());
         when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
-            booleanHolder.gotHere = true;
+            gotHere.set(true);
             if (refreshTimestamps.size() == 2) {
                 throw new Exception();
             }
@@ -46,7 +45,7 @@ class ResourceManagerTimerTest {
         assertTrue(resourceManager.refreshIngestionAuthTokenTask.refreshedAtLeastOnce.isEmpty());
 
         int runtime = 0;
-        while (!booleanHolder.gotHere && runtime < 5000) {
+        while (!gotHere.get() && runtime < 5000) {
             Thread.sleep(100);
             runtime += 100;
         }
@@ -65,21 +64,19 @@ class ResourceManagerTimerTest {
     void timerTestFailureGettingResources() throws DataClientException, DataServiceException, InterruptedException {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
-        class BooleanHolder {
-            boolean gotHere = false;
-        }
-        BooleanHolder booleanHolder = new BooleanHolder();
+        AtomicBoolean gotHere = new AtomicBoolean(false);
         when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
                 .thenThrow(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
-        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
-            refreshTimestamps.add((new Date()));
-            booleanHolder.gotHere = true;
-            throw BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
-        });
+        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+                .then((Answer<KustoOperationResult>) invocationOnMock -> {
+                    refreshTimestamps.add((new Date()));
+                    gotHere.set(true);
+                    throw BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
+                });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
         int runtime = 0;
-        while (!booleanHolder.gotHere && runtime < 5000) {
+        while (!gotHere.get() && runtime < 5000) {
             Thread.sleep(100);
             runtime += 100;
         }
