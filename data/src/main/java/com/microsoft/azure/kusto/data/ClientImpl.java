@@ -55,16 +55,9 @@ class ClientImpl extends BaseClient {
     public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
         super(httpClient);
 
-        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
-        String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
-        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
-        if (host == null) {
-            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
-        }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
+        URI clusterUrlForParsing = new URI(StringUtils.removeEndIgnoreCase(csb.getClusterUrl(), FEDERATED_SECURITY_SUFFIX));
+        URIBuilder uriBuilder = new URIBuilder(clusterUrlForParsing);
+
         String path = clusterUrlForParsing.getPath();
         if (path != null && !path.isEmpty()) {
             path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
