@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.instrumentation;
 
+import reactor.core.publisher.Mono;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,6 +14,11 @@ public class MonitoredActivity {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             runnable.run();
         }
+    }
+
+    public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
+        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, attributes))
+                .flatMap(span -> mono.doOnTerminate(span::close));
     }
 
     public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan) throws U {
@@ -27,7 +34,7 @@ public class MonitoredActivity {
     }
 
     public static <T, U1 extends Exception, U2 extends Exception> T invoke(SupplierTwoExceptions<T, U1, U2> supplier, String nameOfSpan,
-            Map<String, String> attributes) throws U1, U2 {
+                                                                           Map<String, String> attributes) throws U1, U2 {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             try {
                 return supplier.get();
@@ -53,7 +60,7 @@ public class MonitoredActivity {
     }
 
     public static <T, U1 extends Exception, U2 extends Exception> T invoke(FunctionTwoExceptions<T, Tracer.Span, U1, U2> function, String nameOfSpan,
-            Map<String, String> attributes) throws U1, U2 {
+                                                                           Map<String, String> attributes) throws U1, U2 {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             try {
                 return function.apply(span);

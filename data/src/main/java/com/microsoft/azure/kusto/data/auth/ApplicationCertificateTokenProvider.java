@@ -3,40 +3,38 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
+import com.azure.identity.ClientCertificateCredentialBuilder;
 import com.microsoft.aad.msal4j.IClientCertificate;
-import com.microsoft.aad.msal4j.IConfidentialClientApplication;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ApplicationCertificateTokenProvider extends ConfidentialAppTokenProviderBase {
-    public static final String APPLICATION_CERTIFICATE_TOKEN_PROVIDER = "ApplicationCertificateTokenProvider";
+public class ApplicationCertificateTokenProvider extends AzureIdentityTokenProvider {
+    private final String applicationClientId;
     private final IClientCertificate clientCertificate;
+    private final String authorityId;
 
     ApplicationCertificateTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,
             String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
-        super(clusterUrl, applicationClientId, authorityId, httpClient);
+        super(clusterUrl, httpClient);
+        this.applicationClientId = applicationClientId;
         this.clientCertificate = clientCertificate;
+        this.authorityId = authorityId;
     }
 
     @Override
-    protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        ConfidentialClientApplication.Builder builder = ConfidentialClientApplication.builder(applicationClientId, clientCertificate)
-                .authority(aadAuthorityUrl)
-                .validateAuthority(false);
+    protected TokenCredential createTokenCredential() {
+        ClientCertificateCredentialBuilder builder = new ClientCertificateCredentialBuilder()
+                .clientId(applicationClientId)
+                .clientCertificatePassword()
         if (httpClient != null) {
             builder.httpClient(new HttpClientWrapper(httpClient));
         }
-        return clientApplication = builder
-                .build();
+        return builder.build();
+
     }
 
-    @Override
-    protected String getAuthMethod() {
-        return APPLICATION_CERTIFICATE_TOKEN_PROVIDER;
-    }
 }

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 public abstract class TokenProviderBase implements TraceableAttributes {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -26,17 +27,17 @@ public abstract class TokenProviderBase implements TraceableAttributes {
         this.httpClient = httpClient;
     }
 
-    public String acquireAccessToken() throws DataServiceException, DataClientException {
+    public Mono<String> acquireAccessToken() throws DataServiceException, DataClientException {
         initialize();
         // trace getToken
-        return MonitoredActivity.invoke((SupplierTwoExceptions<String, DataServiceException, DataClientException>) this::acquireAccessTokenImpl,
+        return MonitoredActivity.wrap(this.acquireAccessTokenImpl(),
                 getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes());
     }
 
-    void initialize() throws DataClientException, DataServiceException {
+    Mono<Void> initialize() throws DataClientException, DataServiceException {
     }
 
-    protected abstract String acquireAccessTokenImpl() throws DataServiceException, DataClientException;
+    protected abstract Mono<String> acquireAccessTokenImpl();
 
     protected abstract String getAuthMethod();
 

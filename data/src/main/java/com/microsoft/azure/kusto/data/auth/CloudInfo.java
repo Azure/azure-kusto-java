@@ -17,6 +17,7 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -111,6 +112,12 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 return null;
             });
         }
+    }
+
+    // TODO: Make this method async
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl,
+                                                                   @Nullable HttpClient givenHttpClient){
+        return Mono.fromCallable(() -> retrieveCloudInfoForCluster(clusterUrl, givenHttpClient));
     }
 
     private static CloudInfo fetchImpl(String clusterUrl, @Nullable HttpClient givenHttpClient) throws URISyntaxException, IOException, DataServiceException {

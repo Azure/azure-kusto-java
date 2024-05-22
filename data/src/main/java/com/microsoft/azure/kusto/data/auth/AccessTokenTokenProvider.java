@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data.auth;
 import java.net.URISyntaxException;
 
 import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 
 public class AccessTokenTokenProvider extends TokenProviderBase {
     public static final String ACCESS_TOKEN_TOKEN_PROVIDER = "AccessTokenTokenProvider";
@@ -17,8 +18,8 @@ public class AccessTokenTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected String acquireAccessTokenImpl() {
-        return accessToken;
+    protected Mono<String> acquireAccessTokenImpl() {
+        return Mono.just(accessToken);
     }
 
     @Override
