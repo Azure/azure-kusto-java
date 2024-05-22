@@ -85,18 +85,13 @@ class ClientImpl extends BaseClient {
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
     }
 
-    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
-            throws DataServiceException, DataClientException {
-        KustoQuery kq = new KustoQuery(command, database, properties, commandType);
-
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(kq),
-                commandType.getActivityTypeSuffix().concat(".execute"),
-                updateAndGetExecuteTracingAttributes(database, properties));
+    @Override
+    public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
+        KustoQuery kq = new KustoQuery(command, database, properties);
+        return executeQueryAsync(kq);
     }
 
-    @Override
-    public Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoQuery kq) {
+    Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoQuery kq) {
         if (kq.getCommandType() != CommandType.QUERY) {
             kq.setCommandType(CommandType.QUERY);
         }
@@ -104,6 +99,11 @@ class ClientImpl extends BaseClient {
     }
 
     @Override
+    public Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties) {
+        KustoQuery kq = new KustoQuery(command, database, properties);
+        return executeMgmtAsync(kq);
+    }
+
     public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoQuery kq) {
         if (kq.getCommandType() != CommandType.ADMIN_COMMAND) {
             kq.setCommandType(CommandType.ADMIN_COMMAND);
@@ -130,8 +130,12 @@ class ClientImpl extends BaseClient {
         sink.complete();
     };
 
-    @Override
-    public Mono<String> executeToJsonAsync(KustoQuery kq) {
+    public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
+        KustoQuery kq = new KustoQuery(command, database, properties);
+        return executeToJsonAsync(kq);
+    }
+
+    Mono<String> executeToJsonAsync(KustoQuery kq) {
         return just(kq)
                 .handle(prepareRequestAsync)
                 .flatMap(this::processRequestAsync);
@@ -167,6 +171,16 @@ class ClientImpl extends BaseClient {
     public KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties)
             throws DataServiceException, DataClientException {
         return execute(database, command, properties, CommandType.ADMIN_COMMAND);
+    }
+
+    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
+            throws DataServiceException, DataClientException {
+        KustoQuery kq = new KustoQuery(command, database, properties, commandType);
+
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(kq),
+                commandType.getActivityTypeSuffix().concat(".execute"),
+                updateAndGetExecuteTracingAttributes(database, properties));
     }
 
     private Map<String, String> updateAndGetExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
