@@ -180,6 +180,8 @@ public class KustoQuery {
         }
         // Optimize the command by removing superfluous whitespace
         command = command.trim();
+        // Set command type if it wasn't provided. This is solely used by the deprecated methods in Client interface
+        // and the executeToJSON methods since they bypass the query/mgmt methods.
         if (commandType == null) {
             commandType = determineCommandType(command);
         }
