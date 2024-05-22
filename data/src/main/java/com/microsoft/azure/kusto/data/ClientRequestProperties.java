@@ -324,7 +324,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     /**
-     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
+     * Gets the amount of time a query may execute on the service before it times out, formatted as a krL timespan.
      * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
@@ -340,7 +340,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     /**
-     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
+     * Gets the amount of time a query may execute on the service before it times out, formatted as a krL timespan.
      * Value must be between 1 minute and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
     String getTimeoutAsCslTimespan() {
