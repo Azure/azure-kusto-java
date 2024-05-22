@@ -48,5 +48,5 @@ object UriUtils {
     // i.e: "home/user/someFile.jar -arg1 val" -> someFile
     @JvmStatic
     fun stripFileNameFromCommandLine(cmdLine: String?): String? =
-        cmdLine?.substringBefore(' ')?.let { Path(it).fileName.toString() }
+        cmdLine?.trim()?.substringBefore(' ')?.let { Path(it).fileName.toString() }
 }
