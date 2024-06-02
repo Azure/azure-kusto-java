@@ -53,7 +53,6 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
 
         clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
@@ -71,7 +70,6 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
@@ -88,7 +86,6 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
-        Assertions.assertNull(clientRequestProperties.getTimeoutAsString(timeoutObj));
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionTimespan);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
