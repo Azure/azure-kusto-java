@@ -102,7 +102,13 @@ class E2ETest {
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
-            queryClient = ClientFactory.createClient(engineCsb);
+            queryClient = ClientFactory.createClient(engineCsb, HttpClientProperties.builder()
+                    .keepAlive(true)
+                    .maxKeepAliveTime(120)
+                    .maxIdleTime(60)
+                    .maxConnectionsPerRoute(50)
+                    .maxConnectionsTotal(50)
+                    .build());
             streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
