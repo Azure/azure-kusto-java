@@ -86,11 +86,13 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
+                    <ignoredUnusedDeclaredDependencies>
+                        <dependency>org.jetbrains.kotlin:kotlin-stdlib:jar</dependency>
+                    </ignoredUnusedDeclaredDependencies>
                     <failOnWarning>true</failOnWarning>
                     <ignoredUsedUndeclaredDependencies>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
-                        <dependency>org.jetbrains.kotlin:kotlin-stdlib:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
