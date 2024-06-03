@@ -11,7 +11,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -30,17 +30,12 @@
         </dependencies>
     </dependencyManagement>
 
+    <properties>
+        <parent>false</parent>
+    </properties>
+
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -83,26 +78,13 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven-javadoc-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>${maven-dependency-plugin.version}</version>
                 <configuration>
                     <failOnWarning>true</failOnWarning>
                     <ignoredUnusedDeclaredDependencies>
                         <dependency>org.xerial:sqlite-jdbc</dependency>
+                        <dependency>org.jetbrains.kotlin:kotlin-stdlib:jar</dependency>
                     </ignoredUnusedDeclaredDependencies>
                     <ignoredUsedUndeclaredDependencies>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
@@ -201,8 +183,8 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
             <version>${apache.httpclient.version}</version>
         </dependency>
         <dependency>

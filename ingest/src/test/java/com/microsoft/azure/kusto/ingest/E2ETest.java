@@ -32,7 +32,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -102,7 +102,13 @@ class E2ETest {
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
-            queryClient = ClientFactory.createClient(engineCsb);
+            queryClient = ClientFactory.createClient(engineCsb, HttpClientProperties.builder()
+                    .keepAlive(true)
+                    .maxKeepAliveTime(120)
+                    .maxIdleTime(60)
+                    .maxConnectionsPerRoute(50)
+                    .maxConnectionsTotal(50)
+                    .build());
             streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
@@ -125,7 +131,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            new ExponentialRetry<DataServiceException, DataClientException>(2).execute(attempt -> queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName)));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
