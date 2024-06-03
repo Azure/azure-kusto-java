@@ -32,7 +32,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
