@@ -69,6 +69,7 @@
         <kotlin.version>2.0.0</kotlin.version>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <dokka-maven-plugin.version>1.9.20</dokka-maven-plugin.version>
+        <parent>true</parent>
     </properties>
 
     <dependencies>
@@ -140,6 +141,9 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <skip>${parent}</skip>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -148,6 +152,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <skip>${parent}</skip>
                 </configuration>
                 <executions>
                     <!-- Replacing default-compile as it is treated specially by Maven -->
@@ -227,9 +232,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <sourceDirectories>
-                        <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
-                    </sourceDirectories>
+                    <skip>${parent}</skip>
                 </configuration>
             </plugin>
         </plugins>

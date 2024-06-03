@@ -30,6 +30,10 @@
         </dependencies>
     </dependencyManagement>
 
+    <properties>
+        <parent>false</parent>
+    </properties>
+
     <build>
         <plugins>
             <plugin>

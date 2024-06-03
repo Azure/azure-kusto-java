@@ -12,6 +12,9 @@
         <version>${revision}</version>
     </parent>
 
+    <properties>
+        <parent>false</parent>
+    </properties>
 
     <build>
         <plugins>
