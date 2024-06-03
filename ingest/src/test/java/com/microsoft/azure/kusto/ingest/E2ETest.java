@@ -135,7 +135,13 @@ class E2ETest {
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
-            Assertions.fail("Failed to drop table", ex);
+            try {
+                queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+                ingestClient.close();
+                managedStreamingIngestClient.close();
+            } catch (Exception ex2) {
+                Assertions.fail("Failed to drop table", ex2);
+            }
         }
     }
 
