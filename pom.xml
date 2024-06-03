@@ -60,7 +60,6 @@
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
-        <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <maven-dependency-plugin.version>3.6.1</maven-dependency-plugin.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
@@ -69,6 +68,7 @@
         <jacoco.version>0.8.11</jacoco.version>
         <kotlin.version>2.0.0</kotlin.version>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
+        <dokka-maven-plugin.version>1.9.20</dokka-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -213,6 +213,21 @@
                     <configFile>${session.executionRootDirectory}/kusto-style.xml</configFile>
                     <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+                <version>${dokka-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>dokka</goal>
+                            <goal>javadoc</goal>
+                            <goal>javadocJar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
