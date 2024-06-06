@@ -16,7 +16,8 @@ import org.jetbrains.annotations.Nullable;
 public class ApplicationKeyTokenProvider extends AzureIdentityTokenProvider {
     private final String clientSecret;
 
-    public ApplicationKeyTokenProvider(@NotNull String clusterUrl, String clientId, String clientSecret, String tenantId, @Nullable HttpClient httpClient) throws URISyntaxException {
+    public ApplicationKeyTokenProvider(@NotNull String clusterUrl, String clientId, String clientSecret, String tenantId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, tenantId, clientId, httpClient);
         this.clientSecret = clientSecret;
     }

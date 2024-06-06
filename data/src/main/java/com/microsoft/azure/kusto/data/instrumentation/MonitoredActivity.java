@@ -11,7 +11,7 @@ public class MonitoredActivity {
     }
 
     public static void invoke(Runnable runnable, String nameOfSpan, Map<String, String> attributes) {
-        try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
+        try (Tracer.Span ignored = Tracer.startSpan(nameOfSpan, attributes)) {
             runnable.run();
         }
     }
@@ -34,7 +34,7 @@ public class MonitoredActivity {
     }
 
     public static <T, U1 extends Exception, U2 extends Exception> T invoke(SupplierTwoExceptions<T, U1, U2> supplier, String nameOfSpan,
-                                                                           Map<String, String> attributes) throws U1, U2 {
+            Map<String, String> attributes) throws U1, U2 {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             try {
                 return supplier.get();
@@ -60,7 +60,7 @@ public class MonitoredActivity {
     }
 
     public static <T, U1 extends Exception, U2 extends Exception> T invoke(FunctionTwoExceptions<T, Tracer.Span, U1, U2> function, String nameOfSpan,
-                                                                           Map<String, String> attributes) throws U1, U2 {
+            Map<String, String> attributes) throws U1, U2 {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             try {
                 return function.apply(span);

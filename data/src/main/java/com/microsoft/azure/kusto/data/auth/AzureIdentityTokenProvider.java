@@ -24,7 +24,6 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
     protected static final String ORGANIZATION_URI_SUFFIX = "organizations";
     protected static final String ERROR_INVALID_AUTHORITY_URL = "Error acquiring ApplicationAccessToken due to invalid Authority URL";
 
-
     private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
         String aadAuthorityUrlFromEnv = System.getenv("AadAuthorityUri");
         String authorityIdToUse = tenantId != null ? tenantId : ORGANIZATION_URI_SUFFIX;
@@ -35,7 +34,8 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
         }
     }
 
-    AzureIdentityTokenProvider(@NotNull String clusterUrl, @Nullable String tenantId, @Nullable String clientId, @Nullable HttpClient httpClient) throws URISyntaxException {
+    AzureIdentityTokenProvider(@NotNull String clusterUrl, @Nullable String tenantId, @Nullable String clientId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
         this.tenantId = tenantId;
         this.clientId = clientId;
@@ -59,7 +59,8 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
         }
         if (builder instanceof AadCredentialBuilderBase<?>) {
             AadCredentialBuilderBase<?> aadBuilder = (AadCredentialBuilderBase<?>) builder;
-            if (tenantId != null) aadBuilder.tenantId(tenantId);
+            if (tenantId != null)
+                aadBuilder.tenantId(tenantId);
 
             aadBuilder.authorityHost(determineAadAuthorityUrl(cloudInfo));
 
@@ -70,9 +71,9 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
             aadBuilder.clientId(clientId);
 
             // TODO: do we need to port this code?
-            //             if (account.homeAccountId() != null && account.homeAccountId().endsWith(PERSONAL_TENANT_IDV2_AAD)) {
-            //                authorityUrl = firstPartyAuthorityUrl;
-            //            }
+            // if (account.homeAccountId() != null && account.homeAccountId().endsWith(PERSONAL_TENANT_IDV2_AAD)) {
+            // authorityUrl = firstPartyAuthorityUrl;
+            // }
 
         }
 

@@ -21,9 +21,7 @@ public class AsyncCallbackTokenProvider extends TokenProviderBase {
     @Override
     protected Mono<String> acquireAccessTokenImpl() {
         return tokenProvider.apply(httpClient)
-            .onErrorMap(e ->
-                new DataClientException(clusterUrl, e.getMessage(), e instanceof Exception ? (Exception) e : null)
-            );
+                .onErrorMap(e -> new DataClientException(clusterUrl, e.getMessage(), e instanceof Exception ? (Exception) e : null));
     }
 
     @Override

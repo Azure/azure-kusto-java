@@ -173,7 +173,6 @@ public class AadAuthenticationHelperTest {
         final InteractiveBrowserCredential cred = (InteractiveBrowserCredential) aadAuthenticationHelper.cred;
         final TokenRequestContext tokenRequestContext = aadAuthenticationHelper.tokenRequestContext;
 
-
         String authorityUrl = "https://nostandard-login-input/81f9bae6-35c3-44bc-b116-e6305a4d8fdd/";
         // compare to cred.authority()
         Field authorityHost = cred.getClass().getDeclaredField("authorityHost");
@@ -198,7 +197,6 @@ public class AadAuthenticationHelperTest {
 
         final InteractiveBrowserCredential cred = (InteractiveBrowserCredential) aadAuthenticationHelper.cred;
         final TokenRequestContext tokenRequestContext = aadAuthenticationHelper.tokenRequestContext;
-
 
         String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/91f9bae6-35c3-44bc-b116-e6305a4d8fdd/";
         // compare to cred.authority()
