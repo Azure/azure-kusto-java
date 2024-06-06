@@ -3,7 +3,12 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.identity.BrowserCustomizationOptions;
+import com.azure.identity.CredentialBuilderBase;
+import com.azure.identity.InteractiveBrowserCredentialBuilder;
+import com.azure.identity.UsernamePasswordCredentialBuilder;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.InteractiveRequestParameters;
@@ -23,69 +28,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class UserPromptTokenProvider extends PublicAppTokenProviderBase {
-    private static final int USER_PROMPT_TIMEOUT_MS = 120 * 1000;
-    private static final URI redirectUri;
-    public static final String USER_PROMPT_TOKEN_PROVIDER = "UserPromptTokenProvider";
-
-    static {
-        URI tmp;
-        try {
-            tmp = new URI("http://localhost");
-        } catch (URISyntaxException e) { // This cannot happen, but is necessary to allow for a static final variable whose instantiation can throw an exception
-            tmp = null;
-        }
-        redirectUri = tmp;
-    }
-
+public class UserPromptTokenProvider extends AzureIdentityTokenProvider {
     private final String usernameHint;
 
     UserPromptTokenProvider(@NotNull String clusterUrl, @Nullable String usernameHint, String authorityId,
             @Nullable HttpClient httpClient) throws URISyntaxException {
-        super(clusterUrl, authorityId, httpClient);
+        super(clusterUrl, authorityId, null, httpClient);
         this.usernameHint = usernameHint;
     }
 
+
     @Override
-    protected IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException {
-        IAuthenticationResult result;
-        try {
-            // This is the only auth method that allows the same application to be used for multiple distinct accounts, so reset account cache between sign-ins
-            clientApplication = PublicClientApplication.builder(clientAppId).authority(aadAuthorityUrl).build();
-            CompletableFuture<IAuthenticationResult> future = clientApplication
-                    .acquireToken(InteractiveRequestParameters.builder(redirectUri).scopes(scopes).loginHint(usernameHint).build());
-            result = future.get(USER_PROMPT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        } catch (MalformedURLException e) {
-            throw new DataClientException(clusterUrl, ERROR_INVALID_AUTHORITY_URL, e);
-        } catch (TimeoutException | ExecutionException e) {
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataServiceException(clusterUrl, ERROR_ACQUIRING_APPLICATION_ACCESS_TOKEN, e, false);
-        }
-        if (result == null) {
-            throw new DataServiceException(clusterUrl, "acquireWithUserPrompt got 'null' authentication result",
-                    false);
-        }
-        return result;
+    protected CredentialBuilderBase<?> initBuilder() {
+        return new InteractiveBrowserCredentialBuilder()
+                .loginHint(usernameHint);
     }
 
     @Override
-    IAccount getAccount(Set<IAccount> accountSet) {
-        if (StringUtils.isNotBlank(usernameHint)) {
-            return accountSet.stream().filter(u -> usernameHint.equalsIgnoreCase(u.username())).findAny().orElse(null);
-        } else {
-            if (accountSet.isEmpty()) {
-                return null;
-            } else {
-                // Normally we would filter accounts by the user authenticating, but there's only 1 per AadAuthenticationHelper instance
-                return accountSet.iterator().next();
-            }
-        }
-    }
-
-    @Override
-    protected String getAuthMethod() {
-        return USER_PROMPT_TOKEN_PROVIDER;
+    protected TokenCredential createTokenCredential(CredentialBuilderBase<?> builder) {
+        return ((InteractiveBrowserCredentialBuilder) builder).build();
     }
 }

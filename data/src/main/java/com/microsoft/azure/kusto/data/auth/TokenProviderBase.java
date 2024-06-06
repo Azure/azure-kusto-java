@@ -21,25 +21,29 @@ public abstract class TokenProviderBase implements TraceableAttributes {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     protected final String clusterUrl;
     protected final HttpClient httpClient;
+    private final String authMethod;
 
     public TokenProviderBase(@NotNull String clusterUrl, @Nullable HttpClient httpClient) throws URISyntaxException {
         this.clusterUrl = UriUtils.setPathForUri(clusterUrl, "");
         this.httpClient = httpClient;
+        this.authMethod = getClass().getSimpleName();
     }
 
     public Mono<String> acquireAccessToken() throws DataServiceException, DataClientException {
-        initialize();
-        // trace getToken
-        return MonitoredActivity.wrap(this.acquireAccessTokenImpl(),
-                getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes());
+        return initialize().then(Mono.defer(() -> MonitoredActivity.wrap(this.acquireAccessTokenImpl(),
+                getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes())));
     }
 
     Mono<Void> initialize() throws DataClientException, DataServiceException {
+        return Mono.empty();
     }
 
     protected abstract Mono<String> acquireAccessTokenImpl();
 
-    protected abstract String getAuthMethod();
+    protected String getAuthMethod() {
+        return authMethod;
+    }
+
 
     @Override
     public Map<String, String> getTracingAttributes() {

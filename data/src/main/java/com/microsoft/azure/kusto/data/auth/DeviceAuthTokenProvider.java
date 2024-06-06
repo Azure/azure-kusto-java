@@ -1,6 +1,9 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
+import com.azure.identity.CredentialBuilderBase;
+import com.azure.identity.DeviceCodeCredentialBuilder;
 import com.microsoft.aad.msal4j.*;
 
 import org.jetbrains.annotations.NotNull;
@@ -11,26 +14,18 @@ import com.microsoft.aad.msal4j.IAuthenticationResult;
 import java.net.URISyntaxException;
 import java.util.function.Consumer;
 
-public class DeviceAuthTokenProvider extends PublicAppTokenProviderBase {
-
-    public static final String DEVICE_AUTH_TOKEN_PROVIDER = "DeviceAuthTokenProvider";
-
-    public DeviceAuthTokenProvider(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
-        super(clusterUrl, authorityId, httpClient);
+public class DeviceAuthTokenProvider extends AzureIdentityTokenProvider {
+    DeviceAuthTokenProvider(@NotNull String clusterUrl, @Nullable String tenantId, @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, null, tenantId, httpClient);
     }
 
     @Override
-    protected IAuthenticationResult acquireNewAccessToken() {
-        Consumer<DeviceCode> deviceCodeConsumer = (DeviceCode deviceCode) -> {
-            System.out.println(deviceCode.message());
-        };
-
-        DeviceCodeFlowParameters deviceCodeFlowParams = DeviceCodeFlowParameters.builder(scopes, deviceCodeConsumer).build();
-        return clientApplication.acquireToken(deviceCodeFlowParams).join();
+    protected CredentialBuilderBase<?> initBuilder() {
+        return new DeviceCodeCredentialBuilder();
     }
 
     @Override
-    protected String getAuthMethod() {
-        return DEVICE_AUTH_TOKEN_PROVIDER;
+    protected TokenCredential createTokenCredential(CredentialBuilderBase<?> builder) {
+        return ((DeviceCodeCredentialBuilder) builder).build();
     }
 }

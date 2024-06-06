@@ -29,7 +29,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    Mono<Void> initialize() {
+    final Mono<Void> initialize() {
         return Mono.fromCallable(() -> initialized)
                 .flatMap(initialized -> {
                     if (initialized) {
@@ -41,6 +41,8 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
                                     httpClient),
                             "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
                             .flatMap(cloudInfo -> {
+                                this.cloudInfo = cloudInfo;
+
                                 try {
                                     initializeWithCloudInfo(cloudInfo);
                                 } catch (DataClientException | DataServiceException e) {

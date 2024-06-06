@@ -3,10 +3,11 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.InteractiveBrowserCredential;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.ITenantProfile;
-import com.microsoft.aad.msal4j.SilentParameters;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
@@ -28,6 +29,7 @@ import org.mockito.Mockito;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
@@ -52,7 +54,7 @@ public class AadAuthenticationHelperTest {
     @Test
     @DisplayName("validate auth with certificate  throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, URISyntaxException, DataServiceException, DataClientException {
+            PKCSException, IOException, URISyntaxException {
         String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
         String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
 
@@ -64,7 +66,7 @@ public class AadAuthenticationHelperTest {
 
         MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
 
-        aadAuthenticationHelper.initialize();
+        aadAuthenticationHelper.initialize().block();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
         Assertions.assertThrows(DataServiceException.class,
@@ -132,28 +134,28 @@ public class AadAuthenticationHelperTest {
         // doThrow(DataServiceException.class).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(null).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         doReturn(authenticationResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
-        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("firstToken", aadAuthenticationHelperSpy.acquireAccessToken().block());
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelperSpy.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelperSpy.scopes);
 
         doReturn(authenticationResultFromRefresh).when(aadAuthenticationHelperSpy).acquireAccessTokenSilently();
         // Token was passed as expired - expected to be refreshed
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken().block());
         // Token is still valid - expected to return the same
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken().block());
 
         doReturn(authenticationResultNullRefreshTokenResult).when(aadAuthenticationHelperSpy).acquireNewAccessToken();
         // Null refresh token + token is now expired- expected to authenticate again and reacquire token
-        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken());
+        assertEquals("fromRefresh", aadAuthenticationHelperSpy.acquireAccessToken().block());
     }
 
     @Test
     @DisplayName("validate cloud settings for non-standard cloud")
-    void checkCloudSettingsAbnormal() throws URISyntaxException, DataServiceException, DataClientException {
+    void checkCloudSettingsAbnormal() throws URISyntaxException, IllegalAccessException, NoSuchFieldException {
 
-        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "weird_auth_id", "");
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "81f9bae6-35c3-44bc-b116-e6305a4d8fdd", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
+        UserPromptTokenProvider aadAuthenticationHelper = (UserPromptTokenProvider) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
                 true,
                 "https://nostandard-login-input",
@@ -164,56 +166,48 @@ public class AadAuthenticationHelperTest {
 
         ));
 
-        aadAuthenticationHelper.initialize();
-        assertEquals("non_standard_client_id", aadAuthenticationHelper.clientApplication.clientId());
-        assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.clientApplication.authority());
+        aadAuthenticationHelper.initialize().block();
 
-        assertEquals("https://nostandard-login-input/weird_auth_id/", aadAuthenticationHelper.aadAuthorityUrl);
-        HashSet<String> scopes = new HashSet<>(Collections.singletonList("https://aaaa.kustomfa.bbbb.com/.default"));
-        assertEquals(scopes, aadAuthenticationHelper.scopes);
+        // To keep this test we have to do reflection to get the private fields
 
-        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
-                new HashSet<>(
-                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
-        assertEquals(scopes, silentParametersNormalUser.scopes());
-        assertEquals("https://nostandard-login-input/weird_auth_id/", silentParametersNormalUser.authorityUrl());
+        final InteractiveBrowserCredential cred = (InteractiveBrowserCredential) aadAuthenticationHelper.cred;
+        final TokenRequestContext tokenRequestContext = aadAuthenticationHelper.tokenRequestContext;
 
-        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
-                new HashSet<>(
-                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
-        assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals("first_party_url/", silentParametersMsaUser.authorityUrl());
+
+        String authorityUrl = "https://nostandard-login-input/81f9bae6-35c3-44bc-b116-e6305a4d8fdd/";
+        // compare to cred.authority()
+        Field authorityHost = cred.getClass().getDeclaredField("authorityHost");
+        authorityHost.setAccessible(true);
+        assertEquals(authorityUrl, authorityHost.get(cred));
+
+        assertEquals(Collections.singletonList("https://aaaa.kustomfa.bbbb.com/.default"), tokenRequestContext.getScopes());
     }
 
     @Test
     @DisplayName("validate cloud settings for the standard cloud")
-    void checkCloudSettingsNormal() throws URISyntaxException, DataServiceException, DataClientException {
+    void checkCloudSettingsNormal() throws URISyntaxException, NoSuchFieldException, IllegalAccessException {
 
-        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "auth_id", "");
+        ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "91f9bae6-35c3-44bc-b116-e6305a4d8fdd", "");
 
-        PublicAppTokenProviderBase aadAuthenticationHelper = (PublicAppTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
+        UserPromptTokenProvider aadAuthenticationHelper = (UserPromptTokenProvider) TokenProviderFactory.createTokenProvider(csb, null);
         CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
 
-        aadAuthenticationHelper.initialize();
-        String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/auth_id/";
-        assertEquals(CloudInfo.DEFAULT_KUSTO_CLIENT_APP_ID, aadAuthenticationHelper.clientApplication.clientId());
-        assertEquals(authorityUrl, aadAuthenticationHelper.clientApplication.authority());
+        aadAuthenticationHelper.initialize().block();
 
-        assertEquals(authorityUrl, aadAuthenticationHelper.aadAuthorityUrl);
-        HashSet<String> scopes = new HashSet<>(Collections.singletonList(CloudInfo.DEFAULT_KUSTO_SERVICE_RESOURCE_ID + "/.default"));
-        assertEquals(scopes, aadAuthenticationHelper.scopes);
+        // To keep this test we have to do reflection to get the private fields
 
-        SilentParameters silentParametersNormalUser = aadAuthenticationHelper.getSilentParameters(
-                new HashSet<>(
-                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.115d58c9-f699-44e0-8a53-e1861542e510", "", "", null))));
-        assertEquals(scopes, silentParametersNormalUser.scopes());
-        assertEquals(authorityUrl, silentParametersNormalUser.authorityUrl());
+        final InteractiveBrowserCredential cred = (InteractiveBrowserCredential) aadAuthenticationHelper.cred;
+        final TokenRequestContext tokenRequestContext = aadAuthenticationHelper.tokenRequestContext;
 
-        SilentParameters silentParametersMsaUser = aadAuthenticationHelper.getSilentParameters(
-                new HashSet<>(
-                        Collections.singletonList(new MockAccount("c0327b6e-814d-4194-8e7f-9fc7a1e5dea9.9188040d-6c67-4c5b-b112-36a304b66dad", "", "", null))));
-        assertEquals(scopes, silentParametersMsaUser.scopes());
-        assertEquals(CloudInfo.DEFAULT_FIRST_PARTY_AUTHORITY_URL + "/", silentParametersMsaUser.authorityUrl());
+
+        String authorityUrl = CloudInfo.DEFAULT_PUBLIC_LOGIN_URL + "/91f9bae6-35c3-44bc-b116-e6305a4d8fdd/";
+        // compare to cred.authority()
+        Field authorityHost = cred.getClass().getDeclaredField("authorityHost");
+        authorityHost.setAccessible(true);
+        assertEquals(authorityUrl, authorityHost.get(cred));
+
+        assertEquals(Collections.singletonList(CloudInfo.DEFAULT_KUSTO_SERVICE_RESOURCE_ID + "/.default"), tokenRequestContext.getScopes());
+
     }
 
     static class MockAccount implements IAccount {

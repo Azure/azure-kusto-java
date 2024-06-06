@@ -4,7 +4,6 @@ import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -13,6 +12,7 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -55,15 +55,11 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     @Override
-    protected String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
-        IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
-        if (accessTokenResult == null) {
-            // trace acquireNewAccessToken
-            accessTokenResult = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<IAuthenticationResult, DataServiceException, DataClientException>) this::acquireNewAccessToken,
-                    getAuthMethod().concat(".acquireNewAccessToken"));
-        }
-        return accessTokenResult.accessToken();
+    protected Mono<String> acquireAccessTokenImpl() {
+        return Mono.fromCallable(this::acquireAccessTokenSilently)
+                .switchIfEmpty(Mono.defer(() -> MonitoredActivity.wrap(Mono.fromCallable(this::acquireNewAccessToken),
+                        getAuthMethod().concat(".acquireNewAccessToken"), getTracingAttributes())))
+                .map(IAuthenticationResult::accessToken);
     }
 
     protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {

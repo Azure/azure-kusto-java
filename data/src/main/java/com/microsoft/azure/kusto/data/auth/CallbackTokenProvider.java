@@ -8,9 +8,11 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 public class CallbackTokenProvider extends TokenProviderBase {
     public static final String CALLBACK_TOKEN_PROVIDER = "CallbackTokenProvider";
@@ -22,18 +24,16 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     CallbackTokenProvider(@NotNull String clusterUrl, @NotNull CallbackTokenProviderFunction tokenProvider,
-            @Nullable HttpClient httpClient) throws URISyntaxException {
+                          @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
         this.tokenProvider = tokenProvider;
     }
 
     @Override
-    protected String acquireAccessTokenImpl() throws DataClientException {
-        try {
-            return tokenProvider.apply(httpClient);
-        } catch (Exception e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
-        }
+    protected Mono<String> acquireAccessTokenImpl() {
+        return Mono.fromCallable(() -> tokenProvider.apply(httpClient)).onErrorMap(e ->
+                new DataClientException(clusterUrl, e.getMessage(), e instanceof Exception ? (Exception) e : null)
+        );
     }
 
     @Override
@@ -41,3 +41,5 @@ public class CallbackTokenProvider extends TokenProviderBase {
         return CALLBACK_TOKEN_PROVIDER;
     }
 }
+
+
