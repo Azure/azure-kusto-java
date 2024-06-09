@@ -2,8 +2,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +26,7 @@ public abstract class TokenProviderBase implements TraceableAttributes {
         this.authMethod = getClass().getSimpleName();
     }
 
-    public Mono<String> acquireAccessToken() throws DataServiceException, DataClientException {
+    public Mono<String> acquireAccessToken() {
         return initialize().then(Mono.defer(() -> MonitoredActivity.wrap(this.acquireAccessTokenImpl(),
                 getAuthMethod().concat(".acquireAccessToken"), getTracingAttributes())));
     }

@@ -49,7 +49,7 @@ jobs:
           tenant-id: ${{ secrets.TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Setup java ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
@@ -93,7 +93,7 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
         continue-on-error: true
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.github_release == 'true') }}
-      - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
+      - uses: LanceMcCarthy/Action-AzureBlobUpload@v3
         name: Uploading to Azure storage
         with:
           connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING}}
