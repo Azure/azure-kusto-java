@@ -17,13 +17,13 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
@@ -55,7 +55,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(
+    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<>(
             ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
@@ -113,6 +113,12 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
     }
 
+    // TODO: Make this method async
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl,
+            @Nullable HttpClient givenHttpClient) {
+        return Mono.fromCallable(() -> retrieveCloudInfoForCluster(clusterUrl, givenHttpClient));
+    }
+
     private static CloudInfo fetchImpl(String clusterUrl, @Nullable HttpClient givenHttpClient) throws URISyntaxException, IOException, DataServiceException {
         CloudInfo result;
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
@@ -127,13 +133,13 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     "CloudInfo.httpCall")) {
                 int statusCode = response.getStatusCode();
                 if (statusCode == HttpStatus.OK) {
-                    String content = null;
+                    String content;
                     if (Utils.isGzipResponse(response)) {
                         content = Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream());
                     } else {
                         content = response.getBodyAsBinaryData().toString();
                     }
-                    if (content == null || content.equals("") || content.equals("{}")) {
+                    if (content == null || content.isEmpty() || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
                     result = parseCloudInfo(content);

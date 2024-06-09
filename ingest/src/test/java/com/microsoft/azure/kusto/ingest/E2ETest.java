@@ -125,7 +125,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            new ExponentialRetry<DataServiceException, DataClientException>(2).execute(attempt -> queryClient.execute(databaseName, String.format(".drop table %s ifexists", tableName)));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {

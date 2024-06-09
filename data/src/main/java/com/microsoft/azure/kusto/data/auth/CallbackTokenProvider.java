@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
 import java.util.concurrent.Callable;
@@ -28,12 +29,9 @@ public class CallbackTokenProvider extends TokenProviderBase {
     }
 
     @Override
-    protected String acquireAccessTokenImpl() throws DataClientException {
-        try {
-            return tokenProvider.apply(httpClient);
-        } catch (Exception e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
-        }
+    protected Mono<String> acquireAccessTokenImpl() {
+        return Mono.fromCallable(() -> tokenProvider.apply(httpClient))
+                .onErrorMap(e -> new DataClientException(clusterUrl, e.getMessage(), e instanceof Exception ? (Exception) e : null));
     }
 
     @Override

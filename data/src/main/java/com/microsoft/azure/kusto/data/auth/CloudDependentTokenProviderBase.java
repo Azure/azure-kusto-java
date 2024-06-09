@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
@@ -28,17 +29,29 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    synchronized void initialize() throws DataClientException, DataServiceException {
-        if (initialized) {
-            return;
-        }
-        // trace retrieveCloudInfo
-        cloudInfo = MonitoredActivity.invoke(
-                (SupplierTwoExceptions<CloudInfo, DataClientException, DataServiceException>) () -> CloudInfo.retrieveCloudInfoForCluster(clusterUrl,
-                        httpClient),
-                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes());
-        initializeWithCloudInfo(cloudInfo);
-        initialized = true;
+    final Mono<Void> initialize() {
+        return Mono.fromCallable(() -> initialized)
+                .flatMap(initialized -> {
+                    if (initialized) {
+                        return Mono.empty();
+                    }
+                    // trace retrieveCloudInfo
+                    return MonitoredActivity.wrap(
+                            CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl,
+                                    httpClient),
+                            "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
+                            .flatMap(cloudInfo -> {
+                                this.cloudInfo = cloudInfo;
+
+                                try {
+                                    initializeWithCloudInfo(cloudInfo);
+                                } catch (DataClientException | DataServiceException e) {
+                                    return Mono.error(e);
+                                }
+                                this.initialized = true;
+                                return Mono.empty();
+                            });
+                });
     }
 
     protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {

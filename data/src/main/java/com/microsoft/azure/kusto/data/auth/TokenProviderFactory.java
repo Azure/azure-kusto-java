@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.data.auth;
 import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.IClientCertificate;
-import com.microsoft.aad.msal4j.IClientSecret;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,9 +23,7 @@ public class TokenProviderFactory {
         String authorityId = csb.getAuthorityId();
         if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
             if (StringUtils.isNotBlank(csb.getApplicationKey())) {
-                String clientId = csb.getApplicationClientId();
-                IClientSecret clientSecret = ClientCredentialFactory.createFromSecret(csb.getApplicationKey());
-                return new ApplicationKeyTokenProvider(clusterUrl, clientId, clientSecret, authorityId, httpClient);
+                return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
             } else if (csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty() && csb.getPrivateKey() != null) {
                 IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
                 String applicationClientId = csb.getApplicationClientId();
