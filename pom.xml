@@ -55,7 +55,7 @@
         <jsonassert.version>1.5.0</jsonassert.version>
         <sqlite-jdbc.version>3.45.2.0</sqlite-jdbc.version>
         <annotations.version>24.1.0</annotations.version>
-
+        <reactor.test.version>3.6.6</reactor.test.version>
         <!-- Other dependencies -->
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
