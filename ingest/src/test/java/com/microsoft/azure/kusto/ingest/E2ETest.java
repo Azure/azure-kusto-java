@@ -124,6 +124,7 @@ class E2ETest {
 
     @AfterAll
     public static void tearDown() {
+System.out.printf("Yihezkel: Tearing down");
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
