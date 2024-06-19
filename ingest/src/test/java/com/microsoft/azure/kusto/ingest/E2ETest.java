@@ -124,7 +124,7 @@ class E2ETest {
 
     @AfterAll
     public static void tearDown() {
-System.out.printf("Yihezkel: Tearing down");
+        System.out.printf("Yihezkel: Tearing down, to see whether this method is the cause vs is only called because of the timeout with a different underlying issue");
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
