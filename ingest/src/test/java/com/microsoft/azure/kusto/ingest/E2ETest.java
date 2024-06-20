@@ -75,21 +75,12 @@ class E2ETest {
 
     @BeforeAll
     public static void setUp() throws IOException {
-        appKey = System.getenv("APP_KEY");
-        if (appKey == null) {
-            String secretPath = System.getProperty("SecretPath");
-            if (secretPath == null) {
-                throw new IllegalArgumentException("SecretPath is not set");
-            }
-            appKey = Files.readAllLines(Paths.get(secretPath)).get(0);
-        }
 
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("DM_CONNECTION_STRING"), appId, appKey,
-                tenantId);
+        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("DM_CONNECTION_STRING"));
         dmCsb.setUserNameForTracing("testUser");
         try {
             dmCslClient = ClientFactory.createClient(dmCsb);
@@ -104,12 +95,12 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"));
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = ClientFactory.createClient(engineCsb);
+//            queryClient.execute("e2e",".add database e2e monitors (\"aadapp=063bba78-b986-4bdc-882c-2ceacc859282;72f988bf-86f1-41af-91ab-2d7cd011db47\")");
             streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
@@ -182,7 +173,7 @@ class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
+        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
@@ -349,20 +340,21 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws IOException {
         for (TestDataItem item : dataForTests) {
+            InputStream stream = Files.newInputStream(item.file.toPath());
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
             if (item.file.getPath().endsWith(".gz")) {
-                InputStream stream = Files.newInputStream(item.file.toPath());
-                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-
                 streamSourceInfo.setCompressionType(CompressionType.gz);
-                try {
-                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
-                            item.ingestionProperties);
-                } catch (Exception ex) {
-                    Assertions.fail(ex);
-                }
-                assertRowCount(item.rows, true);
             }
+
+            try {
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
+                        item.ingestionProperties);
+            } catch (Exception ex) {
+                Assertions.fail(ex);
+            }
+            assertRowCount(item.rows, true);
         }
+
     }
 
     @Test
@@ -578,7 +570,7 @@ class E2ETest {
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
-                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
             String streamedLine;

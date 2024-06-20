@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
@@ -69,11 +70,11 @@ public class ResourceAlgorithms {
     }
 
     public static void postToQueueWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob)
-            throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException, JsonProcessingException {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
+        String message = objectMapper.writeValueAsString(blob);
         resourceActionWithRetries(resourceManager, resourceManager.getShuffledQueues(), queue -> {
-            ObjectMapper objectMapper = Utils.getObjectMapper();
-
-            azureStorageClient.postMessageToQueue(queue.getQueue(), objectMapper.writeValueAsString(blob));
+            azureStorageClient.postMessageToQueue(queue.getQueue(), message);
             return null;
         }, "ResourceAlgorithms.postToQueueWithRetries",
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));

@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.OneApiError;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -36,19 +37,21 @@ import java.util.UUID;
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
  * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
- * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
+ * By default the policy for choosing a queued ingestion on the first try is the checking of weather the size of the estimated
+ * raw stream size (a conversion to compressed CSV) is bigger than 4MB, it will fall back to the queued streaming client.
+ * Use SourceInfo.size to override size estimations, alternatively - use setQueuingPolicy to override the predicate heuristics.
  * <p>
  */
 public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
-    public static final int MAX_STREAMING_SIZE_BYTES = 4 * 1024 * 1024;
     public static final String CLASS_NAME = ManagedStreamingIngestClient.class.getSimpleName();
     final QueuedIngestClientImpl queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
     private CloseableHttpClient httpClient = null;
+    private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
 
     /**
      * @param dmConnectionString dm connection string
@@ -74,7 +77,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                      @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
@@ -105,7 +108,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                          @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
@@ -121,18 +124,18 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
     }
 
     /**
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
      * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
-     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @param autoCorrectEndpoint                      - Flag to indicate whether to correct the endpoint URI or not
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, autoCorrectEndpoint);
     }
 
@@ -147,8 +150,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)})} instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
@@ -157,12 +160,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     /**
      * @param connectionStringBuilder - Client connection string
-     * @param properties - Additional properties to configure the http client
-     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @param properties              - Additional properties to configure the http client
+     * @param autoCorrectEndpoint     - Flag to indicate whether to correct the endpoint URI or not
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, autoCorrectEndpoint);
@@ -171,12 +174,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     /**
      * @param connectionStringBuilder - Client connection string
-     * @param httpClient - HTTP client
-     * @param autoCorrectEndpoint - Flag to indicate whether to correct the endpoint URI or not
+     * @param httpClient              - HTTP client
+     * @param autoCorrectEndpoint     - Flag to indicate whether to correct the endpoint URI or not
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
@@ -186,13 +189,13 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     /**
      * @param ingestionEndpointConnectionStringBuilder - Endpoint for ingesting data, usually starts with "https://ingest-"
-     * @param queryEndpointConnectionStringBuilder - Endpoint for querying data, does not include "ingest-"
+     * @param queryEndpointConnectionStringBuilder     - Endpoint for querying data, does not include "ingest-"
      * @param properties                               - Additional properties to configure the http client
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, true);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, true);
@@ -205,7 +208,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, true);
@@ -218,7 +221,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+                                        @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, true);
@@ -234,8 +237,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -244,14 +247,14 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     /**
      * @param resourceManager ingestion resources manager
-     * @param storageClient - storage utilities
+     * @param storageClient   - storage utilities
      * @param streamingClient - the streaming client
-     * @param retryTemplate - retry template
+     * @param retryTemplate   - retry template
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient,
-            ExponentialRetry retryTemplate) {
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient,
+                                        ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -294,18 +297,20 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
 
         BlobClient blobClient = blobClientBuilder.buildClient();
+        long blobSize = 0;
         if (blobSourceInfo.getRawSizeInBytes() <= 0) {
             try {
-                blobSourceInfo.setRawSizeInBytes(blobClient.getProperties().getBlobSize());
+                blobSize = blobClient.getProperties().getBlobSize();
             } catch (BlobStorageException e) {
                 throw new IngestionServiceException(
                         blobSourceInfo.getBlobPath(),
-                        "Failed getting blob properties: " + e.getMessage(),
+                        "Failed getting blob properties: " + ExceptionsUtils.getMessageEx(e),
                         e);
             }
         }
 
-        if (blobSourceInfo.getRawSizeInBytes() > MAX_STREAMING_SIZE_BYTES) {
+        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
+                blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
             log.info("Blob size is greater than max streaming size ({} bytes). Falling back to queued.", blobSourceInfo.getRawSizeInBytes());
             return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
@@ -378,14 +383,17 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     private IngestionResult sendStreamToQueuedIngestion(InputStream inputStream, StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, int size) throws IngestionClientException, IngestionServiceException {
         log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", size);
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(inputStream,
-        streamSourceInfo.isLeaveOpen(), streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType());
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(
+                inputStream,
+                streamSourceInfo.isLeaveOpen(),
+                streamSourceInfo.getSourceId(),
+                streamSourceInfo.getCompressionType());
         return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
     }
 
     @Override
     protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
+            throws IngestionClientException, IngestionServiceException, IOException {
         Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
@@ -401,12 +409,19 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         byte[] streamingBytes;
         ByteArrayInputStream byteArrayStream;
 
-        try{
-            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream){
+        if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat()))
+        {
+            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.",
+                    streamSourceInfo.getRawSizeInBytes() > 0 ? streamSourceInfo.getRawSizeInBytes() : streamSourceInfo.getStream().available());
+            return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        }
+
+        try {
+            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream) {
                 // We can't rely on other InputStream implementations of available()
-                byteArrayStream = (ByteArrayInputStream)streamSourceInfo.getStream();
+                byteArrayStream = (ByteArrayInputStream) streamSourceInfo.getStream();
             } else {
-                streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), MAX_STREAMING_SIZE_BYTES + 1);
+                streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(), ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 1);
                 byteArrayStream = new ByteArrayInputStream(streamingBytes);
                 // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
             }
@@ -414,10 +429,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-        if (shouldUseQueuedIngestion(streamSourceInfo, ingestionProperties.getDataFormat())) {
-            return sendStreamToQueuedIngestion(
-                    new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()), streamSourceInfo,ingestionProperties,byteArrayStream.available());
-        }
 
         if (!streamSourceInfo.isLeaveOpen()) {
             // From this point we don't need the original stream anymore, we cached it
@@ -445,22 +456,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
-    private boolean shouldUseQueuedIngestion(StreamSourceInfo streamSourceInfo, IngestionProperties.DataFormat dataFormat) throws IOException {
-        if (streamSourceInfo.getRawSizeInBytes() > 0){
-            return streamSourceInfo.getRawSizeInBytes() > MAX_STREAMING_SIZE_BYTES;
-        }
-
-        long size = streamSourceInfo.getStream().available();
-        if (dataFormat.isCompressible()){
-            // Binary format
-            return (size * 1.5) > MAX_STREAMING_SIZE_BYTES;
-        }
-
-
-        // if size is given - use it, else use available, according to format and compression
-        return streamSourceInfo.getStream().available() > 0
-                ? streamSourceInfo.getStream().available()
-                : byteArrayStream.available();
+    public void setQueuingPolicy(ManagedStreamingQueuingPolicy queuingPolicy) {
+        this.queuingPolicy = queuingPolicy;
     }
 
     @Override

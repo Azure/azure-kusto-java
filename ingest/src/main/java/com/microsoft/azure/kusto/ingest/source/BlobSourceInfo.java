@@ -3,10 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -15,6 +11,7 @@ import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 public class BlobSourceInfo extends AbstractSourceInfo {
 
     private String blobPath;
+    private CompressionType compressionType;
 
     public String getBlobPath() {
         return blobPath;
@@ -33,10 +30,26 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.setRawSizeInBytes(rawSizeInBytes);
     }
 
+    public BlobSourceInfo(String blobPath, long rawSizeInBytes, CompressionType compressionType) {
+        this(blobPath);
+        this.compressionType = compressionType;
+        this.setRawSizeInBytes(rawSizeInBytes);
+    }
+
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
         this(blobPath, rawSizeInBytes);
         this.setSourceId(sourceId);
     }
+
+
+    public CompressionType getCompressionType() {
+        return compressionType;
+    }
+
+    public void setCompressionType(CompressionType compressionType) {
+        this.compressionType = compressionType;
+    }
+
 
     public void validate() {
         stringIsNotBlank(blobPath, "blobPath");

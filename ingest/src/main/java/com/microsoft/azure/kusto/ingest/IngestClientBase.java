@@ -1,11 +1,11 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.http.conn.util.InetAddressUtils;
 
-import java.net.InetAddress;
+import java.io.IOException;
 import java.net.URI;
-import java.net.UnknownHostException;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
@@ -130,15 +130,21 @@ public abstract class IngestClientBase implements IngestClient {
      * @see IngestionProperties
      */
     protected abstract IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+            throws IngestionClientException, IngestionServiceException, IOException;
 
     public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>)
-                        () -> ingestFromStreamImpl(streamSourceInfo,
-                        ingestionProperties),
+                        () -> {
+                            try {
+                                return ingestFromStreamImpl(streamSourceInfo,
+                                ingestionProperties);
+                            } catch (IOException e) {
+                                throw new IngestionServiceException(ExceptionsUtils.getMessageEx(e), e);
+                            }
+                        },
                 getClientType().concat(".ingestFromStream"));
     }
 
