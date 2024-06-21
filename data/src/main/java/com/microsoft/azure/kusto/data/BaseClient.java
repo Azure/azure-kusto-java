@@ -52,7 +52,6 @@ public abstract class BaseClient implements Client, StreamingClient {
         } catch (Exception e) {
             sink.error(e);
         }
-        sink.complete();
     };
 
     private String processResponseBody(HttpResponse response) throws DataServiceException {
