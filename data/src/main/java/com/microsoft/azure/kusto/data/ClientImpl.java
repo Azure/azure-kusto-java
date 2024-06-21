@@ -23,6 +23,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SynchronousSink;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -88,7 +89,8 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeQueryAsync(kr);
+        return executeQueryAsync(kr)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoRequest kr) {
@@ -101,7 +103,8 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeMgmtAsync(kr);
+        return executeMgmtAsync(kr)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoRequest kr) {
@@ -131,7 +134,8 @@ class ClientImpl extends BaseClient {
 
     public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeToJsonAsync(kr);
+        return executeToJsonAsync(kr)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     Mono<String> executeToJsonAsync(KustoRequest kr) {
