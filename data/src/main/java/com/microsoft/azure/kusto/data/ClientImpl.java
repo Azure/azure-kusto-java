@@ -127,7 +127,6 @@ class ClientImpl extends BaseClient {
         } catch (Exception e) {
             sink.error(e);
         }
-        sink.complete();
     };
 
     public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
@@ -248,7 +247,6 @@ class ClientImpl extends BaseClient {
         } catch (Exception e) {
             sink.error(e);
         }
-        sink.complete();
     };
 
     @Override
