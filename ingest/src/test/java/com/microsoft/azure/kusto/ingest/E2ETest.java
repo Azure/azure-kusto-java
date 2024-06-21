@@ -307,15 +307,15 @@ class E2ETest {
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
     }
 
-     @Test
-     void testShowPrincipalsAsync() {
+    @Test
+    void testShowPrincipalsAsync() {
         Mono<KustoOperationResult> laterResult = queryClient.executeMgmtAsync(DB_NAME, String.format(".show database %s principals", DB_NAME), null);
         StepVerifier.create(laterResult)
-        .expectNextCount(1L)
-        .expectNextMatches(this::resultContainsPrincipal)
-        .expectComplete()
-        .verify();
-     }
+                .expectNextCount(1L)
+                .expectNextMatches(this::resultContainsPrincipal)
+                .expectComplete()
+                .verify();
+    }
 
     private boolean isDatabasePrincipal(Client localQueryClient) {
         KustoOperationResult result = null;
