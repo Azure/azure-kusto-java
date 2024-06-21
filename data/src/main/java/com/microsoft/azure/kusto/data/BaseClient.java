@@ -10,11 +10,15 @@ import com.microsoft.azure.kusto.data.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
@@ -30,33 +34,48 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     protected String post(HttpRequest request) throws DataServiceException {
-
-        // Todo: Add async version of this method
-
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
-                    : response.getBodyAsBinaryData().toString();
-
-            if (responseBody != null) {
-                switch (response.getStatusCode()) {
-                    case HttpStatus.OK:
-                        return responseBody;
-                    case HttpStatus.TOO_MANY_REQS:
-                        throw new ThrottleException(request.getUrl().toString());
-                    default:
-                        throw createExceptionFromResponse(request.getUrl().toString(), response, null, responseBody);
-                }
-            }
+            return processResponseBody(response);
         }
+    }
 
-        return null;
+    protected Mono<String> postAsync(HttpRequest request) {
+        // Execute and get the response
+        return httpClient.send(request)
+                .handle(processResponseBodyAsync);
+    }
+
+    private final BiConsumer<HttpResponse, SynchronousSink<String>> processResponseBodyAsync = (response, sink) -> {
+        try {
+            sink.next(Objects.requireNonNull(processResponseBody(response)));
+        } catch (Exception e) {
+            sink.error(e);
+        }
+    };
+
+    private String processResponseBody(HttpResponse response) throws DataServiceException {
+        String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
+                : response.getBodyAsBinaryData().toString();
+
+        if (responseBody == null) {
+            return null;
+        }
+        switch (response.getStatusCode()) {
+            case HttpStatus.OK:
+                return responseBody;
+            case HttpStatus.TOO_MANY_REQS:
+                throw new ThrottleException(response.getRequest().getUrl().toString());
+            default:
+                throw createExceptionFromResponse(response.getRequest().getUrl().toString(), response, null, responseBody);
+        }
     }
 
     protected InputStream postToStreamingOutput(HttpRequest request) throws DataServiceException {
         return postToStreamingOutput(request, 0);
     }
 
+    // Todo: Implement async version of this method
     protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
 
         boolean returnInputStream = false;
@@ -65,7 +84,6 @@ public abstract class BaseClient implements Client, StreamingClient {
         HttpResponse httpResponse = null;
         try {
 
-            // Todo: Implement async version of this method
             httpResponse = httpClient.sendSync(request, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();
