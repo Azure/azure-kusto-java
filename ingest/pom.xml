@@ -104,10 +104,6 @@
                     <ignoredUnusedDeclaredDependencies>
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                     </ignoredUnusedDeclaredDependencies>
-                    <ignoredUsedUndeclaredDependencies>
-                        <dependency>com.microsoft.azure:msal4j:jar</dependency>
-                        <dependency>io.projectreactor:reactor-core:jar</dependency>
-                    </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
@@ -254,6 +250,11 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>${commons-codec.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>${reactor-core.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.resilience4j</groupId>
