@@ -104,6 +104,10 @@
                     <ignoredUnusedDeclaredDependencies>
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                     </ignoredUnusedDeclaredDependencies>
+                    <ignoredUsedUndeclaredDependencies>
+                        <dependency>com.microsoft.azure:msal4j:jar</dependency>
+                        <dependency>io.projectreactor:reactor-core:jar</dependency>
+                    </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
