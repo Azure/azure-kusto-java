@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Azure CLI authentication
+- Enhanced the robustness of the ingestion client
 
 ## [5.0.5] - 2024-03-06
 ### Fixed
