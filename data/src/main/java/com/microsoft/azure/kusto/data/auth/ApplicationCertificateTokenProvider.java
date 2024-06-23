@@ -3,13 +3,13 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.ConfidentialClientApplication;
 import com.microsoft.aad.msal4j.IClientCertificate;
 import com.microsoft.aad.msal4j.IConfidentialClientApplication;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 
+import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

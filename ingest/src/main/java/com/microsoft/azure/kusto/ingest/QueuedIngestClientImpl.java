@@ -3,7 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.HttpClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -12,7 +11,7 @@ import com.azure.storage.queue.models.QueueStorageException;
 import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.*;
@@ -21,6 +20,7 @@ import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this(csb, properties == null ? null : HttpClientFactory.create(properties), autoCorrectEndpoint);
     }
 
-    QueuedIngestClientImpl(ConnectionStringBuilder csb, HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+    QueuedIngestClientImpl(ConnectionStringBuilder csb, CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new IngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
         csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getIngestionEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
@@ -146,6 +146,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
+        } catch (IngestionServiceException e) {
+            throw e;
         }
     }
 
@@ -186,6 +188,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from file", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
+        } catch (IngestionServiceException e) {
+            throw e;
         }
     }
 
@@ -234,6 +238,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
+        } catch (IngestionServiceException e) {
+            throw e;
         }
     }
 
@@ -285,6 +291,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.connectionDataSource = connectionDataSource;
     }
 
+    @Override
     public void close() {
         this.resourceManager.close();
     }
