@@ -4,16 +4,16 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
-import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -27,6 +27,7 @@ import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
@@ -71,12 +72,12 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     protected RefreshIngestionAuthTokenTask refreshIngestionAuthTokenTask;
     protected RefreshIngestionResourcesTask refreshIngestionResourcesTask;
 
-    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
         this.client = client;
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
-                ? HttpClientFactory.create(HttpClientProperties.builder().timeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build())
-                : httpClient;
+                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
+                : new HttpClientWrapper(httpClient);
 
         // Refresh tasks
         this.refreshTasksTimer = new Timer(true);
@@ -88,7 +89,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.storageAccountSet = new RankedStorageAccountSet();
     }
 
-    public ResourceManager(Client client, @Nullable HttpClient httpClient) {
+    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
         this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 

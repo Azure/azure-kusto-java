@@ -5,10 +5,9 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 
-import java.io.Closeable;
 import java.util.List;
 
-public interface IngestionResourceManager extends Closeable {
+public interface IngestionResourceManager {
 
     /**
      * Returns a list of containers with SAS tokens, ranked by their ingestion success rate, and then shuffled.

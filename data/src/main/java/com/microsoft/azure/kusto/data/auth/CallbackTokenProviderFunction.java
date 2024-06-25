@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
+import org.apache.http.client.HttpClient;
 
 @FunctionalInterface
 public interface CallbackTokenProviderFunction {
