@@ -95,6 +95,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
+        log.warn("Yihezkel: Closing ResourceManager");
         refreshTasksTimer.cancel();
         refreshTasksTimer.purge();
         refreshTasksTimer = null;
@@ -103,6 +104,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         } catch (IOException e) {
             log.error("Couldn't close client: " + e.getMessage(), e);
         }
+        log.warn("Yihezkel: ResourceManager closed");
     }
 
     abstract static class RefreshResourceTask extends TimerTask {
@@ -113,10 +115,12 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         public Boolean waitUntilRefreshedAtLeastOnce(long timeoutMillis) {
+            System.out.printf("Yihezkel: RefreshResourceTask.waitUntilRefreshedAtLeastOnce start");
             try {
                 Boolean refreshedAtLeastOncePollResult = refreshedAtLeastOnce.poll(timeoutMillis, TimeUnit.MILLISECONDS);
                 if (refreshedAtLeastOncePollResult != null) {
                     refreshedAtLeastOnce.put(refreshedAtLeastOncePollResult); // Since the poll above removed the indication whether a refresh was done
+                    System.out.printf("Yihezkel: RefreshResourceTask.waitUntilRefreshedAtLeastOnce done");
                     return refreshedAtLeastOncePollResult;
                 } else {
                     return null;
@@ -131,6 +135,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     class RefreshIngestionResourcesTask extends RefreshResourceTask {
         @Override
         public void run() {
+            log.warn("Yihezkel: RefreshIngestionResourcesTask.run start");
             try {
                 MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
                     refreshIngestionResources();
@@ -140,9 +145,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 log.error("Error in refreshIngestionResources: " + e.getMessage(), e);
                 scheduleRefreshIngestionResourcesTask(refreshTimeOnFailure);
             }
+            log.warn("Yihezkel: RefreshIngestionResourcesTask.run done");
         }
 
         private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
+            log.warn("Yihezkel: RefreshIngestionResourcesTask.refreshIngestionResources start");
             // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
             if (ingestionResourcesLock.writeLock().tryLock()) {
                 try {
@@ -174,6 +181,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     throw new IngestionClientException(e.getMessage(), e);
                 } finally {
                     ingestionResourcesLock.writeLock().unlock();
+                    log.warn("Yihezkel: RefreshIngestionResourcesTask.refreshIngestionResources done");
                 }
             }
         }
@@ -229,6 +237,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     class RefreshIngestionAuthTokenTask extends RefreshResourceTask {
         @Override
         public void run() {
+            log.warn("Yihezkel: RefreshIngestionAuthTokenTask.run start");
             try {
                 MonitoredActivity.invoke((SupplierTwoExceptions<Void, IngestionClientException, IngestionServiceException>) () -> {
                     refreshIngestionAuthToken();
@@ -238,9 +247,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 log.error("Error in refreshIngestionAuthToken: " + e.getMessage(), e);
                 scheduleRefreshIngestionAuthTokenTask(refreshTimeOnFailure);
             }
+            log.warn("Yihezkel: RefreshIngestionAuthTokenTask.run done");
         }
 
         private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
+            log.warn("Yihezkel: RefreshIngestionAuthTokenTask.refreshIngestionAuthToken start");
             if (ingestionAuthTokenLock.writeLock().tryLock()) {
                 try {
                     log.info("Refreshing Ingestion Auth Token");
@@ -266,6 +277,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     throw new IngestionClientException(e.getMessage(), e);
                 } finally {
                     ingestionAuthTokenLock.writeLock().unlock();
+                    log.warn("Yihezkel: RefreshIngestionAuthTokenTask.refreshIngestionAuthToken done");
                 }
             }
         }
@@ -278,6 +290,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
     // If we combined these 2 methods, ensuring we're using distinct synchronized locks for both would be inelegant
     private synchronized void scheduleRefreshIngestionResourcesTask(Long delay) {
+        log.warn("Yihezkel: scheduleRefreshIngestionResourcesTask start");
         if (refreshTasksTimer != null) {
             if (refreshIngestionResourcesTask != null) {
                 refreshIngestionResourcesTask.cancel();
@@ -286,9 +299,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
             refreshTasksTimer.schedule(refreshIngestionResourcesTask, delay, defaultRefreshTime);
         }
+        log.warn("Yihezkel: scheduleRefreshIngestionResourcesTask done");
     }
 
     private synchronized void scheduleRefreshIngestionAuthTokenTask(Long delay) {
+        log.warn("Yihezkel: scheduleRefreshIngestionAuthTokenTask start");
         if (refreshTasksTimer != null) {
             if (refreshIngestionAuthTokenTask != null) {
                 refreshIngestionAuthTokenTask.cancel();
@@ -297,6 +312,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
             refreshTasksTimer.schedule(refreshIngestionAuthTokenTask, delay, defaultRefreshTime);
         }
+        log.warn("Yihezkel: scheduleRefreshIngestionAuthTokenTask done");
     }
 
     @Override
@@ -323,6 +339,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     }
 
     public String getIdentityToken() throws IngestionServiceException {
+        log.warn("Yihezkel: getIdentityToken start");
         if (identityToken == null) {
             // If this method is called multiple times, don't schedule the task multiple times
             if (ingestionAuthTokenSchedulingLock.writeLock().tryLock()) {
@@ -340,6 +357,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             }
         }
 
+        log.warn("Yihezkel: getIdentityToken done");
         return identityToken;
     }
 
@@ -352,6 +370,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     }
 
     private <T> IngestionResource<T> getResourceSet(Callable<IngestionResource<T>> resourceGetter) throws IngestionServiceException {
+        log.warn("Yihezkel: getResourceSet start");
         IngestionResource<T> resource = null;
         try {
             resource = resourceGetter.call();
@@ -382,6 +401,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             }
         }
 
+        log.warn("Yihezkel: getResourceSet done");
         return resource;
     }
 
