@@ -31,6 +31,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -62,7 +63,7 @@ class E2ETest {
     private static StreamingClient streamingClient;
     private static final String databaseName = System.getenv("TEST_DATABASE");
     private static final String appId = System.getenv("APP_ID");
-    private static String appKey;
+    private static final String appKey = System.getenv("APP_KEY");
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
     private static String principalFqn;
     private static String resourcesPath;
@@ -74,13 +75,12 @@ class E2ETest {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
-    public static void setUp() throws IOException {
-
+    public static void setUp() {
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
 
-        ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("DM_CONNECTION_STRING"));
+        ConnectionStringBuilder dmCsb = createConnection(System.getenv("DM_CONNECTION_STRING"));
         dmCsb.setUserNameForTracing("testUser");
         try {
             dmCslClient = ClientFactory.createClient(dmCsb);
@@ -95,12 +95,11 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(System.getenv("ENGINE_CONNECTION_STRING"));
+        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
             queryClient = ClientFactory.createClient(engineCsb);
-//            queryClient.execute("e2e",".add database e2e monitors (\"aadapp=063bba78-b986-4bdc-882c-2ceacc859282;72f988bf-86f1-41af-91ab-2d7cd011db47\")");
             streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
@@ -109,6 +108,15 @@ class E2ETest {
 
         createTableAndMapping();
         createTestData();
+    }
+
+    private static @NotNull ConnectionStringBuilder createConnection(String connectionString) {
+        if (appKey == null || appKey.isEmpty()) {
+            return ConnectionStringBuilder.createWithAzureCli(connectionString);
+        }
+
+        return ConnectionStringBuilder.createWithAadApplicationCredentials(connectionString, appId, appKey,
+                tenantId);
     }
 
     @AfterAll
@@ -354,7 +362,6 @@ class E2ETest {
             }
             assertRowCount(item.rows, true);
         }
-
     }
 
     @Test
@@ -455,13 +462,14 @@ class E2ETest {
 
     @Test
     void testCreateWithAadApplicationCredentials() {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+        Assumptions.assumeTrue(appKey != null);
+        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         assertTrue(canAuthenticate(engineCsb));
     }
 
     @Test
     void testCreateWithConnectionStringAndAadApplicationCredentials() {
+        Assumptions.assumeTrue(appKey != null);
         ConnectionStringBuilder engineCsb = new ConnectionStringBuilder(
                 "Data Source=" + System.getenv("ENGINE_CONNECTION_STRING") + ";AppClientId=" + appId + ";AppKey=" + appKey + ";Authority ID=" + tenantId);
         assertTrue(canAuthenticate(engineCsb));
@@ -595,8 +603,7 @@ class E2ETest {
 
     @Test
     void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
-        ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(System.getenv("ENGINE_CONNECTION_STRING"), appId,
-                appKey, tenantId);
+        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         CloseableHttpClient httpClient = HttpClientBuilder.create().build();
         CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
         Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);

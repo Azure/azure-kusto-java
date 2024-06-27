@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.1.0] - 2024-06-25
+### Added
+- Azure CLI authentication
+- Enhanced the robustness of the ingestion client
+### Fixed
+- Solved dependency issues
+
+## [5.0.5] - 2024-03-06
+### Fixed
+- Fixed bugs in how ClientRequestProperties' servertimeout is set/get, and aligned the 3 different ways to set/get this option
+- Replaced deprecated OpenTelemetry dependency
+- Fixed ConcurrentModificationException bug in ranked storage account buckets
 
 ## [5.0.4] - 2024-01-23
 ### Fixed

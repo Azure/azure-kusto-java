@@ -2,12 +2,11 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
-import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -18,34 +17,8 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.nio.file.Paths;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 class UtilitiesTest {
-    @Test
-    @DisplayName("Convert millis to .Net timespan")
-    void convertMillisToTimespan() {
-        Long timeout = TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2); // 40 minutes 2 seconds
-        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-        clientRequestProperties.setTimeoutInMilliSec(timeout);
-        Assertions.assertEquals(timeout, clientRequestProperties.getTimeoutInMilliSec());
-        Assertions.assertEquals(timeout, clientRequestProperties.getOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT));
-
-        String serverTimeoutOptionStr = "01:40:02.1";
-        long serverTimeoutOptionMillis = TimeUnit.HOURS.toMillis(1)
-                + TimeUnit.MINUTES.toMillis(40)
-                + TimeUnit.SECONDS.toMillis(2) + 100L;
-        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionStr);
-        Assertions.assertEquals(serverTimeoutOptionMillis, clientRequestProperties.getTimeoutInMilliSec());
-
-        // If set to over MAX_TIMEOUT_MS - value should be MAX_TIMEOUT_MS
-        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "1.01:40:02.1");
-        Assertions.assertEquals(ClientRequestProperties.MAX_TIMEOUT_MS,
-                clientRequestProperties.getTimeoutInMilliSec());
-
-        clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, "15:00");
-        Assertions.assertEquals(TimeUnit.HOURS.toMillis(15), clientRequestProperties.getTimeoutInMilliSec());
-    }
-
     @Test
     @DisplayName("Test exception creation when the web response is null")
     void createExceptionFromResponseNoResponse() {

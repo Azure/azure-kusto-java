@@ -1,4 +1,11 @@
 name: release
+permissions:
+    checks: write
+    pull-requests: write
+    packages: write
+    deployments: write
+    contents: write
+    id-token: write
 
 on:
   push:
@@ -26,6 +33,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: build
     strategy:
       matrix:
         java: [ '8' ]
@@ -34,8 +42,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Setup java ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
@@ -47,7 +61,6 @@ jobs:
           ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
           TEST_DATABASE: e2e
           APP_ID: ${{ secrets.APP_ID }}
-          APP_KEY: ${{ secrets.APP_KEY }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
           CI_EXECUTION: 1
       - name: Get version
@@ -63,7 +76,7 @@ jobs:
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
       - name: Github Release
-        uses: anton-yurchenko/git-release@v6.0.0
+        uses: docker://antonyurchenko/git-release:v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -80,7 +93,7 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
         continue-on-error: true
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.github_release == 'true') }}
-      - uses: LanceMcCarthy/Action-AzureBlobUpload@v2
+      - uses: LanceMcCarthy/Action-AzureBlobUpload@v3
         name: Uploading to Azure storage
         with:
           connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING}}
