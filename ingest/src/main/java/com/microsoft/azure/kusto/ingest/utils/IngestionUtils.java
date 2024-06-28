@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -21,7 +23,7 @@ public class IngestionUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @NotNull
-    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable) throws IngestionClientException, FileNotFoundException {
+    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable, IngestionProperties.DataFormat format) throws IngestionClientException, FileNotFoundException {
         String filePath = fileSourceInfo.getFilePath();
         File file = new File(filePath);
         if (file.length() == 0) {
@@ -34,7 +36,15 @@ public class IngestionUtils {
             stream = new ResettableFileInputStream((FileInputStream) stream);
         }
 
-        return new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath), fileSourceInfo.getRawSizeInBytes());
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
+        try {
+            streamSourceInfo.setRawSizeInBytes(fileSourceInfo.getRawSizeInBytes() > 0 ? fileSourceInfo.getRawSizeInBytes() :
+                    format.isCompressible() ? stream.available() : 0);
+        } catch (IOException e) {
+            throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
+        }
+
+        return streamSourceInfo;
     }
 
     @NotNull
@@ -47,8 +57,9 @@ public class IngestionUtils {
             log.error(message);
             throw new IngestionClientException(message);
         }
+
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
+        return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId(), null, byteArrayInputStream.available());
     }
 
     public static byte[] readBytesFromInputStream(InputStream inputStream, int bytesToRead) throws IOException {

@@ -25,17 +25,20 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.blobPath = blobPath;
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public BlobSourceInfo(String blobPath, long rawSizeInBytes) {
         this(blobPath);
         this.setRawSizeInBytes(rawSizeInBytes);
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, CompressionType compressionType) {
         this(blobPath);
         this.compressionType = compressionType;
         this.setRawSizeInBytes(rawSizeInBytes);
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
         this(blobPath, rawSizeInBytes);
         this.setSourceId(sourceId);

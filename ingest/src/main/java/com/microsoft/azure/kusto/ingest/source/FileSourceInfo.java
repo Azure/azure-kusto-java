@@ -9,7 +9,6 @@ import java.util.UUID;
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
 public class FileSourceInfo extends AbstractSourceInfo {
-
     private String filePath;
 
     public String getFilePath() {
@@ -20,6 +19,7 @@ public class FileSourceInfo extends AbstractSourceInfo {
         this.filePath = filePath;
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public FileSourceInfo(String filePath, long rawSizeInBytes) {
         this.filePath = filePath;
         this.setRawSizeInBytes(rawSizeInBytes);

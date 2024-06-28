@@ -65,9 +65,10 @@ public class StreamSourceInfo extends AbstractSourceInfo {
         setCompressionType(compressionType);
     }
 
-    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType, long size) {
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
+    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType, long rawDataSize) {
         this(stream, leaveOpen, sourceId, compressionType);
-        setRawSizeInBytes(size);
+        setRawSizeInBytes(rawDataSize);
     }
 
     public void validate() {

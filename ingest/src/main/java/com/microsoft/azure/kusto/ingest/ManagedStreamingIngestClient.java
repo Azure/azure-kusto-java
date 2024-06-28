@@ -270,7 +270,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         fileSourceInfo.validate();
         ingestionProperties.validate();
         try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true);
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat());
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -411,7 +411,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat()))
         {
-            log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.",
+            log.info("Stream size ({} bytes) is greater than max streaming size according to policy. Falling back to queued.",
                     streamSourceInfo.getRawSizeInBytes() > 0 ? streamSourceInfo.getRawSizeInBytes() : streamSourceInfo.getStream().available());
             return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         }
