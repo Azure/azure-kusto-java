@@ -23,7 +23,8 @@ public class IngestionUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     @NotNull
-    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable, IngestionProperties.DataFormat format) throws IngestionClientException, FileNotFoundException {
+    public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable, IngestionProperties.DataFormat format)
+            throws IngestionClientException, FileNotFoundException {
         String filePath = fileSourceInfo.getFilePath();
         File file = new File(filePath);
         if (file.length() == 0) {
@@ -38,8 +39,8 @@ public class IngestionUtils {
 
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
         try {
-            streamSourceInfo.setRawSizeInBytes(fileSourceInfo.getRawSizeInBytes() > 0 ? fileSourceInfo.getRawSizeInBytes() :
-                    format.isCompressible() ? stream.available() : 0);
+            streamSourceInfo.setRawSizeInBytes(
+                    fileSourceInfo.getRawSizeInBytes() > 0 ? fileSourceInfo.getRawSizeInBytes() : format.isCompressible() ? stream.available() : 0);
         } catch (IOException e) {
             throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
         }

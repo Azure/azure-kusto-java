@@ -66,16 +66,19 @@ public class ManagedStreamingTest {
         InputStream inputStream = createStreamOfSize(1);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 
-        ManagedStreamingIngestClient managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock, streamingClientMock);
+        ManagedStreamingIngestClient managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
+                streamingClientMock);
 
         // Expect to work and also choose no queuing
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
 
         BooleanConsumer assertPolicyWorked = (boolean wasExpectedToUseQueuing) -> {
             try {
                 inputStream.reset();
-                IngestionStatus ingestionStatus = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0);
+                IngestionStatus ingestionStatus = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
+                        .getIngestionStatusCollection().get(0);
                 if (wasExpectedToUseQueuing) {
                     assertEquals(OperationStatus.Queued, ingestionStatus.status);
                 } else {

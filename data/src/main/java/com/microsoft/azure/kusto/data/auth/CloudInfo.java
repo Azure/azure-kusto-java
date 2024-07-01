@@ -105,7 +105,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true);
                 } catch (IOException ex) {
                     if (!Utils.isRetriableIOException(ex)) {
-                        throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ExceptionsUtils.getMessageEx(ex), ex,
+                        throw new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ExceptionsUtils.getMessageEx(ex),
+                                ex,
                                 Utils.isRetriableIOException(ex));
                     }
                 } catch (DataServiceException e) {

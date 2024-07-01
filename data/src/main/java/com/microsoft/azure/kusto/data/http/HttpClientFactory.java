@@ -40,7 +40,7 @@ public class HttpClientFactory {
                 .evictExpiredConnections()
                 .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS);
 
-        if (properties.isDisableRetries()){
+        if (properties.isDisableRetries()) {
             httpClientBuilder.disableAutomaticRetries();
         }
         if (properties.isKeepAlive()) {

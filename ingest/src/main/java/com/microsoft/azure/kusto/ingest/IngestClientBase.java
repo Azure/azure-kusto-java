@@ -136,15 +136,14 @@ public abstract class IngestClientBase implements IngestClient {
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromStream
         return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>)
-                        () -> {
-                            try {
-                                return ingestFromStreamImpl(streamSourceInfo,
+                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> {
+                    try {
+                        return ingestFromStreamImpl(streamSourceInfo,
                                 ingestionProperties);
-                            } catch (IOException e) {
-                                throw new IngestionServiceException(ExceptionsUtils.getMessageEx(e), e);
-                            }
-                        },
+                    } catch (IOException e) {
+                        throw new IngestionServiceException(ExceptionsUtils.getMessageEx(e), e);
+                    }
+                },
                 getClientType().concat(".ingestFromStream"));
     }
 

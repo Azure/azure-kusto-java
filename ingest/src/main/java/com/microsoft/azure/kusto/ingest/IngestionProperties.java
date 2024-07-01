@@ -432,7 +432,7 @@ public class IngestionProperties implements TraceableAttributes {
             return compressible;
         }
 
-        public boolean isJsonFormat(){
+        public boolean isJsonFormat() {
             return this.equals(JSON) || this.equals(MULTIJSON) || this.equals(SINGLEJSON);
         }
     }

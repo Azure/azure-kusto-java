@@ -44,7 +44,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.setSourceId(sourceId);
     }
 
-
     public CompressionType getCompressionType() {
         return compressionType;
     }
@@ -52,7 +51,6 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     public void setCompressionType(CompressionType compressionType) {
         this.compressionType = compressionType;
     }
-
 
     public void validate() {
         stringIsNotBlank(blobPath, "blobPath");

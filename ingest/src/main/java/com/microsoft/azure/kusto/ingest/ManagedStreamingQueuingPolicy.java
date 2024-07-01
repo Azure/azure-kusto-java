@@ -19,7 +19,7 @@ public class ManagedStreamingQueuingPolicy {
     // Return true if streaming ingestion should not be tried, according to stream size, compression and format
     private static boolean defaultShouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
         // if size is given - use the 7mb limit.
-        if (rawDataSize > 0){
+        if (rawDataSize > 0) {
             return rawDataSize > MAX_STREAMING_RAW_SIZE_BYTES;
         }
 
@@ -29,11 +29,11 @@ public class ManagedStreamingQueuingPolicy {
         }
 
         // In any case - don't stream more than 10mb
-        if (dataSize > MAX_STREAMING_STREAM_SIZE_BYTES){
+        if (dataSize > MAX_STREAMING_STREAM_SIZE_BYTES) {
             return true;
         }
 
-        if (!dataFormat.isCompressible()){
+        if (!dataFormat.isCompressible()) {
             // Binary format
             if (compressed) {
                 return (dataSize * BINARY_COMPRESSED_FACTOR) > MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES;
@@ -47,7 +47,7 @@ public class ManagedStreamingQueuingPolicy {
             return (dataSize * NON_BINARY_FACTOR) > MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES;
         }
 
-        if (dataFormat.isJsonFormat()){
+        if (dataFormat.isJsonFormat()) {
             // JSON uncompressed format
             return (dataSize / JSON_UNCOMPRESSED_FACTOR) > MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES;
         }
@@ -58,7 +58,7 @@ public class ManagedStreamingQueuingPolicy {
 
     static ManagedStreamingQueuingPolicy Default = new ManagedStreamingQueuingPolicy(ManagedStreamingQueuingPolicy::defaultShouldUseQueuedIngestion);
 
-    public boolean shouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed ,IngestionProperties.DataFormat dataFormat) {
-         return predicate.apply(dataSize, rawDataSize, compressed, dataFormat);
+    public boolean shouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
+        return predicate.apply(dataSize, rawDataSize, compressed, dataFormat);
     }
 }

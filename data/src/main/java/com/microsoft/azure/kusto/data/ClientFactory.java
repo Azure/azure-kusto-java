@@ -77,7 +77,7 @@ public class ClientFactory {
     public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClientProperties properties) throws URISyntaxException {
         HttpClientProperties httpClientProperties = Optional.ofNullable(properties)
                 .orElse(HttpClientProperties.builder().disableRetries().build());
-        return new ClientImpl(csb, HttpClientFactory.create(httpClientProperties),false);
+        return new ClientImpl(csb, HttpClientFactory.create(httpClientProperties), false);
     }
 
     /**

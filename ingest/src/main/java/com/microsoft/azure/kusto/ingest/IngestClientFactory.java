@@ -92,7 +92,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder queryEndpointConnectionStringBuilder)
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder)
             throws URISyntaxException {
         return createManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, true);
     }
@@ -108,7 +108,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties,
                 autoCorrectEndpoint);
@@ -125,7 +125,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-                                                                                  ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties)
+            ConnectionStringBuilder queryEndpointConnectionStringBuilder, @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, properties, true);
     }
@@ -151,7 +151,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-                                                                                  @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
+            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, properties, autoCorrectEndpoint);
     }
@@ -181,7 +181,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromEngineCsb(ConnectionStringBuilder engineConnectionStringBuilder,
-                                                                                               @Nullable HttpClientProperties properties)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         return ManagedStreamingIngestClient.fromEngineConnectionString(engineConnectionStringBuilder, properties);
     }
@@ -211,7 +211,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder dmConnectionStringBuilder,
-                                                                                           @Nullable HttpClientProperties properties)
+            @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         return ManagedStreamingIngestClient.fromDmConnectionString(dmConnectionStringBuilder, properties);
     }
@@ -226,7 +226,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
-                                                                                           @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint)
+            @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
     }
@@ -241,7 +241,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
-                                                                                           @Nullable CloseableHttpClient httpClient)
+            @Nullable CloseableHttpClient httpClient)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, true);
     }
