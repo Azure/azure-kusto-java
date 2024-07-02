@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.Tracer;
@@ -38,7 +39,7 @@ public class ResourceAlgorithms {
         }
 
         List<Map<String, String>> totalAttributes = new ArrayList<>();
-
+        Exception ex  = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             TWrapper resource = resources.get(i % resources.size());
             try {
@@ -62,11 +63,13 @@ public class ResourceAlgorithms {
                     }
                 }, actionName, attributes);
             } catch (Exception e) {
+                ex = e;
                 log.warn(String.format("Error during retry %d of %d for %s", i + 1, RETRY_COUNT, actionName), e);
             }
         }
-        throw new IngestionClientException(String.format("%s: All %d retries failed - used resources: %s", actionName, RETRY_COUNT,
-                totalAttributes.stream().map(x -> String.format("%s (%s)", x.get("resource"), x.get("account"))).collect(Collectors.joining(", "))));
+        throw new IngestionClientException(String.format("%s: All %d retries failed with last error: %s\n. Used resources: %s", actionName, RETRY_COUNT,
+                totalAttributes.stream().map(x -> String.format("%s (%s)", x.get("resource"), x.get("account"))).collect(Collectors.joining(", ")),
+                ExceptionsUtils.getMessageEx(ex)));
     }
 
     public static void postToQueueWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob)
