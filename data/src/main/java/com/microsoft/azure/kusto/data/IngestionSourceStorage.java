@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 
 class IngestionSourceStorage {
     public String sourceUri;
