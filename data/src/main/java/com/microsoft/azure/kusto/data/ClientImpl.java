@@ -14,6 +14,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import com.microsoft.azure.kusto.data.http.UncloseableStream;
@@ -176,9 +177,9 @@ class ClientImpl implements Client, StreamingClient {
             return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataServiceException(clusterEndpoint,
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+                    "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent());
         } catch (Exception e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            throw new DataClientException(clusterEndpoint, ExceptionsUtils.getMessageEx(e), e);
         }
     }
 

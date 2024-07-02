@@ -122,9 +122,9 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
@@ -348,19 +348,19 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws IOException {
         for (TestDataItem item : dataForTests) {
+            InputStream stream = Files.newInputStream(item.file.toPath());
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
             if (item.file.getPath().endsWith(".gz")) {
-                InputStream stream = Files.newInputStream(item.file.toPath());
-                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
-
                 streamSourceInfo.setCompressionType(CompressionType.gz);
-                try {
-                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
-                            item.ingestionProperties);
-                } catch (Exception ex) {
-                    Assertions.fail(ex);
-                }
-                assertRowCount(item.rows, true);
             }
+
+            try {
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
+                        item.ingestionProperties);
+            } catch (Exception ex) {
+                Assertions.fail(ex);
+            }
+            assertRowCount(item.rows, true);
         }
     }
 

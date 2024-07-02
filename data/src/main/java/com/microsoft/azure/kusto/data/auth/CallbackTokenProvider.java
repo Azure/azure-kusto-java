@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,7 +33,7 @@ public class CallbackTokenProvider extends TokenProviderBase {
         try {
             return tokenProvider.apply(httpClient);
         } catch (Exception e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
+            throw new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(e), e);
         }
     }
 

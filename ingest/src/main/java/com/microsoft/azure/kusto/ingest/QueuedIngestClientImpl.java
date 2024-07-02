@@ -146,8 +146,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from blob", e);
         } catch (IOException | URISyntaxException e) {
             throw new IngestionClientException("Failed to ingest from blob", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
@@ -188,8 +186,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from file", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
@@ -226,8 +222,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     blobName,
                     shouldCompress);
 
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize
-            // locally - maybe add a countingStream
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getSourceId());
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -238,8 +233,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             throw new IngestionServiceException("Failed to ingest from stream", e);
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from stream", e);
-        } catch (IngestionServiceException e) {
-            throw e;
         }
     }
 
