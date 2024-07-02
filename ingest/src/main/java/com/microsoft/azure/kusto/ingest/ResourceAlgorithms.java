@@ -39,7 +39,7 @@ public class ResourceAlgorithms {
         }
 
         List<Map<String, String>> totalAttributes = new ArrayList<>();
-        Exception ex  = null;
+        Exception ex = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             TWrapper resource = resources.get(i % resources.size());
             try {
