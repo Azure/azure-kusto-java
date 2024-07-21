@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.http.HttpHost;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 
 /**
  * HTTP client properties.
@@ -13,6 +14,7 @@ public class HttpClientProperties {
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
     private final HttpHost proxy;
+    private final HttpRoutePlanner routePlanner;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -21,6 +23,7 @@ public class HttpClientProperties {
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
         this.proxy = builder.proxy;
+        this.routePlanner = builder.routePlanner;
     }
 
     /**
@@ -98,6 +101,10 @@ public class HttpClientProperties {
         return proxy;
     }
 
+    public HttpRoutePlanner getPlanner() {
+        return routePlanner;
+    }
+
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -106,6 +113,7 @@ public class HttpClientProperties {
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
         private HttpHost proxy = null;
+        private HttpRoutePlanner routePlanner = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -190,9 +198,19 @@ public class HttpClientProperties {
             return this;
         }
 
+        /**
+         * Sets a custom route planner to use for the client.
+         *
+         * @param routePlanner the custom route planner
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder routePlanner(HttpRoutePlanner routePlanner) {
+            this.routePlanner = routePlanner;
+            return this;
+        }
+
         public HttpClientProperties build() {
             return new HttpClientProperties(this);
         }
     }
-
 }

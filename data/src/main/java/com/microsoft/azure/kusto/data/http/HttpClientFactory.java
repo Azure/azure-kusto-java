@@ -3,10 +3,12 @@ package com.microsoft.azure.kusto.data.http;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
@@ -44,6 +46,10 @@ public class HttpClientFactory {
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
+        }
+
+        if (properties.getPlanner() != null) {
+            httpClientBuilder.setRoutePlanner(properties.getPlanner());
         }
 
         if (properties.getProxy() != null) {
