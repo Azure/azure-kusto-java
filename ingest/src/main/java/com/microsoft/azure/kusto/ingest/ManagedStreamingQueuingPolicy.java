@@ -4,8 +4,10 @@ import com.microsoft.azure.kusto.ingest.utils.ShouldUseQueueingPredicate;
 
 public class ManagedStreamingQueuingPolicy {
     static final int MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES = 4 * 1024 * 1024;
+    // Regardless of the format, we don't want to stream more than 10mb
     static final int MAX_STREAMING_STREAM_SIZE_BYTES = 10 * 1024 * 1024;
-    static final int MAX_STREAMING_RAW_SIZE_BYTES = 7 * 1024 * 1024;
+    // Used against the users input of raw data size
+    static final int MAX_STREAMING_RAW_SIZE_BYTES = 6 * 1024 * 1024;
     static final double JSON_UNCOMPRESSED_FACTOR = 1.5d;
     static final int NON_BINARY_FACTOR = 2;
     static final double BINARY_COMPRESSED_FACTOR = 2d;
@@ -18,7 +20,7 @@ public class ManagedStreamingQueuingPolicy {
 
     // Return true if streaming ingestion should not be tried, according to stream size, compression and format
     private static boolean defaultShouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
-        // if size is given - use the 7mb limit.
+        // if size is given - use the 6mb limit.
         if (rawDataSize > 0) {
             return rawDataSize > MAX_STREAMING_RAW_SIZE_BYTES;
         }
