@@ -1,11 +1,11 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.BaseClient;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
@@ -70,11 +70,11 @@ class ResourceManagerTimerTest {
         }
         BooleanHolder booleanHolder = new BooleanHolder();
         when(mockedClient.execute(Commands.IDENTITY_GET_COMMAND))
-                .thenThrow(HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
+                .thenThrow(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
         when(mockedClient.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             booleanHolder.gotHere = true;
-            throw HttpPostUtils.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
+            throw BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error");
         });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);

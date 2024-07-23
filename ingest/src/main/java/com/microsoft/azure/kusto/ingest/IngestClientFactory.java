@@ -3,9 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.azure.core.http.HttpClient;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 
 import java.net.URISyntaxException;
@@ -225,9 +225,9 @@ public class IngestClientFactory {
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint)
-            throws URISyntaxException {
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(
+            ConnectionStringBuilder connectionStringBuilder, @Nullable HttpClient httpClient,
+            boolean autoCorrectEndpoint) throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
     }
 
@@ -241,7 +241,7 @@ public class IngestClientFactory {
      * @throws URISyntaxException if the connection string is invalid
      */
     public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient)
+            @Nullable HttpClient httpClient)
             throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, true);
     }

@@ -1,5 +1,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
@@ -10,7 +11,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
