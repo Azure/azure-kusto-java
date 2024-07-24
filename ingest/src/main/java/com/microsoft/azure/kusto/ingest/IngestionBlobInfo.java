@@ -134,4 +134,12 @@ public final class IngestionBlobInfo {
     public void setValidationPolicy(ValidationPolicy validationPolicy) {
         this.validationPolicy = validationPolicy;
     }
+
+    public String getApplicationForTracing() {
+        return applicationForTracing;
+    }
+
+    public String getClientVersionForTracing() {
+        return clientVersionForTracing;
+    }
 }
