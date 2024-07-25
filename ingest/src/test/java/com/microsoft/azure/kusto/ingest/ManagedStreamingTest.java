@@ -1,35 +1,41 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.commons.lang3.function.BooleanConsumer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
-import javax.xml.crypto.Data;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
 public class ManagedStreamingTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     public static final String ACCOUNT_NAME = "someaccount";
-    private static QueuedIngestClient queuedIngestClient;
+    private static QueuedIngestClient queuedIngestClientMock;
     private static IngestionProperties ingestionProperties;
     private static StreamingClient streamingClientMock;
+    private static ManagedStreamingIngestClient managedStreamingIngestClient;
+    private static ManagedStreamingIngestClient managedStreamingIngestClientSpy;
 
     @BeforeAll
     static void setUp() throws Exception {
@@ -51,23 +57,35 @@ public class ManagedStreamingTest {
                 isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
 
         ingestionProperties = new IngestionProperties("dbName", "tableName");
+        managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
+                streamingClientMock);
+        queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
+        managedStreamingIngestClientSpy = spy(new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
     }
 
-    static InputStream createStreamOfSize(int size) {
+    static ByteArrayInputStream createStreamOfSize(int size) throws UnsupportedEncodingException {
         char[] charArray = new char[size];
         Arrays.fill(charArray, 'a');
         String str = new String(charArray);
-        return new ByteArrayInputStream(StandardCharsets.UTF_8.encode(str).array());
+        byte[] byteArray = str.getBytes("UTF-8");
+        return new ByteArrayInputStream(byteArray);
     }
 
+    static int getStreamSize(InputStream inputStream) throws IOException {
+        int size = 0;
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            size += bytesRead;
+        }
+        return size;
+    }
     @Test
     void IngestFromStream_CsvStream() throws Exception {
 
         InputStream inputStream = createStreamOfSize(1);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 
-        ManagedStreamingIngestClient managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
-                streamingClientMock);
 
         // Expect to work and also choose no queuing
         OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection()
@@ -141,5 +159,39 @@ public class ManagedStreamingTest {
                 0, true, IngestionProperties.DataFormat.AVRO));
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(smallCompressed,
                 0, false, IngestionProperties.DataFormat.AVRO));
+    }
+
+    @Test
+    void ManagedStreaming_BigFile_ShouldQueueTheFullStream() throws IOException, IngestionClientException, IngestionServiceException{
+        EmptyAvailableByteArrayOutputStream inputStream = new EmptyAvailableByteArrayOutputStream(createStreamOfSize(ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 10));
+        int size =  inputStream.bb.available();
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+        ArgumentCaptor<StreamSourceInfo> streamSourceInfoCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
+
+        managedStreamingIngestClientSpy.ingestFromStream(streamSourceInfo, ingestionProperties);
+        verify(queuedIngestClientMock, times(1)).ingestFromStream(streamSourceInfoCaptor.capture(), any());
+
+        StreamSourceInfo value = streamSourceInfoCaptor.getValue();
+        int queuedStreamSize = getStreamSize(value.getStream());
+        Assertions.assertEquals(queuedStreamSize, size);
+    }
+
+    static class EmptyAvailableByteArrayOutputStream extends InputStream
+    {
+        private ByteArrayInputStream bb;
+
+        EmptyAvailableByteArrayOutputStream(ByteArrayInputStream bb){
+            this.bb = bb;
+        }
+
+        @Override
+        public int read() {
+            return bb.read();
+        }
+
+        @Override
+        public synchronized int available() {
+            return 0;
+        }
     }
 }

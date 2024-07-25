@@ -12,6 +12,7 @@ import com.univocity.parsers.csv.CsvRoutines;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.*;
 import java.lang.invoke.MethodHandles;
 
@@ -39,8 +40,14 @@ public class IngestionUtils {
 
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
         try {
-            streamSourceInfo.setRawSizeInBytes(
-                    fileSourceInfo.getRawSizeInBytes() > 0 ? fileSourceInfo.getRawSizeInBytes() : format.isCompressible() ? stream.available() : 0);
+
+            if (fileSourceInfo.getRawSizeInBytes() > 0) {
+                streamSourceInfo.setRawSizeInBytes(
+                        fileSourceInfo.getRawSizeInBytes());
+            } else {
+                streamSourceInfo.setRawSizeInBytes(
+                        format.isCompressible() ? stream.available() : 0);
+            }
         } catch (IOException e) {
             throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
         }

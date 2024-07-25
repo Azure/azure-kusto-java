@@ -122,9 +122,9 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }

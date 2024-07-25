@@ -44,7 +44,7 @@ public class WellKnownKustoEndpointsData {
                 return objectMapper.readValue(resourceAsStream, WellKnownKustoEndpointsData.class);
             }
         } catch (Exception ex) {
-            throw new RuntimeException("Failed to read WellKnownKustoEndpoints.json");
+            throw new RuntimeException("Failed to read WellKnownKustoEndpoints.json", ex);
         }
     }
 }

@@ -47,12 +47,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public static final int ATTEMPT_COUNT = 3;
     public static final String CLASS_NAME = ManagedStreamingIngestClient.class.getSimpleName();
-    final QueuedIngestClientImpl queuedIngestClient;
+    final QueuedIngestClient queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
     private CloseableHttpClient httpClient = null;
     private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
-
+    private static final String fallbackLogString ="Data size is greater than max streaming size according to the policy. Falling back to queued.";
     /**
      * @param dmConnectionString dm connection string
      * @return a new ManagedStreamingIngestClient
@@ -261,6 +261,12 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         exponentialRetryTemplate = retryTemplate;
     }
 
+    ManagedStreamingIngestClient(StreamingIngestClient streamingIngestClient, QueuedIngestClient queuedIngestClient, ExponentialRetry exponentialRetry) {
+       this.streamingIngestClient = streamingIngestClient;
+        this.queuedIngestClient = queuedIngestClient;
+        exponentialRetryTemplate = exponentialRetry;
+    }
+
     @Override
     protected IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
@@ -311,7 +317,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
                 blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info("Blob size is greater than max streaming size ({} bytes). Falling back to queued.", blobSourceInfo.getRawSizeInBytes());
+            log.info(fallbackLogString);
             return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
 
@@ -381,17 +387,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
-    private IngestionResult sendStreamToQueuedIngestion(InputStream inputStream, StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties,
-            int size) throws IngestionClientException, IngestionServiceException {
-        log.info("Stream size is greater than max streaming size ({} bytes). Falling back to queued.", size);
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(
-                inputStream,
-                streamSourceInfo.isLeaveOpen(),
-                streamSourceInfo.getSourceId(),
-                streamSourceInfo.getCompressionType());
-        return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
-    }
-
     @Override
     protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException, IOException {
@@ -412,32 +407,40 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(),
                 streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info("Stream size ({} bytes) is greater than max streaming size according to policy. Falling back to queued.",
-                    streamSourceInfo.getRawSizeInBytes() > 0 ? streamSourceInfo.getRawSizeInBytes() : streamSourceInfo.getStream().available());
+            log.info(fallbackLogString);
             return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         }
 
         try {
-            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream) {
-                // We can't rely on other InputStream implementations of available()
+            if (streamSourceInfo.getStream().available() > 0) {
                 byteArrayStream = (ByteArrayInputStream) streamSourceInfo.getStream();
             } else {
+                // If its not a ByteArrayInputStream:
+                // Read 10mb (max streaming size), decide with that if we should stream
                 streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(),
                         ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 1);
                 byteArrayStream = new ByteArrayInputStream(streamingBytes);
-                // ByteArrayInputStream's close method is a no-op, so we don't need to close it.
+                int size = streamingBytes.length;
+                if (queuingPolicy.shouldUseQueuedIngestion(size, streamSourceInfo.getRawSizeInBytes(),
+                        streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
+                    log.info(fallbackLogString);
+                    StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
+                            streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
+
+                    return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
+                }
+
+                if (!streamSourceInfo.isLeaveOpen()) {
+                    // From this point we don't need the original stream anymore, we cached it
+                    try {
+                        streamSourceInfo.getStream().close();
+                    } catch (IOException e) {
+                        log.warn("Failed to close stream", e);
+                    }
+                }
             }
         } catch (IOException e) {
             throw new IngestionClientException("Failed to read from stream.", e);
-        }
-
-        if (!streamSourceInfo.isLeaveOpen()) {
-            // From this point we don't need the original stream anymore, we cached it
-            try {
-                streamSourceInfo.getStream().close();
-            } catch (IOException e) {
-                log.warn("Failed to close stream", e);
-            }
         }
 
         StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
@@ -457,6 +460,10 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
+    /*
+      Set the policy that handles the logic over which data size would the client choose to directly use queued ingestion
+      instead of trying streaming ingestion first.
+     */
     public void setQueuingPolicy(ManagedStreamingQueuingPolicy queuingPolicy) {
         this.queuingPolicy = queuingPolicy;
     }

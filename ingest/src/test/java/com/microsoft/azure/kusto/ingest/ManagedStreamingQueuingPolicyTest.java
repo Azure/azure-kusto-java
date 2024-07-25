@@ -1,9 +1,8 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import com.microsoft.azure.kusto.ingest.ManagedStreamingQueuingPolicy;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ManagedStreamingQueuingPolicyTest {
 
