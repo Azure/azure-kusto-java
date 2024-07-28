@@ -403,7 +403,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         streamSourceInfo.setSourceId(sourceId);
         byte[] streamingBytes;
-        ByteArrayInputStream byteArrayStream;
+        InputStream byteArrayStream;
 
         if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(),
                 streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
@@ -412,8 +412,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
 
         try {
-            if (streamSourceInfo.getStream().available() > 0) {
-                byteArrayStream = (ByteArrayInputStream) streamSourceInfo.getStream();
+            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream || streamSourceInfo.getStream() instanceof ResettableFileInputStream) {
+                byteArrayStream = streamSourceInfo.getStream();
             } else {
                 // If its not a ByteArrayInputStream:
                 // Read 10mb (max streaming size), decide with that if we should stream
@@ -443,7 +443,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType(), streamSourceInfo.getRawSizeInBytes());
         try {
             IngestionResult result = streamWithRetries(managedSourceInfo, ingestionProperties, null);
             if (result != null) {

@@ -38,15 +38,17 @@ public class IngestionUtils {
             stream = new ResettableFileInputStream((FileInputStream) stream);
         }
 
-        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), getCompression(filePath));
+        CompressionType compression = getCompression(filePath);
+        StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false, fileSourceInfo.getSourceId(), compression);
         try {
 
             if (fileSourceInfo.getRawSizeInBytes() > 0) {
                 streamSourceInfo.setRawSizeInBytes(
                         fileSourceInfo.getRawSizeInBytes());
             } else {
+                // Raw
                 streamSourceInfo.setRawSizeInBytes(
-                        format.isCompressible() ? stream.available() : 0);
+                        (compression != null && format.isCompressible()) ?  stream.available() : 0);
             }
         } catch (IOException e) {
             throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
