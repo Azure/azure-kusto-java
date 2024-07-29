@@ -60,7 +60,8 @@ public class ManagedStreamingTest {
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
                 streamingClientMock);
         queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
-        managedStreamingIngestClientSpy = spy(new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
+        managedStreamingIngestClientSpy = spy(
+                new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
     }
 
     static ByteArrayInputStream createStreamOfSize(int size) throws UnsupportedEncodingException {
@@ -80,12 +81,12 @@ public class ManagedStreamingTest {
         }
         return size;
     }
+
     @Test
     void IngestFromStream_CsvStream() throws Exception {
 
         InputStream inputStream = createStreamOfSize(1);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-
 
         // Expect to work and also choose no queuing
         OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection()
@@ -162,9 +163,10 @@ public class ManagedStreamingTest {
     }
 
     @Test
-    void ManagedStreaming_BigFile_ShouldQueueTheFullStream() throws IOException, IngestionClientException, IngestionServiceException{
-        EmptyAvailableByteArrayOutputStream inputStream = new EmptyAvailableByteArrayOutputStream(createStreamOfSize(ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 10));
-        int size =  inputStream.bb.available();
+    void ManagedStreaming_BigFile_ShouldQueueTheFullStream() throws IOException, IngestionClientException, IngestionServiceException {
+        EmptyAvailableByteArrayOutputStream inputStream = new EmptyAvailableByteArrayOutputStream(
+                createStreamOfSize(ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 10));
+        int size = inputStream.bb.available();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ArgumentCaptor<StreamSourceInfo> streamSourceInfoCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
 
@@ -176,11 +178,10 @@ public class ManagedStreamingTest {
         Assertions.assertEquals(queuedStreamSize, size);
     }
 
-    static class EmptyAvailableByteArrayOutputStream extends InputStream
-    {
+    static class EmptyAvailableByteArrayOutputStream extends InputStream {
         private ByteArrayInputStream bb;
 
-        EmptyAvailableByteArrayOutputStream(ByteArrayInputStream bb){
+        EmptyAvailableByteArrayOutputStream(ByteArrayInputStream bb) {
             this.bb = bb;
         }
 

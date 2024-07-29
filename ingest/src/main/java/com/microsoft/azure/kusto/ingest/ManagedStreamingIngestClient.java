@@ -52,7 +52,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     private final ExponentialRetry exponentialRetryTemplate;
     private CloseableHttpClient httpClient = null;
     private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
-    private static final String fallbackLogString ="Data size is greater than max streaming size according to the policy. Falling back to queued.";
+    private static final String fallbackLogString = "Data size is greater than max streaming size according to the policy. Falling back to queued.";
+
     /**
      * @param dmConnectionString dm connection string
      * @return a new ManagedStreamingIngestClient
@@ -262,7 +263,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     }
 
     ManagedStreamingIngestClient(StreamingIngestClient streamingIngestClient, QueuedIngestClient queuedIngestClient, ExponentialRetry exponentialRetry) {
-       this.streamingIngestClient = streamingIngestClient;
+        this.streamingIngestClient = streamingIngestClient;
         this.queuedIngestClient = queuedIngestClient;
         exponentialRetryTemplate = exponentialRetry;
     }
@@ -443,7 +444,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType(), streamSourceInfo.getRawSizeInBytes());
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType(),
+                streamSourceInfo.getRawSizeInBytes());
         try {
             IngestionResult result = streamWithRetries(managedSourceInfo, ingestionProperties, null);
             if (result != null) {
@@ -461,8 +463,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     }
 
     /*
-      Set the policy that handles the logic over which data size would the client choose to directly use queued ingestion
-      instead of trying streaming ingestion first.
+     * Set the policy that handles the logic over which data size would the client choose to directly use queued ingestion instead of trying streaming ingestion
+     * first.
      */
     public void setQueuingPolicy(ManagedStreamingQueuingPolicy queuingPolicy) {
         this.queuingPolicy = queuingPolicy;

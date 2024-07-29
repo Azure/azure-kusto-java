@@ -48,7 +48,7 @@ public class IngestionUtils {
             } else {
                 // Raw
                 streamSourceInfo.setRawSizeInBytes(
-                        (compression != null && format.isCompressible()) ?  stream.available() : 0);
+                        (compression != null && format.isCompressible()) ? stream.available() : 0);
             }
         } catch (IOException e) {
             throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
