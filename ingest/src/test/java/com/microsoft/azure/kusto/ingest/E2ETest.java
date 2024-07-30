@@ -128,6 +128,7 @@ class E2ETest {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
+            queryClient.close();
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
@@ -605,7 +606,7 @@ class E2ETest {
     }
 
     @Test
-    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException {
+    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
         ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         HttpClient httpClient = HttpClientFactory.create(null);
         HttpClient httpClientSpy = Mockito.spy(httpClient);
@@ -619,6 +620,7 @@ class E2ETest {
 
         // Todo potentially need a try with resources here
         Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE));
+        clientImpl.close();
     }
 
     @Test
