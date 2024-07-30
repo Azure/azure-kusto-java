@@ -199,7 +199,7 @@ public class HttpClientProperties {
         }
 
         /**
-         * Sets a custom route planner to use for the client.
+         * Overrides the {@link #proxy} parameter, and can be used to create more complex proxies.
          *
          * @param routePlanner the custom route planner
          * @return the builder instance

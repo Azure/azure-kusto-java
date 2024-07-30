@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.SimpleProxyPlanner;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -38,6 +39,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -65,6 +67,7 @@ class E2ETest {
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
+    private static ConnectionStringBuilder engineCsb;
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -95,7 +98,7 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
+        engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
@@ -693,5 +696,21 @@ class E2ETest {
                 }
             }
         }
+    }
+
+    @Test
+    void testProxyPlanner() throws URISyntaxException {
+        String[] prefixes = new String[] {
+                new URI(engineCsb.getClusterUrl()).getHost(),
+                "login.microsoftonline.com"
+        };
+
+        HttpClientProperties providedProperties = HttpClientProperties.builder().routePlanner(new SimpleProxyPlanner("localhost", 8080,"http",prefixes )).build();
+        try (Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://ohadev.swedencentral.dev.kusto.windows.net"), providedProperties)) {
+            KustoOperationResult execute = client.execute(".show version");
+        } catch (Exception e) {
+            Assertions.fail(e);
+        }
+
     }
 }
