@@ -47,8 +47,11 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -67,6 +70,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 
 class E2ETest {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static IngestClient ingestClient;
     private static StreamingIngestClient streamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
@@ -149,10 +153,19 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            log.info("starting tearDown");
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            log.info("tearDown after exec");
+
             ingestClient.close();
+            log.info("tearDown after close ing");
+
             managedStreamingIngestClient.close();
+            log.info("tearDown after close manage");
+
             queryClient.close();
+            log.info("finished tearDown");
+
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
