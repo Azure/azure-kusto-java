@@ -89,10 +89,14 @@ class E2ETest {
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
+    public static boolean enabled = false;
 
     private static void initializeTracing() {
-        enableDistributedTracing();
-        Tracer.initializeTracer(new OpenTelemetryTracer());
+        if (!enabled) {
+            enabled = true;
+            enableDistributedTracing();
+            Tracer.initializeTracer(new OpenTelemetryTracer());
+        }
     }
 
     private static void enableDistributedTracing() {
@@ -225,7 +229,7 @@ class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
+        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
@@ -622,7 +626,7 @@ class E2ETest {
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = streamingClient.executeStreamingQuery(databaseName, query, clientRequestProperties);
-                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
             String streamedLine;
