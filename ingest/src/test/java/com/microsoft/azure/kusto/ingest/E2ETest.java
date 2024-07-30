@@ -95,7 +95,7 @@ class E2ETest {
         try {
             enableDistributedTracing();
             Tracer.initializeTracer(new OpenTelemetryTracer());
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("initialize tracing failed ", e);
 
         }
