@@ -18,8 +18,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
@@ -40,7 +40,6 @@ import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.semconv.ResourceAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
-
 import org.apache.http.conn.util.InetAddressUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
@@ -92,10 +91,13 @@ class E2ETest {
     public static boolean enabled = false;
 
     private static void initializeTracing() {
-        if (!enabled) {
-            enabled = true;
+        log.info("initialize tracing");
+        try {
             enableDistributedTracing();
             Tracer.initializeTracer(new OpenTelemetryTracer());
+        } catch (Exception e) {
+            log.error("initialize tracing failed ", e);
+
         }
     }
 
@@ -106,6 +108,7 @@ class E2ETest {
                 .addSpanProcessor(BatchSpanProcessor.builder(new LoggingSpanExporter()).build())
                 .setResource(resource)
                 .build();
+
         OpenTelemetrySdk.builder()
                 .setTracerProvider(sdkTracerProvider)
                 .buildAndRegisterGlobal();
