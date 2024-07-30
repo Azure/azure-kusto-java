@@ -275,12 +275,6 @@
             <version>4.5.14</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-            <version>1.31.0</version>
-            <scope>compile</scope>
-        </dependency>
         <!--        <dependency>-->
 <!--            <groupId>io.vavr</groupId>-->
 <!--            <artifactId>vavr</artifactId>-->
