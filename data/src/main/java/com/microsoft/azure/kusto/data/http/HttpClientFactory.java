@@ -4,7 +4,7 @@ import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaderName;
 import com.azure.core.util.Header;
 import com.azure.core.util.HttpClientOptions;
-
+import com.azure.core.util.TracingOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +61,11 @@ public class HttpClientFactory {
             options.setProxyOptions(properties.getProxy());
         }
 
-        // Todo: Is the per route connection maximum needed anymore?
+        TracingOptions tracingOptions = new TracingOptions();
 
+        tracingOptions.setEnabled(true);
+        // Todo: Is the per route connection maximum needed anymore?
+options.setTracingOptions(tracingOptions);
         return HttpClient.createDefault(options);
     }
 

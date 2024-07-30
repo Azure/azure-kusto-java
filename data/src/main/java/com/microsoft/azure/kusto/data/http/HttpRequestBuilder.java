@@ -97,7 +97,7 @@ public class HttpRequestBuilder {
         return this;
     }
 
-    public HttpRequestBuilder withTracing(HttpTracing tracing) {
+    public HttpRequestBuilder withTracingHeaders(HttpTracing tracing) {
         return this.withHeaders(getTracingHeaders(tracing));
     }
 
