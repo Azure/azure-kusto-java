@@ -204,7 +204,7 @@ class ClientImpl extends BaseClient {
         HttpRequest request = HttpRequestBuilder
                 .newPost(clusterEndpoint)
                 .createCommandPayload(database, command, properties)
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .withAuthorization(authorization)
                 .build();
 
@@ -298,7 +298,7 @@ class ClientImpl extends BaseClient {
             // Build the HTTP request. Since this is an ingestion and not a command, content headers aren't auto-applied.
             HttpRequest request = HttpRequestBuilder
                     .newPost(clusterEndpoint)
-                    .withTracing(tracing)
+                    .withTracingHeaders(tracing)
                     .withHeaders(headers)
                     .withAuthorization(authorization)
                     .withContentType(contentType)
@@ -377,7 +377,7 @@ class ClientImpl extends BaseClient {
         HttpRequest request = HttpRequestBuilder
                 .newPost(clusterEndpoint)
                 .createCommandPayload(database, command, properties)
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .withAuthorization(authorization)
                 .build();
 

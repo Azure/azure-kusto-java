@@ -34,7 +34,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
@@ -65,7 +65,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
@@ -99,7 +99,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
@@ -129,7 +129,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
@@ -159,7 +159,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
@@ -189,7 +189,7 @@ public class HeaderTest {
 
         HttpRequest request = HttpRequestBuilder
                 .newPost("https://www.example.com")
-                .withTracing(tracing)
+                .withTracingHeaders(tracing)
                 .build();
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
