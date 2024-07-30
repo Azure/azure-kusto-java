@@ -705,8 +705,10 @@ class E2ETest {
                 "login.microsoftonline.com"
         };
 
-        HttpClientProperties providedProperties = HttpClientProperties.builder().routePlanner(new SimpleProxyPlanner("localhost", 8080,"http",prefixes )).build();
-        try (Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://ohadev.swedencentral.dev.kusto.windows.net"), providedProperties)) {
+        HttpClientProperties providedProperties = HttpClientProperties.builder().routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", prefixes))
+                .build();
+        try (Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://ohadev.swedencentral.dev.kusto.windows.net"),
+                providedProperties)) {
             KustoOperationResult execute = client.execute(".show version");
         } catch (Exception e) {
             Assertions.fail(e);
