@@ -93,6 +93,12 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
         continue-on-error: true
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.github_release == 'true') }}
+      - name: Azure login for azuresdkpartnerdrops SA
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v3
         name: Uploading to Azure storage
         with:
@@ -102,6 +108,12 @@ jobs:
           destination_folder: kusto/java/${{ steps.get_version.outputs.VERSION }}
           delete_if_exists: true
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_azure == 'true') }}
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.APP_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Trigger pipelines release
         uses: jacopocarlini/azure-pipelines@v1.3
         with:
