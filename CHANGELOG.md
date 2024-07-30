@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.1.1] - 2024-07-25
+
+## Unknown
 ### Added
 - A new heuristic for choosing between queuing and streaming in Managed streaming client, the default behavior is using
   an estimation against the 4mb limit after dividing or multiplying by some factor described by the consts:
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     like in managed streaming, but this PR also tries to avoid that)
 ### Fixed
 - Some better error messages
+- 
 ## [5.1.1] - 2024-07-25
 ### Fixed
 - Fix population of application and client version for tracing
