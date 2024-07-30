@@ -1,8 +1,10 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.utils.ShouldUseQueueingPredicate;
+interface ManagedStreamingQueuingPolicyPredicator {
+    boolean shouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat);
+}
 
-public class ManagedStreamingQueuingPolicy {
+public class ManagedStreamingQueuingPolicy implements ManagedStreamingQueuingPolicyPredicator {
     static final int MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES = 4 * 1024 * 1024;
     // Regardless of the format, we don't want to stream more than 10mb
     static final int MAX_STREAMING_STREAM_SIZE_BYTES = 10 * 1024 * 1024;
@@ -12,14 +14,12 @@ public class ManagedStreamingQueuingPolicy {
     static final int NON_BINARY_FACTOR = 2;
     static final double BINARY_COMPRESSED_FACTOR = 2d;
     static final double BINARY_UNCOMPRESSED_FACTOR = 1.5d;
-    final ShouldUseQueueingPredicate predicate;
 
-    public ManagedStreamingQueuingPolicy(ShouldUseQueueingPredicate defaultShouldUseQueuedIngestion) {
-        predicate = defaultShouldUseQueuedIngestion;
+    public ManagedStreamingQueuingPolicy() {
     }
 
     // Return true if streaming ingestion should not be tried, according to stream size, compression and format
-    private static boolean defaultShouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
+    public boolean shouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
         // if size is given - use the 6mb limit.
         if (rawDataSize > 0) {
             return rawDataSize > MAX_STREAMING_RAW_SIZE_BYTES;
@@ -58,9 +58,5 @@ public class ManagedStreamingQueuingPolicy {
         return (dataSize / NON_BINARY_FACTOR) > MAX_STREAMING_UNCOMPRESSED_RAW_SIZE_BYTES;
     }
 
-    static ManagedStreamingQueuingPolicy Default = new ManagedStreamingQueuingPolicy(ManagedStreamingQueuingPolicy::defaultShouldUseQueuedIngestion);
-
-    public boolean shouldUseQueuedIngestion(long dataSize, long rawDataSize, boolean compressed, IngestionProperties.DataFormat dataFormat) {
-        return predicate.apply(dataSize, rawDataSize, compressed, dataFormat);
-    }
+    static ManagedStreamingQueuingPolicy Default = new ManagedStreamingQueuingPolicy();
 }
