@@ -94,7 +94,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
     @Override
     public void close() {
-        log.warn("Yihezkel: Closing ResourceManager");
+        log.warn("Yihezkel: Close ResourceManager start");
         refreshTasksTimer.cancel();
         refreshTasksTimer.purge();
         refreshTasksTimer = null;
@@ -103,7 +103,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         } catch (IOException e) {
             log.error("Couldn't close client: " + e.getMessage(), e);
         }
-        log.warn("Yihezkel: ResourceManager closed");
+        log.warn("Yihezkel: Close ResourceManager done");
     }
 
     abstract static class RefreshResourceTask extends TimerTask {
