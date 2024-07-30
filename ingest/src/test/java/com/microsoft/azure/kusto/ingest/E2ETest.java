@@ -89,13 +89,15 @@ class E2ETest {
     private static final String mappingReference = "mappingRef";
     private static final String tableColumns = "(rownumber:int, rowguid:string, xdouble:real, xfloat:real, xbool:bool, xint16:int, xint32:int, xint64:long, xuint8:long, xuint16:long, xuint32:long, xuint64:long, xdate:datetime, xsmalltext:string, xtext:string, xnumberAsText:string, xtime:timespan, xtextWithNulls:string, xdynamicWithNulls:dynamic)";
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
+
     private static void initializeTracing() {
         enableDistributedTracing();
         Tracer.initializeTracer(new OpenTelemetryTracer());
     }
+
     private static void enableDistributedTracing() {
         Resource resource = Resource.getDefault()
-                .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "logical-service-name")));
+                .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "sdkE2E")));
         SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
                 .addSpanProcessor(BatchSpanProcessor.builder(new LoggingSpanExporter()).build())
                 .setResource(resource)
@@ -104,6 +106,7 @@ class E2ETest {
                 .setTracerProvider(sdkTracerProvider)
                 .buildAndRegisterGlobal();
     }
+
     @BeforeAll
     public static void setUp() {
         initializeTracing();

@@ -65,7 +65,7 @@ public class HttpClientFactory {
 
         tracingOptions.setEnabled(true);
         // Todo: Is the per route connection maximum needed anymore?
-options.setTracingOptions(tracingOptions);
+        options.setTracingOptions(tracingOptions);
         return HttpClient.createDefault(options);
     }
 
