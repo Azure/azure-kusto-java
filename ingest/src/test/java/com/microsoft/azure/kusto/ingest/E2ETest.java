@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
 import com.azure.core.util.Context;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +19,6 @@ import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
-import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -31,13 +29,6 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.exporters.logging.LoggingSpanExporter;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.sdk.trace.SdkTracerProvider;
-import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
-import io.opentelemetry.semconv.ResourceAttributes;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
@@ -90,33 +81,8 @@ class E2ETest {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
     public static boolean enabled = false;
 
-    private static void initializeTracing() {
-        log.info("initialize tracing");
-        try {
-            enableDistributedTracing();
-            Tracer.initializeTracer(new OpenTelemetryTracer());
-        } catch (RuntimeException e) {
-            log.error("initialize tracing failed ", e);
-
-        }
-    }
-
-    private static void enableDistributedTracing() {
-        Resource resource = Resource.getDefault()
-                .merge(Resource.create(Attributes.of(ResourceAttributes.SERVICE_NAME, "sdkE2E")));
-        SdkTracerProvider sdkTracerProvider = SdkTracerProvider.builder()
-                .addSpanProcessor(BatchSpanProcessor.builder(new LoggingSpanExporter()).build())
-                .setResource(resource)
-                .build();
-
-        OpenTelemetrySdk.builder()
-                .setTracerProvider(sdkTracerProvider)
-                .buildAndRegisterGlobal();
-    }
-
     @BeforeAll
     public static void setUp() {
-        initializeTracing();
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", appId, tenantId);
@@ -352,7 +318,6 @@ class E2ETest {
         boolean found = false;
         try {
             result = localQueryClient.execute(databaseName, String.format(".show database %s principals", databaseName));
-            // result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
             Assertions.fail("Failed to execute show database principals command", ex);
         }
