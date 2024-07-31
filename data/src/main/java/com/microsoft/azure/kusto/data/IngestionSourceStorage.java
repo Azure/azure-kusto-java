@@ -1,6 +1,8 @@
 package com.microsoft.azure.kusto.data;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.azure.kusto.data.http.HttpPostUtils;
 
 class IngestionSourceStorage {
     public String sourceUri;
@@ -10,8 +12,9 @@ class IngestionSourceStorage {
     }
 
     public String toString() {
+        ObjectMapper objectMapper = Utils.getObjectMapper();
         try {
-            return Utils.getObjectMapper().writeValueAsString(this);
+            return objectMapper.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

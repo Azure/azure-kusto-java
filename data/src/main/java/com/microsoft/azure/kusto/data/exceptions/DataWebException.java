@@ -3,10 +3,10 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-import com.azure.core.http.HttpResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
+import org.apache.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

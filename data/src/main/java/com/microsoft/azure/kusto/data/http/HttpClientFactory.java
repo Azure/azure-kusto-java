@@ -1,69 +1,91 @@
 package com.microsoft.azure.kusto.data.http;
 
-import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpHeaderName;
-import com.azure.core.util.Header;
-import com.azure.core.util.HttpClientOptions;
-
+import com.microsoft.azure.kusto.data.HttpClientProperties;
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpResponse;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicHeaderElementIterator;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
- * A static factory for HTTP clients.
+ * A singleton factory of HTTP clients.
  */
 public class HttpClientFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientFactory.class);
 
     /**
-     * Creates a new HTTP client.
+     * Creates a new Apache HTTP client.
      *
-     * @param properties custom HTTP client properties
-     * @return a new HTTP client
+     * @param providedProperties custom HTTP client properties
+     * @return a new Apache HTTP client
      */
-    public static HttpClient create(HttpClientProperties properties) {
-        LOGGER.info("Creating new HTTP Client");
-        if (properties == null) {
-            return HttpClient.createDefault();
-        }
+    public static CloseableHttpClient create(HttpClientProperties providedProperties) {
+        LOGGER.info("Creating new CloseableHttpClient client");
+        final HttpClientProperties properties = Optional.ofNullable(providedProperties)
+                .orElse(HttpClientProperties.builder().build());
+        final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
+                .useSystemProperties()
+                .setMaxConnTotal(properties.maxConnectionTotal())
+                .setMaxConnPerRoute(properties.maxConnectionRoute())
+                .evictExpiredConnections()
+                .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS)
+                .disableRedirectHandling();
 
-        // Docs: https://learn.microsoft.com/en-us/java/api/com.azure.core.util.httpclientoptions?view=azure-java-stable
-        HttpClientOptions options = new HttpClientOptions();
-        options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
-        options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
-
-        // properties.timeout() value could be null, Azure Core JavaDocs indicate this is OK.
-        options.setResponseTimeout(properties.timeout());
-
-        // If null (as it is in the builder) the first discovered HttpClientProvider class is loaded.
-        // Netty is included by default in azure-core but can be excluded in the pom by excluding azure-core-http-netty.
-        options.setHttpClientProvider(properties.provider());
-
-        // Set Keep-Alive headers if they were requested.
-        // NOTE: Servers are not obligated to honor client requested Keep-Alive values
         if (properties.isKeepAlive()) {
-            Header keepAlive = new Header(HttpHeaderName.CONNECTION.getCaseSensitiveName(), "Keep-Alive");
-            // Keep-Alive is Non-standard from the client so core does not have an enum for it
-            Header keepAliveTimeout = new Header("Keep-Alive", "timeout=" + properties.maxKeepAliveTime());
-
-            List<Header> headers = new ArrayList<>();
-            headers.add(keepAlive);
-            headers.add(keepAliveTimeout);
-
-            options.setHeaders(headers);
+            final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
+            httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
         if (properties.getProxy() != null) {
-            options.setProxyOptions(properties.getProxy());
+            httpClientBuilder.setProxy(properties.getProxy());
         }
 
-        // Todo: Is the per route connection maximum needed anymore?
+        return httpClientBuilder.build();
+    }
 
-        return HttpClient.createDefault(options);
+    /**
+     * A custom connection keep-alive strategy that uses the server instructions set in the {@code Keep-Alive}
+     * response header; if the response doesn't contain a {@code Keep-Alive} header, the client will use a configurable
+     * keep-alive period.
+     */
+    static class CustomConnectionKeepAliveStrategy implements ConnectionKeepAliveStrategy {
+
+        private final int defaultKeepAlive;
+
+        /**
+         * The default keep-alive time.
+         *
+         * @param defaultKeepAlive the keep-alive time expressed in seconds
+         */
+        CustomConnectionKeepAliveStrategy(int defaultKeepAlive) {
+            this.defaultKeepAlive = defaultKeepAlive;
+        }
+
+        @Override
+        public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
+            // honor 'keep-alive' header
+            HeaderElementIterator it = new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            while (it.hasNext()) {
+                HeaderElement he = it.nextElement();
+                String param = he.getName();
+                String value = he.getValue();
+                if (value != null && param.equalsIgnoreCase("timeout")) {
+                    return Long.parseLong(value) * 1000;
+                }
+            }
+            // otherwise keep alive for default seconds
+            return defaultKeepAlive * 1000L;
+        }
     }
 
 }

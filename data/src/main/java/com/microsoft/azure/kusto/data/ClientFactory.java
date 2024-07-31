@@ -3,9 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.net.URISyntaxException;
 
@@ -44,12 +43,12 @@ public class ClientFactory {
      * customized with the given properties.
      *
      * @param csb the connection string builder
-     * @param client HttpClient client.
+     * @param client CloseableHttpClient client. It will not be closed when {@link Client#close} is called.
      * @return a fully constructed {@linkplain Client} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */
-    public static Client createClient(ConnectionStringBuilder csb, HttpClient client) throws URISyntaxException {
-        return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client);
+    public static Client createClient(ConnectionStringBuilder csb, CloseableHttpClient client) throws URISyntaxException {
+        return client == null ? createClient(csb, (HttpClientProperties) null) : new ClientImpl(csb, client, true);
     }
 
     /**
@@ -86,7 +85,7 @@ public class ClientFactory {
      * @return a fully constructed {@linkplain StreamingClient} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */
-    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
-        return new ClientImpl(csb, httpClient);
+    public static StreamingClient createStreamingClient(ConnectionStringBuilder csb, CloseableHttpClient httpClient) throws URISyntaxException {
+        return new ClientImpl(csb, httpClient, true);
     }
 }

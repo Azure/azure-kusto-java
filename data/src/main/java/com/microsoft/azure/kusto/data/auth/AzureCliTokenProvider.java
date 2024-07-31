@@ -2,7 +2,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.core.http.HttpClient;
+import org.apache.http.client.HttpClient;
 import com.azure.identity.AzureCliCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
