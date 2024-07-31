@@ -123,15 +123,16 @@ class E2ETest {
 
         ConnectionStringBuilder dmCsb = createConnection(System.getenv("DM_CONNECTION_STRING"));
         dmCsb.setUserNameForTracing("testUser");
+        HttpClientProperties props = HttpClientProperties.builder()
+                .keepAlive(true)
+                .maxKeepAliveTime(120)
+                .maxIdleTime(60)
+                .maxConnectionsPerRoute(50)
+                .maxConnectionsTotal(50)
+                .build();
         try {
             dmCslClient = ClientFactory.createClient(dmCsb);
-            ingestClient = IngestClientFactory.createClient(dmCsb, HttpClientProperties.builder()
-                    .keepAlive(true)
-                    .maxKeepAliveTime(120)
-                    .maxIdleTime(60)
-                    .maxConnectionsPerRoute(50)
-                    .maxConnectionsTotal(50)
-                    .build());
+            ingestClient = IngestClientFactory.createClient(dmCsb, props);
         } catch (URISyntaxException ex) {
             Assertions.fail("Failed to create ingest client", ex);
         }
@@ -140,7 +141,7 @@ class E2ETest {
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
-            queryClient = ClientFactory.createClient(engineCsb);
+            queryClient = ClientFactory.createClient(engineCsb, props);
             streamingClient = ClientFactory.createStreamingClient(engineCsb);
             managedStreamingIngestClient = IngestClientFactory.createManagedStreamingIngestClient(dmCsb, engineCsb);
         } catch (URISyntaxException ex) {
