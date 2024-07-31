@@ -3,6 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.http.HttpClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -10,7 +11,8 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -25,8 +27,8 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.lang3.StringUtils;
+
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +54,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         this.connectionDataSource = csbWithEndpoint.getClusterUrl();
     }
 
-    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+    StreamingIngestClient(ConnectionStringBuilder csb, @Nullable HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new StreamingIngestClient");
         ConnectionStringBuilder csbWithEndpoint = new ConnectionStringBuilder(csb);
         csbWithEndpoint.setClusterUrl(autoCorrectEndpoint ? getQueryEndpoint(csbWithEndpoint.getClusterUrl()) : csbWithEndpoint.getClusterUrl());
@@ -250,7 +252,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             }
         } catch (BlobStorageException ex) {
             throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
-                    ex.getStatusCode() == 403 ? "this might mean the blob doesn't exist" : ""), ex);
+                    ex.getStatusCode() == HttpStatus.FORBIDDEN ? "this might mean the blob doesn't exist" : ""), ex);
         }
         ClientRequestProperties clientRequestProperties = null;
         if (StringUtils.isNotBlank(clientRequestId)) {
@@ -286,6 +288,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
+
     }
 }

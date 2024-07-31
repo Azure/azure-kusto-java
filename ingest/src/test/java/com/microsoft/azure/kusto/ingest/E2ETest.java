@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.util.Context;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -15,7 +17,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -28,9 +31,8 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
+
 import org.apache.http.conn.util.InetAddressUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,6 +54,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 
 class E2ETest {
@@ -604,10 +607,10 @@ class E2ETest {
     }
 
     @Test
-    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException, IOException {
+    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException {
         ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        CloseableHttpClient httpClientSpy = Mockito.spy(httpClient);
+        HttpClient httpClient = HttpClientFactory.create(null);
+        HttpClient httpClientSpy = Mockito.spy(httpClient);
         Client clientImpl = ClientFactory.createClient(engineCsb, httpClientSpy);
 
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
@@ -616,7 +619,8 @@ class E2ETest {
         clientImpl.execute(databaseName, query, clientRequestProperties);
         clientImpl.execute(databaseName, query, clientRequestProperties);
 
-        Mockito.verify(httpClientSpy, atLeast(2)).execute(any());
+        // Todo potentially need a try with resources here
+        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE));
     }
 
     @Test
@@ -624,8 +628,9 @@ class E2ETest {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
-            try (Client client = ClientFactory.createClient(
-                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"))) {
+            try {
+                Client client = ClientFactory.createClient(
+                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"));
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
@@ -649,17 +654,20 @@ class E2ETest {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
         List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
         redirectCodes.parallelStream().map(code -> {
-            try (Client client = ClientFactory.createClient(
-                    ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"))) {
+            try {
+                Client client = ClientFactory.createClient(
+                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"));
                 try {
                     client.execute("db", "table");
                     Assertions.fail("Expected exception");
                 } catch (DataServiceException e) {
                     Assertions.assertTrue(e.getMessage().contains("" + code));
                     Assertions.assertFalse(e.getMessage().contains("metadata"));
+                } catch (Exception e) {
+                    return e;
                 }
-            } catch (Exception e) {
-                return e;
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
             }
             return null;
         }).forEach(e -> {

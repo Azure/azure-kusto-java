@@ -4,16 +4,18 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
+import com.azure.core.util.HttpClientOptions;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.auth.HttpClientWrapper;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -27,7 +29,6 @@ import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
@@ -41,55 +42,46 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
 class ResourceManager implements Closeable, IngestionResourceManager {
+    public static final String SERVICE_TYPE_COLUMN_NAME = "ServiceType";
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
-    private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(1);
-    private static final long REFRESH_RESULT_POLL_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(15);
+    private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(15);
     public static final int UPLOAD_TIMEOUT_MINUTES = 10;
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private Timer refreshTasksTimer;
+    private Timer timer;
     private final ReadWriteLock ingestionResourcesLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionAuthTokenLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionResourcesSchedulingLock = new ReentrantReadWriteLock();
-    private final ReadWriteLock ingestionAuthTokenSchedulingLock = new ReentrantReadWriteLock();
+    private final ReadWriteLock authTokenLock = new ReentrantReadWriteLock();
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     private final HttpClient httpClient;
-    private final RetryConfig taskRetryConfig;
+    private final RetryConfig retryConfig;
     private RequestRetryOptions queueRequestOptions = null;
     private RankedStorageAccountSet storageAccountSet;
     private String identityToken;
     private IngestionResourceSet ingestionResourceSet;
-    protected RefreshIngestionAuthTokenTask refreshIngestionAuthTokenTask;
-    protected RefreshIngestionResourcesTask refreshIngestionResourcesTask;
 
-    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable CloseableHttpClient httpClient) {
-        this.client = client;
-        // Using ctor with client so that the dependency is used
-        this.httpClient = httpClient == null
-                ? new NettyAsyncHttpClientBuilder().responseTimeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build()
-                : new HttpClientWrapper(httpClient);
-
-        // Refresh tasks
-        this.refreshTasksTimer = new Timer(true);
+    public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
-        this.taskRetryConfig = Utils.buildRetryConfig(ThrottleException.class);
-        initRefreshTasks();
-
-        this.storageAccountSet = new RankedStorageAccountSet();
+        this.client = client;
+        timer = new Timer(true);
+        // Using ctor with client so that the dependency is used
+        this.httpClient = httpClient == null
+                ? HttpClientFactory.create(HttpClientProperties.builder().timeout(Duration.ofMinutes(UPLOAD_TIMEOUT_MINUTES)).build())
+                : httpClient;
+        retryConfig = Utils.buildRetryConfig(ThrottleException.class);
+        storageAccountSet = new RankedStorageAccountSet();
+        init();
     }
 
-    public ResourceManager(Client client, @Nullable CloseableHttpClient httpClient) {
+    public ResourceManager(Client client, @Nullable HttpClient httpClient) {
         this(client, REFRESH_INGESTION_RESOURCES_PERIOD, REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE, httpClient);
     }
 
@@ -99,9 +91,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         timer.cancel();
         timer.purge();
         timer = null;
-        //refreshTasksTimer.cancel();
-        //refreshTasksTimer.purge();
-        //refreshTasksTimer = null;
         try {
             client.close();
         } catch (IOException e) {
@@ -117,46 +106,12 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 try {
                     log.warn("Yihezkel: RefreshIngestionResourcesTask.run start");
                     refreshIngestionResources();
-                    return null;
-                }, "ResourceManager.refreshIngestionResource");
-            } catch (Exception e) {
-                log.error("Error in refreshIngestionResources: " + e.getMessage(), e);
-                scheduleRefreshIngestionResourcesTask(refreshTimeOnFailure);
-            }
-        }
-
-        private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
-            // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-            if (ingestionResourcesLock.writeLock().tryLock()) {
-                try {
-                    log.info("Refreshing Ingestion Resources");
-                    IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
-                    Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
-                    KustoOperationResult ingestionResourcesResults = retryExecute.apply();
-                    if (ingestionResourcesResults != null) {
-                        KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
-                        // Add the received values to the new ingestion resources
-                        while (table.next()) {
-                            String resourceTypeName = table.getString(0);
-                            String storageUrl = table.getString(1);
-                            addIngestionResource(newIngestionResourceSet, resourceTypeName, storageUrl);
-                        }
+                    timer.schedule(new RefreshIngestionResourcesTask(), defaultRefreshTime);
+                } catch (Exception e) {
+                    log.error("Error in refreshIngestionResources. " + e.getMessage(), e);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionResourcesTask(), refreshTimeOnFailure);
                     }
-                    populateStorageAccounts(newIngestionResourceSet);
-                    ingestionResourceSet = newIngestionResourceSet;
-                    refreshedAtLeastOnce.clear();
-                    refreshedAtLeastOnce.put(true);
-                    log.info("Refreshing Ingestion Resources Finished");
-                } catch (DataServiceException e) {
-                    throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
-                } catch (DataClientException e) {
-                    throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionResources. " + e.getMessage(), e);
-                } catch (Throwable e) {
-                    throw new IngestionClientException(e.getMessage(), e);
-                } finally {
-                    ingestionResourcesLock.writeLock().unlock();
                 }
                 log.warn("Yihezkel: RefreshIngestionResourcesTask.run done");
             }
@@ -168,116 +123,57 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 log.warn("Yihezkel: RefreshIngestionAuthTokenTask.run start");
                 try {
                     refreshIngestionAuthToken();
-                    return null;
-                }, "ResourceManager.refreshIngestionAuthToken");
-            } catch (Exception e) {
-                log.error("Error in refreshIngestionAuthToken: " + e.getMessage(), e);
-                scheduleRefreshIngestionAuthTokenTask(refreshTimeOnFailure);
-            }
-        }
-
-        private void refreshIngestionAuthToken() throws IngestionClientException, IngestionServiceException {
-            if (ingestionAuthTokenLock.writeLock().tryLock()) {
-                try {
-                    log.info("Refreshing Ingestion Auth Token");
-                    Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.IDENTITY_GET_COMMAND));
-                    KustoOperationResult identityTokenResult = retryExecute.apply();
-                    if (identityTokenResult != null
-                            && identityTokenResult.hasNext()
-                            && !identityTokenResult.getResultTables().isEmpty()) {
-                        KustoResultSetTable resultTable = identityTokenResult.next();
-                        resultTable.next();
-                        identityToken = resultTable.getString(0);
+                    timer.schedule(new RefreshIngestionAuthTokenTask(), defaultRefreshTime);
+                } catch (Exception e) {
+                    log.error("Error in refreshIngestionAuthToken. " + e.getMessage(), e);
+                    if (timer != null) {
+                        timer.schedule(new RefreshIngestionAuthTokenTask(), refreshTimeOnFailure);
                     }
-                    refreshedAtLeastOnce.clear();
-                    refreshedAtLeastOnce.put(true);
-                    log.info("Refreshing Ingestion Auth Token Finished");
-                } catch (DataServiceException e) {
-                    throw new IngestionServiceException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
-                } catch (DataClientException e) {
-                    throw new IngestionClientException(e.getIngestionSource(), "Error refreshing IngestionAuthToken. " + e.getMessage(), e);
-                } catch (Throwable e) {
-                    throw new IngestionClientException(e.getMessage(), e);
-                } finally {
-                    ingestionAuthTokenLock.writeLock().unlock();
                 }
                 log.warn("Yihezkel: RefreshIngestionAuthTokenTask.run done");
             }
         }
-    }
 
-    private void initRefreshTasks() {
-        scheduleRefreshIngestionResourcesTask(0L);
-        scheduleRefreshIngestionAuthTokenTask(0L);
-    }
-
-    // If we combined these 2 methods, ensuring we're using distinct synchronized locks for both would be inelegant
-    private synchronized void scheduleRefreshIngestionResourcesTask(Long delay) {
-        if (refreshTasksTimer != null) {
-            if (refreshIngestionResourcesTask != null) {
-                refreshIngestionResourcesTask.cancel();
-            }
-
-            refreshIngestionResourcesTask = new RefreshIngestionResourcesTask();
-            refreshTasksTimer.schedule(refreshIngestionResourcesTask, delay, defaultRefreshTime);
-        }
-    }
-
-    private synchronized void scheduleRefreshIngestionAuthTokenTask(Long delay) {
-        if (refreshTasksTimer != null) {
-            if (refreshIngestionAuthTokenTask != null) {
-                refreshIngestionAuthTokenTask.cancel();
-            }
-
-            refreshIngestionAuthTokenTask = new RefreshIngestionAuthTokenTask();
-            refreshTasksTimer.schedule(refreshIngestionAuthTokenTask, delay, defaultRefreshTime);
-        }
+        timer.schedule(new RefreshIngestionAuthTokenTask(), 0);
+        timer.schedule(new RefreshIngestionResourcesTask(), 0);
     }
 
     @Override
-    public List<ContainerWithSas> getShuffledContainers() throws IngestionServiceException {
+    public List<ContainerWithSas> getShuffledContainers() throws IngestionClientException, IngestionServiceException {
         IngestionResource<ContainerWithSas> containers = getResourceSet(() -> this.ingestionResourceSet.containers);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), containers.getResourcesList());
     }
 
-    public List<QueueWithSas> getShuffledQueues() throws IngestionServiceException {
+    public List<QueueWithSas> getShuffledQueues() throws IngestionClientException, IngestionServiceException {
         IngestionResource<QueueWithSas> queues = getResourceSet(() -> this.ingestionResourceSet.queues);
         return ResourceAlgorithms.getShuffledResources(storageAccountSet.getRankedShuffledAccounts(), queues.getResourcesList());
     }
 
-    public TableWithSas getStatusTable() throws IngestionServiceException {
+    public TableWithSas getStatusTable() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.statusTable);
     }
 
-    public QueueWithSas getFailedQueue() throws IngestionServiceException {
+    public QueueWithSas getFailedQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.failedIngestionsQueues);
     }
 
-    public QueueWithSas getSuccessfulQueue() throws IngestionServiceException {
+    public QueueWithSas getSuccessfulQueue() throws IngestionClientException, IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.successfulIngestionsQueues);
     }
 
     public String getIdentityToken() throws IngestionServiceException, IngestionClientException {
         log.warn("Yihezkel: getIdentityToken start");
         if (identityToken == null) {
-            // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionAuthTokenSchedulingLock.writeLock().tryLock()) {
-                try {
-                    // Scheduling the task with no delay will force it to try now, with its normal retry logic
-                    scheduleRefreshIngestionAuthTokenTask(0L);
-                } finally {
-                    ingestionAuthTokenSchedulingLock.writeLock().unlock();
+            refreshIngestionAuthToken();
+            try {
+                authTokenLock.readLock().lock();
+                if (identityToken == null) {
+                    throw new IngestionServiceException("Unable to get Identity token");
                 }
-            }
-
-            Boolean refreshedOnce = refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce();
-            if (identityToken == null) {
-                throwNoResultException("Unable to get Identity token", refreshedOnce);
+            } finally {
+                authTokenLock.readLock().unlock();
             }
         }
-
         log.warn("Yihezkel: getIdentityToken done");
         return identityToken;
     }
@@ -286,7 +182,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.queueRequestOptions = queueRequestOptions;
     }
 
-    private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionServiceException {
+    private <T> T getResource(Callable<IngestionResource<T>> resourceGetter) throws IngestionClientException, IngestionServiceException {
         return getResourceSet(resourceGetter).nextResource();
     }
 
@@ -299,26 +195,21 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
 
         if (resource == null || resource.empty()) {
-            // If this method is called multiple times, don't schedule the task multiple times
-            if (ingestionResourcesSchedulingLock.writeLock().tryLock()) {
-                try {
-                    // Scheduling the task with no delay will force it to try now, with its normal retry logic
-                    scheduleRefreshIngestionResourcesTask(0L);
-                } finally {
-                    ingestionResourcesSchedulingLock.writeLock().unlock();
-                }
-            }
+            refreshIngestionResources();
 
-            // If the write lock is locked (refresh is running), then the read will wait here until it ends
-            Boolean refreshedOnce = refreshIngestionResourcesTask.waitUntilRefreshedAtLeastOnce();
+            // If the write lock is locked, then the read will wait here.
+            // In other words if the refresh is running yet, then wait until it ends
+            ingestionResourcesLock.readLock().lock();
             try {
                 resource = resourceGetter.call();
-            } catch (Exception ignore) {
-            }
 
+            } catch (Exception ignore) {
+            } finally {
+                ingestionResourcesLock.readLock().unlock();
+            }
             if (resource == null || resource.empty()) {
-                throwNoResultException("Unable to get ingestion resources for this type: " +
-                        (resource == null ? "" : resource.resourceType), refreshedOnce);
+                throw new IngestionServiceException("Unable to get ingestion resources for this type: " +
+                        (resource == null ? "" : resource.resourceType));
             }
         }
 
@@ -470,16 +361,16 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             log.warn("Couldn't retrieve ServiceType because of a client exception executing '.show version'");
             return null;
         }
-        throw new IngestionServiceException(baseMessage);
+        log.warn("Couldn't retrieve ServiceType because '.show version' didn't return any records");
+        return null;
     }
 
     @Override
     public void reportIngestionResult(ResourceWithSas<?> resource, boolean success) {
         if (storageAccountSet == null) {
-            log.error("StorageAccountSet is null, so can't report ingestion result");
-        } else {
-            storageAccountSet.addResultToAccount(resource.getAccountName(), success);
+            log.warn("StorageAccountSet is null");
         }
+        storageAccountSet.addResultToAccount(resource.getAccountName(), success);
     }
 
     enum ResourceType {
@@ -538,10 +429,10 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     }
 
     private static class IngestionResourceSet {
-        IngestionResource<ContainerWithSas> containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);
-        IngestionResource<TableWithSas> statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);
-        IngestionResource<QueueWithSas> queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);
-        IngestionResource<QueueWithSas> successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);
-        IngestionResource<QueueWithSas> failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);
+        IngestionResource<ContainerWithSas> containers = new IngestionResource<>(ResourceType.TEMP_STORAGE);;
+        IngestionResource<TableWithSas> statusTable = new IngestionResource<>(ResourceType.INGESTIONS_STATUS_TABLE);;
+        IngestionResource<QueueWithSas> queues = new IngestionResource<>(ResourceType.SECURED_READY_FOR_AGGREGATION_QUEUE);;
+        IngestionResource<QueueWithSas> successfulIngestionsQueues = new IngestionResource<>(ResourceType.SUCCESSFUL_INGESTIONS_QUEUE);;
+        IngestionResource<QueueWithSas> failedIngestionsQueues = new IngestionResource<>(ResourceType.FAILED_INGESTIONS_QUEUE);;
     }
 }
