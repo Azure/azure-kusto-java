@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClientProvider;
 import com.azure.core.http.ProxyOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientProvider;
 
 import java.time.Duration;
 
@@ -126,7 +125,7 @@ public class HttpClientProperties {
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
-        private boolean keepAlive;
+        private boolean keepAlive = true;
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
