@@ -22,15 +22,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SynchronousSink;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.function.BiConsumer;
 
 import static reactor.core.publisher.Mono.just;
 
@@ -89,8 +86,7 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeQueryAsync(kr)
-                .subscribeOn(Schedulers.boundedElastic());
+        return executeQueryAsync(kr);
     }
 
     Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoRequest kr) {
@@ -103,8 +99,7 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeMgmtAsync(kr)
-                .subscribeOn(Schedulers.boundedElastic());
+        return executeMgmtAsync(kr);
     }
 
     public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoRequest kr) {
@@ -116,32 +111,39 @@ class ClientImpl extends BaseClient {
 
     private Mono<KustoOperationResult> executeAsync(KustoRequest kr) {
 
-        Mono<String> resultMono = executeToJsonAsync(kr);
-        Mono<String> endpointMono = Mono.just(String.format(kr.getCommandType().getEndpoint(), clusterUrl));
+        Mono<String> resultMono = executeToJsonAsync(kr)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+        Mono<String> endpointMono = Mono.just(String.format(kr.getCommandType().getEndpoint(), clusterUrl))
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
 
         return Mono.zip(resultMono, endpointMono)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
                 .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
-                .handle(processJsonResultAsync);
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+                .flatMap(this::processJsonResultAsync)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
     }
 
-    BiConsumer<JsonResult, SynchronousSink<KustoOperationResult>> processJsonResultAsync = (result, sink) -> {
+    public Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
         try {
-            sink.next(processJsonResult(result));
+            return Mono.just(processJsonResult(res));
         } catch (Exception e) {
-            sink.error(e);
+            return Mono.error(new RuntimeException("Error processing json result", e));
         }
-    };
+    }
 
     public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
         KustoRequest kr = new KustoRequest(command, database, properties);
         return executeToJsonAsync(kr)
-                .subscribeOn(Schedulers.boundedElastic());
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
     }
 
     Mono<String> executeToJsonAsync(KustoRequest kr) {
         return just(kr)
-                .handle(prepareRequestAsync)
-                .flatMap(this::processRequestAsync);
+                .flatMap(this::prepareRequestAsync)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+                .flatMap(this::processRequestAsync)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
     }
 
     @Override
@@ -245,13 +247,13 @@ class ClientImpl extends BaseClient {
         return new KustoRequestContext(kr, request);
     }
 
-    BiConsumer<KustoRequest, SynchronousSink<KustoRequestContext>> prepareRequestAsync = (kr, sink) -> {
+    public Mono<KustoRequestContext> prepareRequestAsync(@NotNull KustoRequest kr) {
         try {
-            sink.next(prepareRequest(kr));
+            return Mono.just(prepareRequest(kr));
         } catch (Exception e) {
-            sink.error(e);
+            return Mono.error(new RuntimeException("Failed to prepare KustoRequestContext", e));
         }
-    };
+    }
 
     @Override
     public String executeToJsonResult(String command) throws DataServiceException, DataClientException {
@@ -280,7 +282,9 @@ class ClientImpl extends BaseClient {
     }
 
     public Mono<String> processRequestAsync(KustoRequestContext request) {
-        return MonitoredActivity.invoke((SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest()),
+        return MonitoredActivity.invoke(
+                (SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest())
+                        .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err)),
                 request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 

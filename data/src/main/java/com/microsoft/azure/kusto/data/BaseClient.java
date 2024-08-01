@@ -11,14 +11,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiConsumer;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
@@ -43,16 +41,18 @@ public abstract class BaseClient implements Client, StreamingClient {
     protected Mono<String> postAsync(HttpRequest request) {
         // Execute and get the response
         return httpClient.send(request)
-                .handle(processResponseBodyAsync);
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+                .flatMap(this::processResponseAsync)
+                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
     }
 
-    private final BiConsumer<HttpResponse, SynchronousSink<String>> processResponseBodyAsync = (response, sink) -> {
+    public Mono<String> processResponseAsync(HttpResponse response) {
         try {
-            sink.next(Objects.requireNonNull(processResponseBody(response)));
+            return Mono.just(Objects.requireNonNull(processResponseBody(response)));
         } catch (Exception e) {
-            sink.error(e);
+            return Mono.error(new RuntimeException("Error processing response", e));
         }
-    };
+    }
 
     private String processResponseBody(HttpResponse response) throws DataServiceException {
         String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())

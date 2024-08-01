@@ -105,10 +105,14 @@
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                     </ignoredUnusedDeclaredDependencies>
                     <ignoredUsedUndeclaredDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
+                    <ignoredNonTestScopedDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                    </ignoredNonTestScopedDependencies>
                 </configuration>
                 <executions>
                     <execution>

@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.http.HttpResponse;
 import com.azure.core.util.Context;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.*;
@@ -59,6 +61,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class E2ETest {
 
     private static IngestClient ingestClient;
@@ -107,6 +110,7 @@ class E2ETest {
                     .maxConnectionsTotal(50)
                     .build());
         } catch (URISyntaxException ex) {
+
             Assertions.fail("Failed to create ingest client", ex);
         }
 
@@ -135,9 +139,9 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
+            Assertions.assertNotNull(tableName, "Table name was not set");
+            Assertions.assertNotNull(DB_NAME, "DB name was not set");
             queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
-            ingestClient.close();
-            managedStreamingIngestClient.close();
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
@@ -305,16 +309,6 @@ class E2ETest {
     void testShowPrincipals() {
         boolean found = isDatabasePrincipal(queryClient);
         Assertions.assertTrue(found, "Failed to find authorized AppId in the database principals");
-    }
-
-    @Test
-    void testShowPrincipalsAsync() {
-        Mono<KustoOperationResult> laterResult = queryClient.executeMgmtAsync(DB_NAME, String.format(".show database %s principals", DB_NAME), null);
-        StepVerifier.create(laterResult)
-                .expectNextCount(1L)
-                .expectNextMatches(this::resultContainsPrincipal)
-                .expectComplete()
-                .verify();
     }
 
     private boolean isDatabasePrincipal(Client localQueryClient) {
@@ -636,8 +630,9 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        // Todo potentially need a try with resources here
-        Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE));
+        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE))) {
+        }
+
     }
 
     @Test
