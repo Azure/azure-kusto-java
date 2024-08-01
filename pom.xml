@@ -35,7 +35,7 @@
         <revision>6.0.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <azure-bom-version>1.2.22</azure-bom-version>
+        <azure-bom-version>1.2.24</azure-bom-version>
 
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
         <!-- Ideally, versions below should align with latest databricks runtime dependency versions -->
