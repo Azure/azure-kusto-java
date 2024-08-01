@@ -93,7 +93,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
                 authorityUrl = firstPartyAuthorityUrl;
             }
 
-            return SilentParameters.builder(scopes).account(account).authorityUrl(authorityUrl).build();
+            return SilentParameters.builder(scopes, account).authorityUrl(authorityUrl).build();
         }
         return SilentParameters.builder(scopes).authorityUrl(aadAuthorityUrl).build();
     }
