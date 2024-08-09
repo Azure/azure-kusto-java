@@ -45,6 +45,10 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -122,7 +126,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists skip-seal", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -139,6 +143,10 @@ class E2ETest {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+            LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
+            String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+            String autoDeletePolicy = "@'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
+            queryClient.executeToJsonResult(databaseName, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
