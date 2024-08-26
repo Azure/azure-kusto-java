@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Proxy planner support for http client
+- Introduce a new `supportedProtocols` field in `HttpClientProperties` to allow specifying SSL/TLS protocols.
 
 ## [5.1.1] - 2024-07-25
 ### Fixed

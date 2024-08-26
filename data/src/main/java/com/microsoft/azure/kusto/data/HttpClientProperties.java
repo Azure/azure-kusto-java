@@ -15,6 +15,7 @@ public class HttpClientProperties {
     private final Integer maxConnectionRoute;
     private final HttpHost proxy;
     private final HttpRoutePlanner routePlanner;
+    private final String[] supportedProtocols;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -24,6 +25,7 @@ public class HttpClientProperties {
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
         this.proxy = builder.proxy;
         this.routePlanner = builder.routePlanner;
+        this.supportedProtocols = builder.supportedProtocols;
     }
 
     /**
@@ -103,6 +105,9 @@ public class HttpClientProperties {
 
     public HttpRoutePlanner getPlanner() {
         return routePlanner;
+
+      public String[] supportedProtocols() {
+        return supportedProtocols;
     }
 
     public static class HttpClientPropertiesBuilder {
@@ -114,6 +119,7 @@ public class HttpClientProperties {
         private Integer maxConnectionsPerRoute = 40;
         private HttpHost proxy = null;
         private HttpRoutePlanner routePlanner = null;
+        private String[] supportedProtocols = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -206,11 +212,20 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder routePlanner(HttpRoutePlanner routePlanner) {
             this.routePlanner = routePlanner;
+
+        /**
+         * Sets the list of supported SSL/TLS protocols.
+         * @param tlsProtocols the list of supported protocols
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder supportedProtocols(String[] tlsProtocols) {
+            this.supportedProtocols = tlsProtocols;
             return this;
         }
 
         public HttpClientProperties build() {
             return new HttpClientProperties(this);
         }
+
     }
 }
