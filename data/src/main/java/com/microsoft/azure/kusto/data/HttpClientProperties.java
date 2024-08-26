@@ -48,7 +48,7 @@ public class HttpClientProperties {
     }
 
     /**
-     * Indicates whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+     * Indicates whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
      * client will use the default connection keep-alive strategy, which is to use only the server instructions
      * (if any) set in the {@code Keep-Alive} response header.
      * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -105,8 +105,9 @@ public class HttpClientProperties {
 
     public HttpRoutePlanner getPlanner() {
         return routePlanner;
+    }
 
-      public String[] supportedProtocols() {
+    public String[] supportedProtocols() {
         return supportedProtocols;
     }
 
@@ -138,7 +139,7 @@ public class HttpClientProperties {
         }
 
         /**
-         * Set whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+         * Set whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
          * client will use the default connection keep-alive strategy, which is to use only the server instructions
          * (if any) set in the {@code Keep-Alive} response header.
          * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -212,6 +213,8 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder routePlanner(HttpRoutePlanner routePlanner) {
             this.routePlanner = routePlanner;
+            return this;
+        }
 
         /**
          * Sets the list of supported SSL/TLS protocols.

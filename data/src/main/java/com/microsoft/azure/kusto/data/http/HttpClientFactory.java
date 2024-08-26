@@ -60,7 +60,8 @@ public class HttpClientFactory {
         if (properties.supportedProtocols() != null) {
 
             try {
-                httpClientBuilder.setSSLSocketFactory(new SSLConnectionSocketFactory(SSLContext.getDefault(), properties.supportedProtocols(), null, SSLConnectionSocketFactory.getDefaultHostnameVerifier()));
+                httpClientBuilder.setSSLSocketFactory(new SSLConnectionSocketFactory(SSLContext.getDefault(), properties.supportedProtocols(), null,
+                        SSLConnectionSocketFactory.getDefaultHostnameVerifier()));
             } catch (NoSuchAlgorithmException e) {
                 LOGGER.error("Failed to set supported protocols", e);
             }

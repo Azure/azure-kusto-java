@@ -707,12 +707,13 @@ class E2ETest {
 
     @Test
     void testProxyPlanner() throws URISyntaxException {
-        String[] prefixes = new String[] {
+        String[] excludedPrefixes = new String[] {
                 new URI(engineCsb.getClusterUrl()).getHost(),
                 "login.microsoftonline.com"
         };
 
-        HttpClientProperties providedProperties = HttpClientProperties.builder().routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", prefixes))
+        HttpClientProperties providedProperties = HttpClientProperties.builder()
+                .routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", excludedPrefixes))
                 .build();
         try (Client client = ClientFactory.createClient(engineCsb, providedProperties)) {
             KustoOperationResult execute = client.execute(".show version");
