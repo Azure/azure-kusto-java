@@ -101,6 +101,7 @@ public class ConnectionStringBuilder {
         if (parsedKey == null) {
             throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
         }
+
         switch (parsedKey) {
             case DataSource:
                 this.clusterUrl = value;

@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.http.HttpHost;
+import org.apache.http.conn.routing.HttpRoutePlanner;
 
 /**
  * HTTP client properties.
@@ -13,6 +14,8 @@ public class HttpClientProperties {
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
     private final HttpHost proxy;
+    private final HttpRoutePlanner routePlanner;
+    private final String[] supportedProtocols;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -21,6 +24,8 @@ public class HttpClientProperties {
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
         this.proxy = builder.proxy;
+        this.routePlanner = builder.routePlanner;
+        this.supportedProtocols = builder.supportedProtocols;
     }
 
     /**
@@ -43,7 +48,7 @@ public class HttpClientProperties {
     }
 
     /**
-     * Indicates whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+     * Indicates whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
      * client will use the default connection keep-alive strategy, which is to use only the server instructions
      * (if any) set in the {@code Keep-Alive} response header.
      * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -98,6 +103,14 @@ public class HttpClientProperties {
         return proxy;
     }
 
+    public HttpRoutePlanner getPlanner() {
+        return routePlanner;
+    }
+
+    public String[] supportedProtocols() {
+        return supportedProtocols;
+    }
+
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -106,6 +119,8 @@ public class HttpClientProperties {
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
         private HttpHost proxy = null;
+        private HttpRoutePlanner routePlanner = null;
+        private String[] supportedProtocols = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -124,7 +139,7 @@ public class HttpClientProperties {
         }
 
         /**
-         * Set whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+         * Set whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
          * client will use the default connection keep-alive strategy, which is to use only the server instructions
          * (if any) set in the {@code Keep-Alive} response header.
          * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -190,9 +205,30 @@ public class HttpClientProperties {
             return this;
         }
 
+        /**
+         * Overrides the {@link #proxy} parameter, and can be used to create more complex proxies.
+         *
+         * @param routePlanner the custom route planner
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder routePlanner(HttpRoutePlanner routePlanner) {
+            this.routePlanner = routePlanner;
+            return this;
+        }
+
+        /**
+         * Sets the list of supported SSL/TLS protocols.
+         * @param tlsProtocols the list of supported protocols
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder supportedProtocols(String[] tlsProtocols) {
+            this.supportedProtocols = tlsProtocols;
+            return this;
+        }
+
         public HttpClientProperties build() {
             return new HttpClientProperties(this);
         }
-    }
 
+    }
 }
