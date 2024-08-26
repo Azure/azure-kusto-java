@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -69,6 +70,7 @@ class E2ETest {
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
+    private static ConnectionStringBuilder engineCsb;
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -99,7 +101,7 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
+        engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
@@ -701,5 +703,23 @@ class E2ETest {
                 }
             }
         }
+    }
+
+    @Test
+    void testProxyPlanner() throws URISyntaxException {
+        String[] excludedPrefixes = new String[] {
+                new URI(engineCsb.getClusterUrl()).getHost(),
+                "login.microsoftonline.com"
+        };
+
+        HttpClientProperties providedProperties = HttpClientProperties.builder()
+                .routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", excludedPrefixes))
+                .build();
+        try (Client client = ClientFactory.createClient(engineCsb, providedProperties)) {
+            KustoOperationResult execute = client.execute(".show version");
+        } catch (Exception e) {
+            Assertions.fail(e);
+        }
+
     }
 }
