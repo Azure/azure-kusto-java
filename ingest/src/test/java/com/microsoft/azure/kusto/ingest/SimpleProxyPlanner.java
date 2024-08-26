@@ -1,4 +1,4 @@
-package com.microsoft.azure.kusto.data.http;
+package com.microsoft.azure.kusto.ingest;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;

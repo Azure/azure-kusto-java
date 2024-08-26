@@ -16,7 +16,6 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.HttpClientProperties;
-import com.microsoft.azure.kusto.data.http.SimpleProxyPlanner;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -707,8 +706,7 @@ class E2ETest {
 
         HttpClientProperties providedProperties = HttpClientProperties.builder().routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", prefixes))
                 .build();
-        try (Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://ohadev.swedencentral.dev.kusto.windows.net"),
-                providedProperties)) {
+        try (Client client = ClientFactory.createClient(engineCsb, providedProperties)) {
             KustoOperationResult execute = client.execute(".show version");
         } catch (Exception e) {
             Assertions.fail(e);
