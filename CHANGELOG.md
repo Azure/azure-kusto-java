@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Proxy planner support for http client
+
+## [5.1.1] - 2024-07-25
+### Fixed
+- Fix population of application and client version for tracing
+
 ## [5.1.0] - 2024-06-25
 ### Added
 - Azure CLI authentication
