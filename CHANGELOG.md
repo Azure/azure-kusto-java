@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.2] - 2024-07-25
+### Fixed
+- Used Msal user prompt old code which is deprecated in the new version coming from last bom update resulted in method not found exception.
+### Added
+- Proxy planner support for http client
+- Introduce a new `supportedProtocols` field in `HttpClientProperties` to allow specifying SSL/TLS protocols.
+
 ## [5.1.1] - 2024-07-25
 ### Fixed
 - Fix population of application and client version for tracing
