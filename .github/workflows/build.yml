@@ -45,12 +45,12 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
       - name: Upload file to Blob Storage
-          run: |
-            az storage blob upload-batch \
-              --account-name ${{ secrets.AZURE_RELEASE_STORAGE_ACCOUNT }} \
-              --destination ${{ secrets.AZURE_STORAGE_CONTAINER}} \
-              --source staging \
-              --auth-mode login
+        run: |
+          az storage blob upload-batch \
+            --account-name ${{ secrets.AZURE_RELEASE_STORAGE_ACCOUNT }} \
+            --destination ${{ secrets.AZURE_STORAGE_CONTAINER}} \
+            --source staging \
+            --auth-mode login
       - uses: LanceMcCarthy/Action-AzureBlobUpload@v3
         name: Uploading to Azure storage
         with:
