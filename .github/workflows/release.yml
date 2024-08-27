@@ -108,12 +108,6 @@ jobs:
             --source staging \
             --auth-mode login
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_azure == 'true') }}
-      - name: Azure login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.APP_ID }}
-          tenant-id: ${{ secrets.TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Trigger pipelines release
         uses: jacopocarlini/azure-pipelines@v1.3
         with:
