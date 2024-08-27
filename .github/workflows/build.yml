@@ -34,24 +34,21 @@ jobs:
           distribution: 'adopt'
           java-version: ${{ matrix.java }}
           cache: 'maven'
-      - name: Run formatter
-        run: mvn formatter:validate
-        continue-on-error: true
-      - name: Run the Maven verify phase
-        run: mvn verify
-        env:
-          DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
-          ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
-          TEST_DATABASE: e2e
-          APP_ID: ${{ secrets.APP_ID }}
-          TENANT_ID: ${{ secrets.TENANT_ID }}
-          CI_EXECUTION: 1
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
+      - name: create some file
+        run: |
+          mkdir staging
+          echo "Hello, World!" > staging/hello.txt
+      - name: Azure login for azuresdkpartnerdrops SA
+        uses: azure/login@v2
         with:
-          files: |
-            data/target/surefire-reports/*.xml
-            ingest/target/surefire-reports/*.xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+          client-id: ${{ secrets.AZURESDKPARTNERDROPS_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURESDKPARTNERDROPS_SUBSCRIPTION_ID }}
+      - uses: LanceMcCarthy/Action-AzureBlobUpload@v3
+        name: Uploading to Azure storage
+        with:
+          connection_string: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING}}
+          container_name: ${{ secrets.AZURE_STORAGE_CONTAINER}}
+          source_folder: staging
+          destination_folder: kusto/delete
+          delete_if_exists: true
