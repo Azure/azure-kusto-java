@@ -5,6 +5,7 @@ import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeaderElementIterator;
@@ -13,6 +14,8 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -49,8 +52,22 @@ public class HttpClientFactory {
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
         }
 
+        if (properties.getPlanner() != null) {
+            httpClientBuilder.setRoutePlanner(properties.getPlanner());
+        }
+
         if (properties.getProxy() != null) {
             httpClientBuilder.setProxy(properties.getProxy());
+        }
+
+        if (properties.supportedProtocols() != null) {
+
+            try {
+                httpClientBuilder.setSSLSocketFactory(new SSLConnectionSocketFactory(SSLContext.getDefault(), properties.supportedProtocols(), null,
+                        SSLConnectionSocketFactory.getDefaultHostnameVerifier()));
+            } catch (NoSuchAlgorithmException e) {
+                LOGGER.error("Failed to set supported protocols", e);
+            }
         }
 
         return httpClientBuilder.build();

@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.io.*;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,6 +46,10 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -65,6 +70,7 @@ class E2ETest {
     private static final String appId = System.getenv("APP_ID");
     private static final String appKey = System.getenv("APP_KEY");
     private static final String tenantId = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
+    private static ConnectionStringBuilder engineCsb;
     private static String principalFqn;
     private static String resourcesPath;
     private static int currentCount = 0;
@@ -95,7 +101,7 @@ class E2ETest {
             Assertions.fail("Failed to create ingest client", ex);
         }
 
-        ConnectionStringBuilder engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
+        engineCsb = createConnection(System.getenv("ENGINE_CONNECTION_STRING"));
         engineCsb.setUserNameForTracing("Java_E2ETest_ø");
         try {
             streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
@@ -122,7 +128,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists skip-seal", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -139,6 +145,10 @@ class E2ETest {
         try {
             queryClient.executeToJsonResult(databaseName, String.format(".drop table %s ifexists", tableName));
             queryClient.executeToJsonResult(databaseName, String.format(".create table %s %s", tableName, tableColumns));
+            LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
+            String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+            String autoDeletePolicy = "@'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
+            queryClient.executeToJsonResult(databaseName, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -693,5 +703,23 @@ class E2ETest {
                 }
             }
         }
+    }
+
+    @Test
+    void testProxyPlanner() throws URISyntaxException {
+        String[] excludedPrefixes = new String[] {
+                new URI(engineCsb.getClusterUrl()).getHost(),
+                "login.microsoftonline.com"
+        };
+
+        HttpClientProperties providedProperties = HttpClientProperties.builder()
+                .routePlanner(new SimpleProxyPlanner("localhost", 8080, "http", excludedPrefixes))
+                .build();
+        try (Client client = ClientFactory.createClient(engineCsb, providedProperties)) {
+            KustoOperationResult execute = client.execute(".show version");
+        } catch (Exception e) {
+            Assertions.fail(e);
+        }
+
     }
 }

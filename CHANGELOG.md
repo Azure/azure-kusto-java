@@ -4,19 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## Unknown
 ### Added
 - A new heuristic for choosing between queuing and streaming in Managed streaming client, the default behavior is using
   an estimation against the 4mb limit after dividing or multiplying by some factor described by the consts:
 
   This will also allow users to stream bigger than 4mb non-compressed data
-  - disableRetries option to client options - default is true only for streaming clients as if stream is not repeatable it
-  will simply fail - better to let the user deal with it (alternative considered was to always create repeatable streams
-    like in managed streaming, but this PR also tries to avoid that)
+    - disableRetries option to client options - default is true only for streaming clients as if stream is not repeatable it
+      will simply fail - better to let the user deal with it (alternative considered was to always create repeatable streams
+      like in managed streaming, but this PR also tries to avoid that)
 ### Fixed
 - Some better error messages
-- 
+
+## [5.2.0] - 2024-08-27
+### Fixed
+- Used Msal user prompt old code which is deprecated in the new version coming from last bom update resulted in method not found exception.
+### Added
+- Proxy planner support for http client
+- Introduce a new `supportedProtocols` field in `HttpClientProperties` to allow specifying SSL/TLS protocols.
+
 ## [5.1.1] - 2024-07-25
 ### Fixed
 - Fix population of application and client version for tracing
