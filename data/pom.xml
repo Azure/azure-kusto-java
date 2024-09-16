@@ -167,7 +167,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
+            <version>${apache.httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -210,11 +210,6 @@
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
             <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>${reactor-core.version}</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -274,22 +269,5 @@
             <artifactId>resilience4j-core</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.14</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>3.6.6</version>
-            <scope>compile</scope>
-        </dependency>
-        <!--        <dependency>-->
-<!--            <groupId>io.vavr</groupId>-->
-<!--            <artifactId>vavr</artifactId>-->
-<!--            <version>${io.vavr.version}</version>-->
-<!--        </dependency>-->
     </dependencies>
 </project>
