@@ -1,6 +1,6 @@
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import org.apache.http.HttpHost;
 import org.apache.http.conn.routing.HttpRoute;
@@ -13,9 +13,10 @@ public class Proxy {
                     // Your custom route planning logic here
                     return new HttpRoute(new HttpHost("example.com"));
                 }).build();
-        try (Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt("https://ohadev.swedencentral.dev.kusto.windows.net"),
-                providedProperties)) {
-            client.execute(".show version");
+        try {
+            Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithUserPrompt(
+                    "https://ohadev.swedencentral.dev.kusto.windows.net"), providedProperties);
+            client.executeMgmt(".show version");
 
         } catch (Exception e) {
             e.printStackTrace();
