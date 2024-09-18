@@ -27,8 +27,12 @@ public class HttpClientFactory {
      */
     public static HttpClient create(HttpClientProperties properties) {
         LOGGER.info("Creating new HTTP Client");
+        HttpClientOptions options = new HttpClientOptions();
+
+        // If all properties are null, create with default client options
         if (properties == null) {
-            return HttpClient.createDefault();
+            options.setResponseTimeout(Duration.ofMinutes(10));
+            return HttpClient.createDefault(options);
         }
 
         // MS Docs indicate that all setters handle nulls so even if these values are null everything should "just work"
@@ -36,7 +40,6 @@ public class HttpClientFactory {
         // by simply
         // Docs: https://learn.microsoft.com/en-us/java/api/com.azure.core.util.httpclientoptions?view=azure-java-stable
 
-        HttpClientOptions options = new HttpClientOptions();
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
         options.setResponseTimeout(properties.timeout());

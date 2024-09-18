@@ -129,7 +129,7 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
-        private Duration timeout = null;
+        private Duration timeout = Duration.ofMinutes(10);
         private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
 
