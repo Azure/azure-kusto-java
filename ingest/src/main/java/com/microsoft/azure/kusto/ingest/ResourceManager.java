@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.time.Duration;
@@ -97,11 +96,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         refreshTasksTimer.cancel();
         refreshTasksTimer.purge();
         refreshTasksTimer = null;
-        try {
-            client.close();
-        } catch (IOException e) {
-            log.error("Couldn't close client: " + e.getMessage(), e);
-        }
     }
 
     abstract static class RefreshResourceTask extends TimerTask {
@@ -149,7 +143,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
                     Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
                     CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                            () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
                     KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                     if (ingestionResourcesResults != null) {
                         KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
@@ -245,7 +239,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     log.info("Refreshing Ingestion Auth Token");
                     Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
                     CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.execute(Commands.IDENTITY_GET_COMMAND));
+                            () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
                     KustoOperationResult identityTokenResult = retryExecute.apply();
                     if (identityTokenResult != null
                             && identityTokenResult.hasNext()
@@ -396,10 +390,9 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     @Override
     public void reportIngestionResult(ResourceWithSas<?> resource, boolean success) {
         if (storageAccountSet == null) {
-            log.error("StorageAccountSet is null, so can't report ingestion result");
-        } else {
-            storageAccountSet.addResultToAccount(resource.getAccountName(), success);
+            log.warn("StorageAccountSet is null");
         }
+        storageAccountSet.addResultToAccount(resource.getAccountName(), success);
     }
 
     enum ResourceType {

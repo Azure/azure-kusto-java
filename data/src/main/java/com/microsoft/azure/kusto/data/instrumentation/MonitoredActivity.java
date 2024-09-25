@@ -4,6 +4,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 public class MonitoredActivity {
     public static void invoke(Runnable runnable, String nameOfSpan) {
@@ -13,6 +14,16 @@ public class MonitoredActivity {
     public static void invoke(Runnable runnable, String nameOfSpan, Map<String, String> attributes) {
         try (Tracer.Span ignored = Tracer.startSpan(nameOfSpan, attributes)) {
             runnable.run();
+        }
+    }
+
+    public static <T> T invoke(SupplierNoException<T> supplier, String nameOfSpan) {
+        return invoke(supplier, nameOfSpan, new HashMap<>());
+    }
+
+    public static <T> T invoke(SupplierNoException<T> supplier, String nameOfSpan, Map<String, String> attributes) {
+        try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
+            return supplier.get();
         }
     }
 

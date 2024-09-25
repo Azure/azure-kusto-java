@@ -285,6 +285,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.connectionDataSource = connectionDataSource;
     }
 
+    @Override
     public void close() {
         this.resourceManager.close();
     }

@@ -6,9 +6,10 @@ package com.microsoft.azure.kusto.data;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
+import java.io.Closeable;
 import java.io.InputStream;
 
-public interface StreamingClient {
+public interface StreamingClient extends Closeable {
     /**
      * <p>Ingest data from a given stream directly into Kusto database.</p>
      * This method ingests the data from a given stream directly into Kusto database, using streaming ingestion endpoint,
@@ -47,16 +48,6 @@ public interface StreamingClient {
     InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException;
 
     InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException;
-
-    /**
-     * <p>Execute the provided command against the default database.</p>
-     *
-     * @param command The command to execute
-     * @return {@link KustoOperationResult} object including the ingestion result
-     * @throws DataClientException  An exception originating from a client activity
-     * @throws DataServiceException An exception returned from the service
-     */
-    KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
 
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
             String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;

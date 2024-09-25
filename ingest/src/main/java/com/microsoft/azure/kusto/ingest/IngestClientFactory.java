@@ -225,9 +225,9 @@ public class IngestClientFactory {
      * @return a new ManagedStreamingIngestClient
      * @throws URISyntaxException if the connection string is invalid
      */
-    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(
-            ConnectionStringBuilder connectionStringBuilder, @Nullable HttpClient httpClient,
-            boolean autoCorrectEndpoint) throws URISyntaxException {
+    public static ManagedStreamingIngestClient createManagedStreamingIngestClientFromDmCsb(ConnectionStringBuilder connectionStringBuilder,
+            @Nullable HttpClient httpClient, boolean autoCorrectEndpoint)
+            throws URISyntaxException {
         return new ManagedStreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
     }
 

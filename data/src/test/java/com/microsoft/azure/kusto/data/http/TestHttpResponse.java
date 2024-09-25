@@ -10,7 +10,7 @@ import java.nio.charset.Charset;
 public class TestHttpResponse extends HttpResponse {
 
     private int fakeStatusCode;
-    private HttpHeaders fakeHeaders = new HttpHeaders();
+    private final HttpHeaders fakeHeaders = new HttpHeaders();
 
     private TestHttpResponse() {
         super(null);

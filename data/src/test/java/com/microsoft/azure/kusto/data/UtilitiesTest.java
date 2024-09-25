@@ -64,7 +64,7 @@ class UtilitiesTest {
         DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 OneApiError);
         Assertions.assertEquals("Query execution has exceeded the allowed limits (80DA0003): ., ActivityId='1234'", error.getMessage());
-        Assertions.assertTrue(error.getCause() instanceof DataWebException);
+        Assertions.assertInstanceOf(DataWebException.class, error.getCause());
         Assertions.assertTrue(error.isPermanent());
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, Objects.requireNonNull(error.getStatusCode()).intValue());
     }
