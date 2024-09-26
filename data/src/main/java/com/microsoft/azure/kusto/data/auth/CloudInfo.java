@@ -118,7 +118,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
         try {
             HttpRequest request = new HttpRequest(HttpMethod.GET, UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
-            request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip");
+            request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
             request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
             // trace CloudInfo.httpCall
