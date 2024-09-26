@@ -140,8 +140,6 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            Assertions.assertNotNull(tableName, "Table name was not set");
-            Assertions.assertNotNull(DB_NAME, "DB name was not set");
             queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
