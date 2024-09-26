@@ -82,6 +82,7 @@ class E2ETest {
     private static final String TOKEN = System.getenv("TOKEN");
     private static final String PUBLIC_X509CER_FILE_LOC = System.getenv("PUBLIC_X509CER_FILE_LOC");
     private static final String PRIVATE_PKCS8_FILE_LOC = System.getenv("PRIVATE_PKCS8_FILE_LOC");
+    private static final String CI_EXECUTION = System.getenv("CI_EXECUTION");
 
     private static String principalFqn;
     private static String resourcesPath;
@@ -148,7 +149,7 @@ class E2ETest {
     }
 
     private static boolean isManualExecution() {
-        return false;
+        return CI_EXECUTION == null || !CI_EXECUTION.equals("1");
     }
 
     private static void createTableAndMapping() {
