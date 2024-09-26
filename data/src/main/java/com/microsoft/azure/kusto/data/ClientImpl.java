@@ -477,8 +477,4 @@ class ClientImpl extends BaseClient {
         return clientDetails;
     }
 
-    @Override
-    public void close() throws IOException {
-    }
-
 }
