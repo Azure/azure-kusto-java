@@ -9,11 +9,11 @@ import reactor.core.publisher.Mono;
 
 public interface Client {
 
-//    Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties);
-//
-//    Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties);
-//
-//    Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties);
+    // Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties);
+    //
+    // Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties);
+    //
+    // Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties);
 
     @Deprecated
     KustoOperationResult executeQuery(String command) throws DataServiceException, DataClientException;

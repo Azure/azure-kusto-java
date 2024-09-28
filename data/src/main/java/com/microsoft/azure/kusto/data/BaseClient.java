@@ -38,21 +38,21 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-//    protected Mono<String> postAsync(HttpRequest request) {
-//        // Execute and get the response
-//        return httpClient.send(request)
-//                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
-//                .flatMap(this::processResponseAsync)
-//                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-//    }
-//
-//    public Mono<String> processResponseAsync(HttpResponse response) {
-//        try {
-//            return Mono.just(Objects.requireNonNull(processResponseBody(response)));
-//        } catch (Exception e) {
-//            return Mono.error(new RuntimeException("Error processing response", e));
-//        }
-//    }
+    // protected Mono<String> postAsync(HttpRequest request) {
+    // // Execute and get the response
+    // return httpClient.send(request)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+    // .flatMap(this::processResponseAsync)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    // }
+    //
+    // public Mono<String> processResponseAsync(HttpResponse response) {
+    // try {
+    // return Mono.just(Objects.requireNonNull(processResponseBody(response)));
+    // } catch (Exception e) {
+    // return Mono.error(new RuntimeException("Error processing response", e));
+    // }
+    // }
 
     private String processResponseBody(HttpResponse response) throws DataServiceException {
         String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
