@@ -4,12 +4,42 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 public class UriUtils {
+
+    public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
+
     private UriUtils() {
         // Providing hidden constructor to hide default public constructor in utils class
+    }
+
+    public static String createClusterURLFrom(final String clusterURI) throws URISyntaxException {
+        URI clusterUrlForParsing = new URI(clusterURI);
+        String host = clusterUrlForParsing.getHost();
+        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
+        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
+        if (host == null) {
+            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
+        }
+        URIBuilder uriBuilder = new URIBuilder()
+                .setScheme(clusterUrlForParsing.getScheme())
+                .setHost(host);
+        String path = clusterUrlForParsing.getPath();
+        if (path != null && !path.isEmpty()) {
+            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
+            path = StringUtils.removeEndIgnoreCase(path, "/");
+
+            uriBuilder.setPath(path);
+        }
+
+        if (clusterUrlForParsing.getPort() != -1) {
+            uriBuilder.setPort(clusterUrlForParsing.getPort());
+        }
+        return uriBuilder.build().toString();
     }
 
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {

@@ -19,13 +19,11 @@ import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -37,7 +35,6 @@ class ClientImpl extends BaseClient {
     public static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
 
-    public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     private final TokenProviderBase aadAuthenticationHelper;
 
     private final String clusterUrl;
@@ -54,29 +51,8 @@ class ClientImpl extends BaseClient {
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
         super(httpClient);
-
-        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
-        String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
-        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
-        if (host == null) {
-            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
-        }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
-        String path = clusterUrlForParsing.getPath();
-        if (path != null && !path.isEmpty()) {
-            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
-            path = StringUtils.removeEndIgnoreCase(path, "/");
-
-            uriBuilder.setPath(path);
-        }
-
-        if (clusterUrlForParsing.getPort() != -1) {
-            uriBuilder.setPort(clusterUrlForParsing.getPort());
-        }
-        csb.setClusterUrl(uriBuilder.build().toString());
+        String clusterURL = UriUtils.createClusterURLFrom(csb.getClusterUrl());
+        csb.setClusterUrl(clusterURL);
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
