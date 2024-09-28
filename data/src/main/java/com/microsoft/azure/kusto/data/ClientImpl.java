@@ -257,12 +257,12 @@ class ClientImpl extends BaseClient {
                 request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
-    public Mono<String> processRequestAsync(KustoRequestContext request) {
-        return MonitoredActivity.invoke(
-                (SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest())
-                        .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err)),
-                request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
-    }
+//    public Mono<String> processRequestAsync(KustoRequestContext request) {
+//        return MonitoredActivity.invoke(
+//                (SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest())
+//                        .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err)),
+//                request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
+//    }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
         if (!endpointValidated) {
