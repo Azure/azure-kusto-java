@@ -265,14 +265,10 @@ class ClientImpl extends BaseClient {
     }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
-        try {
-            if (!endpointValidated) {
-                KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
-                        CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-                endpointValidated = true;
-            }
-        } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        if (!endpointValidated) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
+                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
+            endpointValidated = true;
         }
     }
 
