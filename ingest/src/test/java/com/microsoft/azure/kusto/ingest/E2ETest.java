@@ -313,9 +313,9 @@ class E2ETest {
         KustoOperationResult result = null;
         try {
             result = localQueryClient.executeMgmt(DB_NAME, String.format(".show database %s principals", DB_NAME));
-            // result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
-            Assertions.fail("Failed to execute show database principals command", ex);
+            Assertions.fail("Failed to execute show database principals command. " +
+                    "Is USERNAME_HINT set to your email in your environment variables?", ex);
         }
         return resultContainsPrincipal(result);
     }
