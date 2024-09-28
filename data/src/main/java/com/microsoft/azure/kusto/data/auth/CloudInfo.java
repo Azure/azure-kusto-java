@@ -122,6 +122,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
             // trace CloudInfo.httpCall
+            // Fixme: Make this async in the future
             try (HttpResponse response = MonitoredActivity.invoke(
                     (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, Context.NONE),
                     "CloudInfo.httpCall")) {
