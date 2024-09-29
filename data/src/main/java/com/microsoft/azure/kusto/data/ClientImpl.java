@@ -19,13 +19,11 @@ import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
@@ -37,7 +35,6 @@ class ClientImpl extends BaseClient {
     public static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
 
-    public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     private final TokenProviderBase aadAuthenticationHelper;
 
     private final String clusterUrl;
@@ -54,97 +51,76 @@ class ClientImpl extends BaseClient {
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
         super(httpClient);
-
-        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
-        String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
-        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
-        if (host == null) {
-            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
-        }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
-        String path = clusterUrlForParsing.getPath();
-        if (path != null && !path.isEmpty()) {
-            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
-            path = StringUtils.removeEndIgnoreCase(path, "/");
-
-            uriBuilder.setPath(path);
-        }
-
-        if (clusterUrlForParsing.getPort() != -1) {
-            uriBuilder.setPort(clusterUrlForParsing.getPort());
-        }
-        csb.setClusterUrl(uriBuilder.build().toString());
+        String clusterURL = UriUtils.createClusterURLFrom(csb.getClusterUrl());
+        csb.setClusterUrl(clusterURL);
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
     }
 
-    @Override
-    public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
-        KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeQueryAsync(kr);
-    }
-
-    Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoRequest kr) {
-        if (kr.getCommandType() != CommandType.QUERY) {
-            kr.setCommandType(CommandType.QUERY);
-        }
-        return executeAsync(kr);
-    }
-
-    @Override
-    public Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties) {
-        KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeMgmtAsync(kr);
-    }
-
-    public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoRequest kr) {
-        if (kr.getCommandType() != CommandType.ADMIN_COMMAND) {
-            kr.setCommandType(CommandType.ADMIN_COMMAND);
-        }
-        return executeAsync(kr);
-    }
-
-    private Mono<KustoOperationResult> executeAsync(KustoRequest kr) {
-
-        Mono<String> resultMono = executeToJsonAsync(kr)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-        Mono<String> endpointMono = Mono.just(String.format(kr.getCommandType().getEndpoint(), clusterUrl))
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-
-        return Mono.zip(resultMono, endpointMono)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
-                .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
-                .flatMap(this::processJsonResultAsync)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-    }
-
-    public Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
-        try {
-            return Mono.just(processJsonResult(res));
-        } catch (Exception e) {
-            return Mono.error(new RuntimeException("Error processing json result", e));
-        }
-    }
-
-    public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
-        KustoRequest kr = new KustoRequest(command, database, properties);
-        return executeToJsonAsync(kr)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-    }
-
-    Mono<String> executeToJsonAsync(KustoRequest kr) {
-        return just(kr)
-                .flatMap(this::prepareRequestAsync)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
-                .flatMap(this::processRequestAsync)
-                .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
-    }
+    // @Override
+    // public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
+    // KustoRequest kr = new KustoRequest(command, database, properties);
+    // return executeQueryAsync(kr);
+    // }
+    //
+    // Mono<KustoOperationResult> executeQueryAsync(@NotNull KustoRequest kr) {
+    // if (kr.getCommandType() != CommandType.QUERY) {
+    // kr.setCommandType(CommandType.QUERY);
+    // }
+    // return executeAsync(kr);
+    // }
+    //
+    // @Override
+    // public Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties) {
+    // KustoRequest kr = new KustoRequest(command, database, properties);
+    // return executeMgmtAsync(kr);
+    // }
+    //
+    // public Mono<KustoOperationResult> executeMgmtAsync(@NotNull KustoRequest kr) {
+    // if (kr.getCommandType() != CommandType.ADMIN_COMMAND) {
+    // kr.setCommandType(CommandType.ADMIN_COMMAND);
+    // }
+    // return executeAsync(kr);
+    // }
+    //
+    // private Mono<KustoOperationResult> executeAsync(KustoRequest kr) {
+    //
+    // Mono<String> resultMono = executeToJsonAsync(kr)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    // Mono<String> endpointMono = Mono.just(String.format(kr.getCommandType().getEndpoint(), clusterUrl))
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    //
+    // return Mono.zip(resultMono, endpointMono)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+    // .map(tuple2 -> new JsonResult(tuple2.getT1(), tuple2.getT2()))
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+    // .flatMap(this::processJsonResultAsync)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    // }
+    //
+    // public Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
+    // try {
+    // return Mono.just(processJsonResult(res));
+    // } catch (Exception e) {
+    // return Mono.error(new RuntimeException("Error processing json result", e));
+    // }
+    // }
+    //
+    // public Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties) {
+    // KustoRequest kr = new KustoRequest(command, database, properties);
+    // return executeToJsonAsync(kr)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    // }
+    //
+    // Mono<String> executeToJsonAsync(KustoRequest kr) {
+    // return just(kr)
+    // .flatMap(this::prepareRequestAsync)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err))
+    // .flatMap(this::processRequestAsync)
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err));
+    // }
 
     @Override
     public KustoOperationResult executeQuery(String command) throws DataServiceException, DataClientException {
@@ -281,22 +257,18 @@ class ClientImpl extends BaseClient {
                 request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
-    public Mono<String> processRequestAsync(KustoRequestContext request) {
-        return MonitoredActivity.invoke(
-                (SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest())
-                        .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err)),
-                request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
-    }
+    // public Mono<String> processRequestAsync(KustoRequestContext request) {
+    // return MonitoredActivity.invoke(
+    // (SupplierNoException<Mono<String>>) () -> postAsync(request.getHttpRequest())
+    // .onErrorContinue((err, src) -> LOGGER.error("Error coming from src {}", src, err)),
+    // request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
+    // }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
-        try {
-            if (!endpointValidated) {
-                KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
-                        CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-                endpointValidated = true;
-            }
-        } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        if (!endpointValidated) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
+                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
+            endpointValidated = true;
         }
     }
 
@@ -475,10 +447,6 @@ class ClientImpl extends BaseClient {
 
     ClientDetails getClientDetails() {
         return clientDetails;
-    }
-
-    @Override
-    public void close() throws IOException {
     }
 
 }

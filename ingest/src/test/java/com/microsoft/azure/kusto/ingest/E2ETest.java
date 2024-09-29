@@ -39,9 +39,6 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-import reactor.test.StepVerifier;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -82,6 +79,7 @@ class E2ETest {
     private static final String TOKEN = System.getenv("TOKEN");
     private static final String PUBLIC_X509CER_FILE_LOC = System.getenv("PUBLIC_X509CER_FILE_LOC");
     private static final String PRIVATE_PKCS8_FILE_LOC = System.getenv("PRIVATE_PKCS8_FILE_LOC");
+    private static final String CI_EXECUTION = System.getenv("CI_EXECUTION");
 
     private static String principalFqn;
     private static String resourcesPath;
@@ -139,16 +137,16 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            Assertions.assertNotNull(tableName, "Table name was not set");
-            Assertions.assertNotNull(DB_NAME, "DB name was not set");
             queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
+            ingestClient.close();
+            managedStreamingIngestClient.close();
         } catch (Exception ex) {
             Assertions.fail("Failed to drop table", ex);
         }
     }
 
     private static boolean isManualExecution() {
-        return false;
+        return CI_EXECUTION == null || !CI_EXECUTION.equals("1");
     }
 
     private static void createTableAndMapping() {
@@ -315,9 +313,9 @@ class E2ETest {
         KustoOperationResult result = null;
         try {
             result = localQueryClient.executeMgmt(DB_NAME, String.format(".show database %s principals", DB_NAME));
-            // result = localQueryClient.execute(databaseName, String.format(".show version"));
         } catch (Exception ex) {
-            Assertions.fail("Failed to execute show database principals command", ex);
+            Assertions.fail("Failed to execute show database principals command. " +
+                    "Is USERNAME_HINT set to your email in your environment variables?", ex);
         }
         return resultContainsPrincipal(result);
     }
