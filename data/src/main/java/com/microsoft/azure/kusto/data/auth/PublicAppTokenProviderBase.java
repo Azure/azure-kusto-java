@@ -8,7 +8,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import org.apache.http.client.HttpClient;
+import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,13 +26,6 @@ public abstract class PublicAppTokenProviderBase extends MsalTokenProviderBase {
 
     PublicAppTokenProviderBase(@NotNull String clusterUrl, String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, authorityId, httpClient);
-    }
-
-    // This is synchronized as we don't want users to be prompt many times on async operations.
-    // This way the first thread gets here, finishes and token can be retrieved silently by other threads.
-    @Override
-    protected synchronized String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
-        return super.acquireAccessTokenImpl();
     }
 
     @Override

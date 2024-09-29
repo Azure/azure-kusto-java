@@ -156,7 +156,7 @@ public class Utils {
             KustoOperationResult result;
 
             try {
-                result = kustoClient.execute(databaseName, command, clientRequestProperties);
+                result = kustoClient.executeQuery(databaseName, command, clientRequestProperties);
                 System.out.printf("Response from executed command '%s':%n", command);
                 KustoResultSetTable primaryResults = result.getPrimaryResults();
 

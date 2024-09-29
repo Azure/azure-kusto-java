@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -64,7 +63,7 @@ class QueuedIngestClientTest {
     }
 
     @BeforeEach
-    void setUpEach() throws IngestionServiceException, IngestionClientException {
+    void setUpEach() throws IngestionServiceException {
         doReturn(Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage")),
                 Collections.singletonList(TestUtils.containerWithSasFromContainerName("storage2"))).when(resourceManagerMock)
                         .getShuffledContainers();
@@ -378,6 +377,6 @@ class QueuedIngestClientTest {
     }
 
     private String getSampleResultSetDump() {
-        return System.getProperty("line.separator").equals("\n") ? "1,leo\n2,yui\n" : "1,leo\r\n2,yui\r\n";
+        return System.lineSeparator().equals("\n") ? "1,leo\n2,yui\n" : "1,leo\r\n2,yui\r\n";
     }
 }
