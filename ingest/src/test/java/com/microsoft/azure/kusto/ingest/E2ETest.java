@@ -314,8 +314,7 @@ class E2ETest {
         try {
             result = localQueryClient.executeMgmt(DB_NAME, String.format(".show database %s principals", DB_NAME));
         } catch (Exception ex) {
-            Assertions.fail("Failed to execute show database principals command. " +
-                    "Is USERNAME_HINT set to your email in your environment variables?", ex);
+            Assertions.fail("Failed to execute show database principals command.", ex);
         }
         return resultContainsPrincipal(result);
     }
@@ -448,14 +447,14 @@ class E2ETest {
     void testCreateWithUserPrompt() {
         Assumptions.assumeTrue(isManualExecution());
         ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithUserPrompt(ENG_CONN_STR, null, UNAME_HINT);
-        assertTrue(canAuthenticate(engineCsb));
+        assertTrue(canAuthenticate(engineCsb), "Is USERNAME_HINT set to your email in your environment variables?");
     }
 
     @Test
     void testCreateWithConnectionStringAndUserPrompt() {
         Assumptions.assumeTrue(isManualExecution());
         ConnectionStringBuilder engineCsb = new ConnectionStringBuilder("Data Source=" + ENG_CONN_STR + ";User ID=" + UNAME_HINT);
-        assertTrue(canAuthenticate(engineCsb));
+        assertTrue(canAuthenticate(engineCsb), "Is USERNAME_HINT set to your email in your environment variables?");
     }
 
     @Test
