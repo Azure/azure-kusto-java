@@ -5,15 +5,8 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import reactor.core.publisher.Mono;
 
 public interface Client {
-
-    // Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties);
-    //
-    // Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties);
-    //
-    // Mono<String> executeToJsonAsync(String database, String command, ClientRequestProperties properties);
 
     @Deprecated
     KustoOperationResult executeQuery(String command) throws DataServiceException, DataClientException;
