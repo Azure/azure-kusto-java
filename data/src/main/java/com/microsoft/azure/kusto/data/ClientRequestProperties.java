@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
 
-    // Only use if you understand the ramification
+    //  If set and positive, indicates the maximum number of HTTP redirects that the client will process. [Integer]
     public static final String OPTION_CLIENT_MAX_REDIRECT_COUNT = "client_max_redirect_count";
     /*
      * Matches valid Kusto Timespans: Optionally negative, optional number of days followed by a period, optionally up to 24 as hours followed by a colon,
