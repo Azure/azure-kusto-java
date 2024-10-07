@@ -362,11 +362,12 @@ class ClientImpl implements Client, StreamingClient {
         } catch (KustoClientInvalidConnectionStringException e) {
             throw new DataClientException(clusterUrl, e.getMessage(), e);
         }
+
         // trace httpCall
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<InputStream, DataServiceException, DataClientException>) () -> HttpPostUtils.postToStreamingOutput(httpClient,
                         clusterEndpoint,
-                        jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers),
+                        jsonPayload, timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS, headers, properties.getRedirectCount()),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
     }
 

@@ -255,4 +255,19 @@ class ClientRequestPropertiesTest {
         String result = new CslTimespanFormat(timeString).toString();
         Assertions.assertEquals("time(" + timeString + ")", result);
     }
+
+    @Test
+    void testRedirectCount() {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        int redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(0, redirectCount);
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_CLIENT_MAX_REDIRECT_COUNT, 1);
+        redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(1, redirectCount);
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_CLIENT_MAX_REDIRECT_COUNT, "1");
+        redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(1, redirectCount);
+    }
 }
