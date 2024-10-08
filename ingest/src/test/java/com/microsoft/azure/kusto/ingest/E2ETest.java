@@ -48,6 +48,10 @@ import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -69,7 +73,10 @@ class E2ETest {
     private static StreamingClient streamingClient;
 
     // IN ORDER TO RUN THESE E2E TESTS YOU NEED THESE ENVIRONMENT VARIABLES
+
+    // Your test database created in the Azure Portal or via IaC
     private static final String DB_NAME = System.getenv("TEST_DATABASE");
+
     private static final String APP_ID = System.getenv("APP_ID");
     private static final String APP_KEY = System.getenv("APP_KEY");
     private static final String TENANT_ID = System.getenv().getOrDefault("TENANT_ID", "microsoft.com");
@@ -137,7 +144,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -151,8 +158,12 @@ class E2ETest {
 
     private static void createTableAndMapping() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists ", tableName));
             queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns));
+            LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
+            String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+            String autoDeletePolicy = "@'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
+            queryClient.executeToJsonResult(DB_NAME, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy));
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
