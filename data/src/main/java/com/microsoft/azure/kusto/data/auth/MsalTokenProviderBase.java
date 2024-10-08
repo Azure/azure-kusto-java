@@ -10,7 +10,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.HttpClient;
+import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

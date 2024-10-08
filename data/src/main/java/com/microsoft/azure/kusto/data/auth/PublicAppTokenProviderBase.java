@@ -8,7 +8,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import org.apache.http.client.HttpClient;
+import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
