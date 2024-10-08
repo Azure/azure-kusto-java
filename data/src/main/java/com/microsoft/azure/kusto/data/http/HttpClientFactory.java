@@ -44,9 +44,6 @@ public class HttpClientFactory {
                 .evictIdleConnections(properties.maxIdleTime(), TimeUnit.SECONDS)
                 .disableRedirectHandling();
 
-        if (properties.isDisableRetries()) {
-            httpClientBuilder.disableAutomaticRetries();
-        }
         if (properties.isKeepAlive()) {
             final ConnectionKeepAliveStrategy keepAliveStrategy = new CustomConnectionKeepAliveStrategy(properties.maxKeepAliveTime());
             httpClientBuilder.setKeepAliveStrategy(keepAliveStrategy);
@@ -107,5 +104,4 @@ public class HttpClientFactory {
             return defaultKeepAlive * 1000L;
         }
     }
-
 }

@@ -358,8 +358,24 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws IOException {
         for (TestDataItem item : dataForTests) {
-            InputStream stream = Files.newInputStream(item.file.toPath());
-            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+            InputStream inputStream = Files.newInputStream(item.file.toPath());
+            int nRead;
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+            byte[] data = new byte[48000];
+
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+
+            buffer.flush();
+            byte[] byteArray = buffer.toByteArray();
+
+            // Use the byte array as needed
+
+            inputStream.close();
+            inputStream = new ByteArrayInputStream(byteArray);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
             if (item.file.getPath().endsWith(".gz")) {
                 streamSourceInfo.setCompressionType(CompressionType.gz);
             }

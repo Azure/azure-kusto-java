@@ -16,7 +16,6 @@ public class HttpClientProperties {
     private final HttpHost proxy;
     private final HttpRoutePlanner routePlanner;
     private final String[] supportedProtocols;
-    private final boolean disableRetries;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -27,7 +26,6 @@ public class HttpClientProperties {
         this.proxy = builder.proxy;
         this.routePlanner = builder.routePlanner;
         this.supportedProtocols = builder.supportedProtocols;
-        this.disableRetries = builder.disableRetries;
     }
 
     /**
@@ -113,10 +111,6 @@ public class HttpClientProperties {
         return supportedProtocols;
     }
 
-    public boolean isDisableRetries() {
-        return disableRetries;
-    }
-
     public static class HttpClientPropertiesBuilder {
 
         private Integer maxIdleTime = 120;
@@ -127,7 +121,6 @@ public class HttpClientProperties {
         private HttpHost proxy = null;
         private HttpRoutePlanner routePlanner = null;
         private String[] supportedProtocols = null;
-        private boolean disableRetries;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -230,16 +223,6 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder supportedProtocols(String[] tlsProtocols) {
             this.supportedProtocols = tlsProtocols;
-            return this;
-        }
-
-        /**
-         * Disable all http client internal retries.
-         *
-         * @return the builder instance
-         */
-        public HttpClientPropertiesBuilder disableRetries() {
-            this.disableRetries = true;
             return this;
         }
 
