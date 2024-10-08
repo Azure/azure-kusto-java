@@ -104,5 +104,4 @@ public class HttpClientFactory {
             return defaultKeepAlive * 1000L;
         }
     }
-
 }

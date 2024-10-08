@@ -48,7 +48,7 @@ public class HttpClientProperties {
     }
 
     /**
-     * Indicates whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+     * Indicates whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
      * client will use the default connection keep-alive strategy, which is to use only the server instructions
      * (if any) set in the {@code Keep-Alive} response header.
      * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -229,6 +229,5 @@ public class HttpClientProperties {
         public HttpClientProperties build() {
             return new HttpClientProperties(this);
         }
-
     }
 }

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- A new heuristic for choosing between queuing and streaming in Managed streaming client, the default behavior is using
+  an estimation against the 4mb limit after dividing or multiplying by some factor described by the consts:
+
+  This will also allow users to stream bigger than 4mb non-compressed data
+### Fixed
+- Some better error messages
+
 ## [5.2.0] - 2024-08-27
 ### Fixed
 - Used Msal user prompt old code which is deprecated in the new version coming from last bom update resulted in method not found exception.

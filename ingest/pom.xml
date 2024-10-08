@@ -106,6 +106,7 @@
                     </ignoredUnusedDeclaredDependencies>
                     <ignoredUsedUndeclaredDependencies>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
+                        <dependency>com.fasterxml.jackson.core:jackson-core:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
