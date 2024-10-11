@@ -158,7 +158,7 @@ class E2ETest {
 
     private static void createTableAndMapping() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists ", tableName));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
             queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns));
             LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
             String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
