@@ -158,14 +158,6 @@ class ClientImpl extends BaseClient {
         return new KustoRequestContext(kr, request);
     }
 
-    public Mono<KustoRequestContext> prepareRequestAsync(@NotNull KustoRequest kr) {
-        try {
-            return Mono.just(prepareRequest(kr));
-        } catch (Exception e) {
-            return Mono.error(new RuntimeException("Failed to prepare KustoRequestContext", e));
-        }
-    }
-
     @Override
     public String executeToJsonResult(String command) throws DataServiceException, DataClientException {
         return executeToJsonResult(DEFAULT_DATABASE_NAME, command);
@@ -328,7 +320,7 @@ class ClientImpl extends BaseClient {
         return executeStreamingQuery(kr);
     }
 
-    public InputStream executeStreamingQuery(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
+    private InputStream executeStreamingQuery(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
 
         // Validate and optimize the query object
         kr.validateAndOptimize();
