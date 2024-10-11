@@ -20,7 +20,6 @@ import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
 import org.jetbrains.annotations.NotNull;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -5,9 +5,11 @@ import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.http.CloseParentResourcesStream;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.EofSensorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +74,7 @@ public abstract class BaseClient implements Client, StreamingClient {
 
             if (responseStatusCode == HttpStatus.OK) {
                 returnInputStream = true;
-                return Utils.getResponseAsStream(httpResponse);
+                return new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
             }
 
             errorFromResponse = httpResponse.getBodyAsBinaryData().toString();
