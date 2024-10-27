@@ -29,13 +29,15 @@ public class HttpClientFactory {
     /**
      * Creates a new Apache HTTP client.
      *
-     * @param providedProperties custom HTTP client properties
+     * @param properties custom HTTP client properties
      * @return a new Apache HTTP client
      */
-    public static CloseableHttpClient create(HttpClientProperties providedProperties) {
+    public static CloseableHttpClient create(HttpClientProperties properties) {
         LOGGER.info("Creating new CloseableHttpClient client");
-        final HttpClientProperties properties = Optional.ofNullable(providedProperties)
-                .orElse(HttpClientProperties.builder().build());
+        if (properties == null) {
+            properties = HttpClientProperties.builder().build();
+        }
+
         final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
                 .useSystemProperties()
                 .setMaxConnTotal(properties.maxConnectionTotal())
