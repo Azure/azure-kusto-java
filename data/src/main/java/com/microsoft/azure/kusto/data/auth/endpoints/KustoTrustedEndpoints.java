@@ -60,7 +60,7 @@ public class KustoTrustedEndpoints {
         try {
             validateTrustedEndpoint(new URI(uri), loginEndpoint);
         } catch (URISyntaxException ex) {
-            throw new KustoClientInvalidConnectionStringException(ex);
+            throw new KustoClientInvalidConnectionStringException(uri, ex.getMessage(), ex);
         }
     }
 

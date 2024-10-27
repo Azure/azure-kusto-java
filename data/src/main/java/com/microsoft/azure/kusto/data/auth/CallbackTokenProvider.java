@@ -3,9 +3,9 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
-import org.apache.http.client.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
