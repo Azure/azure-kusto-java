@@ -35,10 +35,13 @@ import java.util.regex.Pattern;
  * Such properties may be used to provide additional information to Kusto (for example, for the purpose of correlating client/service interaction),
  * may affect what limits and policies get applied to the request, and much more.
  * For a complete list of available client request properties
- * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
+ * check out https://docs.microsoft.com/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
 public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+
+    //  If set and positive, indicates the maximum number of HTTP redirects that the client will process. [Integer]
+    public static final String OPTION_CLIENT_MAX_REDIRECT_COUNT = "client_max_redirect_count";
     /*
      * Matches valid Kusto Timespans: Optionally negative, optional number of days followed by a period, optionally up to 24 as hours followed by a colon,
      * followed by up to 59 minutes (required), followed by up to 59 seconds (required), followed by optional subseconds prepended by a period. For example:
@@ -67,6 +70,21 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
 
     public Object getOption(String name) {
         return options.get(name);
+    }
+
+    public int getRedirectCount() {
+        Object optionClientMaxRedirectOption = getOption(OPTION_CLIENT_MAX_REDIRECT_COUNT);
+        int optionClientMaxRedirectCount = 0;
+        if (optionClientMaxRedirectOption instanceof Integer) {
+            optionClientMaxRedirectCount = (int) optionClientMaxRedirectOption;
+        } else if (optionClientMaxRedirectOption instanceof String) {
+            try {
+                optionClientMaxRedirectCount = Integer.parseInt((String) optionClientMaxRedirectOption);
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
+        return Math.max(optionClientMaxRedirectCount, 0);
     }
 
     public void removeOption(String name) {
