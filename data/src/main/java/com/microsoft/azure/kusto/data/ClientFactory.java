@@ -6,11 +6,8 @@ package com.microsoft.azure.kusto.data;
 import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
-import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.net.URISyntaxException;
-import java.util.Optional;
 
 public class ClientFactory {
 

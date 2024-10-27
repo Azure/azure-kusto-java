@@ -36,8 +36,10 @@ import java.util.UUID;
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
  * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
- * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
- * <p>
+ * By default the policy for choosing a queued ingestion on the first try is the checking of weather the size of the estimated
+ * raw stream size (a conversion to compressed CSV) is bigger than 4MB, it will fall back to the queued streaming client.
+ * Use {@link #setQueuingPolicy(ManagedStreamingQueuingPolicy)} to override the predicate heuristics.
+ * Use SourceInfo.setRawSizeInBytes to set the raw size of the data. * <p>
  */
 public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
@@ -297,7 +299,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         BlobClientBuilder blobClientBuilder = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath());
         if (httpClient != null) {
-            blobClientBuilder.httpClient((HttpClient) httpClient);
+            blobClientBuilder.httpClient(httpClient);
         }
 
         BlobClient blobClient = blobClientBuilder.buildClient();
