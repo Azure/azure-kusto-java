@@ -3,16 +3,12 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Map;
 import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
 public class FileSourceInfo extends AbstractSourceInfo {
-
     private String filePath;
 
     public String getFilePath() {
@@ -23,24 +19,18 @@ public class FileSourceInfo extends AbstractSourceInfo {
         this.filePath = filePath;
     }
 
-    private long rawSizeInBytes;
-
-    public long getRawSizeInBytes() {
-        return rawSizeInBytes;
-    }
-
-    public void setRawSizeInBytes(long rawSizeInBytes) {
-        this.rawSizeInBytes = rawSizeInBytes;
-    }
-
-    public FileSourceInfo(String filePath, long rawSizeInBytes) {
+    public FileSourceInfo(String filePath) {
         this.filePath = filePath;
-        this.rawSizeInBytes = rawSizeInBytes;
+    }
+
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
+    public FileSourceInfo(String filePath, long rawSizeInBytes) {
+        this(filePath);
+        this.setRawSizeInBytes(rawSizeInBytes);
     }
 
     public FileSourceInfo(String filePath, long rawSizeInBytes, UUID sourceId) {
-        this.filePath = filePath;
-        this.rawSizeInBytes = rawSizeInBytes;
+        this(filePath, rawSizeInBytes);
         this.setSourceId(sourceId);
     }
 

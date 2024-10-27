@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Query {
     public static void main(String[] args) {
-
         try {
             ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                     System.getProperty("clusterPath"),

@@ -83,7 +83,7 @@ public class ClientFactory {
      * is customized with the given properties.
      *
      * @param csb the connection string builder
-     * @param httpClient HTTP client
+     * @param httpClient HTTAP client
      * @return a fully constructed {@linkplain StreamingClient} instance
      * @throws URISyntaxException if the cluster URL is invalid
      */

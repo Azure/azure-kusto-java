@@ -108,6 +108,7 @@
                         <dependency>org.reactivestreams:reactive-streams:jar</dependency>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
+                        <dependency>com.fasterxml.jackson.core:jackson-core:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                     <ignoredNonTestScopedDependencies>
