@@ -6,7 +6,7 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -20,7 +20,6 @@ import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.data.ExponentialRetry;
 
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +36,7 @@ import java.util.UUID;
  * Since the streaming client communicates directly with the engine, it's more prone to failure, so this class
  * holds both a streaming client and a queued client.
  * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
- * By default the policy for choosing a queued ingestion on the first try is the checking of weather the size of the estimated
- * raw stream size (a conversion to compressed CSV) is bigger than 4MB, it will fall back to the queued streaming client.
- * Use {@link #setQueuingPolicy(ManagedStreamingQueuingPolicy)} to override the predicate heuristics.
- * Use SourceInfo.setRawSizeInBytes to set the raw size of the data.
+ * If the size of the stream is bigger than {@value MAX_STREAMING_SIZE_BYTES}, it will fall back to the queued streaming client.
  * <p>
  */
 public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
@@ -51,7 +47,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     final QueuedIngestClient queuedIngestClient;
     final StreamingIngestClient streamingIngestClient;
     private final ExponentialRetry exponentialRetryTemplate;
-    private CloseableHttpClient httpClient = null;
+    private HttpClient httpClient = null;
     private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
     private static final String fallbackLogString = "Data size is greater than max streaming size according to the policy. Falling back to queued.";
 
@@ -181,7 +177,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+            @Nullable HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
@@ -223,7 +219,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable CloseableHttpClient httpClient) throws URISyntaxException {
+            @Nullable HttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, true);

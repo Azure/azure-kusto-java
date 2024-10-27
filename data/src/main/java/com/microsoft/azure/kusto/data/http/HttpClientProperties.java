@@ -1,11 +1,12 @@
-package com.microsoft.azure.kusto.data;
+package com.microsoft.azure.kusto.data.http;
 
-import org.apache.http.HttpHost;
-import org.apache.http.conn.routing.HttpRoutePlanner;
+import com.azure.core.http.HttpClientProvider;
+import com.azure.core.http.ProxyOptions;
+
+import java.time.Duration;
 
 /**
  * HTTP client properties.
- * TODO: move to http package on next major
  */
 public class HttpClientProperties {
     private final Integer maxIdleTime;
@@ -13,9 +14,9 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
-    private final HttpHost proxy;
-    private final HttpRoutePlanner routePlanner;
-    private final String[] supportedProtocols;
+    private final Duration timeout;
+    private final Class<? extends HttpClientProvider> provider;
+    private final ProxyOptions proxy;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
@@ -23,9 +24,9 @@ public class HttpClientProperties {
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
+        this.timeout = builder.timeout;
+        this.provider = builder.provider;
         this.proxy = builder.proxy;
-        this.routePlanner = builder.routePlanner;
-        this.supportedProtocols = builder.supportedProtocols;
     }
 
     /**
@@ -95,20 +96,30 @@ public class HttpClientProperties {
     }
 
     /**
+     * The default response timeout to apply to HTTP requests
+     *
+     * @return the timeout
+     */
+    public Duration timeout() {
+        return timeout;
+    }
+
+    /**
+     * Gets the HTTP Client Provider used by Azure Core when constructing HTTP Client instances.
+     *
+     * @return the provider
+     */
+    public Class<? extends HttpClientProvider> provider() {
+        return provider;
+    }
+
+    /**
      * The proxy to use when connecting to the remote server.
      *
      * @return the proxy
      */
-    public HttpHost getProxy() {
+    public ProxyOptions getProxy() {
         return proxy;
-    }
-
-    public HttpRoutePlanner getPlanner() {
-        return routePlanner;
-    }
-
-    public String[] supportedProtocols() {
-        return supportedProtocols;
     }
 
     public static class HttpClientPropertiesBuilder {
@@ -118,9 +129,9 @@ public class HttpClientProperties {
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
         private Integer maxConnectionsPerRoute = 40;
-        private HttpHost proxy = null;
-        private HttpRoutePlanner routePlanner = null;
-        private String[] supportedProtocols = null;
+        private Duration timeout = Duration.ofMinutes(10);
+        private Class<? extends HttpClientProvider> provider = null;
+        private ProxyOptions proxy = null;
 
         private HttpClientPropertiesBuilder() {
         }
@@ -139,7 +150,7 @@ public class HttpClientProperties {
         }
 
         /**
-         * Set whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+         * Set whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
          * client will use the default connection keep-alive strategy, which is to use only the server instructions
          * (if any) set in the {@code Keep-Alive} response header.
          * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
@@ -195,34 +206,35 @@ public class HttpClientProperties {
         }
 
         /**
+         * Sets the HTTP Client Provider used by Azure Core when constructing HTTP Client instances.
+         *
+         * @param provider the requested HTTP Client provider class
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder provider(Class<? extends HttpClientProvider> provider) {
+            this.provider = provider;
+            return this;
+        }
+
+        /**
+         * Sets a response timeout to use by default on the client's requests.
+         *
+         * @param timeout the requested response timeout
+         * @return the builder instance
+         */
+        public HttpClientPropertiesBuilder timeout(Duration timeout) {
+            this.timeout = timeout;
+            return this;
+        }
+
+        /**
          * Sets a proxy server to use for the client.
          *
          * @param proxy the proxy server
          * @return the builder instance
          */
-        public HttpClientPropertiesBuilder proxy(HttpHost proxy) {
+        public HttpClientPropertiesBuilder proxy(ProxyOptions proxy) {
             this.proxy = proxy;
-            return this;
-        }
-
-        /**
-         * Overrides the {@link #proxy} parameter, and can be used to create more complex proxies.
-         *
-         * @param routePlanner the custom route planner
-         * @return the builder instance
-         */
-        public HttpClientPropertiesBuilder routePlanner(HttpRoutePlanner routePlanner) {
-            this.routePlanner = routePlanner;
-            return this;
-        }
-
-        /**
-         * Sets the list of supported SSL/TLS protocols.
-         * @param tlsProtocols the list of supported protocols
-         * @return the builder instance
-         */
-        public HttpClientPropertiesBuilder supportedProtocols(String[] tlsProtocols) {
-            this.supportedProtocols = tlsProtocols;
             return this;
         }
 
@@ -230,4 +242,5 @@ public class HttpClientProperties {
             return new HttpClientProperties(this);
         }
     }
+
 }

@@ -105,10 +105,15 @@
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                     </ignoredUnusedDeclaredDependencies>
                     <ignoredUsedUndeclaredDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                        <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-core:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
+                    <ignoredNonTestScopedDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                    </ignoredNonTestScopedDependencies>
                 </configuration>
                 <executions>
                     <execution>
@@ -173,10 +178,6 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-core-http-netty</artifactId>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -207,7 +208,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
+            <version>${apache.httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -218,12 +219,6 @@
             <groupId>com.univocity</groupId>
             <artifactId>univocity-parsers</artifactId>
             <version>${univocity-parsers.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore</artifactId>
-            <version>${httpcore.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -266,11 +261,6 @@
             <version>${commons-codec.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>${reactor-core.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
             <version>${resilience4j.version}</version>
@@ -279,6 +269,12 @@
             <groupId>io.vavr</groupId>
             <artifactId>vavr</artifactId>
             <version>${io.vavr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>6.0.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>
