@@ -349,7 +349,7 @@ class ClientImpl extends BaseClient {
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request),
+                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, kr.getProperties().getRedirectCount()),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
     }
 
