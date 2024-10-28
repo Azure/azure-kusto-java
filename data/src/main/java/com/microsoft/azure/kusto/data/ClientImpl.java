@@ -3,13 +3,11 @@
 
 package com.microsoft.azure.kusto.data;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.util.BinaryData;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
-import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
+import com.microsoft.azure.kusto.data.auth.*;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.*;
 import com.microsoft.azure.kusto.data.http.*;
@@ -47,12 +45,24 @@ class ClientImpl extends BaseClient {
     }
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
+        this(csb, httpClient, null);
+    }
+
+    public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient, TokenCredential credentials) throws URISyntaxException {
         super(httpClient);
         String clusterURL = UriUtils.createClusterURLFrom(csb.getClusterUrl());
         csb.setClusterUrl(clusterURL);
 
         clusterUrl = csb.getClusterUrl();
-        aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
+
+        // Allow the user to provide their own TokenCredentials from Azure Identity
+        if (credentials != null) {
+            aadAuthenticationHelper = new AzureIdentityTokenProvider(clusterURL, httpClient, credentials);
+        } else {
+            aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null :
+                    TokenProviderFactory.createTokenProvider(csb, httpClient);
+        }
+
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
     }
 
