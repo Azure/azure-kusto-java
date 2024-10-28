@@ -31,7 +31,6 @@ public class HttpClientFactory {
 
         // If all properties are null, create with default client options
         if (properties == null) {
-            options.setResponseTimeout(Duration.ofMinutes(10));
             return HttpClient.createDefault(options);
         }
 

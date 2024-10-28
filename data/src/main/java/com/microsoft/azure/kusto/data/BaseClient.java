@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 
@@ -35,6 +36,10 @@ public abstract class BaseClient implements Client, StreamingClient {
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
             return processResponseBody(response);
+        } catch (Exception e) {
+            IOException ex = ExceptionUtils.tryCastToIOException(e);
+            throw new DataServiceException(request.getUrl().toString(), "IOException in post request:"
+                    + e.getMessage(), !Utils.isRetriableIOException(ex));
         }
     }
 
@@ -67,7 +72,6 @@ public abstract class BaseClient implements Client, StreamingClient {
 
         HttpResponse httpResponse = null;
         try {
-
             httpResponse = httpClient.sendSync(request, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();
@@ -92,8 +96,13 @@ public abstract class BaseClient implements Client, StreamingClient {
                 }
             }
         } catch (IOException ex) {
+            // Thrown from new CloseParentResourcesStream(httpResponse)
             throw new DataServiceException(request.getUrl().toString(),
                     "postToStreamingOutput failed to get or decompress response stream", ex, false);
+        } catch (UncheckedIOException e){
+            IOException ex = ExceptionUtils.tryCastToIOException(e);
+            throw new DataServiceException(request.getUrl().toString(), "IOException in post request:"
+                    + e.getMessage(), !Utils.isRetriableIOException(ex));
         } catch (Exception ex) {
             throw createExceptionFromResponse(request.getUrl().toString(), httpResponse, ex, errorFromResponse);
         } finally {

@@ -111,7 +111,6 @@ class E2ETest {
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
                     .maxIdleTime(60)
-                    .maxConnectionsPerRoute(50)
                     .maxConnectionsTotal(50)
                     .build());
         } catch (URISyntaxException ex) {
