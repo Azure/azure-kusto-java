@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Optional;
 
 public abstract class BaseClient implements Client, StreamingClient {
@@ -32,9 +33,9 @@ public abstract class BaseClient implements Client, StreamingClient {
         this.httpClient = httpClient;
     }
 
-    protected String post(HttpRequest request) throws DataServiceException {
+    protected String post(HttpRequest request, long timeoutMs) throws DataServiceException {
         // Execute and get the response
-        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
+        try (HttpResponse response = httpClient.sendSync(request, getContextTimeout(timeoutMs))) {
             return processResponseBody(response);
         } catch (Exception e) {
             IOException ex = ExceptionUtils.tryCastToIOException(e);
@@ -60,19 +61,18 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    protected InputStream postToStreamingOutput(HttpRequest request) throws DataServiceException {
-        return postToStreamingOutput(request, 0);
+    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs) throws DataServiceException {
+        return postToStreamingOutput(request, timeoutMs, 0);
     }
 
     // Todo: Implement async version of this method
-    protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
-
+    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs, int redirectCount) throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
         HttpResponse httpResponse = null;
         try {
-            httpResponse = httpClient.sendSync(request, Context.NONE);
+            httpResponse = httpClient.sendSync(request, getContextTimeout(timeoutMs));
 
             int responseStatusCode = httpResponse.getStatusCode();
 
@@ -149,6 +149,12 @@ public abstract class BaseClient implements Client, StreamingClient {
                 String.format("%s, ActivityId='%s'", message, activityId),
                 formattedException,
                 isPermanent);
+    }
+
+    private Context getContextTimeout(long timeoutMs){
+        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
+        return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
+
     }
 
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {
