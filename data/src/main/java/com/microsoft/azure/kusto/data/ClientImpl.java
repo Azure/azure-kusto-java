@@ -36,7 +36,6 @@ class ClientImpl extends BaseClient {
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
-    private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
 
     private final TokenProviderBase aadAuthenticationHelper;
 
@@ -185,7 +184,7 @@ class ClientImpl extends BaseClient {
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest(), timeoutMs + CLIENT_SERVER_DELTA_IN_MILLISECS),
+                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest(), timeoutMs),
                 request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
@@ -282,7 +281,7 @@ class ClientImpl extends BaseClient {
 
             // Get the response, and trace the call.
             String response = MonitoredActivity.invoke(
-                    (SupplierOneException<String, DataServiceException>) () -> post(request), "ClientImpl.executeStreamingIngest");
+                    (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs ), "ClientImpl.executeStreamingIngest");
 
             return new KustoOperationResult(response, "v1");
 

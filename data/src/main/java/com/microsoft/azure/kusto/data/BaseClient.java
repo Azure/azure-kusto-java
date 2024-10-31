@@ -19,10 +19,12 @@ import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
     private static final int MAX_REDIRECT_COUNT = 1;
+    private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
 
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -37,10 +39,11 @@ public abstract class BaseClient implements Client, StreamingClient {
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, getContextTimeout(timeoutMs))) {
             return processResponseBody(response);
+        } catch (DataServiceException e){
+            throw e;
         } catch (Exception e) {
-            IOException ex = ExceptionUtils.tryCastToIOException(e);
-            throw new DataServiceException(request.getUrl().toString(), "IOException in post request:"
-                    + e.getMessage(), !Utils.isRetriableIOException(ex));
+            throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "sync");
+
         }
     }
 
@@ -51,6 +54,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         if (responseBody == null) {
             return null;
         }
+
         switch (response.getStatusCode()) {
             case HttpStatus.OK:
                 return responseBody;
@@ -100,9 +104,7 @@ public abstract class BaseClient implements Client, StreamingClient {
             throw new DataServiceException(request.getUrl().toString(),
                     "postToStreamingOutput failed to get or decompress response stream", ex, false);
         } catch (UncheckedIOException e){
-            IOException ex = ExceptionUtils.tryCastToIOException(e);
-            throw new DataServiceException(request.getUrl().toString(), "IOException in post request:"
-                    + e.getMessage(), !Utils.isRetriableIOException(ex));
+            throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "streaming sync");
         } catch (Exception ex) {
             throw createExceptionFromResponse(request.getUrl().toString(), httpResponse, ex, errorFromResponse);
         } finally {
@@ -152,7 +154,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private Context getContextTimeout(long timeoutMs){
-        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs);
+        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + CLIENT_SERVER_DELTA_IN_MILLISECS;
         return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
 
     }

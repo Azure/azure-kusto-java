@@ -1,17 +1,26 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
+import com.microsoft.azure.kusto.data.Utils;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URL;
 
 public class ExceptionUtils {
-    public static IOException tryCastToIOException(Exception e) throws RuntimeException {
+    public static DataServiceException createExceptionOnPost(Exception e, URL url, String kind) {
+        boolean permanent = false;
+        String prefix = "";
         if (e instanceof IOException) {
-            return (IOException) e;
-        }
-        if (e instanceof UncheckedIOException) {
-            return ((UncheckedIOException) e).getCause();
+            permanent =  !Utils.isRetriableIOException((IOException) e);
+            prefix = "IO";
         }
 
-        throw (RuntimeException)e;
+        if (e instanceof UncheckedIOException) {
+            e = ((UncheckedIOException) e).getCause();
+            permanent =  !Utils.isRetriableIOException((IOException) e);
+            prefix = "IO";
+        }
+
+        return new DataServiceException(url.toString(), String.format("%sException in %s post request: %s", prefix, kind, e.getMessage()), permanent);
     }
 }
