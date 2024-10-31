@@ -135,7 +135,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {
-        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query 
+        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query
         if (!returnInputStream) {
             if (httpResponse != null) {
                 httpResponse.close();
