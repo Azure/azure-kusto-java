@@ -53,8 +53,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     // Todo: Implement async version of this method
-    protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount, int maxRedirectCount) throws DataServiceException {
-
+    protected InputStream postToStreamingOutput(HttpRequest request, int currentRedirectCounter, int maxRedirectCount) throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
@@ -74,14 +73,14 @@ public abstract class BaseClient implements Client, StreamingClient {
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
-            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode, maxRedirectCount)) {
+            if (shouldPostToOriginalUrlDueToRedirect(currentRedirectCounter, responseStatusCode, maxRedirectCount)) {
                 Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
                     HttpRequest redirectRequest = HttpRequestBuilder
                             .fromExistingRequest(request)
                             .withURL(redirectLocation.get().getValue())
                             .build();
-                    return postToStreamingOutput(redirectRequest, redirectCount + 1, maxRedirectCount);
+                    return postToStreamingOutput(redirectRequest, currentRedirectCounter + 1, maxRedirectCount);
                 }
             }
         } catch (IOException ex) {
