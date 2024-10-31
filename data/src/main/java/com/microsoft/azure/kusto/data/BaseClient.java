@@ -15,12 +15,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
     private static final int MAX_REDIRECT_COUNT = 1;
+    private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
 
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -31,10 +35,15 @@ public abstract class BaseClient implements Client, StreamingClient {
         this.httpClient = httpClient;
     }
 
-    protected String post(HttpRequest request) throws DataServiceException {
+    protected String post(HttpRequest request, long timeoutMs) throws DataServiceException {
         // Execute and get the response
-        try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
+        try (HttpResponse response = httpClient.sendSync(request, getContextTimeout(timeoutMs))) {
             return processResponseBody(response);
+        } catch (DataServiceException e) {
+            throw e;
+        } catch (Exception e) {
+            throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "sync");
+
         }
     }
 
@@ -45,6 +54,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         if (responseBody == null) {
             return null;
         }
+
         switch (response.getStatusCode()) {
             case HttpStatus.OK:
                 return responseBody;
@@ -55,20 +65,18 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    protected InputStream postToStreamingOutput(HttpRequest request) throws DataServiceException {
-        return postToStreamingOutput(request, 0);
+    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs) throws DataServiceException {
+        return postToStreamingOutput(request, timeoutMs, 0);
     }
 
     // Todo: Implement async version of this method
-    protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
-
+    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs, int redirectCount) throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
         HttpResponse httpResponse = null;
         try {
-
-            httpResponse = httpClient.sendSync(request, Context.NONE);
+            httpResponse = httpClient.sendSync(request, getContextTimeout(timeoutMs));
 
             int responseStatusCode = httpResponse.getStatusCode();
 
@@ -92,8 +100,11 @@ public abstract class BaseClient implements Client, StreamingClient {
                 }
             }
         } catch (IOException ex) {
+            // Thrown from new CloseParentResourcesStream(httpResponse)
             throw new DataServiceException(request.getUrl().toString(),
                     "postToStreamingOutput failed to get or decompress response stream", ex, false);
+        } catch (UncheckedIOException e) {
+            throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "streaming sync");
         } catch (Exception ex) {
             throw createExceptionFromResponse(request.getUrl().toString(), httpResponse, ex, errorFromResponse);
         } finally {
@@ -142,8 +153,13 @@ public abstract class BaseClient implements Client, StreamingClient {
                 isPermanent);
     }
 
+    private Context getContextTimeout(long timeoutMs) {
+        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + CLIENT_SERVER_DELTA_IN_MILLISECS;
+        return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
+    }
+
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {
-        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query 
+        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query
         if (!returnInputStream) {
             if (httpResponse != null) {
                 httpResponse.close();
