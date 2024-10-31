@@ -39,7 +39,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, getContextTimeout(timeoutMs))) {
             return processResponseBody(response);
-        } catch (DataServiceException e){
+        } catch (DataServiceException e) {
             throw e;
         } catch (Exception e) {
             throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "sync");
@@ -103,7 +103,7 @@ public abstract class BaseClient implements Client, StreamingClient {
             // Thrown from new CloseParentResourcesStream(httpResponse)
             throw new DataServiceException(request.getUrl().toString(),
                     "postToStreamingOutput failed to get or decompress response stream", ex, false);
-        } catch (UncheckedIOException e){
+        } catch (UncheckedIOException e) {
             throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "streaming sync");
         } catch (Exception ex) {
             throw createExceptionFromResponse(request.getUrl().toString(), httpResponse, ex, errorFromResponse);
@@ -153,14 +153,13 @@ public abstract class BaseClient implements Client, StreamingClient {
                 isPermanent);
     }
 
-    private Context getContextTimeout(long timeoutMs){
+    private Context getContextTimeout(long timeoutMs) {
         int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + CLIENT_SERVER_DELTA_IN_MILLISECS;
         return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
-
     }
 
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {
-        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query 
+        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query
         if (!returnInputStream) {
             if (httpResponse != null) {
                 httpResponse.close();

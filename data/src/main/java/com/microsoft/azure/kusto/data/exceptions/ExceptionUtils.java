@@ -11,13 +11,13 @@ public class ExceptionUtils {
         boolean permanent = false;
         String prefix = "";
         if (e instanceof IOException) {
-            permanent =  !Utils.isRetriableIOException((IOException) e);
+            permanent = !Utils.isRetriableIOException((IOException) e);
             prefix = "IO";
         }
 
         if (e instanceof UncheckedIOException) {
             e = ((UncheckedIOException) e).getCause();
-            permanent =  !Utils.isRetriableIOException((IOException) e);
+            permanent = !Utils.isRetriableIOException((IOException) e);
             prefix = "IO";
         }
 

@@ -198,7 +198,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-                                                       String streamFormat, String mappingName, boolean leaveOpen)
+            String streamFormat, String mappingName, boolean leaveOpen)
             throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
@@ -210,7 +210,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeStreamingIngestFromBlob(String database, String table, String blobUrl, ClientRequestProperties properties,
-                                                               String dataFormat, String mappingName)
+            String dataFormat, String mappingName)
             throws DataServiceException, DataClientException {
         if (blobUrl == null) {
             throw new IllegalArgumentException("The provided blobUrl is null.");
@@ -222,7 +222,7 @@ class ClientImpl extends BaseClient {
     }
 
     private KustoOperationResult executeStreamingIngestImpl(String clusterEndpoint, InputStream stream, String blobUrl, ClientRequestProperties properties,
-                                                            boolean leaveOpen) throws DataServiceException, DataClientException {
+            boolean leaveOpen) throws DataServiceException, DataClientException {
         boolean isStreamSource = stream != null;
 
         Map<String, String> headers = new HashMap<>();
@@ -232,7 +232,6 @@ class ClientImpl extends BaseClient {
         if (isStreamSource) {
             contentEncoding = "gzip";
         }
-
 
         Long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
@@ -281,7 +280,7 @@ class ClientImpl extends BaseClient {
 
             // Get the response, and trace the call.
             String response = MonitoredActivity.invoke(
-                    (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs ), "ClientImpl.executeStreamingIngest");
+                    (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs), "ClientImpl.executeStreamingIngest");
 
             return new KustoOperationResult(response, "v1");
 
