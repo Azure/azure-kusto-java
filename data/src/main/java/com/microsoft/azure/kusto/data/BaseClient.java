@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class BaseClient implements Client, StreamingClient {
 
     private static final int MAX_REDIRECT_COUNT = 1;
-    private static final int CLIENT_SERVER_DELTA_IN_MILLISECS = (int) TimeUnit.SECONDS.toMillis(30);
+    private static final int EXTRA_TIMEOUT_FOR_CLIENT_SIDE = (int) TimeUnit.SECONDS.toMillis(30);
 
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -65,12 +65,9 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs) throws DataServiceException {
-        return postToStreamingOutput(request, timeoutMs, 0);
-    }
-
     // Todo: Implement async version of this method
-    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs, int redirectCount) throws DataServiceException {
+    protected InputStream postToStreamingOutput(HttpRequest request, long timeoutMs, int currentRedirectCounter, int maxRedirectCount)
+            throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
@@ -89,14 +86,14 @@ public abstract class BaseClient implements Client, StreamingClient {
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
-            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
+            if (shouldPostToOriginalUrlDueToRedirect(responseStatusCode, currentRedirectCounter, maxRedirectCount)) {
                 Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
                     HttpRequest redirectRequest = HttpRequestBuilder
                             .fromExistingRequest(request)
                             .withURL(redirectLocation.get().getValue())
                             .build();
-                    return postToStreamingOutput(redirectRequest, redirectCount + 1);
+                    return postToStreamingOutput(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
                 }
             }
         } catch (IOException ex) {
@@ -154,7 +151,9 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private Context getContextTimeout(long timeoutMs) {
-        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + CLIENT_SERVER_DELTA_IN_MILLISECS;
+        int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + EXTRA_TIMEOUT_FOR_CLIENT_SIDE;
+
+        // See https://github.com/Azure/azure-sdk-for-java/blob/azure-core-http-netty_1.10.2/sdk/core/azure-core-http-netty/CHANGELOG.md#features-added
         return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
     }
 
@@ -167,8 +166,8 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
-        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= MAX_REDIRECT_COUNT;
+    private static boolean shouldPostToOriginalUrlDueToRedirect(int status, int redirectCount, int maxRedirectCount) {
+        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= maxRedirectCount;
     }
 
     private static String determineActivityId(HttpResponse httpResponse) {

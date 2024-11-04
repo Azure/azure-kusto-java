@@ -131,7 +131,6 @@ class ClientImpl extends BaseClient {
     }
 
     KustoRequestContext prepareRequest(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
-
         // Validate and optimize the query object
         kr.validateAndOptimize();
 
@@ -233,7 +232,7 @@ class ClientImpl extends BaseClient {
             contentEncoding = "gzip";
         }
 
-        Long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
+        long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
         // This was a separate method but was moved into the body of this method because it performs a side effect
         if (properties != null) {
@@ -283,7 +282,6 @@ class ClientImpl extends BaseClient {
                     (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs), "ClientImpl.executeStreamingIngest");
 
             return new KustoOperationResult(response, "v1");
-
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (IOException e) {
@@ -353,10 +351,12 @@ class ClientImpl extends BaseClient {
                 .withTracing(tracing)
                 .withAuthorization(authorization)
                 .build();
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, kr.getProperties().getRedirectCount()),
+                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, timeoutMs, 0,
+                        kr.getProperties().getRedirectCount()),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
     }
 

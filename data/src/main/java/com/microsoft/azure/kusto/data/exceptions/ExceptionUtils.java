@@ -10,15 +10,19 @@ public class ExceptionUtils {
     public static DataServiceException createExceptionOnPost(Exception e, URL url, String kind) {
         boolean permanent = false;
         String prefix = "";
+        boolean isIO = false;
         if (e instanceof IOException) {
-            permanent = !Utils.isRetriableIOException((IOException) e);
-            prefix = "IO";
+            isIO = true;
         }
 
         if (e instanceof UncheckedIOException) {
             e = ((UncheckedIOException) e).getCause();
-            permanent = !Utils.isRetriableIOException((IOException) e);
-            prefix = "IO";
+            isIO = true;
+        }
+
+        if (isIO) {
+            return new IODataServiceException(url.toString(), e);
+
         }
 
         return new DataServiceException(url.toString(), String.format("%sException in %s post request: %s", prefix, kind, e.getMessage()), permanent);
