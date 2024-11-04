@@ -144,7 +144,8 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            new ExponentialRetry<DataServiceException, DataClientException>(2).execute(attempt -> queryClient.execute(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName)));
+            new ExponentialRetry<DataServiceException, DataClientException>(2)
+                    .execute(attempt -> queryClient.executeMgmt(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName)));
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
