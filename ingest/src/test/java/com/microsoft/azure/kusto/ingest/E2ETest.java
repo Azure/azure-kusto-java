@@ -98,12 +98,7 @@ class E2ETest {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
-    public static void setUp() throws URISyntaxException, DataServiceException, DataClientException {
-        // ConnectionStringBuilder dmCsb2 = createConnection("https://onebox.dev.kusto.windows.net:10000");
-        // Client client = ClientFactory.createClient(dmCsb2);
-        // ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
-        // clientRequestProperties.setTimeoutInMilliSec(10000l);
-        // client.executeMgmt(".show table t extent with(V=4)", "NetDefaultDB", clientRequestProperties);
+    public static void setUp() {
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
