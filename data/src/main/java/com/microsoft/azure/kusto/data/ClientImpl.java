@@ -20,6 +20,7 @@ import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
 import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -184,16 +185,47 @@ class ClientImpl extends BaseClient {
     }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
-        if (!endpointValidated) {
-            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
-                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-            endpointValidated = true;
+        try {
+            validateEndpointAsync().block();
         }
+        catch (RuntimeException e) {
+            Throwable[] suppressed = e.getSuppressed();
+
+            if (suppressed.length > 0) {
+                Throwable suppressedException = suppressed[0];
+                if (suppressedException instanceof DataServiceException) {
+                    throw (DataServiceException) suppressedException;
+                }
+                if (suppressedException instanceof DataClientException) {
+                    throw (DataClientException) suppressedException;
+                }
+            }
+
+            throw e;
+        }
+    }
+
+    private Mono<Void> validateEndpointAsync(){
+        if (endpointValidated) {
+            return Mono.empty();
+        }
+
+        return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, httpClient).
+                flatMap(cloudInfo -> {
+            try {
+                KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, cloudInfo.getLoginEndpoint());
+                endpointValidated = true;
+                return Mono.empty();
+            } catch (KustoClientInvalidConnectionStringException e) {
+                return Mono.error(new DataClientException(clusterUrl, e.getMessage(), e));
+            }
+        });
+
     }
 
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-            String streamFormat, String mappingName, boolean leaveOpen)
+                                                       String streamFormat, String mappingName, boolean leaveOpen)
             throws DataServiceException, DataClientException {
         if (stream == null) {
             throw new IllegalArgumentException("The provided stream is null.");
@@ -205,7 +237,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeStreamingIngestFromBlob(String database, String table, String blobUrl, ClientRequestProperties properties,
-            String dataFormat, String mappingName)
+                                                               String dataFormat, String mappingName)
             throws DataServiceException, DataClientException {
         if (blobUrl == null) {
             throw new IllegalArgumentException("The provided blobUrl is null.");
@@ -217,7 +249,7 @@ class ClientImpl extends BaseClient {
     }
 
     private KustoOperationResult executeStreamingIngestImpl(String clusterEndpoint, InputStream stream, String blobUrl, ClientRequestProperties properties,
-            boolean leaveOpen) throws DataServiceException, DataClientException {
+                                                            boolean leaveOpen) throws DataServiceException, DataClientException {
         boolean isStreamSource = stream != null;
 
         Map<String, String> headers = new HashMap<>();
@@ -353,7 +385,7 @@ class ClientImpl extends BaseClient {
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
     }
 
-    private String getAuthorizationHeaderValue() throws DataServiceException, DataClientException {
+    private String getAuthorizationHeaderValue() {
         if (aadAuthenticationHelper != null) {
             return String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken().block());
         }

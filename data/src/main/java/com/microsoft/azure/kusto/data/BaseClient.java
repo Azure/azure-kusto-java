@@ -22,7 +22,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private final HttpClient httpClient;
+    protected final HttpClient httpClient;
 
     public BaseClient(HttpClient httpClient) {
         this.httpClient = httpClient;
