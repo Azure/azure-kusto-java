@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import java.net.URISyntaxException;
 
 public class ClientFactory {
+
     private ClientFactory() {
         // Hide the default constructor, as this is a factory with static methods
     }

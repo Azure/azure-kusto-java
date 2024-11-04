@@ -4,18 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-### Added
-- Azure CLI authentication
-
-## [6.0.0] - 2024-03-07
+## [6.0.0] - 2024-09-21
 ### Changed
 - Replaced Apache CloseableHttpClient with configurable azure-core client.
-- (Breaking) HttpClientFactory now accepts clients implementing azure-core HttpClient.
-- (Breaking) HttpClientProperties and HttpClientPropertiesBuilder now use azure-core ProxyOptions.
+- [BREAKING] HttpClientFactory now accepts clients implementing azure-core HttpClient.
+- [BREAKING] HttpClientProperties and HttpClientPropertiesBuilder now use azure-core ProxyOptions.
 - Data client now wraps internal HTTP client.
 - Moved HTTP request tracing logic into a builder class.
 - Moved HTTP request building logic into a builder class.
+- [BREAKING] Redirects are disabled by default. Use ClientRequestProperties "client_max_redirect_count" option 
+    to enable. Default changed to 0.
+
+## [5.2.0] - 2024-08-27
+### Fixed
+- Used Msal user prompt old code which is deprecated in the new version coming from last bom update resulted in method not found exception.
+### Added
+- Proxy planner support for http client
+- Introduce a new `supportedProtocols` field in `HttpClientProperties` to allow specifying SSL/TLS protocols.
+
+## [5.1.1] - 2024-07-25
+### Fixed
+- Fix population of application and client version for tracing
+
+## [5.1.0] - 2024-06-25
+### Added
+- Azure CLI authentication
+- Enhanced the robustness of the ingestion client
+### Fixed
+- Solved dependency issues
 
 ## [5.0.5] - 2024-03-06
 ### Fixed

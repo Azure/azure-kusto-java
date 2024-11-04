@@ -5,9 +5,11 @@ import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.microsoft.azure.kusto.data.exceptions.*;
+import com.microsoft.azure.kusto.data.http.CloseParentResourcesStream;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.EofSensorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +19,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 
 public abstract class BaseClient implements Client, StreamingClient {
-
-    private static final int MAX_REDIRECT_COUNT = 1;
-
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -30,63 +29,58 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     protected String post(HttpRequest request) throws DataServiceException {
-
-        // Todo: Add async version of this method
-
         // Execute and get the response
         try (HttpResponse response = httpClient.sendSync(request, Context.NONE)) {
-            String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
-                    : response.getBodyAsBinaryData().toString();
-
-            if (responseBody != null) {
-                switch (response.getStatusCode()) {
-                    case HttpStatus.OK:
-                        return responseBody;
-                    case HttpStatus.TOO_MANY_REQS:
-                        throw new ThrottleException(request.getUrl().toString());
-                    default:
-                        throw createExceptionFromResponse(request.getUrl().toString(), response, null, responseBody);
-                }
-            }
+            return processResponseBody(response);
         }
-
-        return null;
     }
 
-    protected InputStream postToStreamingOutput(HttpRequest request) throws DataServiceException {
-        return postToStreamingOutput(request, 0);
+    private String processResponseBody(HttpResponse response) throws DataServiceException {
+        String responseBody = Utils.isGzipResponse(response) ? Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream())
+                : response.getBodyAsBinaryData().toString();
+
+        if (responseBody == null) {
+            return null;
+        }
+        switch (response.getStatusCode()) {
+            case HttpStatus.OK:
+                return responseBody;
+            case HttpStatus.TOO_MANY_REQS:
+                throw new ThrottleException(response.getRequest().getUrl().toString());
+            default:
+                throw createExceptionFromResponse(response.getRequest().getUrl().toString(), response, null, responseBody);
+        }
     }
 
-    protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
-
+    // Todo: Implement async version of this method
+    protected InputStream postToStreamingOutput(HttpRequest request, int currentRedirectCounter, int maxRedirectCount) throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
         HttpResponse httpResponse = null;
         try {
 
-            // Todo: Implement async version of this method
             httpResponse = httpClient.sendSync(request, Context.NONE);
 
             int responseStatusCode = httpResponse.getStatusCode();
 
             if (responseStatusCode == HttpStatus.OK) {
                 returnInputStream = true;
-                return Utils.getResponseAsStream(httpResponse);
+                return new EofSensorInputStream(new CloseParentResourcesStream(httpResponse), null);
             }
 
             errorFromResponse = httpResponse.getBodyAsBinaryData().toString();
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
-            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
+            if (shouldPostToOriginalUrlDueToRedirect(currentRedirectCounter, responseStatusCode, maxRedirectCount)) {
                 Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
                     HttpRequest redirectRequest = HttpRequestBuilder
                             .fromExistingRequest(request)
                             .withURL(redirectLocation.get().getValue())
                             .build();
-                    return postToStreamingOutput(redirectRequest, redirectCount + 1);
+                    return postToStreamingOutput(redirectRequest, currentRedirectCounter + 1, maxRedirectCount);
                 }
             }
         } catch (IOException ex) {
@@ -141,7 +135,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {
-        // If we close the resources after returning the InputStream to the caller, they won't be able to read from it
+        // If we close the resources after returning the InputStream to the user, he won't be able to read from it - used in streaming query
         if (!returnInputStream) {
             if (httpResponse != null) {
                 httpResponse.close();
@@ -149,8 +143,8 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
-        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= MAX_REDIRECT_COUNT;
+    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status, int maxRedirectCount) {
+        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= maxRedirectCount;
     }
 
     private static String determineActivityId(HttpResponse httpResponse) {

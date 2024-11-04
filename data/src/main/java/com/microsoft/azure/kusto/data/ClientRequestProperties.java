@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.format.CslBoolFormat;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslIntFormat;
@@ -16,6 +15,7 @@ import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -35,10 +35,13 @@ import java.util.regex.Pattern;
  * Such properties may be used to provide additional information to Kusto (for example, for the purpose of correlating client/service interaction),
  * may affect what limits and policies get applied to the request, and much more.
  * For a complete list of available client request properties
- * check out https://docs.microsoft.com/en-us/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
+ * check out https://docs.microsoft.com/azure/kusto/api/netfx/request-properties#list-of-clientrequestproperties
  */
 public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+
+    // If set and positive, indicates the maximum number of HTTP redirects that the client will process. [Integer]
+    public static final String OPTION_CLIENT_MAX_REDIRECT_COUNT = "client_max_redirect_count";
     /*
      * Matches valid Kusto Timespans: Optionally negative, optional number of days followed by a period, optionally up to 24 as hours followed by a colon,
      * followed by up to 59 minutes (required), followed by up to 59 seconds (required), followed by optional subseconds prepended by a period. For example:
@@ -67,6 +70,21 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
 
     public Object getOption(String name) {
         return options.get(name);
+    }
+
+    public int getRedirectCount() {
+        Object optionClientMaxRedirectOption = getOption(OPTION_CLIENT_MAX_REDIRECT_COUNT);
+        int optionClientMaxRedirectCount = 0;
+        if (optionClientMaxRedirectOption instanceof Integer) {
+            optionClientMaxRedirectCount = (int) optionClientMaxRedirectOption;
+        } else if (optionClientMaxRedirectOption instanceof String) {
+            try {
+                optionClientMaxRedirectCount = Integer.parseInt((String) optionClientMaxRedirectOption);
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
+        return Math.max(optionClientMaxRedirectCount, 0);
     }
 
     public void removeOption(String name) {
@@ -156,11 +174,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Gets the amount of time a query may execute on the service before it times out. Value must be between 1 minute and 1 hour,
      * and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
-    public Long getTimeoutInMilliSec() {
+    public Long getTimeoutInMilliSec() throws ParseException {
         return getTimeoutInMilliSec(getOption(OPTION_SERVER_TIMEOUT));
     }
 
-    private static Long getTimeoutInMilliSec(Object timeoutObj) {
+    private static Long getTimeoutInMilliSec(Object timeoutObj) throws ParseException {
         if (timeoutObj == null) {
             return null;
         }
@@ -177,10 +195,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return adjustTimeoutToServiceLimits(timeout);
     }
 
-    private static long parseTimeoutFromTimespanString(String str) {
+    private static long parseTimeoutFromTimespanString(String str) throws ParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
-            throw new KustoParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
+            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 
         if ("-".equals(matcher.group(1))) {
@@ -321,17 +339,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         Map<String, String> attributes = new HashMap<>();
         attributes.put("clientRequestId", getClientRequestId());
         return attributes;
-    }
-
-    /**
-     * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
-     * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
-     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
-     * @Deprecated use {@link #getTimeoutAsCslTimespan(Object)} instead.
-     */
-    @Deprecated
-    String getTimeoutAsString(Object timeoutObj) {
-        return getTimeoutAsCslTimespan(timeoutObj);
     }
 
     /**

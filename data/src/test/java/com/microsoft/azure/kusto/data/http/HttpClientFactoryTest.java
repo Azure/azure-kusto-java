@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.data.http;
 
 import com.azure.core.http.HttpClient;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

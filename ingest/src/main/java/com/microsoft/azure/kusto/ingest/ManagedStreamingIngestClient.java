@@ -440,8 +440,10 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         return CLASS_NAME;
     }
 
+    @Override
     public void close() throws IOException {
         queuedIngestClient.close();
+        streamingIngestClient.close();
     }
 
     @Override

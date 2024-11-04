@@ -105,10 +105,14 @@
                         <dependency>org.xerial:sqlite-jdbc</dependency>
                     </ignoredUnusedDeclaredDependencies>
                     <ignoredUsedUndeclaredDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
+                    <ignoredNonTestScopedDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                    </ignoredNonTestScopedDependencies>
                 </configuration>
                 <executions>
                     <execution>
@@ -264,6 +268,12 @@
             <groupId>io.vavr</groupId>
             <artifactId>vavr</artifactId>
             <version>${io.vavr.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>6.0.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

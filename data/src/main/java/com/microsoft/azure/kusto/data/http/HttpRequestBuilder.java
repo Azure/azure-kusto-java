@@ -5,10 +5,10 @@ import com.azure.core.http.HttpMethod;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.util.BinaryData;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.req.KustoRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,13 +46,13 @@ public class HttpRequestBuilder {
         request = new HttpRequest(method, cleanURL);
     }
 
-    public HttpRequestBuilder createCommandPayload(String database, String command, ClientRequestProperties properties) {
+    public HttpRequestBuilder createCommandPayload(KustoRequest kr) {
         ObjectNode json = Utils.getObjectMapper().createObjectNode()
-                .put("db", database)
-                .put("csl", command);
+                .put("db", kr.getDatabase())
+                .put("csl", kr.getCommand());
 
-        if (properties != null) {
-            json.put("properties", properties.toString());
+        if (kr.getProperties() != null) {
+            json.put("properties", kr.getProperties().toString());
         }
 
         request.setBody(json.toString());
