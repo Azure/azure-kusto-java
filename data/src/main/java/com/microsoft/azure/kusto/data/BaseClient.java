@@ -43,7 +43,6 @@ public abstract class BaseClient implements Client, StreamingClient {
             throw e;
         } catch (Exception e) {
             throw ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "sync");
-
         }
     }
 
@@ -150,7 +149,7 @@ public abstract class BaseClient implements Client, StreamingClient {
                 isPermanent);
     }
 
-    private Context getContextTimeout(long timeoutMs) {
+    private static Context getContextTimeout(long timeoutMs) {
         int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + EXTRA_TIMEOUT_FOR_CLIENT_SIDE;
 
         // See https://github.com/Azure/azure-sdk-for-java/blob/azure-core-http-netty_1.10.2/sdk/core/azure-core-http-netty/CHANGELOG.md#features-added

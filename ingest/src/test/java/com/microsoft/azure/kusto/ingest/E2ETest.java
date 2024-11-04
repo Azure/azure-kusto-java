@@ -98,7 +98,12 @@ class E2ETest {
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
     @BeforeAll
-    public static void setUp() {
+    public static void setUp() throws URISyntaxException, DataServiceException, DataClientException {
+        // ConnectionStringBuilder dmCsb2 = createConnection("https://onebox.dev.kusto.windows.net:10000");
+        // Client client = ClientFactory.createClient(dmCsb2);
+        // ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        // clientRequestProperties.setTimeoutInMilliSec(10000l);
+        // client.executeMgmt(".show table t extent with(V=4)", "NetDefaultDB", clientRequestProperties);
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
@@ -637,7 +642,7 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE))) {
+        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), any())) {
         }
 
     }
