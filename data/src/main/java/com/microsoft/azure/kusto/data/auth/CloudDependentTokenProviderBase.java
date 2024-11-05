@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.HttpClient;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;

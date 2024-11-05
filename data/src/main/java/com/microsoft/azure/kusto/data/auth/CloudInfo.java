@@ -77,6 +77,26 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return retrieveCloudInfoForCluster(clusterUrl, null);
     }
 
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl,
+                                                        @Nullable HttpClient givenHttpClient) {
+        return Mono.defer(() -> {
+            synchronized (cache) {
+                CloudInfo cloudInfo;
+                try {
+                    cloudInfo = cache.get(UriUtils.setPathForUri(clusterUrl, ""));
+                } catch (URISyntaxException ex) {
+                    return Mono.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true));
+                }
+                if (cloudInfo != null) {
+                    return Mono.just(cloudInfo);
+                }
+                ExponentialRetry<RuntimeException, DataServiceException> retry = new ExponentialRetry<>(exponentialRetryTemplate);
+                return retry.executeAsync(currentAttempt -> fetchAsync(clusterUrl, givenHttpClient));
+            }
+        });
+    }
+
+
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
             @Nullable HttpClient givenHttpClient)
             throws DataServiceException {
@@ -94,7 +114,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             ExponentialRetry<RuntimeException, DataServiceException> retry = new ExponentialRetry<>(exponentialRetryTemplate);
             return retry.execute(currentAttempt -> {
                 try {
-                    return retrieveCloudInfoForClusterAsync(clusterUrl, givenHttpClient).block();
+                    return fetchAsync(clusterUrl, givenHttpClient).block();
                 } catch (RuntimeException e ) {
                     Throwable[] ex = e.getSuppressed();
                     if (ex.length == 0) {
@@ -129,8 +149,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
     }
 
-    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl,
-                                                                    @Nullable HttpClient givenHttpClient) {
+    public static Mono<CloudInfo> fetchAsync(String clusterUrl,
+                                             @Nullable HttpClient givenHttpClient) {
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
 
 

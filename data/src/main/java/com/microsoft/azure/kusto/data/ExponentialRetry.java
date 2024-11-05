@@ -2,8 +2,11 @@ package com.microsoft.azure.kusto.data;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.lang.invoke.MethodHandles;
+
+import static reactor.core.publisher.Flux.range;
 
 public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -62,4 +65,26 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
         return null;
     }
 
+    public <T> Mono<T> executeAsync(KustoCheckedFunction<Integer, Mono<T>, E1, E2> function) {
+        return range(0, maxAttempts)
+                .doOnNext(attempt -> log.info("executeAsync: Attempt {}", attempt))
+                .flatMap(attempt -> {
+                    try {
+                        return function.apply(attempt)
+                                .switchIfEmpty(Mono.defer(() -> {
+                                    double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, attempt);
+                                    double jitterSecs = (float) Math.random() * maxJitterSecs;
+                                    double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
+                                    log.info("executeAsync: Attempt {} failed, trying again after sleep of {} seconds", attempt, sleepMs / 1000);
+
+                                    return Mono.delay(java.time.Duration.ofMillis((long) sleepMs))
+                                            .then(Mono.empty());
+                                }));
+                    } catch (Throwable e) {
+                        log.error("executeAsync: Error is permanent, stopping", e);
+                        return Mono.error(e);
+                    }
+                })
+                .next();
+    }
 }
