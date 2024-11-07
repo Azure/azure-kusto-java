@@ -84,6 +84,7 @@ public class HttpClientProperties {
         return maxConnectionTotal;
     }
 
+    /*
      * The maximum number of connections the client may keep open at the same time per route.
      *
      * @return the maximum number of connections per route
