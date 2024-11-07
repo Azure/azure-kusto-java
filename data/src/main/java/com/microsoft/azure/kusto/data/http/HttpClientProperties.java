@@ -56,7 +56,6 @@ public class HttpClientProperties {
      * {@linkplain #maxKeepAliveTime()}.
      *
      * @return whether a custom connection keep-alive strategy should be used
-     *
      * @see #maxKeepAliveTime()
      * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
      */
@@ -85,21 +84,21 @@ public class HttpClientProperties {
     }
 
     /**
-     * The maximum number of connections the client may keep open at the same time per route.
-     *
-     * @return the maximum number of connections per route
-     */
-    public Integer maxConnectionRoute() {
-        return maxConnectionRoute;
-    }
-
-    /**
      * Gets the HTTP Client Provider used by Azure Core when constructing HTTP Client instances.
      *
      * @return the provider
      */
     public Class<? extends HttpClientProvider> provider() {
         return provider;
+    }
+
+    /**
+     * The maximum number of connections the client may keep open at the same time per route.
+     *
+     * @return the maximum number of connections per route
+     */
+    public Integer maxConnectionRoute() {
+        return maxConnectionRoute;
     }
 
     /**
@@ -150,7 +149,6 @@ public class HttpClientProperties {
          * @param keepAlive set to {@code false} to use a default keep-alive strategy or to {@code true} to use a
          *                  custom one
          * @return the builder instance
-         *
          * @see #maxKeepAliveTime(Integer)
          * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
          */
