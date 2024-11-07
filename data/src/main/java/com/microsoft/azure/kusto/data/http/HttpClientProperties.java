@@ -14,7 +14,6 @@ public class HttpClientProperties {
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Integer maxConnectionRoute;
-    private final Duration timeout;
     private final Class<? extends HttpClientProvider> provider;
     private final ProxyOptions proxy;
 
@@ -24,7 +23,6 @@ public class HttpClientProperties {
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.maxConnectionRoute = builder.maxConnectionsPerRoute;
-        this.timeout = builder.timeout;
         this.provider = builder.provider;
         this.proxy = builder.proxy;
     }
@@ -93,15 +91,6 @@ public class HttpClientProperties {
      */
     public Integer maxConnectionRoute() {
         return maxConnectionRoute;
-    }
-
-    /**
-     * The default response timeout to apply to HTTP requests
-     *
-     * @return the timeout
-     */
-    public Duration timeout() {
-        return timeout;
     }
 
     /**
