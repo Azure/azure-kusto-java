@@ -21,6 +21,8 @@ based on the size, format and compression of data. This will also allow users to
 - [BREAKING] Redirects are disabled by default. Use ClientRequestProperties "client_max_redirect_count" option 
     to enable. Default changed to 0.
 - [BREAKING] Added exception to signature of ResourceAlgorithms.postToQueueWithRetries.
+- [BREAKING] Removed maxConnectionsPerRoute as it was not easily provided by azure-core.
+
 ## [5.2.0] - 2024-08-27
 ### Fixed
 - Used Msal user prompt old code which is deprecated in the new version coming from last bom update resulted in method not found exception.

@@ -111,7 +111,6 @@ class E2ETest {
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
                     .maxIdleTime(60)
-                    .maxConnectionsPerRoute(50)
                     .maxConnectionsTotal(50)
                     .build());
         } catch (URISyntaxException ex) {
@@ -654,7 +653,7 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE))) {
+        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), any())) {
         }
 
     }

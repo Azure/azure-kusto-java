@@ -27,18 +27,23 @@ import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 
+import org.apache.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
+    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
+    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
+    private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
 
     private final TokenProviderBase aadAuthenticationHelper;
 
@@ -134,7 +139,6 @@ class ClientImpl extends BaseClient {
     }
 
     KustoRequestContext prepareRequest(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
-
         // Validate and optimize the query object
         kr.validateAndOptimize();
 
@@ -182,12 +186,12 @@ class ClientImpl extends BaseClient {
     }
 
     private String executeToJsonResult(KustoRequest kr) throws DataServiceException, DataClientException {
-
         KustoRequestContext request = prepareRequest(kr);
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest()),
+                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest(), timeoutMs),
                 request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
@@ -236,6 +240,8 @@ class ClientImpl extends BaseClient {
             contentEncoding = "gzip";
         }
 
+        long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
+
         // This was a separate method but was moved into the body of this method because it performs a side effect
         if (properties != null) {
             Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
@@ -281,10 +287,9 @@ class ClientImpl extends BaseClient {
 
             // Get the response, and trace the call.
             String response = MonitoredActivity.invoke(
-                    (SupplierOneException<String, DataServiceException>) () -> post(request), "ClientImpl.executeStreamingIngest");
+                    (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs), "ClientImpl.executeStreamingIngest");
 
             return new KustoOperationResult(response, "v1");
-
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (IOException e) {
@@ -354,11 +359,37 @@ class ClientImpl extends BaseClient {
                 .withTracing(tracing)
                 .withAuthorization(authorization)
                 .build();
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, 0, kr.getProperties().getRedirectCount()),
+                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, timeoutMs, 0,
+                        kr.getProperties().getRedirectCount()),
                 "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
+    }
+
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
+        Long timeoutMs;
+        try {
+            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        } catch (ParseException e) {
+            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
+        }
+
+        if (timeoutMs == null) {
+            switch (commandType) {
+                case ADMIN_COMMAND:
+                    timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
+                    break;
+                case STREAMING_INGEST:
+                    timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+                    break;
+                default:
+                    timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
+            }
+        }
+
+        return timeoutMs;
     }
 
     private String getAuthorizationHeaderValue() throws DataServiceException, DataClientException {

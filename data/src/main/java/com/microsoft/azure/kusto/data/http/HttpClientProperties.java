@@ -13,7 +13,6 @@ public class HttpClientProperties {
     private final boolean keepAlive;
     private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
-    private final Integer maxConnectionRoute;
     private final Class<? extends HttpClientProvider> provider;
     private final ProxyOptions proxy;
 
@@ -22,7 +21,6 @@ public class HttpClientProperties {
         this.keepAlive = builder.keepAlive;
         this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
-        this.maxConnectionRoute = builder.maxConnectionsPerRoute;
         this.provider = builder.provider;
         this.proxy = builder.proxy;
     }
@@ -93,15 +91,6 @@ public class HttpClientProperties {
     }
 
     /**
-     * The maximum number of connections the client may keep open at the same time per route.
-     *
-     * @return the maximum number of connections per route
-     */
-    public Integer maxConnectionRoute() {
-        return maxConnectionRoute;
-    }
-
-    /**
      * The proxy to use when connecting to the remote server.
      *
      * @return the proxy
@@ -116,7 +105,6 @@ public class HttpClientProperties {
         private boolean keepAlive;
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
-        private Integer maxConnectionsPerRoute = 40;
         private Duration timeout = Duration.ofMinutes(10);
         private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
@@ -178,17 +166,6 @@ public class HttpClientProperties {
          */
         public HttpClientPropertiesBuilder maxConnectionsTotal(Integer maxConnectionsTotal) {
             this.maxConnectionsTotal = maxConnectionsTotal;
-            return this;
-        }
-
-        /**
-         * Sets the maximum number of connections the client may keep open at the same time for the same route (endpoint).
-         *
-         * @param maxConnections the maximum number of connections per route
-         * @return the builder instance
-         */
-        public HttpClientPropertiesBuilder maxConnectionsPerRoute(Integer maxConnections) {
-            this.maxConnectionsPerRoute = maxConnections;
             return this;
         }
 
