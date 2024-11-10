@@ -3,10 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -15,6 +11,7 @@ import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 public class BlobSourceInfo extends AbstractSourceInfo {
 
     private String blobPath;
+    private CompressionType compressionType;
 
     public String getBlobPath() {
         return blobPath;
@@ -24,29 +21,35 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.blobPath = blobPath;
     }
 
-    private long rawSizeInBytes;
-
-    public long getRawSizeInBytes() {
-        return rawSizeInBytes;
-    }
-
-    public void setRawSizeInBytes(long rawSizeInBytes) {
-        this.rawSizeInBytes = rawSizeInBytes;
-    }
-
     public BlobSourceInfo(String blobPath) {
         this.blobPath = blobPath;
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public BlobSourceInfo(String blobPath, long rawSizeInBytes) {
-        this.blobPath = blobPath;
-        this.rawSizeInBytes = rawSizeInBytes;
+        this(blobPath);
+        this.setRawSizeInBytes(rawSizeInBytes);
     }
 
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
+    public BlobSourceInfo(String blobPath, long rawSizeInBytes, CompressionType compressionType) {
+        this(blobPath);
+        this.compressionType = compressionType;
+        this.setRawSizeInBytes(rawSizeInBytes);
+    }
+
+    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
     public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
-        this.blobPath = blobPath;
-        this.rawSizeInBytes = rawSizeInBytes;
+        this(blobPath, rawSizeInBytes);
         this.setSourceId(sourceId);
+    }
+
+    public CompressionType getCompressionType() {
+        return compressionType;
+    }
+
+    public void setCompressionType(CompressionType compressionType) {
+        this.compressionType = compressionType;
     }
 
     public void validate() {

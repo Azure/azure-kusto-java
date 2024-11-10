@@ -11,12 +11,20 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.exceptions.*;
 import com.microsoft.azure.kusto.data.http.*;
 import com.microsoft.azure.kusto.data.instrumentation.*;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
 import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 
 import org.apache.http.ParseException;
@@ -124,9 +132,9 @@ class ClientImpl extends BaseClient {
             return new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
             throw new DataServiceException(res.getEndpoint(),
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+                    "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent());
         } catch (Exception e) {
-            throw new DataClientException(res.getEndpoint(), e.getMessage(), e);
+            throw new DataClientException(res.getEndpoint(), ExceptionsUtils.getMessageEx(e), e);
         }
     }
 
@@ -398,5 +406,4 @@ class ClientImpl extends BaseClient {
     ClientDetails getClientDetails() {
         return clientDetails;
     }
-
 }

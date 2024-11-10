@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ public class WellKnownKustoEndpointsData {
     public WellKnownKustoEndpointsData() {
     }
 
+    @NotNull
     private static WellKnownKustoEndpointsData readInstance() {
         try {
             // Beautiful !
@@ -44,8 +46,7 @@ public class WellKnownKustoEndpointsData {
                 return objectMapper.readValue(resourceAsStream, WellKnownKustoEndpointsData.class);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            throw new RuntimeException("Failed to read WellKnownKustoEndpoints.json", ex);
         }
-        return null;
     }
 }

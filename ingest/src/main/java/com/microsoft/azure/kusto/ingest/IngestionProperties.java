@@ -431,6 +431,10 @@ public class IngestionProperties implements TraceableAttributes {
         public boolean isCompressible() {
             return compressible;
         }
+
+        public boolean isJsonFormat() {
+            return this.equals(JSON) || this.equals(MULTIJSON) || this.equals(SINGLEJSON);
+        }
     }
 
     public enum IngestionReportLevel {
