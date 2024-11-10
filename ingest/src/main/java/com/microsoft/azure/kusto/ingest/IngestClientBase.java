@@ -45,6 +45,10 @@ public abstract class IngestClientBase implements IngestClient {
             return true;
         }
         String authority = uri.getAuthority().toLowerCase();
+        if (authority.startsWith("[") && authority.endsWith("]")) {
+            authority = authority.substring(1, authority.length() - 1);
+        }
+
         boolean isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
         boolean isLocalFlag = authority.contains("localhost");
 

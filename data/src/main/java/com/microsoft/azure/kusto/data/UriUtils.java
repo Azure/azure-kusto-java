@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 
 import java.io.File;
 import java.net.URI;
@@ -25,30 +24,37 @@ public class UriUtils {
         if (host == null) {
             host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
         }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
+
         String path = clusterUrlForParsing.getPath();
         if (path != null && !path.isEmpty()) {
             path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
             path = StringUtils.removeEndIgnoreCase(path, "/");
-
-            uriBuilder.setPath(path);
         }
 
-        if (clusterUrlForParsing.getPort() != -1) {
-            uriBuilder.setPort(clusterUrlForParsing.getPort());
-        }
-        return uriBuilder.build().toString();
+        String clusterUri = String.format("%s://%s%s%s",
+                clusterUrlForParsing.getScheme(),
+                host,
+                clusterUrlForParsing.getPort() != -1 ? ":" + clusterUrlForParsing.getPort() : StringUtils.EMPTY,
+                path);
+        return new URI(clusterUri).toString();
     }
 
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
         path = StringUtils.prependIfMissing(path, "/");
 
-        String pathString = new URIBuilder(uri).setPath(path).build().toString();
+        URI baseUri = new URI(uri);
+
+        URI newUri = new URI(
+                baseUri.getScheme(),
+                baseUri.getAuthority(),
+                path,
+                baseUri.getQuery(),
+                baseUri.getFragment());
+        String pathString = newUri.toString();
         if (ensureTrailingSlash) {
             pathString = StringUtils.appendIfMissing(pathString, "/");
         }
+
         return pathString;
     }
 
@@ -57,7 +63,7 @@ public class UriUtils {
     }
 
     public static String appendPathToUri(String uri, String path) throws URISyntaxException {
-        String existing = new URIBuilder(uri).getPath();
+        String existing = new URI(uri).getPath();
         return setPathForUri(uri, StringUtils.appendIfMissing(existing == null ? "" : existing, "/") + path);
     }
 

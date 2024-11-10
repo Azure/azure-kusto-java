@@ -27,14 +27,15 @@ import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.lang.invoke.MethodHandles;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -66,13 +67,20 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         this.streamingClient = streamingClient;
     }
 
-    public static String generateEngineUriSuggestion(URIBuilder existingEndpoint) {
-        if (!existingEndpoint.getHost().toLowerCase().startsWith(IngestClientBase.INGEST_PREFIX)) {
+    public static String generateEngineUriSuggestion(URI existingEndpoint) throws URISyntaxException {
+        if (!Objects.requireNonNull(existingEndpoint.getHost()).toLowerCase().startsWith(IngestClientBase.INGEST_PREFIX)) {
             throw new IllegalArgumentException("The URL is already formatted as the suggested Engine endpoint, so no suggestion can be made");
         }
 
-        existingEndpoint.setHost(existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length()));
-        return existingEndpoint.toString();
+        String host = existingEndpoint.getHost().substring(IngestClientBase.INGEST_PREFIX.length());
+        URI newUri = new URI(
+                existingEndpoint.getScheme(),
+                host,
+                existingEndpoint.getPath(),
+                existingEndpoint.getQuery(),
+                existingEndpoint.getFragment());
+
+        return newUri.toString();
     }
 
     @Override

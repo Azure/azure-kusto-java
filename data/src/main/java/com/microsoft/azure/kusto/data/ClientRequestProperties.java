@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.format.CslBoolFormat;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslIntFormat;
@@ -15,7 +16,6 @@ import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.format.CslUuidFormat;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -174,11 +174,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * Gets the amount of time a query may execute on the service before it times out. Value must be between 1 minute and 1 hour,
      * and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
-    public Long getTimeoutInMilliSec() throws ParseException {
+    public Long getTimeoutInMilliSec() throws KustoParseException {
         return getTimeoutInMilliSec(getOption(OPTION_SERVER_TIMEOUT));
     }
 
-    private static Long getTimeoutInMilliSec(Object timeoutObj) throws ParseException {
+    private static Long getTimeoutInMilliSec(Object timeoutObj) throws KustoParseException {
         if (timeoutObj == null) {
             return null;
         }
@@ -195,10 +195,10 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
         return adjustTimeoutToServiceLimits(timeout);
     }
 
-    private static long parseTimeoutFromTimespanString(String str) throws ParseException {
+    private static long parseTimeoutFromTimespanString(String str) throws KustoParseException {
         Matcher matcher = KUSTO_TIMESPAN_REGEX.matcher(str);
         if (!matcher.matches()) {
-            throw new ParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
+            throw new KustoParseException(String.format("Failed to parse timeout string as a timespan. Value: '%s'", str));
         }
 
         if ("-".equals(matcher.group(1))) {
