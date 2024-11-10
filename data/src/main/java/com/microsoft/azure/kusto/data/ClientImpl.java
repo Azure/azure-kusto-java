@@ -11,35 +11,42 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.exceptions.*;
 import com.microsoft.azure.kusto.data.http.*;
+import com.microsoft.azure.kusto.data.instrumentation.*;
+import com.microsoft.azure.kusto.data.req.KustoRequest;
+import com.microsoft.azure.kusto.data.req.KustoRequestContext;
+import com.microsoft.azure.kusto.data.res.JsonResult;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
 
-import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 class ClientImpl extends BaseClient {
-    private static final String ADMIN_COMMANDS_PREFIX = ".";
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
     private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
+    private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
+    private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
+    private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
 
-    public static final String FEDERATED_SECURITY_SUFFIX = ";fed=true";
     private final TokenProviderBase aadAuthenticationHelper;
 
-    // Todo: Add Keep-Alive?
-    // private final String keepAlive;
     private final String clusterUrl;
     private final ClientDetails clientDetails;
     private boolean endpointValidated = false;
@@ -54,57 +61,12 @@ class ClientImpl extends BaseClient {
 
     public ClientImpl(ConnectionStringBuilder csb, HttpClient httpClient) throws URISyntaxException {
         super(httpClient);
-
-        URI clusterUrlForParsing = new URI(csb.getClusterUrl());
-        String host = clusterUrlForParsing.getHost();
-        Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
-        String auth = clusterUrlForParsing.getAuthority().toLowerCase();
-        if (host == null) {
-            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
-        }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(clusterUrlForParsing.getScheme())
-                .setHost(host);
-        String path = clusterUrlForParsing.getPath();
-        if (path != null && !path.isEmpty()) {
-            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
-            path = StringUtils.removeEndIgnoreCase(path, "/");
-
-            uriBuilder.setPath(path);
-        }
-
-        if (clusterUrlForParsing.getPort() != -1) {
-            uriBuilder.setPort(clusterUrlForParsing.getPort());
-        }
-        csb.setClusterUrl(uriBuilder.build().toString());
+        String clusterURL = UriUtils.createClusterURLFrom(csb.getClusterUrl());
+        csb.setClusterUrl(clusterURL);
 
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
-    }
-
-    @Override
-    public KustoOperationResult execute(String command) throws DataServiceException, DataClientException {
-        return execute(DEFAULT_DATABASE_NAME, command);
-    }
-
-    @Override
-    public KustoOperationResult execute(String database, String command) throws DataServiceException, DataClientException {
-        return execute(database, command, null);
-    }
-
-    @Override
-    public KustoOperationResult execute(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        return execute(database, command, properties, determineCommandType(command));
-    }
-
-    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
-            throws DataServiceException, DataClientException {
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(database, command, properties,
-                        commandType),
-                commandType.getActivityTypeSuffix().concat(".execute"),
-                updateAndGetExecuteTracingAttributes(database, properties));
     }
 
     @Override
@@ -139,6 +101,16 @@ class ClientImpl extends BaseClient {
         return execute(database, command, properties, CommandType.ADMIN_COMMAND);
     }
 
+    private KustoOperationResult execute(String database, String command, ClientRequestProperties properties, CommandType commandType)
+            throws DataServiceException, DataClientException {
+        KustoRequest kr = new KustoRequest(command, database, properties, commandType);
+
+        return MonitoredActivity.invoke(
+                (SupplierTwoExceptions<KustoOperationResult, DataServiceException, DataClientException>) () -> executeImpl(kr),
+                commandType.getActivityTypeSuffix().concat(".execute"),
+                updateAndGetExecuteTracingAttributes(database, properties));
+    }
+
     private Map<String, String> updateAndGetExecuteTracingAttributes(String database, TraceableAttributes traceableAttributes) {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("cluster", clusterUrl);
@@ -149,19 +121,52 @@ class ClientImpl extends BaseClient {
         return attributes;
     }
 
-    @NotNull
-    private KustoOperationResult executeImpl(String database, String command, ClientRequestProperties properties, CommandType commandType)
-            throws DataServiceException, DataClientException {
-        String response = executeToJsonResult(database, command, properties);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+    private KustoOperationResult executeImpl(KustoRequest kr) throws DataServiceException, DataClientException {
+        String response = executeToJsonResult(kr);
+        String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
+        return processJsonResult(new JsonResult(response, clusterEndpoint));
+    }
+
+    private KustoOperationResult processJsonResult(JsonResult res) throws DataServiceException, DataClientException {
         try {
-            return new KustoOperationResult(response, clusterEndpoint.endsWith("v2/rest/query") ? "v2" : "v1");
+            return new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
         } catch (KustoServiceQueryError e) {
-            throw new DataServiceException(clusterEndpoint,
-                    "Error found while parsing json response as KustoOperationResult:" + e.getMessage(), e, e.isPermanent());
+            throw new DataServiceException(res.getEndpoint(),
+                    "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent());
         } catch (Exception e) {
-            throw new DataClientException(clusterEndpoint, e.getMessage(), e);
+            throw new DataClientException(res.getEndpoint(), ExceptionsUtils.getMessageEx(e), e);
         }
+    }
+
+    KustoRequestContext prepareRequest(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
+        // Validate and optimize the query object
+        kr.validateAndOptimize();
+
+        String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
+        String authorization = getAuthorizationHeaderValue();
+
+        // Validate the endpoint (?)
+        validateEndpoint();
+
+        // Build the tracing object
+        HttpTracing tracing = HttpTracing
+                .newBuilder()
+                .withProperties(kr.getProperties())
+                .withRequestPrefix("KJC.execute")
+                .withActivitySuffix(kr.getCommandType().getActivityTypeSuffix())
+                .withClientDetails(clientDetails)
+                .build();
+
+        // Build the HTTP request
+        HttpRequest request = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .createCommandPayload(kr)
+                .withTracing(tracing)
+                .withAuthorization(authorization)
+                .build();
+
+        // Wrap the Http request and SDK request in a singular object, so we can use BiConsumer later.
+        return new KustoRequestContext(kr, request);
     }
 
     @Override
@@ -176,53 +181,25 @@ class ClientImpl extends BaseClient {
 
     @Override
     public String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException {
-        // Argument validation
-        if (StringUtils.isEmpty(database)) {
-            throw new IllegalArgumentException("Database is empty");
-        }
-        if (StringUtils.isEmpty(command)) {
-            throw new IllegalArgumentException("Command is empty");
-        }
-        command = command.trim();
-        CommandType commandType = determineCommandType(command);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
-        String authorization = getAuthorizationHeaderValue();
+        KustoRequest kr = new KustoRequest(command, database, properties);
+        return executeToJsonResult(kr);
+    }
 
-        // Validate the endpoint
-        validateEndpoint();
-
-        // Build the tracing object
-        HttpTracing tracing = HttpTracing
-                .newBuilder()
-                .withProperties(properties)
-                .withRequestPrefix("KJC.execute")
-                .withActivitySuffix(commandType.getActivityTypeSuffix())
-                .withClientDetails(clientDetails)
-                .build();
-
-        // Build the HTTP request
-        HttpRequest request = HttpRequestBuilder
-                .newPost(clusterEndpoint)
-                .createCommandPayload(database, command, properties)
-                .withTracing(tracing)
-                .withAuthorization(authorization)
-                .build();
+    private String executeToJsonResult(KustoRequest kr) throws DataServiceException, DataClientException {
+        KustoRequestContext request = prepareRequest(kr);
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<String, DataServiceException>) () -> post(request),
-                commandType.getActivityTypeSuffix().concat(".executeToJsonResult"));
+                (SupplierOneException<String, DataServiceException>) () -> post(request.getHttpRequest(), timeoutMs),
+                request.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResult"));
     }
 
     private void validateEndpoint() throws DataServiceException, DataClientException {
-        try {
-            if (!endpointValidated) {
-                KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
-                        CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
-                endpointValidated = true;
-            }
-        } catch (KustoClientInvalidConnectionStringException e) {
-            throw new DataClientException(clusterUrl, e.getMessage(), e);
+        if (!endpointValidated) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl,
+                    CloudInfo.retrieveCloudInfoForCluster(clusterUrl).getLoginEndpoint());
+            endpointValidated = true;
         }
     }
 
@@ -262,6 +239,8 @@ class ClientImpl extends BaseClient {
         if (isStreamSource) {
             contentEncoding = "gzip";
         }
+
+        long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
         // This was a separate method but was moved into the body of this method because it performs a side effect
         if (properties != null) {
@@ -308,10 +287,9 @@ class ClientImpl extends BaseClient {
 
             // Get the response, and trace the call.
             String response = MonitoredActivity.invoke(
-                    (SupplierOneException<String, DataServiceException>) () -> post(request), "ClientImpl.executeStreamingIngest");
+                    (SupplierOneException<String, DataServiceException>) () -> post(request, timeoutMs), "ClientImpl.executeStreamingIngest");
 
             return new KustoOperationResult(response, "v1");
-
         } catch (KustoServiceQueryError e) {
             throw new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e);
         } catch (IOException e) {
@@ -350,15 +328,16 @@ class ClientImpl extends BaseClient {
     @Override
     public InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties)
             throws DataServiceException, DataClientException {
-        if (StringUtils.isEmpty(database)) {
-            throw new IllegalArgumentException("Database is empty");
-        }
-        if (StringUtils.isEmpty(command)) {
-            throw new IllegalArgumentException("Command is empty");
-        }
-        command = command.trim();
-        CommandType commandType = determineCommandType(command);
-        String clusterEndpoint = String.format(commandType.getEndpoint(), clusterUrl);
+        KustoRequest kr = new KustoRequest(command, database, properties);
+        return executeStreamingQuery(kr);
+    }
+
+    private InputStream executeStreamingQuery(@NotNull KustoRequest kr) throws DataServiceException, DataClientException {
+
+        // Validate and optimize the query object
+        kr.validateAndOptimize();
+
+        String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
         String authorization = getAuthorizationHeaderValue();
 
         // Validate the endpoint
@@ -367,31 +346,50 @@ class ClientImpl extends BaseClient {
         // Build the tracing object
         HttpTracing tracing = HttpTracing
                 .newBuilder()
-                .withProperties(properties)
+                .withProperties(kr.getProperties())
                 .withRequestPrefix("KJC.executeStreaming")
-                .withActivitySuffix(commandType.getActivityTypeSuffix())
+                .withActivitySuffix(kr.getCommandType().getActivityTypeSuffix())
                 .withClientDetails(clientDetails)
                 .build();
 
         // Build the HTTP request
         HttpRequest request = HttpRequestBuilder
                 .newPost(clusterEndpoint)
-                .createCommandPayload(database, command, properties)
+                .createCommandPayload(kr)
                 .withTracing(tracing)
                 .withAuthorization(authorization)
                 .build();
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
 
         // Get the response and trace the call
         return MonitoredActivity.invoke(
-                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request),
-                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(database, properties));
+                (SupplierOneException<InputStream, DataServiceException>) () -> postToStreamingOutput(request, timeoutMs, 0,
+                        kr.getProperties().getRedirectCount()),
+                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
     }
 
-    private CommandType determineCommandType(String command) {
-        if (command.startsWith(ADMIN_COMMANDS_PREFIX)) {
-            return CommandType.ADMIN_COMMAND;
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
+        Long timeoutMs;
+        try {
+            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
+        } catch (ParseException e) {
+            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
         }
-        return CommandType.QUERY;
+
+        if (timeoutMs == null) {
+            switch (commandType) {
+                case ADMIN_COMMAND:
+                    timeoutMs = COMMAND_TIMEOUT_IN_MILLISECS;
+                    break;
+                case STREAMING_INGEST:
+                    timeoutMs = STREAMING_INGEST_TIMEOUT_IN_MILLISECS;
+                    break;
+                default:
+                    timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
+            }
+        }
+
+        return timeoutMs;
     }
 
     private String getAuthorizationHeaderValue() throws DataServiceException, DataClientException {
@@ -408,10 +406,4 @@ class ClientImpl extends BaseClient {
     ClientDetails getClientDetails() {
         return clientDetails;
     }
-
-    // No implementation as the HTTP Client is no longer a closeable
-    @Override
-    public void close() throws IOException {
-    }
-
 }

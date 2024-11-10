@@ -26,7 +26,6 @@ public class AdvancedQuery {
             HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
-                    .maxConnectionsPerRoute(40)
                     .maxConnectionsTotal(40)
                     .build();
 
@@ -40,7 +39,7 @@ public class AdvancedQuery {
                     "range x from 1 to 100 step 1",
                     "| extend ts = totimespan(strcat(x,'.00:00:00'))",
                     "| project timestamp = now(ts), eventName = strcat('event ', x)");
-            client.execute(database, tableCommand);
+            client.executeMgmt(database, tableCommand);
 
             // Query for an event where the name is "event 1".
             // Utilize ClientRequestProperties to pass query parameters to protect against injection attacks.
@@ -51,7 +50,7 @@ public class AdvancedQuery {
                     "declare query_parameters(eventNameFilter:string);",
                     "Events",
                     "| where eventName == eventNameFilter");
-            KustoOperationResult results = client.execute(database, query, clientRequestProperties);
+            KustoOperationResult results = client.executeQuery(database, query, clientRequestProperties);
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 

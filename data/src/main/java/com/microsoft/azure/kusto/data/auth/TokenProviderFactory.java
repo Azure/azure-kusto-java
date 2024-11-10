@@ -3,11 +3,11 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.IClientCertificate;
 import com.microsoft.aad.msal4j.IClientSecret;
 import org.apache.commons.lang3.StringUtils;
+import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

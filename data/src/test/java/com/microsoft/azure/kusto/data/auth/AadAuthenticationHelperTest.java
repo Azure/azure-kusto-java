@@ -3,10 +3,7 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.aad.msal4j.IAccount;
-import com.microsoft.aad.msal4j.IAuthenticationResult;
-import com.microsoft.aad.msal4j.ITenantProfile;
-import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.aad.msal4j.*;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
@@ -303,6 +300,11 @@ public class AadAuthenticationHelperTest {
         @Override
         public Date expiresOnDate() {
             return expiresOnDate;
+        }
+
+        @Override
+        public AuthenticationResultMetadata metadata() {
+            return null;
         }
     }
 }

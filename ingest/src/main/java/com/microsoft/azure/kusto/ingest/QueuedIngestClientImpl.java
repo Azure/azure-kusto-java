@@ -222,8 +222,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     blobName,
                     shouldCompress);
 
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, 0, streamSourceInfo.getSourceId()); // TODO: check if we can get the rawDataSize
-            // locally - maybe add a countingStream
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getSourceId());
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -285,6 +284,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         this.connectionDataSource = connectionDataSource;
     }
 
+    @Override
     public void close() {
         this.resourceManager.close();
     }

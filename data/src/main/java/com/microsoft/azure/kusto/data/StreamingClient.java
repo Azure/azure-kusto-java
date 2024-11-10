@@ -48,16 +48,6 @@ public interface StreamingClient {
 
     InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException;
 
-    /**
-     * <p>Execute the provided command against the default database.</p>
-     *
-     * @param command The command to execute
-     * @return {@link KustoOperationResult} object including the ingestion result
-     * @throws DataClientException  An exception originating from a client activity
-     * @throws DataServiceException An exception returned from the service
-     */
-    KustoOperationResult execute(String command) throws DataServiceException, DataClientException;
-
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
             String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
 }

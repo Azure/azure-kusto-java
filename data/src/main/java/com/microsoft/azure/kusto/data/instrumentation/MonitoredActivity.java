@@ -14,6 +14,16 @@ public class MonitoredActivity {
         }
     }
 
+    public static <T> T invoke(SupplierNoException<T> supplier, String nameOfSpan) {
+        return invoke(supplier, nameOfSpan, new HashMap<>());
+    }
+
+    public static <T> T invoke(SupplierNoException<T> supplier, String nameOfSpan, Map<String, String> attributes) {
+        try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
+            return supplier.get();
+        }
+    }
+
     public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan) throws U {
         return invoke((SupplierTwoExceptions<T, U, U>) supplier::get, nameOfSpan, new HashMap<>());
     }

@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Query {
     public static void main(String[] args) {
-
         try {
             ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                     System.getProperty("clusterPath"),
@@ -25,13 +24,12 @@ public class Query {
             HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
-                    .maxConnectionsPerRoute(40)
                     .maxConnectionsTotal(40)
                     .build();
 
             Client client = ClientFactory.createClient(csb, properties);
 
-            KustoOperationResult results = client.execute(".show version");
+            KustoOperationResult results = client.executeQuery(".show version");
             KustoResultSetTable mainTableResult = results.getPrimaryResults();
             System.out.printf("Kusto sent back %s rows.%n", mainTableResult.count());
 
@@ -44,7 +42,7 @@ public class Query {
             ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
             clientRequestProperties.setTimeoutInMilliSec(TimeUnit.MINUTES.toMillis(1));
 
-            results = client.execute(System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
+            results = client.executeQuery(System.getProperty("dbName"), System.getProperty("query"), clientRequestProperties);
         } catch (Exception e) {
             e.printStackTrace();
         }

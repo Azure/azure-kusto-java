@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
@@ -11,6 +10,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import org.apache.commons.lang3.StringUtils;
+import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -93,7 +93,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
                 authorityUrl = firstPartyAuthorityUrl;
             }
 
-            return SilentParameters.builder(scopes).account(account).authorityUrl(authorityUrl).build();
+            return SilentParameters.builder(scopes, account).authorityUrl(authorityUrl).build();
         }
         return SilentParameters.builder(scopes).authorityUrl(aadAuthorityUrl).build();
     }

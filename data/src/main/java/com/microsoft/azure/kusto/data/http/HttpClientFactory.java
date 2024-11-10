@@ -27,20 +27,20 @@ public class HttpClientFactory {
      */
     public static HttpClient create(HttpClientProperties properties) {
         LOGGER.info("Creating new HTTP Client");
+        HttpClientOptions options = new HttpClientOptions();
+
+        // If all properties are null, create with default client options
         if (properties == null) {
-            return HttpClient.createDefault();
+            return HttpClient.createDefault(options);
         }
 
+        // MS Docs indicate that all setters handle nulls so even if these values are null everything should "just work"
+        // Note that the first discovered HttpClientProvider class is loaded. HttpClientProviders can be swapped in or out
+        // by simply
         // Docs: https://learn.microsoft.com/en-us/java/api/com.azure.core.util.httpclientoptions?view=azure-java-stable
-        HttpClientOptions options = new HttpClientOptions();
+
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
-
-        // properties.timeout() value could be null, Azure Core JavaDocs indicate this is OK.
-        options.setResponseTimeout(properties.timeout());
-
-        // If null (as it is in the builder) the first discovered HttpClientProvider class is loaded.
-        // Netty is included by default in azure-core but can be excluded in the pom by excluding azure-core-http-netty.
         options.setHttpClientProvider(properties.provider());
 
         // Set Keep-Alive headers if they were requested.
@@ -65,5 +65,4 @@ public class HttpClientFactory {
 
         return HttpClient.createDefault(options);
     }
-
 }

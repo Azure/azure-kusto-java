@@ -53,6 +53,7 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsCslTimespan(timeoutObj));
 
         clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
@@ -70,6 +71,7 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsCslTimespan(timeoutObj));
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
@@ -86,6 +88,7 @@ class ClientRequestPropertiesTest {
         // before setting value should be null
         Assertions.assertNull(clientRequestProperties.getTimeoutInMilliSec());
         Object timeoutObj = clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT);
+        Assertions.assertNull(clientRequestProperties.getTimeoutAsCslTimespan(timeoutObj));
 
         clientRequestProperties.setOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT, serverTimeoutOptionTimespan);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
@@ -251,5 +254,20 @@ class ClientRequestPropertiesTest {
         String timeString = "23:59:35.9853375";
         String result = new CslTimespanFormat(timeString).toString();
         Assertions.assertEquals("time(" + timeString + ")", result);
+    }
+
+    @Test
+    void testRedirectCount() {
+        ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
+        int redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(0, redirectCount);
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_CLIENT_MAX_REDIRECT_COUNT, 1);
+        redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(1, redirectCount);
+
+        clientRequestProperties.setOption(ClientRequestProperties.OPTION_CLIENT_MAX_REDIRECT_COUNT, "1");
+        redirectCount = clientRequestProperties.getRedirectCount();
+        Assertions.assertEquals(1, redirectCount);
     }
 }
