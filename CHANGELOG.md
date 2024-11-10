@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved HTTP request building logic into a builder class.
 - [BREAKING] Redirects are disabled by default. Use ClientRequestProperties "client_max_redirect_count" option 
     to enable. Default changed to 0.
+- [BREAKING] Removed maxConnectionsPerRoute as it was not easily provided by azure-core.
 
 ## [5.2.0] - 2024-08-27
 ### Fixed
