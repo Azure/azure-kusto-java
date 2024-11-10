@@ -19,9 +19,6 @@ import java.lang.invoke.MethodHandles;
 import java.util.Optional;
 
 public abstract class BaseClient implements Client, StreamingClient {
-
-    private static final int MAX_REDIRECT_COUNT = 1;
-
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -56,8 +53,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     // Todo: Implement async version of this method
-    protected InputStream postToStreamingOutput(HttpRequest request, int redirectCount) throws DataServiceException {
-
+    protected InputStream postToStreamingOutput(HttpRequest request, int currentRedirectCounter, int maxRedirectCount) throws DataServiceException {
         boolean returnInputStream = false;
         String errorFromResponse = null;
 
@@ -77,14 +73,14 @@ public abstract class BaseClient implements Client, StreamingClient {
             // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
             httpResponse.close();
 
-            if (shouldPostToOriginalUrlDueToRedirect(redirectCount, responseStatusCode)) {
+            if (shouldPostToOriginalUrlDueToRedirect(currentRedirectCounter, responseStatusCode, maxRedirectCount)) {
                 Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
                     HttpRequest redirectRequest = HttpRequestBuilder
                             .fromExistingRequest(request)
                             .withURL(redirectLocation.get().getValue())
                             .build();
-                    return postToStreamingOutput(redirectRequest, redirectCount + 1);
+                    return postToStreamingOutput(redirectRequest, currentRedirectCounter + 1, maxRedirectCount);
                 }
             }
         } catch (IOException ex) {
@@ -147,8 +143,8 @@ public abstract class BaseClient implements Client, StreamingClient {
         }
     }
 
-    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status) {
-        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= MAX_REDIRECT_COUNT;
+    private static boolean shouldPostToOriginalUrlDueToRedirect(int redirectCount, int status, int maxRedirectCount) {
+        return (status == HttpStatus.FOUND || status == HttpStatus.TEMP_REDIRECT) && redirectCount + 1 <= maxRedirectCount;
     }
 
     private static String determineActivityId(HttpResponse httpResponse) {

@@ -42,7 +42,6 @@ public class HttpClientFactory {
 
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
-        options.setResponseTimeout(properties.timeout());
         options.setHttpClientProvider(properties.provider());
 
         // Set Keep-Alive headers if they were requested.
