@@ -65,5 +65,4 @@ public class HttpClientFactory {
 
         return HttpClient.createDefault(options);
     }
-
 }
