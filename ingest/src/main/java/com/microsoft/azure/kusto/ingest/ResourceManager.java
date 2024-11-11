@@ -51,7 +51,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(1);
     private static final long REFRESH_RESULT_POLL_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(15);
-    public static final Duration UPLOAD_TIMEOUT = Duration.ofMinutes(10);
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Timer refreshTasksTimer;
@@ -74,7 +73,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.client = client;
         // Using ctor with client so that the dependency is used
         this.httpClient = httpClient == null
-                ? HttpClientFactory.create(HttpClientProperties.builder().timeout(UPLOAD_TIMEOUT).build())
+                ? HttpClientFactory.create(HttpClientProperties.builder().build())
                 : httpClient;
 
         // Refresh tasks
