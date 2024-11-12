@@ -41,6 +41,10 @@ public class TokenProviderFactory {
         } else if (csb.getTokenProvider() != null) {
             Callable<String> tokenProvider = csb.getTokenProvider();
             return new CallbackTokenProvider(clusterUrl, tokenProvider);
+        } else if (csb.getAsyncTokenProvider() != null) {
+            return new AsyncCallbackTokenProvider(clusterUrl, csb.getAsyncTokenProvider());
+        } else if (csb.getCustomTokenCredential() != null) {
+          return new CustomTokenCredentialProvider(clusterUrl, csb.getCustomTokenCredential(), csb.getCustomTokenRequestContext());
         } else if (csb.isUseDeviceCodeAuth()) {
             return new DeviceAuthTokenProvider(clusterUrl, authorityId, httpClient);
         } else if (csb.isUseManagedIdentityAuth()) {

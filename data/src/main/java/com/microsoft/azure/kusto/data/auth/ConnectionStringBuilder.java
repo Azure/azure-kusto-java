@@ -3,9 +3,12 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
 import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
@@ -32,6 +35,8 @@ public class ConnectionStringBuilder {
     private String accessToken;
     private Callable<String> tokenProvider;
     private Mono<String> asyncTokenProvider;
+    private TokenCredential customTokenCredential;
+    private TokenRequestContext customTokenRequestContext;
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
@@ -88,6 +93,8 @@ public class ConnectionStringBuilder {
         this.accessToken = null;
         this.tokenProvider = null;
         this.asyncTokenProvider = null;
+        this.customTokenCredential = null;
+        this.customTokenRequestContext = null;
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
@@ -151,6 +158,8 @@ public class ConnectionStringBuilder {
         this.accessToken = other.accessToken;
         this.tokenProvider = other.tokenProvider;
         this.asyncTokenProvider = other.asyncTokenProvider;
+        this.customTokenCredential = other.customTokenCredential;
+        this.customTokenRequestContext = other.customTokenRequestContext;
         this.managedIdentityClientId = other.managedIdentityClientId;
         this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
@@ -236,6 +245,14 @@ public class ConnectionStringBuilder {
 
     public Mono<String> getAsyncTokenProvider() {
         return asyncTokenProvider;
+    }
+
+    public TokenCredential getCustomTokenCredential() {
+        return customTokenCredential;
+    }
+
+    public TokenRequestContext getCustomTokenRequestContext() {
+        return customTokenRequestContext;
     }
 
     public String getManagedIdentityClientId() {
@@ -517,6 +534,22 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.clusterUrl = clusterUrl;
         csb.useAzureCli = true;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithCustomTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential, @Nullable TokenRequestContext tokenRequestContext) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenCredential == null) {
+            throw new IllegalArgumentException("tokenCredential cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
+        csb.customTokenCredential = tokenCredential;
+        csb.customTokenRequestContext = tokenRequestContext;
         return csb;
     }
 
