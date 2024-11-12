@@ -105,7 +105,6 @@ public class HttpClientProperties {
         private boolean keepAlive;
         private Integer maxKeepAliveTime = 120;
         private Integer maxConnectionsTotal = 40;
-        private Duration timeout = Duration.ofMinutes(10);
         private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
 
@@ -181,17 +180,6 @@ public class HttpClientProperties {
         }
 
         /**
-         * Sets a response timeout to use by default on the client's requests.
-         *
-         * @param timeout the requested response timeout
-         * @return the builder instance
-         */
-        public HttpClientPropertiesBuilder timeout(Duration timeout) {
-            this.timeout = timeout;
-            return this;
-        }
-
-        /**
          * Sets a proxy server to use for the client.
          *
          * @param proxy the proxy server
@@ -206,5 +194,4 @@ public class HttpClientProperties {
             return new HttpClientProperties(this);
         }
     }
-
 }
