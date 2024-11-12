@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import reactor.core.publisher.Mono;
@@ -31,7 +32,7 @@ public class CallbackTokenProvider extends TokenProviderBase {
     @Override
     protected Mono<String> acquireAccessTokenImpl() {
         return Mono.fromCallable(() -> tokenProvider.apply(httpClient))
-                .onErrorMap(e -> new DataClientException(clusterUrl, e.getMessage(), e instanceof Exception ? (Exception) e : null));
+                .onErrorMap(e -> new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(e), e));
     }
 
     @Override

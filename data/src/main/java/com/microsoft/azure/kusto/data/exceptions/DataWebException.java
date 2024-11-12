@@ -35,9 +35,10 @@ public class DataWebException extends WebException {
             try {
                 apiError = OneApiError.fromJsonObject(objectMapper.readTree(getMessage()).get("error"));
             } catch (JsonProcessingException e) {
-                log.error("failed to parse error from message {} {} ", e.getMessage(), e);
+                log.error(String.format("failed to parse error from message: '%s' ", e.getMessage()), e);
             }
         }
+
         return apiError;
     }
 }

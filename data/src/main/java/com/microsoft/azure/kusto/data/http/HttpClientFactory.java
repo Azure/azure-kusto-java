@@ -31,7 +31,6 @@ public class HttpClientFactory {
 
         // If all properties are null, create with default client options
         if (properties == null) {
-            options.setResponseTimeout(Duration.ofMinutes(10));
             return HttpClient.createDefault(options);
         }
 
@@ -42,7 +41,6 @@ public class HttpClientFactory {
 
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
-        options.setResponseTimeout(properties.timeout());
         options.setHttpClientProvider(properties.provider());
 
         // Set Keep-Alive headers if they were requested.
@@ -67,5 +65,4 @@ public class HttpClientFactory {
 
         return HttpClient.createDefault(options);
     }
-
 }

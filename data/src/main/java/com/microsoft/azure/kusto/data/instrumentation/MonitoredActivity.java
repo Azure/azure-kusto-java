@@ -4,7 +4,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 public class MonitoredActivity {
     public static void invoke(Runnable runnable, String nameOfSpan) {

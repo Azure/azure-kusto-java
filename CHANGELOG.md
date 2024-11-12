@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [6.0.0] - 2024-09-21
+## [Unreleased] - 2024-10-27
+### Added
+- A new policy heuristic for choosing between queuing and streaming in Managed streaming client. A policy can be configured
+based on the size, format and compression of data. This will also allow users to stream bigger than 4mb non-compressed data (which was the previous limit).
+### Fixed
+- Some better error messages
+
 ### Changed
 - Replaced Apache CloseableHttpClient with configurable azure-core client.
 - [BREAKING] HttpClientFactory now accepts clients implementing azure-core HttpClient.
@@ -14,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved HTTP request building logic into a builder class.
 - [BREAKING] Redirects are disabled by default. Use ClientRequestProperties "client_max_redirect_count" option 
     to enable. Default changed to 0.
+- [BREAKING] Added exception to signature of ResourceAlgorithms.postToQueueWithRetries.
+- [BREAKING] Removed maxConnectionsPerRoute as it was not easily provided by azure-core.
 
 ## [5.2.0] - 2024-08-27
 ### Fixed

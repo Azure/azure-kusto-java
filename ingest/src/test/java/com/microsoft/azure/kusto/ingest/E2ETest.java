@@ -111,7 +111,6 @@ class E2ETest {
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
                     .maxIdleTime(60)
-                    .maxConnectionsPerRoute(50)
                     .maxConnectionsTotal(50)
                     .build());
         } catch (URISyntaxException ex) {
@@ -377,19 +376,35 @@ class E2ETest {
     @ValueSource(booleans = {true, false})
     void testIngestFromStream(boolean isManaged) throws IOException {
         for (TestDataItem item : dataForTests) {
-            if (item.file.getPath().endsWith(".gz")) {
-                InputStream stream = Files.newInputStream(item.file.toPath());
-                StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream);
+            InputStream inputStream = Files.newInputStream(item.file.toPath());
+            int nRead;
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
-                streamSourceInfo.setCompressionType(CompressionType.gz);
-                try {
-                    ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
-                            item.ingestionProperties);
-                } catch (Exception ex) {
-                    Assertions.fail(ex);
-                }
-                assertRowCount(item.rows, true);
+            byte[] data = new byte[48000];
+
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
             }
+
+            buffer.flush();
+            byte[] byteArray = buffer.toByteArray();
+
+            // Use the byte array as needed
+
+            inputStream.close();
+            inputStream = new ByteArrayInputStream(byteArray);
+            StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
+            if (item.file.getPath().endsWith(".gz")) {
+                streamSourceInfo.setCompressionType(CompressionType.gz);
+            }
+
+            try {
+                ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromStream(streamSourceInfo,
+                        item.ingestionProperties);
+            } catch (Exception ex) {
+                Assertions.fail(ex);
+            }
+            assertRowCount(item.rows, true);
         }
     }
 
@@ -639,7 +654,7 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), eq(Context.NONE))) {
+        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), any())) {
         }
 
     }

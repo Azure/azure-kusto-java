@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Query {
     public static void main(String[] args) {
-
         try {
             ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
                     System.getProperty("clusterPath"),
@@ -25,7 +24,6 @@ public class Query {
             HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
                     .maxKeepAliveTime(120)
-                    .maxConnectionsPerRoute(40)
                     .maxConnectionsTotal(40)
                     .build();
 
