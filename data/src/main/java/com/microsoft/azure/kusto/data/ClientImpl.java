@@ -14,7 +14,6 @@ import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
-import com.microsoft.azure.kusto.data.exceptions.KustoParseException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
@@ -29,6 +28,7 @@ import com.microsoft.azure.kusto.data.req.KustoRequest;
 import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -375,7 +375,7 @@ class ClientImpl extends BaseClient {
         Long timeoutMs;
         try {
             timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
-        } catch (KustoParseException e) {
+        } catch (ParseException e) {
             throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
         }
 
