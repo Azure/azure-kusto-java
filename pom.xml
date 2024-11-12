@@ -50,7 +50,6 @@
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <resilience4j.version>1.7.1</resilience4j.version>
         <io.vavr.version>0.10.4</io.vavr.version>
-        <reactivestreams.version>1.0.4</reactivestreams.version>
         <!-- Test dependencies -->
         <bouncycastle.version>1.77</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>

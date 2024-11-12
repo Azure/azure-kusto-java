@@ -269,10 +269,5 @@
             <artifactId>resilience4j-core</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
-            <version>${reactivestreams.version}</version>
-        </dependency>
     </dependencies>
 </project>
