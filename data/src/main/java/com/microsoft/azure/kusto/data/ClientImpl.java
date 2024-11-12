@@ -210,7 +210,7 @@ class ClientImpl extends BaseClient {
             return Mono.empty();
         }
 
-        return CloudInfo.fetchAsync(clusterUrl, httpClient).
+        return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, httpClient).
                 flatMap(cloudInfo -> {
             try {
                 KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, cloudInfo.getLoginEndpoint());
