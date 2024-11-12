@@ -33,7 +33,14 @@ public class CallbackTokenProvider extends TokenProviderBase {
     protected Mono<String> acquireAccessTokenImpl() {
         return Mono.fromCallable(() -> tokenProvider.apply(httpClient))
                 // TODO - is this a better way?
-                .onErrorMap(e -> new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx((Exception) e), (Exception) e));
+                .onErrorMap(e -> {
+                    if (e instanceof Exception) {
+                        Exception ex = (Exception) e;
+                        return new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(ex), ex);
+                    } else {
+                        return new DataClientException(clusterUrl, e.toString(), null);
+                    }
+                });
     }
 
     @Override

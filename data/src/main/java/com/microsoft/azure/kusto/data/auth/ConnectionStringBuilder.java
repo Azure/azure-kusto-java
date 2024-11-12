@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
@@ -30,6 +31,7 @@ public class ConnectionStringBuilder {
     private String aadAuthorityId;
     private String accessToken;
     private Callable<String> tokenProvider;
+    private Mono<String> asyncTokenProvider;
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
@@ -85,6 +87,7 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = null;
         this.accessToken = null;
         this.tokenProvider = null;
+        this.asyncTokenProvider = null;
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
@@ -147,6 +150,7 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = other.aadAuthorityId;
         this.accessToken = other.accessToken;
         this.tokenProvider = other.tokenProvider;
+        this.asyncTokenProvider = other.asyncTokenProvider;
         this.managedIdentityClientId = other.managedIdentityClientId;
         this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
@@ -228,6 +232,10 @@ public class ConnectionStringBuilder {
 
     public Callable<String> getTokenProvider() {
         return tokenProvider;
+    }
+
+    public Mono<String> getAsyncTokenProvider() {
+        return asyncTokenProvider;
     }
 
     public String getManagedIdentityClientId() {
@@ -467,6 +475,21 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.clusterUrl = clusterUrl;
         csb.tokenProvider = tokenProviderCallable;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAadAsyncTokenProviderAuthentication(String clusterUrl, Mono<String> tokenProviderCallable) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenProviderCallable == null) {
+            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
+        csb.asyncTokenProvider = tokenProviderCallable;
         return csb;
     }
 
