@@ -135,21 +135,23 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, Context.NONE),
                     "CloudInfo.httpCall")) {
                 int statusCode = response.getStatusCode();
+                byte[] bodyAsBinaryData = response.getBodyAsBinaryData().toBytes();
                 if (statusCode == HttpStatus.OK) {
                     String content;
                     if (Utils.isGzipResponse(response)) {
-                        content = Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream());
+                        content = Utils.gzipedInputToString(new ByteArrayInputStream(bodyAsBinaryData));
                     } else {
-                        content = response.getBodyAsBinaryData().toString();
+                        content = new String(bodyAsBinaryData);
                     }
-                    if (content == null || content.isEmpty() || content.equals("{}")) {
+
+                    if (content.isEmpty() || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
                     result = parseCloudInfo(content);
                 } else if (statusCode == HttpStatus.NOT_FOUND) {
                     result = DEFAULT_CLOUD;
                 } else {
-                    String errorFromResponse = response.getBodyAsBinaryData().toString();
+                    String errorFromResponse = new String(bodyAsBinaryData);
                     if (errorFromResponse.isEmpty()) {
                         // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                         errorFromResponse = "";
