@@ -44,8 +44,16 @@ public abstract class IngestClientBase implements IngestClient {
         if (!uri.isAbsolute()) {
             return true;
         }
+
         String authority = uri.getAuthority().toLowerCase();
-        boolean isIPFlag = InetAddressUtils.isIPv4Address(authority) || InetAddressUtils.isIPv6Address(authority);
+        boolean isIPFlag;
+        if (authority.startsWith("[") && authority.endsWith("]")) {
+            authority = authority.substring(1, authority.length() - 1);
+            isIPFlag = true;
+        } else {
+            isIPFlag = InetAddressUtils.isIPv4Address(authority);
+        }
+
         boolean isLocalFlag = authority.contains("localhost");
 
         return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");

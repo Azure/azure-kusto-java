@@ -22,6 +22,8 @@ based on the size, format and compression of data. This will also allow users to
     to enable. Default changed to 0.
 - [BREAKING] Added exception to signature of ResourceAlgorithms.postToQueueWithRetries.
 - [BREAKING] Removed maxConnectionsPerRoute as it was not easily provided by azure-core.
+- [BREAKING] IPv6 addresses must now be enclosed in brackets ( [] ) within URLs.
+- Removed the dependency on Apache HTTP client URIBuilder for URL parsing.
 
 ## [5.2.0] - 2024-08-27
 ### Fixed
