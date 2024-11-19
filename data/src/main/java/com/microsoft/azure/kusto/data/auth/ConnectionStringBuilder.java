@@ -171,9 +171,9 @@ public class ConnectionStringBuilder {
     }
 
     /**
-     * Creates a ConnectionStringBuilder from a connection string. For more information please look at: https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     * Creates a ConnectionStringBuilder from a connection string. For more information please look <a href="https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto">here</a>.
      *
-     * @param connectionString The connection string should be of the format: https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * @param connectionString The connection string should be of the format: <p>https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord</p>
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
@@ -537,7 +537,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithCustomTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential, @Nullable TokenRequestContext tokenRequestContext) {
+    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential, @Nullable TokenRequestContext tokenRequestContext) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }

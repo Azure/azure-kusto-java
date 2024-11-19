@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 
@@ -18,15 +17,7 @@ public class AsyncCallbackTokenProvider extends TokenProviderBase {
 
     @Override
     protected Mono<String> acquireAccessTokenImpl() {
-        return tokenProvider
-                .onErrorMap(e -> {
-                    if (e instanceof Exception) {
-                        Exception ex = (Exception) e;
-                        return new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(ex), ex);
-                    } else {
-                        return new DataClientException(clusterUrl, e.toString(), null);
-                    }
-                });
+        return tokenProvider.onErrorMap(e -> DataClientException.unwrapThrowable(clusterUrl, e));
     }
 
     @Override

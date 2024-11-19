@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.data.exceptions.*;
 import com.microsoft.azure.kusto.data.http.CloseParentResourcesStream;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
+import com.microsoft.azure.kusto.data.req.RequestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.EofSensorInputStream;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
+    // TODO - this is never used?
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final int EXTRA_TIMEOUT_FOR_CLIENT_SIDE = (int) TimeUnit.SECONDS.toMillis(30);
 
@@ -152,8 +154,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     private static Context getContextTimeout(long timeoutMs) {
         int requestTimeout = timeoutMs > Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.toIntExact(timeoutMs) + EXTRA_TIMEOUT_FOR_CLIENT_SIDE;
 
-        // See https://github.com/Azure/azure-sdk-for-java/blob/azure-core-http-netty_1.10.2/sdk/core/azure-core-http-netty/CHANGELOG.md#features-added
-        return Context.NONE.addData("azure-response-timeout", Duration.ofMillis(requestTimeout));
+        return RequestUtils.contextWithTimeout(Duration.ofMillis(requestTimeout));
     }
 
     private static void closeResourcesIfNeeded(boolean returnInputStream, HttpResponse httpResponse) {

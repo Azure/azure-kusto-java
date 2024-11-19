@@ -22,4 +22,16 @@ public class DataClientException extends KustoDataExceptionBase {
     public DataClientException(String ingestionSource, String message, Exception exception) {
         super(ingestionSource, message, exception, true);
     }
+
+    public static DataClientException unwrapThrowable(String clusterUrl, Throwable throwable) {
+        if (throwable instanceof DataClientException) {
+            return (DataClientException) throwable;
+        }
+        if (throwable instanceof Exception) {
+            Exception ex = (Exception) throwable;
+            return new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(ex), ex);
+        }
+
+        return new DataClientException(clusterUrl, throwable.toString(), null);
+    }
 }

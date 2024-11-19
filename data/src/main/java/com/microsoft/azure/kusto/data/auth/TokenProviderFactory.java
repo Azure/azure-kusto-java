@@ -9,9 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
-import java.util.concurrent.Callable;
 
 public class TokenProviderFactory {
     private TokenProviderFactory() {
@@ -21,6 +21,8 @@ public class TokenProviderFactory {
     public static TokenProviderBase createTokenProvider(@NotNull ConnectionStringBuilder csb, @Nullable HttpClient httpClient) throws URISyntaxException {
         String clusterUrl = csb.getClusterUrl();
         String authorityId = csb.getAuthorityId();
+        Mono<String> asyncTokenProvider = csb.getAsyncTokenProvider();
+
         if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
             if (StringUtils.isNotBlank(csb.getApplicationKey())) {
                 return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
@@ -39,10 +41,9 @@ public class TokenProviderFactory {
             String accessToken = csb.getAccessToken();
             return new AccessTokenTokenProvider(clusterUrl, accessToken);
         } else if (csb.getTokenProvider() != null) {
-            Callable<String> tokenProvider = csb.getTokenProvider();
-            return new CallbackTokenProvider(clusterUrl, tokenProvider);
-        } else if (csb.getAsyncTokenProvider() != null) {
-            return new AsyncCallbackTokenProvider(clusterUrl, csb.getAsyncTokenProvider());
+            return new CallbackTokenProvider(clusterUrl, csb.getTokenProvider());
+        } else if (asyncTokenProvider != null) {
+            return new AsyncCallbackTokenProvider(clusterUrl, asyncTokenProvider);
         } else if (csb.getCustomTokenCredential() != null) {
           return new CustomTokenCredentialProvider(clusterUrl, csb.getCustomTokenCredential(), csb.getCustomTokenRequestContext());
         } else if (csb.isUseDeviceCodeAuth()) {

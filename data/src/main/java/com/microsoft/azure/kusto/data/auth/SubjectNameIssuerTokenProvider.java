@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 // Azure identity doesn't provide a solution for all certificate types, so for now we still use MSAL for this.
 
 public class SubjectNameIssuerTokenProvider extends ConfidentialAppTokenProviderBase {
-    public static final String SUBJECT_NAME_ISSUER_TOKEN_PROVIDER = "SubjectNameIssuerTokenProvider";
     private final IClientCertificate clientCertificate;
 
     SubjectNameIssuerTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientCertificate clientCertificate,

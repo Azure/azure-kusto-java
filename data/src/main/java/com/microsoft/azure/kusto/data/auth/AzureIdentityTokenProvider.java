@@ -55,7 +55,7 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
         super.initializeWithCloudInfo(cloudInfo);
         CredentialBuilderBase<?> builder = initBuilder();
         if (httpClient != null) {
-            builder.httpClient(new HttpClientWrapper(httpClient));
+            builder.httpClient(httpClient);
         }
         if (builder instanceof AadCredentialBuilderBase<?>) {
             AadCredentialBuilderBase<?> aadBuilder = (AadCredentialBuilderBase<?>) builder;
@@ -69,11 +69,6 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
             }
 
             aadBuilder.clientId(clientId);
-
-            // TODO: do we need to port this code?
-            // if (account.homeAccountId() != null && account.homeAccountId().endsWith(PERSONAL_TENANT_IDV2_AAD)) {
-            // authorityUrl = firstPartyAuthorityUrl;
-            // }
 
         }
 
