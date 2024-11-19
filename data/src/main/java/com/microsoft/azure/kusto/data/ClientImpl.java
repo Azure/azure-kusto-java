@@ -11,29 +11,32 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.TokenProviderBase;
 import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.http.*;
-import com.microsoft.azure.kusto.data.instrumentation.*;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
+import com.microsoft.azure.kusto.data.http.HttpTracing;
+import com.microsoft.azure.kusto.data.http.UncloseableStream;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
+import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
+import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
 import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
-import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.data.http.UncloseableStream;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 class ClientImpl extends BaseClient {
