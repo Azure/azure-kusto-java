@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.credential.TokenRequestContext;
 import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,7 +35,6 @@ public class ConnectionStringBuilder {
     private Callable<String> tokenProvider;
     private Mono<String> asyncTokenProvider;
     private TokenCredential customTokenCredential;
-    private TokenRequestContext customTokenRequestContext;
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
@@ -94,7 +92,6 @@ public class ConnectionStringBuilder {
         this.tokenProvider = null;
         this.asyncTokenProvider = null;
         this.customTokenCredential = null;
-        this.customTokenRequestContext = null;
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
@@ -159,7 +156,6 @@ public class ConnectionStringBuilder {
         this.tokenProvider = other.tokenProvider;
         this.asyncTokenProvider = other.asyncTokenProvider;
         this.customTokenCredential = other.customTokenCredential;
-        this.customTokenRequestContext = other.customTokenRequestContext;
         this.managedIdentityClientId = other.managedIdentityClientId;
         this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
@@ -249,10 +245,6 @@ public class ConnectionStringBuilder {
 
     public TokenCredential getCustomTokenCredential() {
         return customTokenCredential;
-    }
-
-    public TokenRequestContext getCustomTokenRequestContext() {
-        return customTokenRequestContext;
     }
 
     public String getManagedIdentityClientId() {
@@ -537,7 +529,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential, @Nullable TokenRequestContext tokenRequestContext) {
+    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -549,7 +541,6 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.clusterUrl = clusterUrl;
         csb.customTokenCredential = tokenCredential;
-        csb.customTokenRequestContext = tokenRequestContext;
         return csb;
     }
 

@@ -45,7 +45,7 @@ public class TokenProviderFactory {
         } else if (asyncTokenProvider != null) {
             return new AsyncCallbackTokenProvider(clusterUrl, asyncTokenProvider);
         } else if (csb.getCustomTokenCredential() != null) {
-          return new CustomTokenCredentialProvider(clusterUrl, csb.getCustomTokenCredential(), csb.getCustomTokenRequestContext());
+          return new TokenCredentialProvider(clusterUrl, csb.getCustomTokenCredential());
         } else if (csb.isUseDeviceCodeAuth()) {
             return new DeviceAuthTokenProvider(clusterUrl, authorityId, httpClient);
         } else if (csb.isUseManagedIdentityAuth()) {

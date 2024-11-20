@@ -54,22 +54,24 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
     protected final void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
         super.initializeWithCloudInfo(cloudInfo);
         CredentialBuilderBase<?> builder = initBuilder();
-        if (httpClient != null) {
-            builder.httpClient(httpClient);
-        }
-        if (builder instanceof AadCredentialBuilderBase<?>) {
-            AadCredentialBuilderBase<?> aadBuilder = (AadCredentialBuilderBase<?>) builder;
-            if (tenantId != null)
-                aadBuilder.tenantId(tenantId);
-
-            aadBuilder.authorityHost(determineAadAuthorityUrl(cloudInfo));
-
-            if (clientId == null) {
-                clientId = cloudInfo.getKustoClientAppId();
+        if (builder != null) {
+            if (httpClient != null) {
+                builder.httpClient(httpClient);
             }
+            if (builder instanceof AadCredentialBuilderBase<?>) {
+                AadCredentialBuilderBase<?> aadBuilder = (AadCredentialBuilderBase<?>) builder;
+                if (tenantId != null)
+                    aadBuilder.tenantId(tenantId);
 
-            aadBuilder.clientId(clientId);
+                aadBuilder.authorityHost(determineAadAuthorityUrl(cloudInfo));
 
+                if (clientId == null) {
+                    clientId = cloudInfo.getKustoClientAppId();
+                }
+
+                aadBuilder.clientId(clientId);
+
+            }
         }
 
         cred = createTokenCredential(builder);
@@ -78,5 +80,6 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
 
     protected abstract CredentialBuilderBase<?> initBuilder();
 
+    // This method exists since there is no common build() method for all of the Azure Identity builders
     protected abstract TokenCredential createTokenCredential(CredentialBuilderBase<?> builder);
 }
