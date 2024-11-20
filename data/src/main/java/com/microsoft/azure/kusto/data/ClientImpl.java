@@ -397,6 +397,7 @@ class ClientImpl extends BaseClient {
 
     private String getAuthorizationHeaderValue() throws DataServiceException, DataClientException {
         if (aadAuthenticationHelper != null) {
+            // todo - make this and the chain up async
             return String.format("Bearer %s", aadAuthenticationHelper.acquireAccessToken().block());
         }
         return null;
