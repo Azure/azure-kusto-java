@@ -33,7 +33,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -64,7 +64,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -98,7 +98,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -128,7 +128,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -158,7 +158,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -188,7 +188,7 @@ public class HeaderTest {
                 .build();
 
         HttpRequest request = HttpRequestBuilder
-                .newPost("https://www.example.com")
+                .newPost("https://www.example.com", true)
                 .withTracing(tracing)
                 .build();
 
@@ -199,6 +199,31 @@ public class HeaderTest {
 
         Assertions.assertEquals("Kusto.myConnector:{myVersion}|App.{myApp}:{myAppVersion}|myField:{myValue}", headers.get("x-ms-app"));
     }
+
+    @Test
+    public void testNoAuth() throws URISyntaxException {
+
+        ClientImpl noAuthClient = (ClientImpl) ClientFactory.createClient(new ConnectionStringBuilder("https://testcluster.kusto.windows.net"));
+        Assertions.assertFalse(noAuthClient.requiresAuthentication());
+
+        ClientImpl authClient = (ClientImpl) ClientFactory.createClient(ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net"));
+        Assertions.assertTrue(authClient.requiresAuthentication());
+    }
+
+    @Test
+    public void testHttpRequestNoAuth() throws DataClientException {
+        HttpRequestBuilder.newPost("http://testcluster.kusto.windows.net", false)
+                .build();
+
+        try {
+            HttpRequestBuilder.newPost("http://testcluster.kusto.windows.net", true)
+                    .build();
+            Assertions.fail("Expected exception");
+        } catch (DataClientException e) {
+            // Expected
+        }
+    }
+
 
     private Map<String, String> extractHeadersFromAzureRequest(HttpRequest request) {
         Map<String, String> uncomplicatedHeaders = new HashMap<>();
