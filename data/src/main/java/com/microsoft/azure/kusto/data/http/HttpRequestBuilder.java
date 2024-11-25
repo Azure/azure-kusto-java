@@ -33,17 +33,17 @@ public class HttpRequestBuilder {
         return new HttpRequestBuilder(request);
     }
 
-    public static HttpRequestBuilder newPost(String url, boolean requiresAuthentication) throws DataClientException {
-        return new HttpRequestBuilder(HttpMethod.POST, url, requiresAuthentication);
+    public static HttpRequestBuilder newPost(String url) throws DataClientException {
+        return new HttpRequestBuilder(HttpMethod.POST, url);
     }
 
     private HttpRequestBuilder(HttpRequest request) {
         this.request = request;
     }
 
-    public HttpRequestBuilder(HttpMethod method, String url, boolean requiresAuthentication) throws DataClientException {
-        URL cleanURL = parseURLString(url, requiresAuthentication);
-        this.request = new HttpRequest(method, cleanURL);
+    public HttpRequestBuilder(HttpMethod method, String url) throws DataClientException {
+        URL cleanURL = parseURLString(url);
+        request = new HttpRequest(method, cleanURL);
     }
 
     public HttpRequestBuilder createCommandPayload(KustoRequest kr) {
@@ -101,8 +101,8 @@ public class HttpRequestBuilder {
         return this.withHeaders(getTracingHeaders(tracing));
     }
 
-    public HttpRequestBuilder withURL(String url, boolean requiresAuthentication) throws DataClientException {
-        URL cleanURL = parseURLString(url, requiresAuthentication);
+    public HttpRequestBuilder withURL(String url) throws DataClientException {
+        URL cleanURL = parseURLString(url);
         request.setUrl(cleanURL);
         return this;
     }
@@ -120,15 +120,10 @@ public class HttpRequestBuilder {
     }
 
     @NotNull
-    private static URL parseURLString(String url, boolean requiresAuthentication) throws DataClientException {
+    private static URL parseURLString(String url) throws DataClientException {
         try {
             // By nature of the try/catch only valid URLs pass through this function
             URL cleanUrl = new URL(url);
-
-            if (!requiresAuthentication) {
-                return cleanUrl;
-            }
-
             // Further checking here to ensure the URL uses HTTPS if not pointed at localhost
             if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.toLowerCase().startsWith(CloudInfo.LOCALHOST)) {
                 return cleanUrl;

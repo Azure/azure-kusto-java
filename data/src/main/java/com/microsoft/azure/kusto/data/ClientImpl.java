@@ -162,7 +162,7 @@ class ClientImpl extends BaseClient {
 
         // Build the HTTP request
         HttpRequest request = HttpRequestBuilder
-                .newPost(clusterEndpoint, requiresAuthentication())
+                .newPost(clusterEndpoint)
                 .createCommandPayload(kr)
                 .withTracing(tracing)
                 .withAuthorization(authorization)
@@ -279,7 +279,7 @@ class ClientImpl extends BaseClient {
 
             // Build the HTTP request. Since this is an ingestion and not a command, content headers aren't auto-applied.
             HttpRequest request = HttpRequestBuilder
-                    .newPost(clusterEndpoint, requiresAuthentication())
+                    .newPost(clusterEndpoint)
                     .withTracing(tracing)
                     .withHeaders(headers)
                     .withAuthorization(authorization)
@@ -357,7 +357,7 @@ class ClientImpl extends BaseClient {
 
         // Build the HTTP request
         HttpRequest request = HttpRequestBuilder
-                .newPost(clusterEndpoint, requiresAuthentication())
+                .newPost(clusterEndpoint)
                 .createCommandPayload(kr)
                 .withTracing(tracing)
                 .withAuthorization(authorization)
@@ -408,10 +408,5 @@ class ClientImpl extends BaseClient {
 
     ClientDetails getClientDetails() {
         return clientDetails;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return aadAuthenticationHelper != null;
     }
 }

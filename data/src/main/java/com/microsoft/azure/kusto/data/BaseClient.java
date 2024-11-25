@@ -90,7 +90,7 @@ public abstract class BaseClient implements Client, StreamingClient {
                 if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
                     HttpRequest redirectRequest = HttpRequestBuilder
                             .fromExistingRequest(request)
-                            .withURL(redirectLocation.get().getValue(), requiresAuthentication())
+                            .withURL(redirectLocation.get().getValue())
                             .build();
                     return postToStreamingOutput(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
                 }
@@ -180,5 +180,4 @@ public abstract class BaseClient implements Client, StreamingClient {
         return activityId;
     }
 
-    public abstract boolean requiresAuthentication();
 }
