@@ -113,11 +113,10 @@ public class HttpRequestBuilder {
         if (hasAuth) {
             URL url = request.getUrl();
             boolean isHttp = url.getProtocol().equalsIgnoreCase("http");
-            boolean isLocalhost = url.getHost().toLowerCase().startsWith(CloudInfo.LOCALHOST);
+            boolean isLocalhost = url.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST);
 
             if (isHttp && !isLocalhost) {
-                throw new DataClientException(url.toString(), "Cannot forward security token to a remote service over insecure " +
-                        "channel (http://)");
+                throw new DataClientException(url.toString(), "Cannot forward security token to a remote service over an unencrypted channel (http://)");
             }
         }
 
