@@ -3,38 +3,34 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.microsoft.aad.msal4j.ConfidentialClientApplication;
-import com.microsoft.aad.msal4j.IClientSecret;
-import com.microsoft.aad.msal4j.IConfidentialClientApplication;
-import java.net.MalformedURLException;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.identity.CredentialBuilderBase;
+
 import java.net.URISyntaxException;
 
-import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ApplicationKeyTokenProvider extends ConfidentialAppTokenProviderBase {
-    private final IClientSecret clientSecret;
-    public static final String APPLICATION_KEY_TOKEN_PROVIDER = "ApplicationKeyTokenProvider";
+public class ApplicationKeyTokenProvider extends AzureIdentityTokenProvider {
+    private final String clientSecret;
 
-    ApplicationKeyTokenProvider(@NotNull String clusterUrl, @NotNull String applicationClientId, @NotNull IClientSecret clientSecret,
-            String authorityId, @Nullable HttpClient httpClient) throws URISyntaxException {
-        super(clusterUrl, applicationClientId, authorityId, httpClient);
+    public ApplicationKeyTokenProvider(@NotNull String clusterUrl, String clientId, String clientSecret, String tenantId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
+        super(clusterUrl, tenantId, clientId, httpClient);
         this.clientSecret = clientSecret;
     }
 
     @Override
-    protected IConfidentialClientApplication getClientApplication() throws MalformedURLException {
-        ConfidentialClientApplication.Builder authority = ConfidentialClientApplication.builder(applicationClientId, clientSecret)
-                .authority(aadAuthorityUrl);
-        if (httpClient != null) {
-            authority.httpClient(new HttpClientWrapper(httpClient));
-        }
-        return authority.build();
+    protected TokenCredential createTokenCredential(CredentialBuilderBase<?> builder) {
+        return ((ClientSecretCredentialBuilder)builder)
+                .clientSecret(clientSecret)
+                .build();
     }
 
     @Override
-    protected String getAuthMethod() {
-        return APPLICATION_KEY_TOKEN_PROVIDER;
+    protected CredentialBuilderBase<?> initBuilder() {
+        return new ClientSecretCredentialBuilder();
     }
 }
