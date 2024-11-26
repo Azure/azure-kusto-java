@@ -1,7 +1,6 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.*;
-import com.azure.core.util.Context;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,15 +15,17 @@ import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+import com.microsoft.azure.kusto.data.req.RequestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Map<String, CloudInfo> cache = new HashMap<>();
@@ -44,6 +45,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
+    private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
 
     static {
         cache.put(LOCALHOST, DEFAULT_CLOUD);
@@ -56,11 +58,11 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<DataClientException, DataServiceException>(
+    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<>(
             ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
-            String firstPartyAuthorityUrl) {
+                     String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;
@@ -80,7 +82,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl,
-            @Nullable HttpClient givenHttpClient)
+                                                        @Nullable HttpClient givenHttpClient)
             throws DataServiceException {
         synchronized (cache) {
             CloudInfo cloudInfo;
@@ -115,6 +117,12 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
     }
 
+    // TODO: Make this method async
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl,
+                                                                   @Nullable HttpClient givenHttpClient) {
+        return Mono.fromCallable(() -> retrieveCloudInfoForCluster(clusterUrl, givenHttpClient));
+    }
+
     private static CloudInfo fetchImpl(String clusterUrl, @Nullable HttpClient givenHttpClient) throws URISyntaxException, IOException, DataServiceException {
         CloudInfo result;
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
@@ -126,24 +134,27 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             // trace CloudInfo.httpCall
             // Fixme: Make this async in the future
             try (HttpResponse response = MonitoredActivity.invoke(
-                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request, Context.NONE),
+                    (SupplierOneException<HttpResponse, IOException>) () -> localHttpClient.sendSync(request,
+                            RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT)),
                     "CloudInfo.httpCall")) {
                 int statusCode = response.getStatusCode();
+                byte[] bodyAsBinaryData = response.getBodyAsBinaryData().toBytes();
                 if (statusCode == HttpStatus.OK) {
-                    String content = null;
+                    String content;
                     if (Utils.isGzipResponse(response)) {
-                        content = Utils.gzipedInputToString(response.getBodyAsBinaryData().toStream());
+                        content = Utils.gzipedInputToString(new ByteArrayInputStream(bodyAsBinaryData));
                     } else {
-                        content = response.getBodyAsBinaryData().toString();
+                        content = new String(bodyAsBinaryData);
                     }
-                    if (content == null || content.equals("") || content.equals("{}")) {
+
+                    if (content.isEmpty() || content.equals("{}")) {
                         throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                     }
                     result = parseCloudInfo(content);
                 } else if (statusCode == HttpStatus.NOT_FOUND) {
                     result = DEFAULT_CLOUD;
                 } else {
-                    String errorFromResponse = response.getBodyAsBinaryData().toString();
+                    String errorFromResponse = new String(bodyAsBinaryData);
                     if (errorFromResponse.isEmpty()) {
                         // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                         errorFromResponse = "";

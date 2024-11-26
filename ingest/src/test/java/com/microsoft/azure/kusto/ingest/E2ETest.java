@@ -3,8 +3,11 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpResponse;
+import com.azure.identity.AzureCliCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -203,7 +206,7 @@ class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
+        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
@@ -352,6 +355,24 @@ class E2ETest {
                 assertRowCount(item.rows, false);
             }
         }
+    }
+
+    @Test
+    void testCallbackAndTokenCredentialAuth() throws DataServiceException, URISyntaxException, DataClientException {
+        CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(ENG_CONN_STR);
+        TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(cloudInfo.determineScope());
+
+        ConnectionStringBuilder syncCallback = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(ENG_CONN_STR, () -> new AzureCliCredentialBuilder().build().getTokenSync(tokenRequestContext).getToken());
+
+        Assertions.assertEquals(1, ClientFactory.createClient(syncCallback).executeMgmt(".show version").getPrimaryResults().count());
+
+        ConnectionStringBuilder asyncCallback = ConnectionStringBuilder.createWithAadAsyncTokenProviderAuthentication(ENG_CONN_STR, new AzureCliCredentialBuilder().build().getToken(tokenRequestContext).map(AccessToken::getToken));
+
+        Assertions.assertEquals(1, ClientFactory.createClient(asyncCallback).executeMgmt(".show version").getPrimaryResults().count());
+
+        ConnectionStringBuilder tokenCredential = ConnectionStringBuilder.createWithTokenCredential(ENG_CONN_STR, new AzureCliCredentialBuilder().build());
+
+        Assertions.assertEquals(1, ClientFactory.createClient(tokenCredential).executeMgmt(".show version").getPrimaryResults().count());
     }
 
     @Test
@@ -615,7 +636,7 @@ class E2ETest {
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = streamingClient.executeStreamingQuery(DB_NAME, query, clientRequestProperties);
-                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
             String streamedLine;

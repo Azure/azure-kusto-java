@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.instrumentation;
 
+import reactor.core.publisher.Mono;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,7 +11,7 @@ public class MonitoredActivity {
     }
 
     public static void invoke(Runnable runnable, String nameOfSpan, Map<String, String> attributes) {
-        try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
+        try (Tracer.Span ignored = Tracer.startSpan(nameOfSpan, attributes)) {
             runnable.run();
         }
     }
@@ -22,6 +24,11 @@ public class MonitoredActivity {
         try (Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes)) {
             return supplier.get();
         }
+    }
+
+    public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
+        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, attributes))
+                .flatMap(span -> mono.doOnTerminate(span::close));
     }
 
     public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan) throws U {

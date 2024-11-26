@@ -3,9 +3,12 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
 import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
@@ -30,6 +33,8 @@ public class ConnectionStringBuilder {
     private String aadAuthorityId;
     private String accessToken;
     private Callable<String> tokenProvider;
+    private Mono<String> asyncTokenProvider;
+    private TokenCredential customTokenCredential;
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
@@ -85,6 +90,8 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = null;
         this.accessToken = null;
         this.tokenProvider = null;
+        this.asyncTokenProvider = null;
+        this.customTokenCredential = null;
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
@@ -147,6 +154,8 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = other.aadAuthorityId;
         this.accessToken = other.accessToken;
         this.tokenProvider = other.tokenProvider;
+        this.asyncTokenProvider = other.asyncTokenProvider;
+        this.customTokenCredential = other.customTokenCredential;
         this.managedIdentityClientId = other.managedIdentityClientId;
         this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
@@ -158,9 +167,9 @@ public class ConnectionStringBuilder {
     }
 
     /**
-     * Creates a ConnectionStringBuilder from a connection string. For more information please look at: https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     * Creates a ConnectionStringBuilder from a connection string. For more information please look <a href="https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto">here</a>.
      *
-     * @param connectionString The connection string should be of the format: https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * @param connectionString The connection string should be of the format: <p>https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord</p>
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
@@ -228,6 +237,14 @@ public class ConnectionStringBuilder {
 
     public Callable<String> getTokenProvider() {
         return tokenProvider;
+    }
+
+    public Mono<String> getAsyncTokenProvider() {
+        return asyncTokenProvider;
+    }
+
+    public TokenCredential getCustomTokenCredential() {
+        return customTokenCredential;
     }
 
     public String getManagedIdentityClientId() {
@@ -470,6 +487,21 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
+    public static ConnectionStringBuilder createWithAadAsyncTokenProviderAuthentication(String clusterUrl, Mono<String> tokenProviderCallable) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenProviderCallable == null) {
+            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
+        csb.asyncTokenProvider = tokenProviderCallable;
+        return csb;
+    }
+
     public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl) {
         return createWithAadManagedIdentity(clusterUrl, null);
     }
@@ -494,6 +526,21 @@ public class ConnectionStringBuilder {
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.clusterUrl = clusterUrl;
         csb.useAzureCli = true;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenCredential == null) {
+            throw new IllegalArgumentException("tokenCredential cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.clusterUrl = clusterUrl;
+        csb.customTokenCredential = tokenCredential;
         return csb;
     }
 
