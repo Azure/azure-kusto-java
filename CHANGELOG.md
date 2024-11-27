@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A new policy heuristic for choosing between queuing and streaming in Managed streaming client. A policy can be configured
 based on the size, format and compression of data. This will also allow users to stream bigger than 4mb non-compressed data (which was the previous limit).
+- Added support for the http protocol, only for connection without authentication.
 ### Fixed
 - Some better error messages
 

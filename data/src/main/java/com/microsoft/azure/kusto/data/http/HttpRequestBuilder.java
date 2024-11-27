@@ -11,7 +11,10 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class HttpRequestBuilder {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     // TODO - maybe save this in a resource
     private static final String KUSTO_API_VERSION = "2019-02-13";
@@ -107,13 +111,28 @@ public class HttpRequestBuilder {
         return this;
     }
 
-    public HttpRequest build() {
+    public HttpRequest build() throws DataClientException {
+        // If has authorization header, ensure it is not sent over insecure channel
+        boolean hasAuth = request.getHeaders().stream().anyMatch(h -> h.getName().equalsIgnoreCase(HttpHeaderName.AUTHORIZATION.toString()));
+        if (hasAuth) {
+            URL url = request.getUrl();
+            boolean isHttp = url.getProtocol().equalsIgnoreCase("http");
+            boolean isLocalhost = url.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST);
+
+            if (isHttp) {
+                if (isLocalhost) {
+                    log.warn("Sending security token to localhost over an unencrypted channel (http://)");
+                } else {
+                    throw new DataClientException(url.toString(), "Cannot forward security token to a remote service over an unencrypted channel (http://)");
+                }
+            }
+        }
 
         // Set global headers that get added to all requests
         request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
         request.setHeader(HttpHeaderName.ACCEPT, "application/json");
-        // Removed content type from this method because the request should already have a type that is not always json
 
+        // Removed content type from this method because the request should already have a type that is not always json
         request.setHeader(HttpHeaderName.fromString("x-ms-version"), KUSTO_API_VERSION);
 
         return request;
@@ -123,14 +142,7 @@ public class HttpRequestBuilder {
     private static URL parseURLString(String url) throws DataClientException {
         try {
             // By nature of the try/catch only valid URLs pass through this function
-            URL cleanUrl = new URL(url);
-            // Further checking here to ensure the URL uses HTTPS if not pointed at localhost
-            if ("https".equalsIgnoreCase(cleanUrl.getProtocol()) || url.toLowerCase().startsWith(CloudInfo.LOCALHOST)) {
-                return cleanUrl;
-            } else {
-                throw new DataClientException(url, "Cannot forward security token to a remote service over insecure " +
-                        "channel (http://)");
-            }
+            return new URL(url);
         } catch (MalformedURLException e) {
             throw new DataClientException(url, "Error parsing target URL in post request:" + e.getMessage(), e);
         }

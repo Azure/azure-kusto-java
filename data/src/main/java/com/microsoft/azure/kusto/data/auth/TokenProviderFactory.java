@@ -59,7 +59,7 @@ public class TokenProviderFactory {
             }
             return new UserPromptTokenProvider(clusterUrl, null, authorityId, httpClient);
         } else {
-            throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
+            return null;
         }
     }
 }
