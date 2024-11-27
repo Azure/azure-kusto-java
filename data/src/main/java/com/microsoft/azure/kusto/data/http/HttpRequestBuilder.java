@@ -11,7 +11,10 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandles;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class HttpRequestBuilder {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     // TODO - maybe save this in a resource
     private static final String KUSTO_API_VERSION = "2019-02-13";
@@ -115,8 +119,12 @@ public class HttpRequestBuilder {
             boolean isHttp = url.getProtocol().equalsIgnoreCase("http");
             boolean isLocalhost = url.getHost().equalsIgnoreCase(CloudInfo.LOCALHOST);
 
-            if (isHttp && !isLocalhost) {
-                throw new DataClientException(url.toString(), "Cannot forward security token to a remote service over an unencrypted channel (http://)");
+            if (isHttp) {
+                if (isLocalhost) {
+                    log.warn("Sending security token to localhost over an unencrypted channel (http://)");
+                } else {
+                    throw new DataClientException(url.toString(), "Cannot forward security token to a remote service over an unencrypted channel (http://)");
+                }
             }
         }
 
