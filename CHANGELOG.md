@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2024-10-27
+## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added
 - A new policy heuristic for choosing between queuing and streaming in Managed streaming client. A policy can be configured
 based on the size, format and compression of data. This will also allow users to stream bigger than 4mb non-compressed data (which was the previous limit).
