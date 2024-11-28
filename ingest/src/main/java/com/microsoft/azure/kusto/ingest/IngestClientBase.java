@@ -1,19 +1,22 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import org.apache.http.conn.util.InetAddressUtils;
-
-import java.io.IOException;
-import java.net.URI;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import org.apache.http.conn.util.InetAddressUtils;
+import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,6 +74,16 @@ public abstract class IngestClientBase implements IngestClient {
                 getClientType().concat(".ingestFromFile"));
     }
 
+    protected abstract Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
+
+    public Mono<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        // trace ingestFromFileAsync
+        return Mono.defer(() -> MonitoredActivity.wrap(
+                ingestFromFileAsyncImpl(fileSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromFile")));
+    }
+
     /**
      * <p>Ingest data from a blob storage into Kusto database.</p>
      * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto database,
@@ -94,6 +107,16 @@ public abstract class IngestClientBase implements IngestClient {
                 (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
                         ingestionProperties),
                 getClientType().concat(".ingestFromBlob"));
+    }
+
+    protected abstract Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
+
+    public Mono<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        // trace ingestFromBlob
+        return Mono.defer(() -> MonitoredActivity.wrap(
+                ingestFromBlobAsyncImpl(blobSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromBlob")));
     }
 
     /**
@@ -122,6 +145,16 @@ public abstract class IngestClientBase implements IngestClient {
                 (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromResultSetImpl(resultSetSourceInfo,
                         ingestionProperties),
                 getClientType().concat(".ingestFromResultSet"));
+    }
+
+    protected abstract Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
+
+    public Mono<IngestionResult> ingestFromResultSetAsync(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
+        // trace ingestFromResultSet
+        return Mono.defer(() -> MonitoredActivity.wrap(
+                ingestFromResultSetAsyncImpl(resultSetSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromResultSet")));
     }
 
     /**
@@ -153,6 +186,16 @@ public abstract class IngestClientBase implements IngestClient {
                     }
                 },
                 getClientType().concat(".ingestFromStream"));
+    }
+
+    protected abstract Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
+
+    public Mono<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        // trace ingestFromStream
+        return Mono.defer(() -> MonitoredActivity.wrap(
+                ingestFromStreamAsyncImpl(streamSourceInfo,
+                        ingestionProperties),
+                getClientType().concat(".ingestFromStream")));
     }
 
     protected Map<String, String> getIngestionTraceAttributes(TraceableAttributes sourceInfo, TraceableAttributes ingestionProperties) {

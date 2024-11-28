@@ -6,25 +6,33 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.OneApiError;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
-import com.microsoft.azure.kusto.ingest.source.*;
-import com.microsoft.azure.kusto.data.ExponentialRetry;
-
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.SourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
 import java.util.UUID;
@@ -77,7 +85,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromDmConnectionString(ConnectionStringBuilder dmConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                      @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder engineConnectionString = new ConnectionStringBuilder(dmConnectionString);
         engineConnectionString.setClusterUrl(IngestClientBase.getQueryEndpoint(engineConnectionString.getClusterUrl()));
@@ -108,7 +116,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * For advanced usage, use {@link ManagedStreamingIngestClient#ManagedStreamingIngestClient(ConnectionStringBuilder, ConnectionStringBuilder)}
      */
     public static ManagedStreamingIngestClient fromEngineConnectionString(ConnectionStringBuilder engineConnectionString,
-            @Nullable HttpClientProperties properties)
+                                                                          @Nullable HttpClientProperties properties)
             throws URISyntaxException {
         ConnectionStringBuilder dmConnectionString = new ConnectionStringBuilder(engineConnectionString);
         dmConnectionString.setClusterUrl(IngestClientBase.getIngestionEndpoint(engineConnectionString.getClusterUrl()));
@@ -124,7 +132,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null);
     }
 
@@ -135,7 +143,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder, boolean autoCorrectEndpoint) throws URISyntaxException {
         this(ingestionEndpointConnectionStringBuilder, queryEndpointConnectionStringBuilder, null, autoCorrectEndpoint);
     }
 
@@ -150,8 +158,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * {@link #ManagedStreamingIngestClient(ConnectionStringBuilder, HttpClientProperties)})} instead.
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, autoCorrectEndpoint);
@@ -165,7 +173,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        @Nullable HttpClientProperties properties, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, autoCorrectEndpoint);
@@ -179,7 +187,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
+                                        @Nullable HttpClient httpClient, boolean autoCorrectEndpoint) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, autoCorrectEndpoint);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, autoCorrectEndpoint);
@@ -194,8 +202,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder ingestionEndpointConnectionStringBuilder,
-            ConnectionStringBuilder queryEndpointConnectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                        ConnectionStringBuilder queryEndpointConnectionStringBuilder,
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(ingestionEndpointConnectionStringBuilder, properties, true);
         streamingIngestClient = new StreamingIngestClient(queryEndpointConnectionStringBuilder, properties, true);
@@ -208,7 +216,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClientProperties properties) throws URISyntaxException {
+                                        @Nullable HttpClientProperties properties) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, properties, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, properties, true);
@@ -221,7 +229,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @throws URISyntaxException if the connection string is invalid
      */
     public ManagedStreamingIngestClient(ConnectionStringBuilder connectionStringBuilder,
-            @Nullable HttpClient httpClient) throws URISyntaxException {
+                                        @Nullable HttpClient httpClient) throws URISyntaxException {
         log.info("Creating a new ManagedStreamingIngestClient from connection strings");
         queuedIngestClient = new QueuedIngestClientImpl(connectionStringBuilder, httpClient, true);
         streamingIngestClient = new StreamingIngestClient(connectionStringBuilder, httpClient, true);
@@ -237,8 +245,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * {@link IngestClientFactory#createManagedStreamingIngestClient(ConnectionStringBuilder)} instead.
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient) {
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -252,9 +260,9 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * @param retryTemplate   - retry template
      */
     public ManagedStreamingIngestClient(ResourceManager resourceManager,
-            AzureStorageClient storageClient,
-            StreamingClient streamingClient,
-            ExponentialRetry retryTemplate) {
+                                        AzureStorageClient storageClient,
+                                        StreamingClient streamingClient,
+                                        ExponentialRetry retryTemplate) {
         log.info("Creating a new ManagedStreamingIngestClient from raw parts");
         queuedIngestClient = new QueuedIngestClientImpl(resourceManager, storageClient);
         streamingIngestClient = new StreamingIngestClient(streamingClient);
@@ -281,6 +289,24 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
             throw new IngestionClientException("IO exception - check file path.", e);
+        }
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        try {
+            fileSourceInfo.validate();
+            ingestionProperties.validate();
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat());
+            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
+        } catch (FileNotFoundException e) {
+            log.error("File not found when ingesting a file.", e);
+            return Mono.error(new IngestionClientException("IO exception - check file path.", e));
+        } catch (Exception e) {
+            return Mono.error(e);
         }
     }
 
@@ -326,6 +352,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             return result;
         }
         return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
     }
 
     private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)
@@ -384,6 +415,26 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             String msg = "Failed to read from ResultSet.";
             log.error(msg, ex);
             throw new IngestionClientException(msg, ex);
+        }
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
+        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        try {
+            resultSetSourceInfo.validate();
+            ingestionProperties.validateResultSetProperties();
+
+            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
+            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
+        } catch (IOException ex) {
+            String msg = "Failed to read from ResultSet.";
+            log.error(msg, ex);
+            return Mono.error(new IngestionClientException(msg, ex));
+        } catch (Exception e) {
+            return Mono.error(e);
         }
     }
 
@@ -459,6 +510,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                 log.warn("Failed to close byte stream", e);
             }
         }
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
     }
 
     /*

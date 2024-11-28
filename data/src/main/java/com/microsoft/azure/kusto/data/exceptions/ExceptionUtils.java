@@ -1,7 +1,10 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
+import com.microsoft.azure.kusto.data.Utils;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 
 public class ExceptionUtils {
@@ -23,5 +26,29 @@ public class ExceptionUtils {
         }
 
         return new DataServiceException(url.toString(), String.format("Exception in %s post request: %s", kind, e.getMessage()), permanent);
+    }
+
+    public static Exception unwrapCloudInfoException(String clusterUrl, Throwable throwable) {
+        if (throwable instanceof URISyntaxException) {
+            return new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + throwable.getMessage(), (URISyntaxException) throwable, true);
+        }
+
+        if (throwable instanceof IOException) {
+            IOException ex = (IOException) throwable;
+            if (!Utils.isRetriableIOException(ex)) {
+                return new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ExceptionsUtils.getMessageEx(ex),
+                        ex,
+                        Utils.isRetriableIOException(ex));
+            }
+        }
+
+        if (throwable instanceof DataServiceException) {
+            DataServiceException e = (DataServiceException) throwable;
+            if (e.isPermanent()) {
+                return e;
+            }
+        }
+
+        return new DataClientException(clusterUrl, throwable.toString(), null);
     }
 }

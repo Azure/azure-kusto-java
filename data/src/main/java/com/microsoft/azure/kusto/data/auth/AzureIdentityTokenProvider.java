@@ -80,6 +80,6 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
 
     protected abstract CredentialBuilderBase<?> initBuilder();
 
-    // This method exists since there is no common build() method for all of the Azure Identity builders
+    // This method exists since there is no common build() method for all the Azure Identity builders
     protected abstract TokenCredential createTokenCredential(CredentialBuilderBase<?> builder);
 }

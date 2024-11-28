@@ -24,6 +24,7 @@ import com.univocity.parsers.csv.CsvRoutines;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -150,6 +151,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
+    protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
+    }
+
+    @Override
     protected IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
         // Argument validation:
@@ -187,6 +193,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         } catch (IOException e) {
             throw new IngestionClientException("Failed to ingest from file", e);
         }
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
     }
 
     @Override
@@ -237,6 +248,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     }
 
     @Override
+    protected Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
+    }
+
+    @Override
     protected String getClientType() {
         return CLASS_NAME;
     }
@@ -278,6 +294,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
             log.error(msg, ex);
             throw new IngestionClientException(msg, ex);
         }
+    }
+
+    @Override
+    protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
+        return null;
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {

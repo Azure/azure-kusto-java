@@ -21,7 +21,7 @@ public class HttpClientWrapper implements IHttpClient {
 
     // Implementation of the synchronous HttpClient
     @Override
-    public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) {
+    public IHttpResponse send(com.microsoft.aad.msal4j.HttpRequest httpRequest) { //TODO: ?
         HttpMethod method;
         switch (httpRequest.httpMethod()) {
             case GET:

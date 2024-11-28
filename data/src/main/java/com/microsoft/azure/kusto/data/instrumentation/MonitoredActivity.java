@@ -26,13 +26,18 @@ public class MonitoredActivity {
         }
     }
 
-    public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
-        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, attributes))
+    public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan) throws U {
+        return invoke((SupplierTwoExceptions<T, U, U>) supplier::get, nameOfSpan, new HashMap<>());
+    }
+
+    public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan) {
+        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, new HashMap<>()))
                 .flatMap(span -> mono.doOnTerminate(span::close));
     }
 
-    public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan) throws U {
-        return invoke((SupplierTwoExceptions<T, U, U>) supplier::get, nameOfSpan, new HashMap<>());
+    public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
+        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, attributes))
+                .flatMap(span -> mono.doOnTerminate(span::close));
     }
 
     public static <T, U extends Exception> T invoke(SupplierOneException<T, U> supplier, String nameOfSpan, Map<String, String> attributes) throws U {

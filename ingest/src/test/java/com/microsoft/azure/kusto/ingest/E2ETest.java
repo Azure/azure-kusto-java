@@ -11,7 +11,13 @@ import com.azure.identity.AzureCliCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.microsoft.azure.kusto.data.*;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
@@ -20,8 +26,8 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -34,15 +40,25 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
-
 import org.apache.http.conn.util.InetAddressUtils;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -54,12 +70,22 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.isReservedHostname;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 
@@ -102,6 +128,7 @@ class E2ETest {
     public static void setUp() {
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+        //tableName = "JavaTest_2024_11_27_08_51_44_278_1419553906";
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
 
         ConnectionStringBuilder dmCsb = createConnection(DM_CONN_STR);
@@ -144,7 +171,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -158,12 +185,12 @@ class E2ETest {
 
     private static void createTableAndMapping() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
-            queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName), null);
+            queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns), null);
             LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
             String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
             String autoDeletePolicy = "@'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
-            queryClient.executeToJsonResult(DB_NAME, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy), null);
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -172,13 +199,13 @@ class E2ETest {
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s ingestion json mapping '%s' '%s'",
-                    tableName, mappingReference, mappingAsString));
+                    tableName, mappingReference, mappingAsString), null);
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
 
         try {
-            queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema");
+            queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
         } catch (Exception ex) {
             Assertions.fail("Failed to refresh cache", ex);
         }
@@ -282,7 +309,7 @@ class E2ETest {
                 Thread.sleep(i * 100);
 
                 if (checkViaJson) {
-                    String result = queryClient.executeToJsonResult(DB_NAME, String.format("%s | count", tableName));
+                    String result = queryClient.executeToJsonResult(DB_NAME, String.format("%s | count", tableName), null);
                     JsonNode jsonNode = objectMapper.readTree(result);
                     ArrayNode jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
                     JsonNode primaryResult = null;
@@ -608,6 +635,7 @@ class E2ETest {
 
     @Test
     void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+        testParameterizedQuery();
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
         StopWatch stopWatch = new StopWatch();

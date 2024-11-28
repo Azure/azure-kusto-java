@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +10,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 /**
@@ -73,7 +75,7 @@ public class KustoTrustedEndpoints {
     public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
             validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
-        } catch (URISyntaxException | DataServiceException ex) {
+        } catch (URISyntaxException ex) {
             throw new KustoClientInvalidConnectionStringException(ex);
         }
     }

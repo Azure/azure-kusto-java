@@ -204,11 +204,11 @@ public class HeaderTest {
     }
 
     @Test
-    public void testNoAuth() throws URISyntaxException, DataServiceException, DataClientException {
+    public void testNoAuth() throws URISyntaxException {
         CloudInfo.manuallyAddToCache("http://help.kusto.windows.net", CloudInfo.DEFAULT_CLOUD);
 
         ClientImpl noAuthClient = (ClientImpl) ClientFactory.createClient(new ConnectionStringBuilder("http://help.kusto.windows.net"));
-        noAuthClient.prepareRequest(new KustoRequest("test"));
+        noAuthClient.prepareRequestAsync(new KustoRequest("test")).block();
     }
 
     @Test
