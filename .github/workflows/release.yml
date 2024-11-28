@@ -10,7 +10,7 @@ permissions:
 on:
   push:
     tags:
-      - "v\d.*"
+      - "v[0-9].*"
   workflow_dispatch:
     inputs:
         tag:
