@@ -75,7 +75,10 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
                     log.info("Retry attempt {}.", currentAttempt);
 
                     Throwable failure = signalCopy.failure();
-                    if (failure instanceof DataServiceException) {
+                    if (failure instanceof DataServiceException) { //TODO: if its not permanent do not cancel?
+//                        if (((DataServiceException) failure).isPermanent()) {
+//                            log.error("Error is is not permanent, continuing.", failure);
+//                        }
                         log.error("Error is permanent, stopping.", failure);
                         return Mono.error(failure);
                     }

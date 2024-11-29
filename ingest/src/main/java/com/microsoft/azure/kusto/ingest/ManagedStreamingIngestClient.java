@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -356,7 +357,93 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     @Override
     protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
-        return null;
+        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+        return Mono.fromCallable(() -> {
+                    blobSourceInfo.validate();
+                    ingestionProperties.validate();
+                    return true;
+                })
+                .flatMap(valid -> {
+                    BlobClientBuilder blobClientBuilder = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath());
+                    if (httpClient != null) {
+                        blobClientBuilder.httpClient(httpClient);
+                    }
+
+                    BlobClient blobClient = blobClientBuilder.buildClient();
+
+                    return Mono.fromCallable(() -> {
+                                if (blobSourceInfo.getRawSizeInBytes() <= 0) {
+                                    return blobClient.getProperties().getBlobSize();
+                                }
+                                return blobSourceInfo.getRawSizeInBytes();
+                            })
+                            .subscribeOn(Schedulers.boundedElastic()) //TODO: all ingest apis have blocking calls. offload them to bounded elastic pool  in order for the main reactive thread to continue operate?
+                            .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException(
+                                    blobSourceInfo.getBlobPath(),
+                                    "Failed getting blob properties: " + ExceptionsUtils.getMessageEx(e),
+                                    e))
+                            .flatMap(blobSize -> handleIngestion(blobSourceInfo, ingestionProperties, blobClient, blobSize));
+                })
+                .onErrorResume(Mono::error);
+    }
+
+    private Mono<IngestionResult> handleIngestion(BlobSourceInfo blobSourceInfo,
+                                                  IngestionProperties ingestionProperties,
+                                                  BlobClient blobClient,
+                                                  long blobSize) {
+
+        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
+                blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
+            log.info(fallbackLogString);
+            return queuedIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
+        }
+
+        return executeStream(blobSourceInfo, ingestionProperties, blobClient)
+                .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                .switchIfEmpty(queuedIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties)); // Fall back to queued ingestion
+    }
+
+    private Mono<IngestionResult> executeStream(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient) {
+
+        return Mono.fromCallable(() -> {
+                    try {
+                        if (blobClient != null) { //TODO: is the currentAttempt in the clientRequestId needed?
+                            String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromBlob;%s", sourceInfo.getSourceId());
+                            return streamingIngestClient.ingestFromBlob((BlobSourceInfo) sourceInfo, ingestionProperties, blobClient, clientRequestId);
+                        } else {
+                            String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromStream;%s", sourceInfo.getSourceId());
+                            return streamingIngestClient.ingestFromStream((StreamSourceInfo) sourceInfo, ingestionProperties, clientRequestId);
+                        }
+                    } catch (Exception e) {
+                        if (e instanceof IngestionServiceException
+                                && e.getCause() != null //TODO: is this needed?
+                                && e.getCause() instanceof DataServiceException
+                                && e.getCause().getCause() != null
+                                && e.getCause().getCause() instanceof DataWebException) {
+                            DataWebException webException = (DataWebException) e.getCause().getCause();
+                            OneApiError oneApiError = webException.getApiError();
+                            if (oneApiError.isPermanent()) {
+                                throw e;
+                            }
+                        }
+                        log.info("Streaming ingestion failed.", e);
+
+                        if (sourceInfo instanceof StreamSourceInfo) {
+                            try {
+                                ((StreamSourceInfo) sourceInfo).getStream().reset();
+                            } catch (IOException ioException) {
+                                throw new IngestionClientException("Failed to reset stream", ioException);
+                            }
+                        }
+
+                        return null;
+                    }
+                })
+                .flatMap(result -> result != null
+                        ? Mono.just(result)
+                        : Mono.empty());
     }
 
     private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)

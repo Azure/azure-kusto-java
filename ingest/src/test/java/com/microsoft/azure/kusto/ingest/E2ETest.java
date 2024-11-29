@@ -128,7 +128,6 @@ class E2ETest {
     public static void setUp() {
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-        //tableName = "JavaTest_2024_11_27_08_51_44_278_1419553906";
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
 
         ConnectionStringBuilder dmCsb = createConnection(DM_CONN_STR);
@@ -608,7 +607,7 @@ class E2ETest {
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
         try {
-            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
+            ingestClient.ingestFromFileAsync(fileSourceInfo, item.ingestionProperties).block();
         } catch (Exception ex) {
             Assertions.fail(ex);
         }
