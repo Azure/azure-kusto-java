@@ -83,7 +83,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) {
-        return executeAsync(database, command, properties, CommandType.QUERY).block();
+        return executeQueryAsync(database, command, properties).block();
     }
 
     @Override

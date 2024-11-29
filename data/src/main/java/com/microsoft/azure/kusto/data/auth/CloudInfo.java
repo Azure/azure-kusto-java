@@ -99,7 +99,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
         return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
                 .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo))
-                .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).buildRetry()) //TODO: how to retry in a reactive way
+                .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
                 .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
     }
 
@@ -118,11 +118,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                                         .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
                             } catch (URISyntaxException e) {
                                 return Mono.error(new DataServiceException(clusterUrl,
-                                        "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(),
-                                        e,
-                                        true));
+                                        "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true));
                             } catch (Exception e) {
-                                return Mono.error(new DataServiceException(clusterUrl, "Error while retrieving the cluster metadata: " + e.getMessage(), e, true));
+                                return Mono.error(new DataServiceException(clusterUrl, "Error while retrieving the cluster metadata: " + e, e, true));
                             }
                         },
                         client -> {
