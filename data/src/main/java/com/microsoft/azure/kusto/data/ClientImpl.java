@@ -302,59 +302,59 @@ class ClientImpl extends BaseClient {
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
 
-        try {
-            long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
+        return Mono.fromCallable(() -> determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl))  // Step 1: Determine timeout
+                .flatMap(timeoutMs -> {
 
-            // This was a separate method but was moved into the body of this method because it performs a side effect
-            if (properties != null) {
-                Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-                while (iterator.hasNext()) {
-                    Map.Entry<String, Object> pair = iterator.next();
-                    headers.put(pair.getKey(), pair.getValue().toString());
-                }
-            }
+                    // This was a separate method but was moved into the body of this method because it performs a side effect
+                    if (properties != null) {
+                        Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+                        while (iterator.hasNext()) {
+                            Map.Entry<String, Object> pair = iterator.next();
+                            headers.put(pair.getKey(), pair.getValue().toString());
+                        }
+                    }
 
-            try (InputStream ignored = (isStreamSource && !leaveOpen) ? stream : null) {
-                BinaryData data;
+                    return Mono.fromCallable(() -> {
+                        BinaryData data;
+                        if (isStreamSource) {
+                            // We use UncloseableStream to prevent HttpClient from closing the stream
+                            data = BinaryData.fromStream(new UncloseableStream(stream));
+                        } else {
+                            data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
+                        }
 
-                if (isStreamSource) {
+                        HttpTracing tracing = HttpTracing
+                                .newBuilder()
+                                .withProperties(properties)
+                                .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
+                                .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
+                                .withClientDetails(clientDetails)
+                                .build();
 
-                    // We use UncloseableStream to prevent HttpClient From closing it
-                    data = BinaryData.fromStream(new UncloseableStream(stream));
-                } else {
-                    data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
-                }
-
-                HttpTracing tracing = HttpTracing
-                        .newBuilder()
-                        .withProperties(properties)
-                        .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
-                        .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
-                        .withClientDetails(clientDetails)
-                        .build();
-
-                // Build the HTTP request. Since this is an ingestion and not a command, content headers aren't auto-applied.
-                HttpRequest request = HttpRequestBuilder
-                        .newPost(clusterEndpoint)
-                        .withTracing(tracing)
-                        .withHeaders(headers)
-                        .withAuthorization(authorizationToken)
-                        .withContentType(contentType)
-                        .withContentEncoding(contentEncoding)
-                        .withBody(data)
-                        .build();
-
-                // Get the response, and trace the call.
-                return MonitoredActivity.wrap(postAsync(request, timeoutMs), "ClientImpl.executeStreamingIngest")
-                        .flatMap(response ->
-                                Mono.fromCallable(() -> new KustoOperationResult(response, "v1")))
-                        .onErrorMap(KustoServiceQueryError.class, e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e))
-                        .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e));
-            }
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
-
+                        return HttpRequestBuilder
+                                .newPost(clusterEndpoint)
+                                .withTracing(tracing)
+                                .withHeaders(headers)
+                                .withAuthorization(authorizationToken)
+                                .withContentType(contentType)
+                                .withContentEncoding(contentEncoding)
+                                .withBody(data)
+                                .build();
+                    }).flatMap(httpRequest -> MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
+                            .flatMap(response ->
+                                    Mono.fromCallable(() -> new KustoOperationResult(response, "v1")))
+                            .onErrorMap(KustoServiceQueryError.class, e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e))
+                            .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e)));
+                })
+                .doFinally(signalType -> {
+                    if (isStreamSource && !leaveOpen) {
+                        try {
+                            stream.close();
+                        } catch (IOException e) {
+                            LOGGER.debug("executeStreamingIngest: Error while closing the stream.", e);
+                        }
+                    }
+                });
     }
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {

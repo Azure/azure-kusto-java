@@ -295,20 +295,20 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     @Override
     protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
-            fileSourceInfo.validate();
-            ingestionProperties.validate();
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat());
-            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
-        } catch (FileNotFoundException e) {
-            log.error("File not found when ingesting a file.", e);
-            return Mono.error(new IngestionClientException("IO exception - check file path.", e));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    fileSourceInfo.validate();
+                    ingestionProperties.validate();
+                    return true;
+                })
+                .flatMap(validInput -> Mono.fromCallable(() -> IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat()))
+                        .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties)))
+                .onErrorMap(FileNotFoundException.class, e -> {
+                    log.error("File not found when ingesting a file.", e);
+                    return new IngestionClientException("IO exception - check file path.", e);
+                });
     }
 
     /**
@@ -357,10 +357,10 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     @Override
     protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
                     blobSourceInfo.validate();
                     ingestionProperties.validate();
                     return true;
@@ -507,22 +507,20 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     @Override
     protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
-            resultSetSourceInfo.validate();
-            ingestionProperties.validateResultSetProperties();
-
-            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
-            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
-        } catch (IOException ex) {
-            String msg = "Failed to read from ResultSet.";
-            log.error(msg, ex);
-            return Mono.error(new IngestionClientException(msg, ex));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    resultSetSourceInfo.validate();
+                    ingestionProperties.validateResultSetProperties();
+                    return IngestionUtils.resultSetToStream(resultSetSourceInfo);
+                })
+                .onErrorMap(IOException.class, e -> {
+                    String msg = "Failed to read from ResultSet.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
     }
 
     @Override
@@ -601,7 +599,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
     @Override
     protected Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
-        return null;
+        return null; //TODO: implement async
     }
 
     /*

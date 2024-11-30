@@ -63,15 +63,11 @@ public abstract class IngestClientBase implements IngestClient {
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+            throws IngestionClientException, IngestionServiceException; //TODO: remove
 
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromFile
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromFileImpl(fileSourceInfo,
-                        ingestionProperties),
-                getClientType().concat(".ingestFromFile"));
+        return ingestFromFileAsync(fileSourceInfo, ingestionProperties).block();
     }
 
     protected abstract Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);

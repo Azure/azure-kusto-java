@@ -112,21 +112,23 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
-            fileSourceInfo.validate();
-            ingestionProperties.validate();
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, false, ingestionProperties.getDataFormat());
-            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
-        } catch (IngestionClientException e) {
-            log.error("Error while validating the ingestion mapping properties.", e);
-            return Mono.error(new IngestionClientException("IO exception - check file path.", e));
-        } catch (FileNotFoundException e) {
-            log.error("File not found when ingesting a file.", e);
-            return Mono.error(new IngestionClientException("IO exception - check file path.", e));
-        }
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    fileSourceInfo.validate();
+                    ingestionProperties.validate();
+                    return IngestionUtils.fileToStream(fileSourceInfo, false, ingestionProperties.getDataFormat());
+                })
+                .onErrorMap(IngestionClientException.class, e -> {
+                    log.error("Error while validating the ingestion mapping properties.", e);
+                    return new IngestionClientException("IO exception - check file path.", e);
+                })
+                .onErrorMap(FileNotFoundException.class, e -> {
+                    log.error("File not found when ingesting a file.", e);
+                    return new IngestionClientException("IO exception - check file path.", e);
+                })
+                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
     }
 
     @Override
@@ -154,26 +156,28 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
-            blobSourceInfo.validate();
-            ingestionProperties.validate();
-
-            BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
-            return ingestFromBlobAsync(blobSourceInfo, ingestionProperties, blobClient, null);
-        } catch (IllegalArgumentException e) {
-            String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
-            log.error(msg, e);
-            return Mono.error(new IngestionClientException(msg, e));
-        } catch (BlobStorageException e) {
-            String msg = "Unexpected Storage error when ingesting a blob.";
-            log.error(msg, e);
-            return Mono.error(new IngestionClientException(msg, e));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    blobSourceInfo.validate();
+                    ingestionProperties.validate();
+                    return true;
+                })
+                .onErrorMap(IllegalArgumentException.class, e -> {
+                    String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .flatMap(valid -> {
+                    BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
+                    return ingestFromBlobAsync(blobSourceInfo, ingestionProperties, blobClient, null);
+                })
+                .onErrorMap(BlobStorageException.class, e -> {
+                    String msg = "Unexpected Storage error when ingesting a blob.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                });
     }
 
     @Override
@@ -197,17 +201,25 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     @Override
     protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
-            resultSetSourceInfo.validate();
-            ingestionProperties.validateResultSetProperties();
-            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
-            return ingestFromStreamAsync(streamSourceInfo, ingestionProperties);
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    resultSetSourceInfo.validate();
+                    ingestionProperties.validateResultSetProperties();
+                    return IngestionUtils.resultSetToStream(resultSetSourceInfo);
+                })
+                .onErrorMap(IllegalArgumentException.class, e -> {
+                    String msg = "Unexpected error when validating the ingestionProperties or resultSetSourceInfo.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .onErrorMap(IOException.class, e -> {
+                    String msg = "Failed to read from ResultSet.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
     }
 
     @Override
@@ -293,64 +305,70 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     private Mono<IngestionResult> ingestFromStreamImplAsync(StreamSourceInfo streamSourceInfo,
                                                             IngestionProperties ingestionProperties,
                                                             @Nullable String clientRequestId) {
-        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    ingestionProperties.validate();
+                    streamSourceInfo.validate();
 
-        ClientRequestProperties clientRequestProperties = null;
-        if (StringUtils.isNotBlank(clientRequestId)) {
-            clientRequestProperties = new ClientRequestProperties();
-            clientRequestProperties.setClientRequestId(clientRequestId);
-        }
+                    return ingestionProperties.getDataFormat();
+                })
+                .onErrorMap(IOException.class, e -> {
+                    String msg = ExceptionsUtils.getMessageEx(e);
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .flatMap(dataFormat -> Mono.fromCallable(() -> {
+                                    if (IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)) {
+                                        return compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen());
+                                    } else {
+                                        return streamSourceInfo.getStream();
+                                    }
+                                })
+                                .map(stream -> new Object[]{stream, dataFormat}) // Pass both stream and dataFormat downstream
+                )
+                .flatMap(tuple -> {
+                    InputStream stream = (InputStream) tuple[0];
+                    IngestionProperties.DataFormat dataFormat = (IngestionProperties.DataFormat) tuple[1];
 
-        try {
-            streamSourceInfo.validate();
-            ingestionProperties.validate();
+                    ClientRequestProperties clientRequestProperties = null;
+                    if (StringUtils.isNotBlank(clientRequestId)) {
+                        clientRequestProperties = new ClientRequestProperties();
+                        clientRequestProperties.setClientRequestId(clientRequestId);
+                    }
 
-            Mono<InputStream> streamMono = Mono.just(streamSourceInfo)
-                    .flatMap(source -> {
-                        if (IngestClientBase.shouldCompress(source.getCompressionType(), dataFormat)) {
-                            return Mono.fromCallable(() -> compressStream(source.getStream(), source.isLeaveOpen()));
-                        } else {
-                            return Mono.just(source.getStream());
-                        }
-                    });
-
-            ClientRequestProperties finalClientRequestProperties = clientRequestProperties;
-            return streamMono.flatMap(stream -> {
-                log.debug("Executing streaming ingest");
-                return Mono.fromCallable(() -> this.streamingClient.executeStreamingIngest( //TODO: replace with async equivalent
-                                ingestionProperties.getDatabaseName(),
-                                ingestionProperties.getTableName(),
-                                stream,
-                                finalClientRequestProperties,
-                                dataFormat.getKustoValue(),
-                                ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
-                                !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen())))
-                        .doOnTerminate(() -> log.debug("Stream was ingested successfully."))
-                        .map(ignored -> {
-                            IngestionStatus ingestionStatus = new IngestionStatus();
-                            ingestionStatus.status = OperationStatus.Succeeded;
-                            ingestionStatus.table = ingestionProperties.getTableName();
-                            ingestionStatus.database = ingestionProperties.getDatabaseName();
-                            return (IngestionResult) new IngestionStatusResult(ingestionStatus);
-                        });
-            }).onErrorMap(DataClientException.class, e -> {
-                String msg = ExceptionsUtils.getMessageEx(e);
-                log.error(msg, e);
-                return new IngestionClientException(msg, e);
-            }).onErrorMap(IOException.class, e -> {
-                String msg = ExceptionsUtils.getMessageEx(e);
-                log.error(msg, e);
-                return new IngestionClientException(msg, e);
-            }).onErrorMap(DataServiceException.class, e -> {
-                log.error(e.getMessage(), e);
-                return new IngestionServiceException(e.getMessage(), e);
-            });
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+                    ClientRequestProperties finalClientRequestProperties = clientRequestProperties;
+                    return Mono.fromCallable(() -> {
+                                log.debug("Executing streaming ingest");
+                                return this.streamingClient.executeStreamingIngest( //TODO: this internally should call the async one
+                                        ingestionProperties.getDatabaseName(),
+                                        ingestionProperties.getTableName(),
+                                        stream,
+                                        finalClientRequestProperties,
+                                        dataFormat.getKustoValue(),
+                                        ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
+                                        !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen())
+                                );
+                            })
+                            .doOnTerminate(() -> log.debug("Stream was ingested successfully."))
+                            .map(ignored -> {
+                                IngestionStatus ingestionStatus = new IngestionStatus();
+                                ingestionStatus.status = OperationStatus.Succeeded;
+                                ingestionStatus.table = ingestionProperties.getTableName();
+                                ingestionStatus.database = ingestionProperties.getDatabaseName();
+                                return (IngestionResult) new IngestionStatusResult(ingestionStatus);
+                            });
+                })
+                .onErrorMap(DataClientException.class, e -> {
+                    String msg = ExceptionsUtils.getMessageEx(e);
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                })
+                .onErrorMap(DataServiceException.class, e -> {
+                    log.error(e.getMessage(), e);
+                    return new IngestionServiceException(e.getMessage(), e);
+                });
     }
 
     private InputStream compressStream(InputStream uncompressedStream, boolean leaveOpen) throws IngestionClientException, IOException {
@@ -448,10 +466,11 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     private Mono<IngestionResult> ingestFromBlobImplAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob,
                                                           @Nullable String clientRequestId) {
+
         String blobPath = blobSourceInfo.getBlobPath();
         try {
             // No need to check blob size if it was given to us that it's not empty
-            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) { //the getProperties() is a synchronous blocking call
+            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) { //TODO: the getProperties() is a synchronous blocking call
                 String message = "Empty blob.";
                 log.error(message);
                 return Mono.error(new IngestionClientException(message));

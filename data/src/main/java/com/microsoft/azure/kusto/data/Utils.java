@@ -16,6 +16,7 @@ import io.github.resilience4j.core.lang.Nullable;
 import io.github.resilience4j.retry.RetryConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.net.ssl.SSLException;
 import java.io.ByteArrayInputStream;
@@ -154,7 +155,7 @@ public class Utils {
                             try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
                                 return readStreamToString(gzipStream);
                             }
-                        })
+                        }).subscribeOn(Schedulers.boundedElastic()) //TODO: same as ingest module
                 );
     }
 

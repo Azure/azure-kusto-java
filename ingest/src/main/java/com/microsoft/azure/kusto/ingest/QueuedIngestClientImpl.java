@@ -151,7 +151,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                 tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
             }
 
-            ResourceAlgorithms.postToQueueWithRetries(resourceManager, azureStorageClient, ingestionBlobInfo);
+            ResourceAlgorithms.postToQueueWithRetriesAsync(resourceManager, azureStorageClient, ingestionBlobInfo).block();
 
             return reportToTable
                     ? new TableReportIngestionResult(tableStatuses)
@@ -168,7 +168,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try {
+        try { //TODO: fromCallable + Locks
             blobSourceInfo.validate();
             ingestionProperties.validate();
 
@@ -253,7 +253,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
-            String blobPath = ResourceAlgorithms.uploadLocalFileWithRetries(resourceManager, azureStorageClient, file, blobName, shouldCompress);
+            String blobPath = ResourceAlgorithms.uploadLocalFileWithRetriesAsync(resourceManager, azureStorageClient, file, blobName, shouldCompress).block();
 
             long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
                     : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
@@ -270,10 +270,10 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
         return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
                     fileSourceInfo.validate();
                     ingestionProperties.validate();
 
@@ -334,11 +334,11 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
-            String blobPath = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
+            String blobPath = ResourceAlgorithms.uploadStreamToBlobWithRetriesAsync(resourceManager,
                     azureStorageClient,
                     streamSourceInfo.getStream(),
                     blobName,
-                    shouldCompress);
+                    shouldCompress).block();
 
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getSourceId());
 
@@ -356,7 +356,58 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
-        return null;
+
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+
+                    streamSourceInfo.validate();
+                    ingestionProperties.validate();
+                    return true;
+                })
+                .flatMap(valid -> Mono.fromCallable(() -> {
+                            if (streamSourceInfo.getStream() == null) {
+                                return Mono.error(new IngestionClientException("The provided stream is null."));
+                            } else if (streamSourceInfo.getStream().available() <= 0) {
+                                return Mono.error(new IngestionClientException("The provided stream is empty."));
+                            }
+                            return null;
+                        })
+                )
+                .flatMap(ignored -> {
+                    IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
+                    boolean shouldCompress = shouldCompress(streamSourceInfo.getCompressionType(), dataFormat);
+
+                    String blobName = genBlobName(
+                            "StreamUpload",
+                            ingestionProperties.getDatabaseName(),
+                            ingestionProperties.getTableName(),
+                            dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
+                            shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
+                    return ResourceAlgorithms.uploadStreamToBlobWithRetriesAsync(resourceManager,
+                                    azureStorageClient,
+                                    streamSourceInfo.getStream(),
+                                    blobName,
+                                    shouldCompress)
+                            .flatMap(blobPath -> {
+                                BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getSourceId());
+                                return ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
+                            })
+                            .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException("Failed to ingest from stream", e))
+                            .doFinally(signalType -> {
+                                if (!streamSourceInfo.isLeaveOpen()) {
+                                    Mono.fromCallable(() -> {
+                                        try {
+                                            streamSourceInfo.getStream().close();
+                                            return Mono.empty();
+                                        } catch (IOException e) {
+                                            return Mono.error(new IngestionClientException("Failed to close stream after ingestion", e));
+                                        }
+                                    });
+                                }
+                            });
+                });
+
     }
 
     @Override
