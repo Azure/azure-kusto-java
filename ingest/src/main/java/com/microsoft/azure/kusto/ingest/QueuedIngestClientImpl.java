@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -456,7 +457,27 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
-        return null;
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+                    resultSetSourceInfo.validate();
+                    ingestionProperties.validateResultSetProperties();
+                    return true;
+                })
+                .flatMap(valid -> Mono.fromCallable(() -> {
+                            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                            new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
+                            byteArrayOutputStream.flush();
+                            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+                            return new StreamSourceInfo(byteArrayInputStream, false, resultSetSourceInfo.getSourceId());
+                        })
+                        .subscribeOn(Schedulers.boundedElastic())) //TODO: same
+                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .onErrorMap(IOException.class, e -> {
+                    String msg = "Failed to read from ResultSet.";
+                    log.error(msg, e);
+                    return new IngestionClientException(msg, e);
+                });
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {
