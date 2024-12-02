@@ -67,7 +67,7 @@ public abstract class IngestClientBase implements IngestClient {
 
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException {
-        return ingestFromFileAsync(fileSourceInfo, ingestionProperties).block();
+        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
     }
 
     protected abstract Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);

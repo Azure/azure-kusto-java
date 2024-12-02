@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
@@ -63,8 +62,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry<DataClientException, DataServiceException> exponentialRetryTemplate = new ExponentialRetry<>(
-            ATTEMPT_COUNT);
+    private static final ExponentialRetry exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
                      String firstPartyAuthorityUrl) {
@@ -99,7 +97,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
         return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
                 .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo))
-                .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
                 .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
     }
 

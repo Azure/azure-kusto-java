@@ -50,6 +50,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIngestClient {
 
@@ -166,67 +167,81 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
+        return Mono.fromCallable(() -> {
+                    Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
+                    Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
 
-        try { //TODO: fromCallable + Locks
-            blobSourceInfo.validate();
-            ingestionProperties.validate();
+                    blobSourceInfo.validate();
+                    ingestionProperties.validate();
+                    ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
 
-            ingestionProperties.setAuthorizationContextToken(resourceManager.getIdentityToken());
-            List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
+                    // Create the ingestion message
+                    IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
+                            ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), this.applicationForTracing,
+                            this.clientVersionForTracing);
+                    String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
+                    if (blobSourceInfo.getRawSizeInBytes() > 0L) {
+                        ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
+                    } else {
+                        log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
+                    }
 
-            // Create the ingestion message
-            IngestionBlobInfo ingestionBlobInfo = new IngestionBlobInfo(blobSourceInfo.getBlobPath(),
-                    ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), this.applicationForTracing,
-                    this.clientVersionForTracing);
-            String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
-            if (blobSourceInfo.getRawSizeInBytes() > 0L) {
-                ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
-            } else {
-                log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
-            }
+                    ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel().getKustoValue());
+                    ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod().getKustoValue());
+                    ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
+                    ingestionBlobInfo.setValidationPolicy(ingestionProperties.getValidationPolicy());
+                    ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
+                    if (blobSourceInfo.getSourceId() != null) {
+                        ingestionBlobInfo.setId(blobSourceInfo.getSourceId());
+                    }
 
-            ingestionBlobInfo.setReportLevel(ingestionProperties.getReportLevel().getKustoValue());
-            ingestionBlobInfo.setReportMethod(ingestionProperties.getReportMethod().getKustoValue());
-            ingestionBlobInfo.setFlushImmediately(ingestionProperties.getFlushImmediately());
-            ingestionBlobInfo.setValidationPolicy(ingestionProperties.getValidationPolicy());
-            ingestionBlobInfo.setAdditionalProperties(ingestionProperties.getIngestionProperties());
-            if (blobSourceInfo.getSourceId() != null) {
-                ingestionBlobInfo.setId(blobSourceInfo.getSourceId());
-            }
+                    String id = ingestionBlobInfo.getId().toString();
+                    IngestionStatus status = new IngestionStatus();
+                    status.setDatabase(ingestionProperties.getDatabaseName());
+                    status.setTable(ingestionProperties.getTableName());
+                    status.setStatus(OperationStatus.Queued);
+                    status.setUpdatedOn(Instant.now());
+                    status.setIngestionSourceId(ingestionBlobInfo.getId());
+                    status.setIngestionSourcePath(urlWithoutSecrets);
 
-            String id = ingestionBlobInfo.getId().toString();
-            IngestionStatus status = new IngestionStatus();
-            status.setDatabase(ingestionProperties.getDatabaseName());
-            status.setTable(ingestionProperties.getTableName());
-            status.setStatus(OperationStatus.Queued);
-            status.setUpdatedOn(Instant.now());
-            status.setIngestionSourceId(ingestionBlobInfo.getId());
-            status.setIngestionSourcePath(urlWithoutSecrets);
-            boolean reportToTable = ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.NONE &&
-                    ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
-            if (reportToTable) {
-                status.setStatus(OperationStatus.Pending);
-                TableWithSas statusTable = resourceManager
-                        .getStatusTable();
-                IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
-                ingestionStatusInTable.setTableClient(statusTable.getTable());
-                ingestionStatusInTable.setTableConnectionString(statusTable.getUri());
-                ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
-                ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
-                ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);
-                azureStorageClient.azureTableInsertEntity(statusTable.getTable(), new TableEntity(id, id).setProperties(status.getEntityProperties()));
-                tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
-            }
+                    boolean reportToTable = ingestionProperties.getReportLevel() != IngestionProperties.IngestionReportLevel.NONE &&
+                            ingestionProperties.getReportMethod() != IngestionProperties.IngestionReportMethod.QUEUE;
+                    List<IngestionStatusInTableDescription> tableStatuses = new LinkedList<>();
 
-            return ResourceAlgorithms.postToQueueWithRetriesAsync(resourceManager, azureStorageClient, ingestionBlobInfo)
-                    .thenReturn(reportToTable
-                            ? new TableReportIngestionResult(tableStatuses)
-                            : new IngestionStatusResult(status));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+                    if (reportToTable) {
+                        status.setStatus(OperationStatus.Pending);
+                        TableWithSas statusTable = resourceManager.getStatusTable();
+                        IngestionStatusInTableDescription ingestionStatusInTable = new IngestionStatusInTableDescription();
+                        ingestionStatusInTable.setTableClient(statusTable.getTable());
+                        ingestionStatusInTable.setTableConnectionString(statusTable.getUri());
+                        ingestionStatusInTable.setPartitionKey(ingestionBlobInfo.getId().toString());
+                        ingestionStatusInTable.setRowKey(ingestionBlobInfo.getId().toString());
+                        ingestionBlobInfo.setIngestionStatusInTable(ingestionStatusInTable);
+
+                        return Mono.fromCallable(() -> {
+                                    azureStorageClient.azureTableInsertEntity(statusTable.getTable(), new TableEntity(id, id).setProperties(status.getEntityProperties()));
+                                    tableStatuses.add(ingestionBlobInfo.getIngestionStatusInTable());
+                                    return tableStatuses;
+                                })
+                                .publishOn(Schedulers.boundedElastic())
+                                .flatMap(insertedTableStatuses ->
+                                        ResourceAlgorithms.postToQueueWithRetriesAsync(resourceManager, azureStorageClient, ingestionBlobInfo)
+                                                .map(ignored -> new TableReportIngestionResult(insertedTableStatuses)))
+                                .onErrorMap(e -> {
+                                    if (e instanceof BlobStorageException || e instanceof QueueStorageException || e instanceof TableServiceException) {
+                                        return new IngestionServiceException("Failed to ingest from blob", (Exception) e);
+                                    } else if (e instanceof IOException || e instanceof URISyntaxException) {
+                                        return new IngestionClientException("Failed to ingest from blob", e);
+                                    } else {
+                                        return e;
+                                    }
+                                });
+                    }
+
+                    return ResourceAlgorithms.postToQueueWithRetriesAsync(resourceManager, azureStorageClient, ingestionBlobInfo)
+                            .map(ignored -> new IngestionStatusResult(status));
+                })
+                .flatMap(Function.identity());
     }
 
     @Override
@@ -357,7 +372,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     @Override
     protected Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
-
         return Mono.fromCallable(() -> {
                     Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
                     Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
