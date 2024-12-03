@@ -1,16 +1,16 @@
 package com.microsoft.azure.kusto.quickstart;
 
-import com.microsoft.azure.kusto.data.*;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultColumn;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -174,10 +174,6 @@ public class Utils {
                     System.out.println();
                 }
 
-            } catch (DataServiceException e) {
-                errorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
-            } catch (DataClientException e) {
-                errorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (Exception e) {
                 errorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             }
@@ -201,7 +197,7 @@ public class Utils {
          */
         @NotNull
         protected static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat,
-                String mappingName, boolean ignoreFirstRecord) {
+                                                                       String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
             ingestionProperties.setDataFormat(dataFormat);
             // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
@@ -230,7 +226,7 @@ public class Utils {
          * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath,
-                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+                                             IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length())
@@ -239,15 +235,7 @@ public class Utils {
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
             FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), 0, UUID.randomUUID());
 
-            try {
-                ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-            } catch (IngestionClientException e) {
-                System.out.printf("Client exception while trying to ingest '%s' into '%s.%s'%n%n", filePath, databaseName, tableName);
-                e.printStackTrace();
-            } catch (IngestionServiceException e) {
-                System.out.printf("Service exception while trying to ingest '%s' into '%s.%s'%n%n", filePath, databaseName, tableName);
-                e.printStackTrace();
-            }
+            ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
         }
 
         /**
@@ -262,7 +250,7 @@ public class Utils {
          * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl,
-                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+                                             IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0
@@ -270,15 +258,7 @@ public class Utils {
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), 0, UUID.randomUUID());
 
-            try {
-                ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-            } catch (IngestionClientException e) {
-                System.out.printf("Client exception while trying to ingest '%s' into '%s.%s'%n%n", blobUrl, databaseName, tableName);
-                e.printStackTrace();
-            } catch (IngestionServiceException e) {
-                System.out.printf("Service exception while trying to ingest '%s' into '%s.%s'%n%n", blobUrl, databaseName, tableName);
-                e.printStackTrace();
-            }
+            ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
 
         /**

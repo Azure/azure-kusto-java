@@ -18,7 +18,6 @@ import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -46,6 +45,7 @@ import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
 
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
@@ -94,24 +94,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
     }
 
     @Override
-    protected IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        fileSourceInfo.validate();
-        ingestionProperties.validate();
-
-        try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, false, ingestionProperties.getDataFormat());
-            return ingestFromStream(streamSourceInfo, ingestionProperties);
-        } catch (FileNotFoundException e) {
-            log.error("File not found when ingesting a file.", e);
-            throw new IngestionClientException("IO exception - check file path.", e);
-        }
-    }
-
-    @Override
     protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
         return Mono.fromCallable(() -> {
                     Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
@@ -120,38 +102,11 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.validate();
                     return IngestionUtils.fileToStream(fileSourceInfo, false, ingestionProperties.getDataFormat());
                 })
-                .onErrorMap(IngestionClientException.class, e -> {
-                    log.error("Error while validating the ingestion mapping properties.", e);
-                    return new IngestionClientException("IO exception - check file path.", e);
-                })
                 .onErrorMap(FileNotFoundException.class, e -> {
                     log.error("File not found when ingesting a file.", e);
                     return new IngestionClientException("IO exception - check file path.", e);
                 })
                 .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
-    }
-
-    @Override
-    protected IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        blobSourceInfo.validate();
-        ingestionProperties.validate();
-
-        try {
-            BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
-            return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, null);
-        } catch (IllegalArgumentException e) {
-            String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
-            log.error(msg, e);
-            throw new IngestionClientException(msg, e);
-        } catch (BlobStorageException e) {
-            String msg = "Unexpected Storage error when ingesting a blob.";
-            log.error(msg, e);
-            throw new IngestionClientException(msg, e);
-        }
     }
 
     @Override
@@ -163,13 +118,19 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.validate();
                     return true;
                 })
-                .onErrorMap(IllegalArgumentException.class, e -> {
-                    String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
-                    log.error(msg, e);
-                    return new IngestionClientException(msg, e);
-                })
                 .flatMap(valid -> {
-                    BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
+                    BlobClient blobClient;
+                    try {
+                        blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
+                    } catch (IllegalArgumentException e) {
+
+                        // Handle IllegalArgumentException from BlobClient here to avoid overriding the exception
+                        // thrown by the argument validations.
+                        String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
+                        log.error(msg, e);
+                        return Mono.error(new IngestionClientException(msg, e));
+                    }
+
                     return ingestFromBlobAsync(blobSourceInfo, ingestionProperties, blobClient, null);
                 })
                 .onErrorMap(BlobStorageException.class, e -> {
@@ -177,26 +138,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     log.error(msg, e);
                     return new IngestionClientException(msg, e);
                 });
-    }
-
-    @Override
-    protected IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        // Argument validation:
-        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        resultSetSourceInfo.validate();
-        ingestionProperties.validateResultSetProperties();
-
-        try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
-            return ingestFromStream(streamSourceInfo, ingestionProperties);
-        } catch (IOException ex) {
-            String msg = "Failed to read from ResultSet.";
-            log.error(msg, ex);
-            throw new IngestionClientException(msg, ex);
-        }
     }
 
     @Override
@@ -208,23 +149,12 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.validateResultSetProperties();
                     return IngestionUtils.resultSetToStream(resultSetSourceInfo);
                 })
-                .onErrorMap(IllegalArgumentException.class, e -> {
-                    String msg = "Unexpected error when validating the ingestionProperties or resultSetSourceInfo.";
-                    log.error(msg, e);
-                    return new IngestionClientException(msg, e);
-                })
+                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
                 .onErrorMap(IOException.class, e -> {
                     String msg = "Failed to read from ResultSet.";
                     log.error(msg, e);
                     return new IngestionClientException(msg, e);
-                })
-                .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
-    }
-
-    @Override
-    protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        return ingestFromStreamImpl(streamSourceInfo, ingestionProperties, null);
+                });
     }
 
     @Override
@@ -237,16 +167,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         return CLASS_NAME;
     }
 
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
-            throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromStream
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromStreamImpl(streamSourceInfo,
-                        ingestionProperties, clientRequestId),
-                getClientType().concat(".ingestFromStream"),
-                getIngestionTraceAttributes(streamSourceInfo, ingestionProperties));
-    }
-
     Mono<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId) {
         // trace ingestFromStreamAsync
         return MonitoredActivity.wrap(
@@ -256,55 +176,9 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                 getIngestionTraceAttributes(streamSourceInfo, ingestionProperties));
     }
 
-    private IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties, @Nullable String clientRequestId)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
-
-        streamSourceInfo.validate();
-        ingestionProperties.validate();
-
-        ClientRequestProperties clientRequestProperties = null;
-        if (StringUtils.isNotBlank(clientRequestId)) {
-            clientRequestProperties = new ClientRequestProperties();
-            clientRequestProperties.setClientRequestId(clientRequestId);
-        }
-
-        try {
-            InputStream stream = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)
-                    ? compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
-                    : streamSourceInfo.getStream();
-            log.debug("Executing streaming ingest");
-            this.streamingClient.executeStreamingIngest(ingestionProperties.getDatabaseName(),
-                    ingestionProperties.getTableName(),
-                    stream,
-                    clientRequestProperties,
-                    dataFormat.getKustoValue(),
-                    ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
-                    !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
-        } catch (DataClientException | IOException e) {
-            String msg = ExceptionsUtils.getMessageEx(e);
-            log.error(msg, e);
-            throw new IngestionClientException(msg, e);
-        } catch (DataServiceException e) {
-            log.error(e.getMessage(), e);
-            throw new IngestionServiceException(e.getMessage(), e);
-        }
-
-        log.debug("Stream was ingested successfully.");
-        IngestionStatus ingestionStatus = new IngestionStatus();
-        ingestionStatus.status = OperationStatus.Succeeded;
-        ingestionStatus.table = ingestionProperties.getTableName();
-        ingestionStatus.database = ingestionProperties.getDatabaseName();
-        return new IngestionStatusResult(ingestionStatus);
-    }
-
     private Mono<IngestionResult> ingestFromStreamImplAsync(StreamSourceInfo streamSourceInfo,
                                                             IngestionProperties ingestionProperties,
                                                             @Nullable String clientRequestId) {
-
         return Mono.fromCallable(() -> {
                     Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
                     Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
@@ -341,7 +215,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ClientRequestProperties finalClientRequestProperties = clientRequestProperties;
                     return Mono.fromCallable(() -> {
                                 log.debug("Executing streaming ingest");
-                                return this.streamingClient.executeStreamingIngestAsync( //TODO: this internally should call the async one
+                                return this.streamingClient.executeStreamingIngestAsync(
                                         ingestionProperties.getDatabaseName(),
                                         ingestionProperties.getTableName(),
                                         stream,
@@ -351,23 +225,25 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                                         !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen())
                                 );
                             })
+                            .flatMap(Function.identity())
                             .doOnSuccess(ignored -> log.debug("Stream was ingested successfully."))
-                            .map(ignored -> {
+                            .then(Mono.fromCallable(() -> {
+                                log.debug("Stream was ingested successfully.");
                                 IngestionStatus ingestionStatus = new IngestionStatus();
                                 ingestionStatus.status = OperationStatus.Succeeded;
                                 ingestionStatus.table = ingestionProperties.getTableName();
                                 ingestionStatus.database = ingestionProperties.getDatabaseName();
                                 return (IngestionResult) new IngestionStatusResult(ingestionStatus);
+                            }))
+                            .onErrorMap(DataClientException.class, e -> {
+                                String msg = ExceptionsUtils.getMessageEx(e);
+                                log.error(msg, e);
+                                return new IngestionClientException(msg, e);
+                            })
+                            .onErrorMap(DataServiceException.class, e -> {
+                                log.error(e.getMessage(), e);
+                                return new IngestionServiceException(e.getMessage(), e);
                             });
-                })
-                .onErrorMap(DataClientException.class, e -> {
-                    String msg = ExceptionsUtils.getMessageEx(e);
-                    log.error(msg, e);
-                    return new IngestionClientException(msg, e);
-                })
-                .onErrorMap(DataServiceException.class, e -> {
-                    log.error(e.getMessage(), e);
-                    return new IngestionServiceException(e.getMessage(), e);
                 });
     }
 
@@ -393,63 +269,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
             uncompressedStream.close();
         }
         return inputStream;
-    }
-
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
-                                   IngestionProperties ingestionProperties,
-                                   BlobClient cloudBlockBlob,
-                                   @Nullable String clientRequestId)
-            throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromBlob
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
-                        ingestionProperties, cloudBlockBlob, clientRequestId),
-                getClientType().concat(".ingestFromBlob"),
-                getIngestionTraceAttributes(blobSourceInfo, ingestionProperties));
-    }
-
-    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob,
-                                               @Nullable String clientRequestId)
-            throws IngestionClientException, IngestionServiceException {
-        String blobPath = blobSourceInfo.getBlobPath();
-        try {
-            // No need to check blob size if it was given to us that it's not empty
-            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) {
-                String message = "Empty blob.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-        } catch (BlobStorageException ex) {
-            throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
-                    ex.getStatusCode() == HttpStatus.FORBIDDEN ? "this might mean the blob doesn't exist" : ""), ex);
-        }
-        ClientRequestProperties clientRequestProperties = null;
-        if (StringUtils.isNotBlank(clientRequestId)) {
-            clientRequestProperties = new ClientRequestProperties();
-            clientRequestProperties.setClientRequestId(clientRequestId);
-        }
-        IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
-        try {
-            this.streamingClient.executeStreamingIngestFromBlob(ingestionProperties.getDatabaseName(),
-                    ingestionProperties.getTableName(),
-                    blobPath,
-                    clientRequestProperties,
-                    dataFormat.getKustoValue(),
-                    ingestionProperties.getIngestionMapping().getIngestionMappingReference());
-        } catch (DataClientException e) {
-            log.error(e.getMessage(), e);
-            throw new IngestionClientException(e.getMessage(), e);
-        } catch (DataServiceException e) {
-            log.error(e.getMessage(), e);
-            throw new IngestionServiceException(e.getMessage(), e);
-        }
-
-        log.debug("Blob was ingested successfully.");
-        IngestionStatus ingestionStatus = new IngestionStatus();
-        ingestionStatus.status = OperationStatus.Succeeded;
-        ingestionStatus.table = ingestionProperties.getTableName();
-        ingestionStatus.database = ingestionProperties.getDatabaseName();
-        return new IngestionStatusResult(ingestionStatus);
     }
 
     Mono<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo,
@@ -486,7 +305,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                             }
 
                             IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
-                            return this.streamingClient.executeStreamingIngestFromBlobAsync(ingestionProperties.getDatabaseName(), //TODO: replace with async equivalent
+                            return this.streamingClient.executeStreamingIngestFromBlobAsync(ingestionProperties.getDatabaseName(),
                                     ingestionProperties.getTableName(),
                                     blobPath,
                                     clientRequestProperties,
@@ -502,13 +321,13 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                             return new IngestionServiceException(e.getMessage(), e);
                         })
                         .doOnSuccess(ignored1 -> log.debug("Blob was ingested successfully."))
-                        .map(ignored2 -> {
+                        .then(Mono.fromCallable(() -> {
                             IngestionStatus ingestionStatus = new IngestionStatus();
                             ingestionStatus.status = OperationStatus.Succeeded;
                             ingestionStatus.table = ingestionProperties.getTableName();
                             ingestionStatus.database = ingestionProperties.getDatabaseName();
                             return new IngestionStatusResult(ingestionStatus);
-                        }));
+                        })));
     }
 
     protected void setConnectionDataSource(String connectionDataSource) {

@@ -3,8 +3,6 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
@@ -24,15 +22,12 @@ public interface StreamingClient {
      * @param mappingName  Pre-defined mapping reference. Required for Json and Avro formats
      * @param leaveOpen    Specifies if the given stream should be closed after reading or be left open
      * @return {@link KustoOperationResult} object including the ingestion result
-     * @throws DataClientException  An exception originating from a client activity
-     * @throws DataServiceException An exception returned from the service
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-            String mappingName, boolean leaveOpen)
-            throws DataServiceException, DataClientException;
+                                                String mappingName, boolean leaveOpen);
 
     Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-                                                     String mappingName, boolean leaveOpen);
+                                                           String mappingName, boolean leaveOpen);
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
@@ -43,17 +38,15 @@ public interface StreamingClient {
      * @param command    The command (query or admin command) to execute
      * @param properties Additional request headers of the ingestion request
      * @return InputStream Streaming json result, which must be closed by the caller
-     * @throws DataClientException  An exception originating from a client activity
-     * @throws DataServiceException An exception returned from the service
      */
-    InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
+    InputStream executeStreamingQuery(String database, String command, ClientRequestProperties properties);
 
-    InputStream executeStreamingQuery(String database, String command) throws DataServiceException, DataClientException;
+    InputStream executeStreamingQuery(String database, String command);
 
-    InputStream executeStreamingQuery(String command) throws DataServiceException, DataClientException;
+    InputStream executeStreamingQuery(String command);
 
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
-            String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
+                                                        String dataFormat, String ingestionMappingReference);
 
     Mono<InputStream> executeStreamingQueryAsync(String command);
 
@@ -62,6 +55,6 @@ public interface StreamingClient {
     Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties);
 
     Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
-                                                        String dataFormat, String ingestionMappingReference);
+                                                                   String dataFormat, String ingestionMappingReference);
 
 }

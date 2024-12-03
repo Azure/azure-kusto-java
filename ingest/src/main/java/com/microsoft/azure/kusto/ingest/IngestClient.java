@@ -3,8 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
@@ -24,13 +22,10 @@ public interface IngestClient extends Closeable {
      * @param fileSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see FileSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
 
     Mono<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
 
@@ -42,13 +37,10 @@ public interface IngestClient extends Closeable {
      * @param blobSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see BlobSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
 
     Mono<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
 
@@ -63,13 +55,10 @@ public interface IngestClient extends Closeable {
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
 
     Mono<IngestionResult> ingestFromResultSetAsync(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
 
@@ -81,13 +70,10 @@ public interface IngestClient extends Closeable {
      * @param streamSourceInfo    The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see StreamSourceInfo
      * @see IngestionProperties
      */
-    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
+    IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
 
     Mono<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
 }

@@ -96,8 +96,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
 
         return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
-                .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo))
                 .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
+                .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo))
                 .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
     }
 

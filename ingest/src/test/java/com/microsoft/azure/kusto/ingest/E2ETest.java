@@ -610,7 +610,7 @@ class E2ETest {
 
         FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
         try {
-            ingestClient.ingestFromFileAsync(fileSourceInfo, item.ingestionProperties).block();
+            ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
         } catch (Exception ex) {
             Assertions.fail(ex);
         }

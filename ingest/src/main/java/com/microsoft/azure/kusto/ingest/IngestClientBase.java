@@ -1,11 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -15,7 +11,6 @@ import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.http.conn.util.InetAddressUtils;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,12 +57,8 @@ public abstract class IngestClientBase implements IngestClient {
         return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
-    protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException; //TODO: remove
-
-    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        return ingestFromFileImpl(fileSourceInfo, ingestionProperties);
+    public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
+        return ingestFromFileAsync(fileSourceInfo, ingestionProperties).block();
     }
 
     protected abstract Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
@@ -88,21 +79,11 @@ public abstract class IngestClientBase implements IngestClient {
      * @param blobSourceInfo      The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see BlobSourceInfo
      * @see IngestionProperties
      */
-    protected abstract IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
-
-    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromBlob
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
-                        ingestionProperties),
-                getClientType().concat(".ingestFromBlob"));
+    public IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties) {
+        return ingestFromBlobAsync(blobSourceInfo, ingestionProperties).block();
     }
 
     protected abstract Mono<IngestionResult> ingestFromBlobAsyncImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
@@ -126,21 +107,11 @@ public abstract class IngestClientBase implements IngestClient {
      * @param resultSetSourceInfo The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see ResultSetSourceInfo
      * @see IngestionProperties
      */
-    protected abstract IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException;
-
-    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromResultSet
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromResultSetImpl(resultSetSourceInfo,
-                        ingestionProperties),
-                getClientType().concat(".ingestFromResultSet"));
+    public IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
+        return ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties).block();
     }
 
     protected abstract Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
@@ -161,27 +132,11 @@ public abstract class IngestClientBase implements IngestClient {
      * @param streamSourceInfo    The specific SourceInfo to be ingested
      * @param ingestionProperties Settings used to customize the ingestion operation
      * @return {@link IngestionResult} object including the ingestion result
-     * @throws IngestionClientException  An exception originating from a client activity
-     * @throws IngestionServiceException An exception returned from the service
      * @see StreamSourceInfo
      * @see IngestionProperties
      */
-    protected abstract IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException, IOException;
-
-    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        // trace ingestFromStream
-        return MonitoredActivity.invoke(
-                (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> {
-                    try {
-                        return ingestFromStreamImpl(streamSourceInfo,
-                                ingestionProperties);
-                    } catch (IOException e) {
-                        throw new IngestionServiceException(ExceptionsUtils.getMessageEx(e), e);
-                    }
-                },
-                getClientType().concat(".ingestFromStream"));
+    public IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties) {
+        return ingestFromStreamAsync(streamSourceInfo, ingestionProperties).block();
     }
 
     protected abstract Mono<IngestionResult> ingestFromStreamAsyncImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);

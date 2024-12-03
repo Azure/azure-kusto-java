@@ -277,23 +277,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     }
 
     @Override
-    protected IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        fileSourceInfo.validate();
-        ingestionProperties.validate();
-        try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat());
-            return ingestFromStream(streamSourceInfo, ingestionProperties);
-        } catch (FileNotFoundException e) {
-            log.error("File not found when ingesting a file.", e);
-            throw new IngestionClientException("IO exception - check file path.", e);
-        }
-    }
-
-    @Override
     protected Mono<IngestionResult> ingestFromFileAsyncImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
         return Mono.fromCallable(() -> {
                     Ensure.argIsNotNull(fileSourceInfo, "fileSourceInfo");
@@ -308,91 +291,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                     log.error("File not found when ingesting a file.", e);
                     return new IngestionClientException("IO exception - check file path.", e);
                 });
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     */
-    @Override
-    protected IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(blobSourceInfo, "blobSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        blobSourceInfo.validate();
-        ingestionProperties.validate();
-
-        BlobClientBuilder blobClientBuilder = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath());
-        if (httpClient != null) {
-            blobClientBuilder.httpClient(httpClient);
-        }
-
-        BlobClient blobClient = blobClientBuilder.buildClient();
-        long blobSize = 0;
-        if (blobSourceInfo.getRawSizeInBytes() <= 0) {
-            try {
-                blobSize = blobClient.getProperties().getBlobSize();
-            } catch (BlobStorageException e) {
-                throw new IngestionServiceException(
-                        blobSourceInfo.getBlobPath(),
-                        "Failed getting blob properties: " + ExceptionsUtils.getMessageEx(e),
-                        e);
-            }
-        }
-
-        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
-                blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info(FALLBACK_LOG_STRING);
-            return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-        }
-
-        IngestionResult result = streamWithRetries(blobSourceInfo, ingestionProperties, blobClient);
-        if (result != null) {
-            return result;
-        }
-        return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
-    }
-
-    private IngestionResult streamWithRetries(SourceInfo sourceInfo, IngestionProperties ingestionProperties, @Nullable BlobClient blobClient)
-            throws IngestionClientException, IngestionServiceException {
-        ExponentialRetry<IngestionClientException, IngestionServiceException> retry = new ExponentialRetry<>(
-                exponentialRetryTemplate);
-        return retry.execute(currentAttempt -> {
-            try {
-                if (blobClient != null) {
-                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromBlob;%s;%d", sourceInfo.getSourceId(), currentAttempt);
-                    return streamingIngestClient.ingestFromBlob((BlobSourceInfo) sourceInfo, ingestionProperties, blobClient, clientRequestId);
-                } else {
-                    String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromStream;%s;%d", sourceInfo.getSourceId(),
-                            currentAttempt);
-                    return streamingIngestClient.ingestFromStream((StreamSourceInfo) sourceInfo, ingestionProperties, clientRequestId);
-                }
-            } catch (Exception e) {
-                if (e instanceof IngestionServiceException
-                        && e.getCause() != null
-                        && e.getCause() instanceof DataServiceException
-                        && e.getCause().getCause() != null
-                        && e.getCause().getCause() instanceof DataWebException) {
-                    DataWebException webException = (DataWebException) e.getCause().getCause();
-                    OneApiError oneApiError = webException.getApiError();
-                    if (oneApiError.isPermanent()) {
-                        throw e;
-                    }
-                }
-                log.info(String.format("Streaming ingestion failed attempt %d", currentAttempt), e);
-
-                if (sourceInfo instanceof StreamSourceInfo) {
-                    try {
-                        ((StreamSourceInfo) sourceInfo).getStream().reset();
-                    } catch (IOException ioException) {
-                        throw new IngestionClientException("Failed to reset stream", ioException);
-                    }
-                }
-
-            }
-            return null;
-        });
     }
 
     @Override
@@ -481,24 +379,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     }
 
     @Override
-    protected IngestionResult ingestFromResultSetImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException {
-        Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        resultSetSourceInfo.validate();
-        ingestionProperties.validateResultSetProperties();
-        try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.resultSetToStream(resultSetSourceInfo);
-            return ingestFromStream(streamSourceInfo, ingestionProperties);
-        } catch (IOException ex) {
-            String msg = "Failed to read from ResultSet.";
-            log.error(msg, ex);
-            throw new IngestionClientException(msg, ex);
-        }
-    }
-
-    @Override
     protected Mono<IngestionResult> ingestFromResultSetAsyncImpl(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties) {
         return Mono.fromCallable(() -> {
                     Ensure.argIsNotNull(resultSetSourceInfo, "resultSetSourceInfo");
@@ -513,80 +393,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                     return new IngestionClientException(msg, e);
                 })
                 .flatMap(streamSourceInfo -> ingestFromStreamAsync(streamSourceInfo, ingestionProperties));
-    }
-
-    @Override
-    protected IngestionResult ingestFromStreamImpl(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
-            throws IngestionClientException, IngestionServiceException, IOException {
-        Ensure.argIsNotNull(streamSourceInfo, "streamSourceInfo");
-        Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
-
-        streamSourceInfo.validate();
-        ingestionProperties.validate();
-
-        UUID sourceId = streamSourceInfo.getSourceId();
-        if (sourceId == null) {
-            sourceId = UUID.randomUUID();
-        }
-
-        streamSourceInfo.setSourceId(sourceId);
-        byte[] streamingBytes;
-        InputStream byteArrayStream;
-
-        if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(),
-                streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info(FALLBACK_LOG_STRING);
-            return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        }
-
-        try {
-            if (streamSourceInfo.getStream() instanceof ByteArrayInputStream || streamSourceInfo.getStream() instanceof ResettableFileInputStream) {
-                byteArrayStream = streamSourceInfo.getStream();
-            } else {
-                // If its not a ByteArrayInputStream:
-                // Read 10mb (max streaming size), decide with that if we should stream
-                streamingBytes = IngestionUtils.readBytesFromInputStream(streamSourceInfo.getStream(),
-                        ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 1);
-                byteArrayStream = new ByteArrayInputStream(streamingBytes);
-                int size = streamingBytes.length;
-                if (queuingPolicy.shouldUseQueuedIngestion(size, streamSourceInfo.getRawSizeInBytes(),
-                        streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-                    log.info(FALLBACK_LOG_STRING);
-                    StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                            streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
-
-                    return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
-                }
-
-                if (!streamSourceInfo.isLeaveOpen()) {
-                    // From this point we don't need the original stream anymore, we cached it
-                    try {
-                        streamSourceInfo.getStream().close();
-                    } catch (IOException e) {
-                        log.warn("Failed to close stream", e);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            throw new IngestionClientException("Failed to read from stream.", e);
-        }
-
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType(),
-                streamSourceInfo.getRawSizeInBytes());
-        try {
-            IngestionResult result = streamWithRetries(managedSourceInfo, ingestionProperties, null);
-            if (result != null) {
-                return result;
-            }
-
-            return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
-        } finally {
-            try {
-                managedSourceInfo.getStream().close();
-            } catch (IOException e) {
-                log.warn("Failed to close byte stream", e);
-            }
-        }
     }
 
     @Override
@@ -629,7 +435,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                                 true, streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType(),
                                 streamSourceInfo.getRawSizeInBytes());
                         return executeStream(managedSourceInfo, ingestionProperties, null)
-                                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry()) //TODO: check after all retries have failed to fallback to queued
+                                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
                                 .onErrorResume(ignored -> queuedIngestClient.ingestFromStreamAsync(managedSourceInfo, ingestionProperties))
                                 .doFinally(signal -> closeStreamSafely(managedSourceInfo));
                     } else {
