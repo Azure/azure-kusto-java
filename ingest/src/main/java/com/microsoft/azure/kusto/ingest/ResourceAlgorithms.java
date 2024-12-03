@@ -6,7 +6,7 @@ import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,60 +96,52 @@ public class ResourceAlgorithms {
     }
 
     public static Mono<Void> postToQueueWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob) {
-        return Mono.defer(() -> {
-            try {
-                ObjectMapper objectMapper = Utils.getObjectMapper();
-                String message = objectMapper.writeValueAsString(blob);
-                return resourceActionWithRetriesAsync(resourceManager,
-                        resourceManager.getShuffledQueues(),
-                        queue -> Mono.fromCallable(() -> {
-                            azureStorageClient.postMessageToQueue(queue.getQueue(), message);
-                            return null;
-                        }),
-                        "ResourceAlgorithms.postToQueueWithRetriesAsync",
-                        Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath()))
-                );
-            } catch (Exception e) {
-                return Mono.error(e);
-            }
-        });
+        return Mono.fromCallable(() -> {
+                    ObjectMapper objectMapper = Utils.getObjectMapper();
+                    String message = objectMapper.writeValueAsString(blob);
+                    List<QueueWithSas> shuffledQueues = resourceManager.getShuffledQueues();
+                    return new AbstractMap.SimpleImmutableEntry<>(message, shuffledQueues);
+                })
+                .flatMap(entry -> {
+                    String message = entry.getKey();
+                    List<QueueWithSas> shuffledQueues = entry.getValue();
+                    return resourceActionWithRetriesAsync(resourceManager,
+                            shuffledQueues,
+                            queue -> Mono.fromCallable(() -> {
+                                azureStorageClient.postMessageToQueue(queue.getQueue(), message); //TODO: offload all sync calls to bounded elastic?
+                                return null;
+                            }),
+                            "ResourceAlgorithms.postToQueueWithRetriesAsync",
+                            Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath()))
+                    );
+                });
     }
 
     public static Mono<String> uploadStreamToBlobWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
                                                                   String blobName, boolean shouldCompress) {
-        return Mono.defer(() -> {
-            try {
-                return resourceActionWithRetriesAsync(resourceManager,
-                        resourceManager.getShuffledContainers(),
+        return Mono.fromCallable(resourceManager::getShuffledContainers)
+                .flatMap(shuffledContainers -> resourceActionWithRetriesAsync(resourceManager,
+                        shuffledContainers,
                         container -> Mono.fromCallable(() -> {
                             azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
                             return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
                         }),
                         "ResourceAlgorithms.uploadStreamToBlobWithRetriesAsync",
                         Collections.emptyMap()
-                );
-            } catch (Exception e) {
-                return Mono.error(e);
-            }
-        });
+                ));
     }
 
     public static Mono<String> uploadLocalFileWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, File file, String blobName,
                                                                boolean shouldCompress) {
-        return Mono.defer(() -> {
-            try {
-                return resourceActionWithRetriesAsync(resourceManager,
-                        resourceManager.getShuffledContainers(),
+        return Mono.fromCallable(resourceManager::getShuffledContainers)
+                .flatMap(shuffledContainers -> resourceActionWithRetriesAsync(resourceManager,
+                        shuffledContainers,
                         container -> Mono.fromCallable(() -> {
                             azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getContainer(), shouldCompress);
                             return container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
                         }), "ResourceAlgorithms.uploadLocalFileWithRetriesAsync",
                         Collections.emptyMap()
-                );
-            } catch (IngestionServiceException e) {
-                return Mono.error(e);
-            }
-        });
+                ));
     }
 
     @NotNull
