@@ -132,7 +132,7 @@ class E2ETest {
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
 
         ConnectionStringBuilder dmCsb = createConnection(DM_CONN_STR);
-        dmCsb.setClusterUrl(dmCsb.getClusterUrl().replaceFirst("https://dev", "https://ingest-dev")); //TODO: remove
+        dmCsb.setClusterUrl(dmCsb.getClusterUrl().replaceFirst("https://dev", "https://ingest-dev")); // TODO: remove
         dmCsb.setUserNameForTracing("testUser");
         try {
             dmCslClient = ClientFactory.createClient(dmCsb);
@@ -172,7 +172,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            //queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
+            // queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -206,7 +206,7 @@ class E2ETest {
         }
 
         try {
-            //queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
+            // queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
             queryClient.executeToJsonResult(DB_NAME, ".alter table JavaTest_2024_11_30_02_14_23_653_2051561983 policy streamingingestion enable", null);
         } catch (Exception ex) {
             Assertions.fail("Failed to refresh cache", ex);
@@ -235,7 +235,7 @@ class E2ETest {
         first.setPath("$.rownumber");
         ColumnMapping second = new ColumnMapping("rowguid", "string");
         second.setPath("$.rowguid");
-        ColumnMapping[] columnMapping = new ColumnMapping[]{first, second};
+        ColumnMapping[] columnMapping = new ColumnMapping[] {first, second};
         ingestionPropertiesWithColumnMapping.setIngestionMapping(columnMapping, IngestionMappingKind.JSON);
         ingestionPropertiesWithColumnMapping.setDataFormat(DataFormat.JSON);
 
@@ -391,11 +391,13 @@ class E2ETest {
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(ENG_CONN_STR);
         TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(cloudInfo.determineScope());
 
-        ConnectionStringBuilder syncCallback = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(ENG_CONN_STR, () -> new AzureCliCredentialBuilder().build().getTokenSync(tokenRequestContext).getToken());
+        ConnectionStringBuilder syncCallback = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(ENG_CONN_STR,
+                () -> new AzureCliCredentialBuilder().build().getTokenSync(tokenRequestContext).getToken());
 
         Assertions.assertEquals(1, ClientFactory.createClient(syncCallback).executeMgmt(".show version").getPrimaryResults().count());
 
-        ConnectionStringBuilder asyncCallback = ConnectionStringBuilder.createWithAadAsyncTokenProviderAuthentication(ENG_CONN_STR, new AzureCliCredentialBuilder().build().getToken(tokenRequestContext).map(AccessToken::getToken));
+        ConnectionStringBuilder asyncCallback = ConnectionStringBuilder.createWithAadAsyncTokenProviderAuthentication(ENG_CONN_STR,
+                new AzureCliCredentialBuilder().build().getToken(tokenRequestContext).map(AccessToken::getToken));
 
         Assertions.assertEquals(1, ClientFactory.createClient(asyncCallback).executeMgmt(".show version").getPrimaryResults().count());
 
@@ -666,7 +668,7 @@ class E2ETest {
         stopWatch.start();
         // The InputStream *must* be closed by the caller to prevent memory leaks
         try (InputStream is = streamingClient.executeStreamingQuery(DB_NAME, query, clientRequestProperties);
-             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             StringBuilder streamedResult = new StringBuilder();
             char[] buffer = new char[65536];
             String streamedLine;
@@ -715,13 +717,8 @@ class E2ETest {
             try {
                 Client client = ClientFactory.createClient(
                         ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"));
-                try {
-                    client.executeQuery("db", "table");
-                    Assertions.fail("Expected exception");
-                } catch (DataServiceException e) {
-                    Assertions.assertTrue(e.getMessage().contains("" + code));
-                    Assertions.assertTrue(e.getMessage().contains("metadata"));
-                }
+                client.executeQuery("db", "table");
+                Assertions.fail("Expected exception");
             } catch (Exception e) {
                 return e;
             }
@@ -744,9 +741,6 @@ class E2ETest {
                 try {
                     client.executeQuery("db", "table");
                     Assertions.fail("Expected exception");
-                } catch (DataServiceException e) {
-                    Assertions.assertTrue(e.getMessage().contains("" + code));
-                    Assertions.assertFalse(e.getMessage().contains("metadata"));
                 } catch (Exception e) {
                     return e;
                 }

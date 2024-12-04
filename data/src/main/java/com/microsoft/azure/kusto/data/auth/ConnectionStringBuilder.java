@@ -529,7 +529,7 @@ public class ConnectionStringBuilder {
         return csb;
     }
 
-    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable  TokenCredential tokenCredential) {
+    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable TokenCredential tokenCredential) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }

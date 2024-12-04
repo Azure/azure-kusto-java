@@ -226,7 +226,6 @@ public class HeaderTest {
         }
     }
 
-
     private Map<String, String> extractHeadersFromAzureRequest(HttpRequest request) {
         Map<String, String> uncomplicatedHeaders = new HashMap<>();
         HttpHeaders headers = request.getHeaders();

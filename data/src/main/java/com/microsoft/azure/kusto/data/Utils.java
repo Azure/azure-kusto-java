@@ -51,7 +51,7 @@ public class Utils {
     public static ObjectMapper getObjectMapper() {
         return JsonMapper.builder().configure(MapperFeature.PROPAGATE_TRANSIENT_MARKER, true).addModule(new JavaTimeModule()).build().configure(
                 DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true).configure(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN, true).setNodeFactory(
-                JsonNodeFactory.withExactBigDecimals(true));
+                        JsonNodeFactory.withExactBigDecimals(true));
     }
 
     private static final HashSet<Class<? extends IOException>> nonRetriableClasses = new HashSet<Class<? extends IOException>>() {
@@ -150,12 +150,11 @@ public class Utils {
                     return new ByteArrayInputStream(bytes);
                 })
                 .collectList()
-                .flatMap(inputStreams ->
-                        Mono.fromCallable(() -> {
-                            try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
-                                return readStreamToString(gzipStream);
-                            }
-                        }).subscribeOn(Schedulers.boundedElastic()) //TODO: same as ingest module
+                .flatMap(inputStreams -> Mono.fromCallable(() -> {
+                    try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
+                        return readStreamToString(gzipStream);
+                    }
+                }).subscribeOn(Schedulers.boundedElastic()) // TODO: same as ingest module
                 );
     }
 

@@ -50,12 +50,10 @@ public abstract class BaseClient implements Client, StreamingClient {
 
     protected Mono<String> postAsync(HttpRequest request, long timeoutMs) {
         return httpClient.send(request, getContextTimeout(timeoutMs))
-                .flatMap(response ->
-                        Mono.using(
-                                () -> response,
-                                this::processResponseBodyAsync,
-                                HttpResponse::close
-                        ))
+                .flatMap(response -> Mono.using(
+                        () -> response,
+                        this::processResponseBodyAsync,
+                        HttpResponse::close))
                 .onErrorMap(e -> {
                     if (e instanceof DataServiceException) {
                         return e;
@@ -82,19 +80,20 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     protected Mono<InputStream> postToStreamingOutputAsync(HttpRequest request, long timeoutMs,
-                                                           int currentRedirectCounter, int maxRedirectCount) {
+            int currentRedirectCounter, int maxRedirectCount) {
         ResponseState state = new ResponseState();
         return httpClient.send(request, getContextTimeout(timeoutMs))
                 .flatMap(httpResponse -> processHttpResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount))
                 .onErrorMap(IOException.class, e -> new DataServiceException(request.getUrl().toString(),
                         "postToStreamingOutput failed to get or decompress response stream", e, false))
                 .onErrorMap(UncheckedIOException.class, e -> ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "streaming async"))
-                .onErrorMap(Exception.class, e -> createExceptionFromResponse(request.getUrl().toString(), state.getHttpResponse(), e, state.getErrorFromResponse()))
+                .onErrorMap(Exception.class,
+                        e -> createExceptionFromResponse(request.getUrl().toString(), state.getHttpResponse(), e, state.getErrorFromResponse()))
                 .doFinally(ignored -> closeResourcesIfNeeded(state.isReturnInputStream(), state.getHttpResponse()));
     }
 
     private Mono<InputStream> processHttpResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
-                                                  long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
+            long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
         try {
             state.setHttpResponse(httpResponse);
             int responseStatusCode = httpResponse.getStatusCode();
@@ -122,7 +121,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     }
 
     private Mono<InputStream> handleErrorResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
-                                                  long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
+            long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
         return httpResponse.getBodyAsByteArray()
                 .flatMap(bytes -> {
                     try {

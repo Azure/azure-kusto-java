@@ -30,7 +30,8 @@ public class ExceptionUtils {
 
     public static Exception unwrapCloudInfoException(String clusterUrl, Throwable throwable) {
         if (throwable instanceof URISyntaxException) {
-            return new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + throwable.getMessage(), (URISyntaxException) throwable, true);
+            return new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + throwable.getMessage(),
+                    (URISyntaxException) throwable, true);
         }
 
         if (throwable instanceof IOException) {

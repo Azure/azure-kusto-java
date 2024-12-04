@@ -74,6 +74,7 @@ public class KustoTrustedEndpoints {
      */
     public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
+            // TODO: if this method will be used, replace the sync retrieveCloudInfoForCluster with the async one
             validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
         } catch (URISyntaxException ex) {
             throw new KustoClientInvalidConnectionStringException(ex);

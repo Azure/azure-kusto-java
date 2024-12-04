@@ -24,10 +24,11 @@ public interface StreamingClient {
      * @return {@link KustoOperationResult} object including the ingestion result
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-                                                String mappingName, boolean leaveOpen);
+            String mappingName, boolean leaveOpen);
 
-    Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-                                                           String mappingName, boolean leaveOpen);
+    Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
+            String streamFormat,
+            String mappingName, boolean leaveOpen);
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
@@ -46,7 +47,7 @@ public interface StreamingClient {
     InputStream executeStreamingQuery(String command);
 
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
-                                                        String dataFormat, String ingestionMappingReference);
+            String dataFormat, String ingestionMappingReference);
 
     Mono<InputStream> executeStreamingQueryAsync(String command);
 
@@ -54,7 +55,8 @@ public interface StreamingClient {
 
     Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties);
 
-    Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
-                                                                   String dataFormat, String ingestionMappingReference);
+    Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String databaseName, String tableName, String blobUrl,
+            ClientRequestProperties clientRequestProperties,
+            String dataFormat, String ingestionMappingReference);
 
 }

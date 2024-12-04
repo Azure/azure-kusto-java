@@ -242,9 +242,8 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
                 .verify();
     }
 
@@ -267,9 +266,8 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."))
                 .verify();
     }
 
@@ -278,8 +276,7 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(new byte[0]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException && e.getMessage().contains("Empty stream."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty stream."))
                 .verify();
     }
 
@@ -292,9 +289,8 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && "DataClientException".equals(e.getMessage()))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && "DataClientException".equals(e.getMessage()))
                 .verify();
     }
 
@@ -302,15 +298,14 @@ class StreamingIngestClientTest {
     void ingestFromStream_CaughtDataServiceException_IngestionServiceException() throws Exception {
         when(streamingClientMock.executeStreamingIngestAsync(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class)))
-                .thenReturn(Mono.error(new DataServiceException("ingestFromStream", "DataServiceException", true)));
+                        .thenReturn(Mono.error(new DataServiceException("ingestFromStream", "DataServiceException", true)));
 
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionServiceException
-                                && "DataServiceException".equals(e.getMessage()))
+                .expectErrorMatches(e -> e instanceof IngestionServiceException
+                        && "DataServiceException".equals(e.getMessage()))
                 .verify();
     }
 
@@ -416,9 +411,8 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         StepVerifier.create(streamingIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
                 .verify();
     }
 
@@ -436,8 +430,7 @@ class StreamingIngestClientTest {
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         StepVerifier.create(streamingIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException && e.getMessage().contains("Empty file."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty file."))
                 .verify();
     }
 
@@ -511,9 +504,8 @@ class StreamingIngestClientTest {
         String path = "wrongURI";
         BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(path);
         StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo1, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."))
                 .verify();
     }
 
@@ -522,9 +514,8 @@ class StreamingIngestClientTest {
         String path = "https://kustotest.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo(path);
         StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo2, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Exception trying to read blob metadata"))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Exception trying to read blob metadata"))
                 .verify();
     }
 
@@ -539,9 +530,8 @@ class StreamingIngestClientTest {
 
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties, cloudBlockBlob, null))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Empty blob."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Empty blob."))
                 .verify();
     }
 
@@ -608,9 +598,8 @@ class StreamingIngestClientTest {
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         StepVerifier.create(streamingIngestClient.ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties))
-                .expectErrorMatches(e ->
-                        e instanceof IngestionClientException
-                                && e.getMessage().contains("Empty ResultSet."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Empty ResultSet."))
                 .verify();
     }
 

@@ -1,5 +1,18 @@
 package com.microsoft.azure.kusto.data.auth;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URISyntaxException;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.Nullable;
+
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpMethod;
@@ -15,24 +28,14 @@ import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.Nullable;
+
 import reactor.core.publisher.Mono;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URISyntaxException;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class CloudInfo implements TraceableAttributes, Serializable {
-    private static final Map<String, CloudInfo> cache = new ConcurrentHashMap<>(); //TODO: is this correct?
+    private static final Map<String, CloudInfo> cache = new ConcurrentHashMap<>(); // TODO: is this correct?
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -65,7 +68,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private static final ExponentialRetry exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
-                     String firstPartyAuthorityUrl) {
+            String firstPartyAuthorityUrl) {
         this.loginMfaRequired = loginMfaRequired;
         this.loginEndpoint = loginEndpoint;
         this.kustoClientAppId = kustoClientAppId;
@@ -85,57 +88,46 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     }
 
     public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
-        CloudInfo cachedCloudInfo;
+        return getCachedCloudInfo(clusterUrl)
+                .switchIfEmpty(
+                        fetchCloudInfoAsync(clusterUrl, givenHttpClient)
+                                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
+                                .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo)))
+                .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
+    }
+
+    private static Mono<CloudInfo> getCachedCloudInfo(String clusterUrl) {
         try {
-            cachedCloudInfo = cache.get(UriUtils.setPathForUri(clusterUrl, ""));
+            return Mono.justOrEmpty(cache.get(UriUtils.setPathForUri(clusterUrl, "")));
         } catch (URISyntaxException ex) {
             return Mono.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true));
         }
-        if (cachedCloudInfo != null) {
-            return Mono.just(cachedCloudInfo);
-        }
-
-        return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
-                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
-                .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo))
-                .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
     }
 
     private static Mono<CloudInfo> fetchCloudInfoAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
         return Mono.using(
-                        () -> localHttpClient,
-                        client -> {
-                            try {
-                                HttpRequest request = new HttpRequest(HttpMethod.GET, UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
-                                request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
-                                request.setHeader(HttpHeaderName.ACCEPT, "application/json");
+                () -> localHttpClient,
+                client -> fetchCloudInfo(localHttpClient, clusterUrl),
+                client -> closeHttpClient(localHttpClient, givenHttpClient))
+                .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
+    }
 
-                                return localHttpClient.send(request, RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT))
-                                        .flatMap(response -> getCloudInfo(response, clusterUrl))
-                                        .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
-                            } catch (URISyntaxException e) {
-                                return Mono.error(new DataServiceException(clusterUrl,
-                                        "URISyntaxException when trying to retrieve cluster metadata:" + e.getMessage(), e, true));
-                            } catch (Exception e) {
-                                return Mono.error(new DataServiceException(clusterUrl, "Error while retrieving the cluster metadata: " + e, e, true));
-                            }
-                        },
-                        client -> {
-                            if (givenHttpClient == null && client instanceof Closeable) {
-                                try {
-                                    ((Closeable) client).close();
-                                } catch (IOException ex) {
-                                    throw new RuntimeException("Error closing HttpClient while retrieving the cluster metadata", ex);
-                                }
-                            }
-                        })
-                .onErrorMap(e -> {
-                    if (e instanceof RuntimeException) {
-                        return new DataServiceException(clusterUrl, "Failed during resource cleanup: " + e.getCause(), (Exception) e, false);
-                    }
-                    return e;
-                });
+    private static Mono<CloudInfo> fetchCloudInfo(HttpClient localHttpClient, String clusterUrl) {
+        return sendRequest(localHttpClient, clusterUrl)
+                .flatMap(response -> getCloudInfo(response, clusterUrl))
+                .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
+    }
+
+    private static Mono<HttpResponse> sendRequest(HttpClient localHttpClient, String clusterUrl) {
+        return Mono.fromCallable(() -> {
+            HttpRequest request = new HttpRequest(HttpMethod.GET, UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
+            request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
+            request.setHeader(HttpHeaderName.ACCEPT, "application/json");
+            return request;
+        })
+                .flatMap(httpRequest -> MonitoredActivity.wrap(localHttpClient.send(httpRequest, RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT)),
+                        "CloudInfo.httpCall"));
     }
 
     private static Mono<CloudInfo> getCloudInfo(HttpResponse response, String clusterUrl) {
@@ -143,18 +135,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return response.getBodyAsByteArray()
                 .flatMap(bodyAsBinaryData -> {
                     if (statusCode == HttpStatus.OK) {
-                        String content;
-                        try {
-                            content = Utils.getContentAsString(response, bodyAsBinaryData);
-                            if (content.isEmpty() || content.equals("{}")) {
-                                return Mono.error(new DataServiceException(clusterUrl,
-                                        "Error in metadata endpoint, received no data",
-                                        true));
-                            }
-                            return Mono.justOrEmpty(parseCloudInfo(content));
-                        } catch (Exception e) {
-                            return Mono.error(e);
-                        }
+                        return parseCloudInfoSafely(response, bodyAsBinaryData, clusterUrl);
                     } else if (statusCode == HttpStatus.NOT_FOUND) {
                         return Mono.just(DEFAULT_CLOUD);
                     } else {
@@ -167,6 +148,29 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                                 "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS));
                     }
                 });
+    }
+
+    private static Mono<CloudInfo> parseCloudInfoSafely(HttpResponse response, byte[] bodyAsBinaryData, String clusterUrl) {
+        try {
+            String content = Utils.getContentAsString(response, bodyAsBinaryData);
+            if (content.isEmpty() || content.equals("{}")) {
+                return Mono.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true));
+            }
+
+            return Mono.just(parseCloudInfo(content));
+        } catch (Exception e) {
+            return Mono.error(e);
+        }
+    }
+
+    private static void closeHttpClient(HttpClient localHttpClient, @Nullable HttpClient givenHttpClient) {
+        if (givenHttpClient == null && localHttpClient instanceof Closeable) {
+            try {
+                ((Closeable) localHttpClient).close();
+            } catch (IOException ex) {
+                throw new RuntimeException("Error closing HttpClient while retrieving the cluster metadata", ex); // TODO: fix this
+            }
+        }
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {

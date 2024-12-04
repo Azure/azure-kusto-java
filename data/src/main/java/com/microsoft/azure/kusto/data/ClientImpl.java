@@ -188,8 +188,7 @@ class ClientImpl extends BaseClient {
         HttpTracing tracing = buildTracing(kr);
 
         return validateEndpointAsync()
-                .then(authorization.flatMap(token ->
-                                buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
+                .then(authorization.flatMap(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
                         .switchIfEmpty(buildKustoRequestContext(kr, clusterEndpoint, tracing, null)));
     }
 
@@ -236,26 +235,26 @@ class ClientImpl extends BaseClient {
         if (endpointValidated) {
             return Mono.empty();
         }
+
         return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, null)
                 .map(CloudInfo::getLoginEndpoint)
                 .flatMap(loginEndpoint -> Mono.fromCallable(() -> {
-                            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint);
-                            return true;
-                        }
-                ))
+                    KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint);
+                    return true;
+                }))
                 .doOnSuccess(ignored -> endpointValidated = true)
                 .then();
     }
 
     @Override
     public KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties,
-                                                       String streamFormat, String mappingName, boolean leaveOpen) {
+            String streamFormat, String mappingName, boolean leaveOpen) {
         return executeStreamingIngestAsync(database, table, stream, properties, streamFormat, mappingName, leaveOpen).block();
     }
 
     @Override
     public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
-                                                                  String streamFormat, String mappingName, boolean leaveOpen) {
+            String streamFormat, String mappingName, boolean leaveOpen) {
         if (stream == null) {
             return Mono.error(new IllegalArgumentException("The provided stream is null."));
         }
@@ -268,13 +267,13 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeStreamingIngestFromBlob(String database, String table, String blobUrl, ClientRequestProperties properties,
-                                                               String dataFormat, String mappingName) {
+            String dataFormat, String mappingName) {
         return executeStreamingIngestFromBlobAsync(database, table, blobUrl, properties, dataFormat, mappingName).block();
     }
 
     @Override
     public Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String database, String table, String blobUrl, ClientRequestProperties properties,
-                                                                          String dataFormat, String mappingName) {
+            String dataFormat, String mappingName) {
         if (blobUrl == null) {
             return Mono.error(new IllegalArgumentException("The provided blobUrl is null."));
         }
@@ -287,22 +286,21 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<KustoOperationResult> executeStreamingIngestImplAsync(String clusterEndpoint, InputStream stream, String blobUrl,
-                                                                       ClientRequestProperties properties, boolean leaveOpen) {
+            ClientRequestProperties properties, boolean leaveOpen) {
         return validateEndpointAsync()
                 .then(getAuthorizationHeaderValueAsync()
-                        .flatMap(token ->
-                                executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen, token))
+                        .flatMap(token -> executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen, token))
                         .switchIfEmpty(executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen, null)));
     }
 
     private Mono<KustoOperationResult> executeStreamingIngest(String clusterEndpoint, InputStream stream, String blobUrl,
-                                                              ClientRequestProperties properties, boolean leaveOpen, String authorizationToken) {
+            ClientRequestProperties properties, boolean leaveOpen, String authorizationToken) {
         boolean isStreamSource = stream != null;
         Map<String, String> headers = new HashMap<>();
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
 
-        return Mono.fromCallable(() -> determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl))  // Step 1: Determine timeout
+        return Mono.fromCallable(() -> determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl)) // Step 1: Determine timeout
                 .flatMap(timeoutMs -> {
 
                     // This was a separate method but was moved into the body of this method because it performs a side effect
@@ -341,9 +339,10 @@ class ClientImpl extends BaseClient {
                                 .withBody(data)
                                 .build();
                     }).flatMap(httpRequest -> MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
-                            .flatMap(response ->
-                                    Mono.fromCallable(() -> new KustoOperationResult(response, "v1")))
-                            .onErrorMap(KustoServiceQueryError.class, e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(), e))
+                            .flatMap(response -> Mono.fromCallable(() -> new KustoOperationResult(response, "v1")))
+                            .onErrorMap(KustoServiceQueryError.class,
+                                    e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
+                                            e))
                             .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e)));
                 })
                 .doFinally(signalType -> {
@@ -420,7 +419,7 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<InputStream> executeStreamingQuery(String clusterEndpoint, KustoRequest kr,
-                                                    HttpTracing tracing, String authorizationToken) {
+            HttpTracing tracing, String authorizationToken) {
         try {
             HttpRequest request = HttpRequestBuilder
                     .newPost(clusterEndpoint)

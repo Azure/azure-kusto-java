@@ -197,7 +197,7 @@ public class Utils {
          */
         @NotNull
         protected static IngestionProperties createIngestionProperties(String databaseName, String tableName, IngestionProperties.DataFormat dataFormat,
-                                                                       String mappingName, boolean ignoreFirstRecord) {
+                String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
             ingestionProperties.setDataFormat(dataFormat);
             // Learn More: For more information about supported data formats, see: https://docs.microsoft.com/azure/data-explorer/ingestion-supported-formats
@@ -226,7 +226,7 @@ public class Utils {
          * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromFile(IngestClient ingestClient, String databaseName, String tableName, String filePath,
-                                             IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance, specify the uncompressed data size in the file descriptor (e.g. fileToIngest.length())
@@ -250,7 +250,7 @@ public class Utils {
          * @param ignoreFirstRecord Flag noting whether to ignore the first record in the table
          */
         protected static void ingestFromBlob(IngestClient ingestClient, String databaseName, String tableName, String blobUrl,
-                                             IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
+                IngestionProperties.DataFormat dataFormat, String mappingName, boolean ignoreFirstRecord) {
             IngestionProperties ingestionProperties = createIngestionProperties(databaseName, tableName, dataFormat, mappingName, ignoreFirstRecord);
 
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0

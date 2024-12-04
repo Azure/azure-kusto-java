@@ -35,34 +35,32 @@ public class ExponentialRetry {
     }
 
     public Retry retry() {
-        return Retry.from(retrySignals ->
-                retrySignals.flatMap(retrySignal -> {
+        return Retry.from(retrySignals -> retrySignals.flatMap(retrySignal -> {
 
-                    Retry.RetrySignal signalCopy = retrySignal.copy();
-                    long currentAttempt = signalCopy.totalRetries();
-                    log.info("Retry attempt {}.", currentAttempt);
+            Retry.RetrySignal signalCopy = retrySignal.copy();
+            long currentAttempt = signalCopy.totalRetries();
+            log.info("Retry attempt {}.", currentAttempt);
 
-                    Throwable failure = signalCopy.failure();
-                    if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
-                        log.error("Error is permanent, stopping.", failure);
-                        return Mono.error(failure);
-                    }
+            Throwable failure = signalCopy.failure();
+            if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
+                log.error("Error is permanent, stopping.", failure);
+                return Mono.error(failure);
+            }
 
-                    if (currentAttempt >= maxAttempts) {
-                        log.info("Max retry attempts reached: {}.", currentAttempt);
-                        return Mono.error(failure);
-                    }
+            if (currentAttempt >= maxAttempts) {
+                log.info("Max retry attempts reached: {}.", currentAttempt);
+                return Mono.error(failure);
+            }
 
-                    double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
-                    double jitterSecs = (float) Math.random() * maxJitterSecs;
-                    double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
+            double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
+            double jitterSecs = (float) Math.random() * maxJitterSecs;
+            double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
 
-                    log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt, sleepMs / 1000);
+            log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt, sleepMs / 1000);
 
-                    // Each retry can occur on a different thread
-                    return Mono.delay(Duration.ofMillis((long) sleepMs));
-                })
-        );
+            // Each retry can occur on a different thread
+            return Mono.delay(Duration.ofMillis((long) sleepMs));
+        }));
     }
 
 }

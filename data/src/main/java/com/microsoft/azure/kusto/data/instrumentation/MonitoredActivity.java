@@ -41,8 +41,8 @@ public class MonitoredActivity {
     }
 
     public static <T, U extends Exception> Mono<T> invokeAsync(FunctionOneException<Mono<T>, Tracer.Span, U> function,
-                                                               String nameOfSpan,
-                                                               Map<String, String> attributes) {
+            String nameOfSpan,
+            Map<String, String> attributes) {
         return Mono.defer(() -> {
             Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes);
             try {
