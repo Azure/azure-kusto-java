@@ -12,11 +12,7 @@ import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.IngestionStatus;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.result.ValidationPolicy;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.*;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,40 +22,19 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Collections;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyBoolean;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class QueuedIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
@@ -215,12 +190,11 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void ingestFromFileAsync_FileDoesNotExist_IngestionClientException() {
+    void ingestFromFile_FileDoesNotExist_IngestionClientException() {
         FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
-        Mono<IngestionResult> result = queuedIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties);
-        StepVerifier.create(result)
-                .expectError(IngestionClientException.class)
-                .verify();
+        assertThrows(
+                IngestionClientException.class,
+                () -> queuedIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties));
     }
 
     @Test
@@ -263,40 +237,40 @@ class QueuedIngestClientTest {
     }
 
     @Test
-    void ingestFromResultSetAsync_StreamIngest_IngestionClientException() throws Exception {
+    void ingestFromResultSet_StreamIngest_IngestionClientException() throws Exception {
         try (IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock)) {
             // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
             IngestClient ingestClientSpy = spy(ingestClient);
 
             IngestionClientException ingestionClientException = new IngestionClientException(
                     "Client exception in ingestFromFile");
-            doReturn(Mono.error(ingestionClientException)).when(ingestClientSpy).ingestFromStreamAsync(any(), any());
+            doThrow(ingestionClientException).when(ingestClientSpy).ingestFromStream(any(), any());
 
             ResultSet resultSet = getSampleResultSet();
             ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-            StepVerifier.create(ingestClientSpy.ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties))
-                    .expectError(IngestionClientException.class)
-                    .verify();
+            assertThrows(
+                    IngestionClientException.class,
+                    () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
         }
     }
 
     @Test
-    void ingestFromResultSetAsync_StreamIngest_IngestionServiceException() throws Exception {
+    void ingestFromResultSet_StreamIngest_IngestionServiceException() throws Exception {
         try (IngestClient ingestClient = new QueuedIngestClientImpl(resourceManagerMock, azureStorageClientMock)) {
             // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
             IngestClient ingestClientSpy = spy(ingestClient);
 
             IngestionServiceException ingestionServiceException = new IngestionServiceException(
                     "Service exception in ingestFromFile");
-            doReturn(Mono.error(ingestionServiceException)).when(ingestClientSpy).ingestFromStreamAsync(any(), any());
+            doThrow(ingestionServiceException).when(ingestClientSpy).ingestFromStream(any(), any());
 
             ResultSet resultSet = getSampleResultSet();
             ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
 
-            StepVerifier.create(ingestClientSpy.ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties))
-                    .expectError(IngestionServiceException.class)
-                    .verify();
+            assertThrows(
+                    IngestionServiceException.class,
+                    () -> ingestClientSpy.ingestFromResultSet(resultSetSourceInfo, ingestionProperties));
         }
     }
 
@@ -306,7 +280,7 @@ class QueuedIngestClientTest {
             // we need a spy to intercept the call to ingestFromStream so it wouldn't be called
             IngestClient ingestClientSpy = spy(ingestClient);
 
-            doReturn(Mono.empty()).when(ingestClientSpy).ingestFromStreamAsync(any(), any());
+            doReturn(null).when(ingestClientSpy).ingestFromStream(any(), any());
 
             ResultSet resultSet = getSampleResultSet();
             ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
@@ -315,7 +289,7 @@ class QueuedIngestClientTest {
 
             ArgumentCaptor<StreamSourceInfo> argumentCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
 
-            verify(ingestClientSpy, atLeastOnce()).ingestFromStreamAsync(argumentCaptor.capture(), any());
+            verify(ingestClientSpy, atLeastOnce()).ingestFromStream(argumentCaptor.capture(), any());
             InputStream ingestFromStreamReceivedStream = argumentCaptor.getValue().getStream();
 
             int len = ingestFromStreamReceivedStream.available();

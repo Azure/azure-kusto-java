@@ -1,16 +1,16 @@
 package com.microsoft.azure.kusto.quickstart;
 
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.KustoResultColumn;
-import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -174,6 +174,10 @@ public class Utils {
                     System.out.println();
                 }
 
+            } catch (DataServiceException e) {
+                errorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
+            } catch (DataClientException e) {
+                errorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (Exception e) {
                 errorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             }
@@ -235,7 +239,15 @@ public class Utils {
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
             FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), 0, UUID.randomUUID());
 
-            ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+            try {
+                ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
+            } catch (IngestionClientException e) {
+                System.out.printf("Client exception while trying to ingest '%s' into '%s.%s'%n%n", filePath, databaseName, tableName);
+                e.printStackTrace();
+            } catch (IngestionServiceException e) {
+                System.out.printf("Service exception while trying to ingest '%s' into '%s.%s'%n%n", filePath, databaseName, tableName);
+                e.printStackTrace();
+            }
         }
 
         /**
@@ -258,7 +270,15 @@ public class Utils {
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
             BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), 0, UUID.randomUUID());
 
-            ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+            try {
+                ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+            } catch (IngestionClientException e) {
+                System.out.printf("Client exception while trying to ingest '%s' into '%s.%s'%n%n", blobUrl, databaseName, tableName);
+                e.printStackTrace();
+            } catch (IngestionServiceException e) {
+                System.out.printf("Service exception while trying to ingest '%s' into '%s.%s'%n%n", blobUrl, databaseName, tableName);
+                e.printStackTrace();
+            }
         }
 
         /**

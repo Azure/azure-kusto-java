@@ -13,27 +13,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class ManagedStreamingTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
@@ -177,9 +169,9 @@ public class ManagedStreamingTest {
         int size = inputStream.bb.available();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ArgumentCaptor<StreamSourceInfo> streamSourceInfoCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
-        when(queuedIngestClientMock.ingestFromStreamAsync(any(), any())).thenReturn(Mono.empty());
+
         managedStreamingIngestClientSpy.ingestFromStream(streamSourceInfo, ingestionProperties);
-        verify(queuedIngestClientMock, times(1)).ingestFromStreamAsync(streamSourceInfoCaptor.capture(), any());
+        verify(queuedIngestClientMock, times(1)).ingestFromStream(streamSourceInfoCaptor.capture(), any());
 
         StreamSourceInfo value = streamSourceInfoCaptor.getValue();
         int queuedStreamSize = getStreamSize(value.getStream());

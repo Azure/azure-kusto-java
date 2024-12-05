@@ -6,10 +6,13 @@ import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /**
  * This class includes a sample of how to use the ingestFromFile() method within a CompletableFuture
@@ -73,11 +76,17 @@ public class FileIngestionCompletableFuture {
     private static CompletableFuture<IngestionResult> ingestFromFileAsync(
             IngestClient client, FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {
         return CompletableFuture.supplyAsync(
-                () -> client.ingestFromFile(fileSourceInfo, ingestionProperties));
+                () -> {
+                    try {
+                        return client.ingestFromFile(fileSourceInfo, ingestionProperties);
+                    } catch (IngestionClientException | IngestionServiceException e) {
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     /**
-     * In this example we're just printing a message to the standard output, but the user can decide what to do here.
+     * In this example we just printing a message to the standard output, but the user can decide what to do here.
      */
     private static void doSomethingWithIngestionResult(IngestionResult ingestionResult) {
         if (ingestionResult != null) {

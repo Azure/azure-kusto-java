@@ -1,15 +1,11 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 import java.lang.invoke.MethodHandles;
-import java.time.Duration;
 
-public class ExponentialRetry {
+public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private final int maxAttempts;
@@ -34,33 +30,36 @@ public class ExponentialRetry {
         this.maxJitterSecs = other.maxJitterSecs;
     }
 
-    public Retry retry() {
-        return Retry.from(retrySignals -> retrySignals.flatMap(retrySignal -> {
+    // Caller should throw only permanent errors, returning null if a retry is needed
+    public <T> T execute(KustoCheckedFunction<Integer, T, E1, E2> function) throws E1, E2 {
+        for (int currentAttempt = 0; currentAttempt < maxAttempts; currentAttempt++) {
+            log.info("execute: Attempt {}", currentAttempt);
 
-            Retry.RetrySignal signalCopy = retrySignal.copy();
-            long currentAttempt = signalCopy.totalRetries();
-            log.info("Retry attempt {}.", currentAttempt);
-
-            Throwable failure = signalCopy.failure();
-            if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
-                log.error("Error is permanent, stopping.", failure);
-                return Mono.error(failure);
-            }
-
-            if (currentAttempt >= maxAttempts) {
-                log.info("Max retry attempts reached: {}.", currentAttempt);
-                return Mono.error(failure);
+            try {
+                T result = function.apply(currentAttempt);
+                if (result != null) {
+                    return result;
+                }
+            } catch (Exception e) {
+                log.error("execute: Error is permanent, stopping", e);
+                throw e;
             }
 
             double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
             double jitterSecs = (float) Math.random() * maxJitterSecs;
             double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
 
-            log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt, sleepMs / 1000);
+            log.info("execute: Attempt {} failed, trying again after sleep of {} seconds", currentAttempt, sleepMs / 1000);
 
-            // Each retry can occur on a different thread
-            return Mono.delay(Duration.ofMillis((long) sleepMs));
-        }));
+            try {
+                Thread.sleep((long) sleepMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("execute: Interrupted while sleeping", e);
+            }
+        }
+
+        return null;
     }
 
 }
