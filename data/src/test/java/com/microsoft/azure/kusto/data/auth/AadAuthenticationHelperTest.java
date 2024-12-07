@@ -3,11 +3,24 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.credential.TokenRequestContext;
-import com.azure.identity.InteractiveBrowserCredential;
-import com.microsoft.aad.msal4j.*;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+
+import java.io.FileReader;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.security.PrivateKey;
+import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Map;
+
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -25,28 +38,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.FileReader;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.security.PrivateKey;
-import java.security.Security;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Map;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.identity.InteractiveBrowserCredential;
+import com.microsoft.aad.msal4j.AuthenticationResultMetadata;
+import com.microsoft.aad.msal4j.IAccount;
+import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.ITenantProfile;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
+import reactor.core.publisher.Mono;
 
 public class AadAuthenticationHelperTest {
     @BeforeAll
     public static void setUp() throws URISyntaxException {
-        CloudInfo.manuallyAddToCache("https://resource.uri", CloudInfo.DEFAULT_CLOUD);
+        CloudInfo.manuallyAddToCache("https://resource.uri", Mono.just(CloudInfo.DEFAULT_CLOUD));
     }
 
     @Test
@@ -154,7 +160,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://weird.resource.uri", "81f9bae6-35c3-44bc-b116-e6305a4d8fdd", "");
 
         UserPromptTokenProvider aadAuthenticationHelper = (UserPromptTokenProvider) TokenProviderFactory.createTokenProvider(csb, null);
-        CloudInfo.manuallyAddToCache("https://weird.resource.uri", new CloudInfo(
+        CloudInfo.manuallyAddToCache("https://weird.resource.uri", Mono.just(new CloudInfo(
                 true,
                 "https://nostandard-login-input",
                 "non_standard_client_id",
@@ -162,7 +168,7 @@ public class AadAuthenticationHelperTest {
                 "https://aaaa.kusto.bbbb.com",
                 "first_party_url"
 
-        ));
+        )));
 
         aadAuthenticationHelper.initialize().block();
 
@@ -187,7 +193,7 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithUserPrompt("https://normal.resource.uri", "91f9bae6-35c3-44bc-b116-e6305a4d8fdd", "");
 
         UserPromptTokenProvider aadAuthenticationHelper = (UserPromptTokenProvider) TokenProviderFactory.createTokenProvider(csb, null);
-        CloudInfo.manuallyAddToCache("https://normal.resource.uri", CloudInfo.DEFAULT_CLOUD);
+        CloudInfo.manuallyAddToCache("https://normal.resource.uri", Mono.just(CloudInfo.DEFAULT_CLOUD));
 
         aadAuthenticationHelper.initialize().block();
 

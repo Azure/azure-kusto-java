@@ -3,6 +3,18 @@
 
 package com.microsoft.azure.kusto.data;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.ParseException;
+import org.jetbrains.annotations.NotNull;
+
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpRequest;
 import com.azure.core.util.BinaryData;
@@ -25,18 +37,9 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
 import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import com.microsoft.azure.kusto.data.res.JsonResult;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
-import org.jetbrains.annotations.NotNull;
-import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
@@ -175,6 +178,7 @@ class ClientImpl extends BaseClient {
 
     private Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
         return Mono.fromCallable(() -> new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1"))
+                .subscribeOn(Schedulers.boundedElastic())
                 .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(res.getEndpoint(),
                         "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
                 .onErrorMap(Exception.class, e -> new DataClientException(res.getEndpoint(), ExceptionsUtils.getMessageEx(e), e));
@@ -193,18 +197,15 @@ class ClientImpl extends BaseClient {
     }
 
     private static Mono<KustoRequestContext> buildKustoRequestContext(KustoRequest kr, String clusterEndpoint, HttpTracing tracing, String authorizationToken) {
-        try {
+        return Mono.fromCallable(() -> {
             HttpRequest request = HttpRequestBuilder
                     .newPost(clusterEndpoint)
                     .createCommandPayload(kr)
                     .withTracing(tracing)
                     .withAuthorization(authorizationToken)
                     .build();
-
-            return Mono.just(new KustoRequestContext(kr, request));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+            return new KustoRequestContext(kr, request);
+        });
     }
 
     private HttpTracing buildTracing(KustoRequest kr) {
@@ -221,6 +222,7 @@ class ClientImpl extends BaseClient {
                 .flatMap(requestContext -> {
                     try {
                         long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
+
                         // Get the response and trace the call
                         return MonitoredActivity.wrap(
                                 postAsync(requestContext.getHttpRequest(), timeoutMs),

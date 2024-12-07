@@ -1,19 +1,5 @@
 package com.microsoft.azure.kusto.quickstart;
 
-import com.microsoft.azure.kusto.data.*;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.ingest.IngestClient;
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
-import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
@@ -21,6 +7,23 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultColumn;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.ingest.IngestClient;
+import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 /**
  * Util static class - Handles the communication with the API, and provides generic and simple "plug-n-play" functions to use in different programs.
@@ -174,10 +177,6 @@ public class Utils {
                     System.out.println();
                 }
 
-            } catch (DataServiceException e) {
-                errorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
-            } catch (DataClientException e) {
-                errorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (Exception e) {
                 errorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             }

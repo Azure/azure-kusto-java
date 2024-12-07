@@ -154,8 +154,7 @@ public class Utils {
                     try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
                         return readStreamToString(gzipStream);
                     }
-                }).subscribeOn(Schedulers.boundedElastic()) // TODO: same as ingest module
-                );
+                }).subscribeOn(Schedulers.boundedElastic()));
     }
 
     private static Mono<String> processNonGzipBody(Flux<ByteBuffer> body) {
@@ -185,7 +184,6 @@ public class Utils {
             StringBuilder stringBuilder = new StringBuilder();
             try (StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
                 copy(gz, sw);
-                System.out.println(stringBuilder.toString());
                 return stringBuilder.toString();
             }
         } catch (IOException e) {

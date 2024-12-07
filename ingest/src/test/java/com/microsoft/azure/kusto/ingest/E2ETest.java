@@ -3,6 +3,57 @@
 
 package com.microsoft.azure.kusto.ingest;
 
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.isReservedHostname;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ThreadLocalRandom;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.http.conn.util.InetAddressUtils;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
+
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.HttpClient;
@@ -38,56 +89,6 @@ import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.StopWatch;
-import org.apache.http.conn.util.InetAddressUtils;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ThreadLocalRandom;
-
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.isReservedHostname;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeast;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class E2ETest {
@@ -128,11 +129,9 @@ class E2ETest {
     public static void setUp() {
         tableName = "JavaTest_" + new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss_SSS").format(Calendar.getInstance().getTime()) + "_"
                 + ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
-        tableName = "JavaTest_2024_11_30_02_14_23_653_2051561983";
         principalFqn = String.format("aadapp=%s;%s", APP_ID, TENANT_ID);
 
         ConnectionStringBuilder dmCsb = createConnection(DM_CONN_STR);
-        dmCsb.setClusterUrl(dmCsb.getClusterUrl().replaceFirst("https://dev", "https://ingest-dev")); // TODO: remove
         dmCsb.setUserNameForTracing("testUser");
         try {
             dmCslClient = ClientFactory.createClient(dmCsb);
@@ -172,7 +171,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            // queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -206,8 +205,7 @@ class E2ETest {
         }
 
         try {
-            // queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
-            queryClient.executeToJsonResult(DB_NAME, ".alter table JavaTest_2024_11_30_02_14_23_653_2051561983 policy streamingingestion enable", null);
+            queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
         } catch (Exception ex) {
             Assertions.fail("Failed to refresh cache", ex);
         }
@@ -387,7 +385,7 @@ class E2ETest {
     }
 
     @Test
-    void testCallbackAndTokenCredentialAuth() throws DataServiceException, URISyntaxException, DataClientException {
+    void testCallbackAndTokenCredentialAuth() throws URISyntaxException {
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(ENG_CONN_STR);
         TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(cloudInfo.determineScope());
 
@@ -582,7 +580,7 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWithCluster() throws DataServiceException {
+    void testCloudInfoWithCluster() {
         String clusterUrl = ENG_CONN_STR;
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
@@ -591,13 +589,13 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWith404() throws DataServiceException {
+    void testCloudInfoWith404() {
         String fakeClusterUrl = "https://www.microsoft.com/";
         assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
     }
 
     @Test
-    void testParameterizedQuery() throws DataServiceException, DataClientException {
+    void testParameterizedQuery() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(DB_NAME, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
@@ -638,8 +636,7 @@ class E2ETest {
     }
 
     @Test
-    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
-        testParameterizedQuery();
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
         StopWatch stopWatch = new StopWatch();

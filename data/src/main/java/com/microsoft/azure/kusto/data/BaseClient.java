@@ -1,5 +1,18 @@
 package com.microsoft.azure.kusto.data;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandles;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.EofSensorInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.HttpHeaderName;
@@ -19,19 +32,9 @@ import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 import com.microsoft.azure.kusto.data.res.ResponseState;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.EofSensorInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.lang.invoke.MethodHandles;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
@@ -94,64 +97,57 @@ public abstract class BaseClient implements Client, StreamingClient {
 
     private Mono<InputStream> processHttpResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
             long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
-        try {
-            state.setHttpResponse(httpResponse);
-            int responseStatusCode = httpResponse.getStatusCode();
-            if (responseStatusCode == HttpStatus.OK) {
-                return handleSuccessfulResponse(httpResponse, state, request);
-            }
-
-            return handleErrorResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount);
-        } catch (Exception e) {
-            return Mono.error(e);
+        state.setHttpResponse(httpResponse);
+        int responseStatusCode = httpResponse.getStatusCode();
+        if (responseStatusCode == HttpStatus.OK) {
+            return handleSuccessfulResponse(httpResponse, state);
         }
+
+        return handleErrorResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount);
+
     }
 
-    private static Mono<InputStream> handleSuccessfulResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request) {
+    private static Mono<InputStream> handleSuccessfulResponse(HttpResponse httpResponse, ResponseState state) {
         state.setReturnInputStream(true);
         return httpResponse.getBodyAsInputStream()
-                .flatMap(inputStream -> Mono.fromCallable(() -> {
-                    try {
-                        return new EofSensorInputStream(new CloseParentResourcesStream(httpResponse, inputStream), null);
-                    } catch (IOException e) {
-                        throw new DataServiceException(request.getUrl().toString(),
-                                "Failed to create EofSensorInputStream", e, false);
-                    }
-                }));
+                .flatMap(inputStream -> Mono.fromCallable(() -> new EofSensorInputStream(new CloseParentResourcesStream(httpResponse, inputStream), null)));
     }
 
     private Mono<InputStream> handleErrorResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
             long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
         return httpResponse.getBodyAsByteArray()
-                .flatMap(bytes -> {
-                    try {
-                        String content = Utils.getContentAsString(httpResponse, bytes);
-                        state.setErrorFromResponse(content);
-                        if (content.isEmpty() || content.equals("{}")) {
-                            return Mono.error(new DataServiceException(request.getUrl().toString(),
-                                    "postToStreamingOutputAsync failed to get or decompress response body.",
-                                    true));
-                        }
-
-                        // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and handled
-                        httpResponse.close();
-
-                        if (shouldPostToOriginalUrlDueToRedirect(httpResponse.getStatusCode(), currentRedirectCounter, maxRedirectCount)) {
-                            Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
-                            if (redirectLocation.isPresent() && !redirectLocation.get().getValue().equals(request.getUrl().toString())) {
-                                HttpRequest redirectRequest = HttpRequestBuilder
-                                        .fromExistingRequest(request)
-                                        .withURL(redirectLocation.get().getValue())
-                                        .build();
-                                return postToStreamingOutputAsync(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
+                .flatMap(bytes -> Mono.fromCallable(() -> Utils.getContentAsString(httpResponse, bytes))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .flatMap(content -> {
+                            state.setErrorFromResponse(content);
+                            if (content.isEmpty() || content.equals("{}")) {
+                                return Mono.error(new DataServiceException(request.getUrl().toString(),
+                                        "postToStreamingOutputAsync failed to get or decompress response body.",
+                                        true));
                             }
-                        }
-                    } catch (Exception e) {
-                        return Mono.error(e);
-                    }
 
-                    return Mono.error(createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse()));
-                });
+                            // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and
+                            // handled
+                            httpResponse.close();
+
+                            if (shouldPostToOriginalUrlDueToRedirect(httpResponse.getStatusCode(), currentRedirectCounter, maxRedirectCount)) {
+                                Optional<HttpHeader> redirectLocation = Optional.ofNullable(httpResponse.getHeaders().get(HttpHeaderName.LOCATION));
+
+                                return redirectLocation
+                                        .filter(location -> !location.getValue().equals(request.getUrl().toString()))
+                                        .map(location -> Mono.fromCallable(() -> {
+                                            HttpRequest redirectRequest = HttpRequestBuilder
+                                                    .fromExistingRequest(request)
+                                                    .withURL(location.getValue())
+                                                    .build();
+                                            return postToStreamingOutputAsync(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
+                                        }).flatMap(mono -> mono))
+                                        .orElse(Mono.error(
+                                                createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse())));
+                            }
+
+                            return Mono.error(createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse()));
+                        }));
     }
 
     public static DataServiceException createExceptionFromResponse(String url, HttpResponse httpResponse, Exception thrownException, String errorFromResponse) {

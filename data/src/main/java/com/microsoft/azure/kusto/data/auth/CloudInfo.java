@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
@@ -33,9 +34,10 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
-    private static final Map<String, CloudInfo> cache = new ConcurrentHashMap<>(); // TODO: is this correct?
+    private static final ConcurrentMap<String, Mono<CloudInfo>> cloudInfoCache = new ConcurrentHashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -55,7 +57,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
 
     static {
-        cache.put(LOCALHOST, DEFAULT_CLOUD);
+        cloudInfoCache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
     }
 
     private final boolean loginMfaRequired;
@@ -65,7 +67,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry exponentialRetryTemplate = new ExponentialRetry(ATTEMPT_COUNT);
+    private static final ExponentialRetry exponentialRetryTemplate = new ExponentialRetry<>(ATTEMPT_COUNT);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -77,9 +79,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public static void manuallyAddToCache(String clusterUrl, CloudInfo cloudInfo) throws URISyntaxException {
-        synchronized (cache) {
-            cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfo);
+    public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
+        synchronized (cloudInfoCache) {
+            cloudInfoCache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
         }
     }
 
@@ -88,20 +90,19 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     }
 
     public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
-        return getCachedCloudInfo(clusterUrl)
-                .switchIfEmpty(
-                        fetchCloudInfoAsync(clusterUrl, givenHttpClient)
-                                .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry())
-                                .doOnNext(cloudInfo -> cache.put(clusterUrl, cloudInfo)))
-                .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrl, e));
-    }
 
-    private static Mono<CloudInfo> getCachedCloudInfo(String clusterUrl) {
-        try {
-            return Mono.justOrEmpty(cache.get(UriUtils.setPathForUri(clusterUrl, "")));
-        } catch (URISyntaxException ex) {
-            return Mono.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true));
-        }
+        // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
+        // for all corresponding threads
+        return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
+                .flatMap(url -> cloudInfoCache.computeIfAbsent(url, key -> {
+                    Sinks.One<CloudInfo> sink = Sinks.one();
+                    return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
+                            .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                            .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.FAIL_FAST))
+                            .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))
+                            .then(sink.asMono());
+                }));
+
     }
 
     private static Mono<CloudInfo> fetchCloudInfoAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
@@ -163,14 +164,15 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         }
     }
 
-    private static void closeHttpClient(HttpClient localHttpClient, @Nullable HttpClient givenHttpClient) {
+    private static Mono<Void> closeHttpClient(HttpClient localHttpClient, @Nullable HttpClient givenHttpClient) {
         if (givenHttpClient == null && localHttpClient instanceof Closeable) {
             try {
                 ((Closeable) localHttpClient).close();
             } catch (IOException ex) {
-                throw new RuntimeException("Error closing HttpClient while retrieving the cluster metadata", ex); // TODO: fix this
+                return Mono.error(ex);
             }
         }
+        return Mono.empty();
     }
 
     private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
