@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.ParseException;
@@ -422,7 +423,7 @@ class ClientImpl extends BaseClient {
 
     private Mono<InputStream> executeStreamingQuery(String clusterEndpoint, KustoRequest kr,
             HttpTracing tracing, String authorizationToken) {
-        try {
+        return Mono.fromCallable(() -> {
             HttpRequest request = HttpRequestBuilder
                     .newPost(clusterEndpoint)
                     .createCommandPayload(kr)
@@ -430,15 +431,11 @@ class ClientImpl extends BaseClient {
                     .withAuthorization(authorizationToken)
                     .build();
             long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
-
-            // Get the response and trace the call
             return MonitoredActivity.wrap(
                     postToStreamingOutputAsync(request, timeoutMs, 0,
                             kr.getProperties().getRedirectCount()),
                     "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
+        }).flatMap(Function.identity());
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
