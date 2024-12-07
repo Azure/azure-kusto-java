@@ -109,6 +109,7 @@
                     <ignoredUsedUndeclaredDependencies>
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
@@ -155,11 +156,6 @@
         </resources>
     </build>
     <dependencies>
-        <dependency>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
-            <version>${reactive-streams.version}</version>
-        </dependency>
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
