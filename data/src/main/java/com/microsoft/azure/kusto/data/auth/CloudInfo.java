@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
-    private static final ConcurrentMap<String, Mono<CloudInfo>> cloudInfoCache = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -57,7 +57,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
 
     static {
-        cloudInfoCache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
+        cache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
     }
 
     private final boolean loginMfaRequired;
@@ -80,8 +80,8 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     }
 
     public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
-        synchronized (cloudInfoCache) {
-            cloudInfoCache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
+        synchronized (cache) {
+            cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
         }
     }
 
@@ -94,7 +94,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
         return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
-                .flatMap(url -> cloudInfoCache.computeIfAbsent(url, key -> {
+                .flatMap(url -> cache.computeIfAbsent(url, key -> {
                     Sinks.One<CloudInfo> sink = Sinks.one();
                     return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
                             .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
