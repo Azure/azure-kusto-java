@@ -84,9 +84,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         this.loginMfaRequired = DEFAULT_CLOUD.isLoginMfaRequired();
         this.loginEndpoint = DEFAULT_CLOUD.getLoginEndpoint();
         this.kustoClientAppId = DEFAULT_CLOUD.getKustoClientAppId();
-        this.kustoClientRedirectUri = DEFAULT_CLOUD.kustoClientRedirectUri;
-        this.kustoServiceResourceId = DEFAULT_CLOUD.kustoServiceResourceId;
-        this.firstPartyAuthorityUrl = DEFAULT_CLOUD.firstPartyAuthorityUrl;
+        this.kustoClientRedirectUri = DEFAULT_CLOUD.getKustoClientRedirectUri();
+        this.kustoServiceResourceId = DEFAULT_CLOUD.getKustoServiceResourceId();
+        this.firstPartyAuthorityUrl = DEFAULT_CLOUD.getFirstPartyAuthorityUrl();
     }
 
     public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
