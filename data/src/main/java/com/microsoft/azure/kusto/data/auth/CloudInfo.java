@@ -56,6 +56,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
     private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration EMISSION_RETRY_TIMEOUT = Duration.ofSeconds(5);
 
     static {
         cache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
@@ -110,7 +111,10 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
                 .map(url -> cache.computeIfAbsent(url, key -> fetchCloudInfoAsync(url, givenHttpClient)
                         .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
-                        .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.FAIL_FAST))
+
+                        // Since we are trying to achieve concurrent emission to multiple subscribers (Sinks perform emissions serially),
+                        // a handler is specified in order to retry emission attempts for up to the specified duration
+                        .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.busyLooping(EMISSION_RETRY_TIMEOUT)))
                         .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))))
                 .then();
     }
@@ -121,7 +125,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     Sinks.One<CloudInfo> sink = Sinks.one();
                     return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
                             .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
-                            .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.FAIL_FAST))
+                            .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.busyLooping(EMISSION_RETRY_TIMEOUT)))
                             .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))
                             .then(sink.asMono());
                 }));
