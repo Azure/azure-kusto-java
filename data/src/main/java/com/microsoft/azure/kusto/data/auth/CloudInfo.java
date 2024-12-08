@@ -38,7 +38,7 @@ import reactor.core.publisher.Sinks;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
-    private final Sinks.One<CloudInfo> sink = Sinks.one();
+    private final transient Sinks.One<CloudInfo> sink = Sinks.one();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
