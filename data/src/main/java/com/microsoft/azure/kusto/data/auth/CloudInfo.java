@@ -81,15 +81,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
-    public CloudInfo() {
-        this.loginMfaRequired = DEFAULT_CLOUD.isLoginMfaRequired();
-        this.loginEndpoint = DEFAULT_CLOUD.getLoginEndpoint();
-        this.kustoClientAppId = DEFAULT_CLOUD.getKustoClientAppId();
-        this.kustoClientRedirectUri = DEFAULT_CLOUD.getKustoClientRedirectUri();
-        this.kustoServiceResourceId = DEFAULT_CLOUD.getKustoServiceResourceId();
-        this.firstPartyAuthorityUrl = DEFAULT_CLOUD.getFirstPartyAuthorityUrl();
-    }
-
     public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
         synchronized (cache) {
             cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
@@ -100,26 +91,10 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return retrieveCloudInfoForClusterAsync(clusterUrl, null).block();
     }
 
-    public Mono<CloudInfo> getCloudInfoForCluster() {
-        return sink.asMono();
-    }
-
-    public Mono<Void> initiateCloudInfoRetrieval(String clusterUrl, @Nullable HttpClient givenHttpClient) {
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
 
         // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
-        return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
-                .map(url -> cache.computeIfAbsent(url, key -> fetchCloudInfoAsync(url, givenHttpClient)
-                        .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
-
-                        // Since we are trying to achieve concurrent emission to multiple subscribers (Sinks perform emissions serially),
-                        // a handler is specified in order to retry emission attempts for up to the specified duration
-                        .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.busyLooping(EMISSION_RETRY_TIMEOUT)))
-                        .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))))
-                .then();
-    }
-
-    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
         return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
                 .flatMap(url -> cache.computeIfAbsent(url, key -> {
                     Sinks.One<CloudInfo> sink = Sinks.one();
@@ -129,7 +104,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                             .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))
                             .then(sink.asMono());
                 }));
-
     }
 
     private static Mono<CloudInfo> fetchCloudInfoAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
