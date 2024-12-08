@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStr
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -166,13 +167,13 @@ public class WellKnownKustoEndpointsTests {
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void failForInvalidLogin() throws URISyntaxException {
-        CloudInfo.manuallyAddToCache("https://resource.uri", new CloudInfo(
+        CloudInfo.manuallyAddToCache("https://resource.uri", Mono.just(new CloudInfo(
                 DEFAULT_LOGIN_MFA_REQUIRED,
                 "https://InvalidLogin.uri",
                 DEFAULT_KUSTO_CLIENT_APP_ID,
                 DEFAULT_REDIRECT_URI,
                 DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
-                DEFAULT_FIRST_PARTY_AUTHORITY_URL));
+                DEFAULT_FIRST_PARTY_AUTHORITY_URL)));
 
     }
 

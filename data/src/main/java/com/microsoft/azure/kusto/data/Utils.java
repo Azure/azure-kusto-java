@@ -14,16 +14,25 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.github.resilience4j.core.IntervalFunction;
 import io.github.resilience4j.core.lang.Nullable;
 import io.github.resilience4j.retry.RetryConfig;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.net.ssl.SSLException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.Writer;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
+import java.io.SequenceInputStream;
+import java.io.Writer;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
@@ -121,6 +130,54 @@ public class Utils {
                 .build();
     }
 
+    public static String getContentAsString(HttpResponse response, byte[] content) {
+        return isGzipResponse(response)
+                ? gzipedInputToString(new ByteArrayInputStream(content))
+                : new String(content);
+    }
+
+    public static Mono<String> getResponseBodyAsMono(HttpResponse httpResponse) {
+        return isGzipResponse(httpResponse)
+                ? processGzipBody(httpResponse.getBody())
+                : processNonGzipBody(httpResponse.getBody());
+    }
+
+    private static Mono<String> processGzipBody(Flux<ByteBuffer> body) {
+        return body
+                .map(buffer -> {
+                    byte[] bytes = new byte[buffer.remaining()];
+                    buffer.get(bytes);
+                    return new ByteArrayInputStream(bytes);
+                })
+                .collectList()
+                .flatMap(inputStreams -> Mono.fromCallable(() -> {
+                    try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
+                        return readStreamToString(gzipStream);
+                    }
+                }).subscribeOn(Schedulers.boundedElastic()));
+    }
+
+    private static Mono<String> processNonGzipBody(Flux<ByteBuffer> body) {
+        return body
+                .map(buffer -> {
+                    byte[] bytes = new byte[buffer.remaining()];
+                    buffer.get(bytes);
+                    return new String(bytes, StandardCharsets.UTF_8);
+                })
+                .reduce(String::concat);
+    }
+
+    private static String readStreamToString(InputStream inputStream) throws IOException {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int data;
+            while ((data = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, data);
+            }
+            return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
     // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
     public static String gzipedInputToString(InputStream in) {
         try (GZIPInputStream gz = new GZIPInputStream(in)) {
@@ -136,6 +193,7 @@ public class Utils {
 
     /**
      * Checks if an HTTP response is GZIP compressed.
+     *
      * @param response The HTTP response to check
      * @return a boolean indicating if the CONTENT_ENCODING header contains "gzip"
      */
@@ -147,13 +205,14 @@ public class Utils {
     }
 
     /**
-     * Gets an HTTP response body as an InputStream.
-     * @param response The response object to convert to an InputStream
-     * @return The response body as an InputStream
+     * Method responsible for constructing the correct InputStream type based on content encoding header
+     *
+     * @param response      The response object in order to determine the content encoding
+     * @param contentStream The InputStream containing the content
+     * @return The correct InputStream type based on content encoding
      * @throws IOException An exception indicating an IO failure
      */
-    public static InputStream getResponseAsStream(HttpResponse response) throws IOException {
-        InputStream contentStream = response.getBodyAsBinaryData().toStream();
+    public static InputStream resolveInputStream(HttpResponse response, InputStream contentStream) throws IOException {
         String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
         if (contentEncoding.contains("gzip")) {
             return new GZIPInputStream(contentStream);

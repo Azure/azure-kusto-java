@@ -24,7 +24,7 @@ public class ApplicationKeyTokenProvider extends AzureIdentityTokenProvider {
 
     @Override
     protected TokenCredential createTokenCredential(CredentialBuilderBase<?> builder) {
-        return ((ClientSecretCredentialBuilder)builder)
+        return ((ClientSecretCredentialBuilder) builder)
                 .clientSecret(clientSecret)
                 .build();
     }
