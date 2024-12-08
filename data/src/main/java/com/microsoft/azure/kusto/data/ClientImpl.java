@@ -55,6 +55,7 @@ class ClientImpl extends BaseClient {
 
     private final String clusterUrl;
     private final ClientDetails clientDetails;
+    private final CloudInfo cloudInfo;
     private boolean endpointValidated = false;
 
     public ClientImpl(ConnectionStringBuilder csb) throws URISyntaxException {
@@ -69,8 +70,8 @@ class ClientImpl extends BaseClient {
         super(httpClient);
         String clusterURL = UriUtils.createClusterURLFrom(csb.getClusterUrl());
         csb.setClusterUrl(clusterURL);
-
         clusterUrl = csb.getClusterUrl();
+        cloudInfo = new CloudInfo();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
     }
@@ -239,13 +240,14 @@ class ClientImpl extends BaseClient {
             return Mono.empty();
         }
 
-        return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, null)
-                .map(CloudInfo::getLoginEndpoint)
-                .flatMap(loginEndpoint -> Mono.fromCallable(() -> {
-                    KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint);
-                    return true;
-                }))
-                .doOnSuccess(ignored -> endpointValidated = true)
+        return cloudInfo.initiateCloudInfoRetrieval(clusterUrl, null)
+                .thenReturn(cloudInfo.getCloudInfoForCluster()
+                        .map(CloudInfo::getLoginEndpoint)
+                        .flatMap(loginEndpoint -> Mono.fromCallable(() -> {
+                            KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint);
+                            return true;
+                        }))
+                        .doOnSuccess(ignored -> endpointValidated = true))
                 .then();
     }
 

@@ -38,6 +38,7 @@ import reactor.core.publisher.Sinks;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
+    private final Sinks.One<CloudInfo> sink = Sinks.one();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -79,6 +80,15 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         this.firstPartyAuthorityUrl = firstPartyAuthorityUrl;
     }
 
+    public CloudInfo() {
+        this.loginMfaRequired = DEFAULT_CLOUD.isLoginMfaRequired();
+        this.loginEndpoint = DEFAULT_CLOUD.getLoginEndpoint();
+        this.kustoClientAppId = DEFAULT_CLOUD.getKustoClientAppId();
+        this.kustoClientRedirectUri = DEFAULT_CLOUD.kustoClientRedirectUri;
+        this.kustoServiceResourceId = DEFAULT_CLOUD.kustoServiceResourceId;
+        this.firstPartyAuthorityUrl = DEFAULT_CLOUD.firstPartyAuthorityUrl;
+    }
+
     public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
         synchronized (cache) {
             cache.put(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
@@ -89,10 +99,23 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return retrieveCloudInfoForClusterAsync(clusterUrl, null).block();
     }
 
-    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
+    public Mono<CloudInfo> getCloudInfoForCluster() {
+        return sink.asMono();
+    }
+
+    public Mono<Void> initiateCloudInfoRetrieval(String clusterUrl, @Nullable HttpClient givenHttpClient) {
 
         // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
+        return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
+                .map(url -> cache.computeIfAbsent(url, key -> fetchCloudInfoAsync(url, givenHttpClient)
+                        .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                        .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.FAIL_FAST))
+                        .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))))
+                .then();
+    }
+
+    public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
         return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
                 .flatMap(url -> cache.computeIfAbsent(url, key -> {
                     Sinks.One<CloudInfo> sink = Sinks.one();
