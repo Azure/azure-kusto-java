@@ -19,8 +19,8 @@ public class CloseParentResourcesStream extends InputStream {
     private final InputStream innerStream;
     private final HttpResponse httpResponse;
 
-    public CloseParentResourcesStream(HttpResponse httpResponse) throws IOException {
-        this.innerStream = Utils.getResponseAsStream(httpResponse);
+    public CloseParentResourcesStream(HttpResponse httpResponse, InputStream inputStream) throws IOException {
+        this.innerStream = Utils.resolveInputStream(httpResponse, inputStream);
         this.httpResponse = httpResponse;
     }
 
