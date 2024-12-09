@@ -34,11 +34,9 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
-    private final transient Sinks.One<CloudInfo> sink = Sinks.one();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -56,7 +54,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             DEFAULT_FIRST_PARTY_AUTHORITY_URL);
     public static final String LOCALHOST = "http://localhost";
     private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
-    private static final Duration EMISSION_RETRY_TIMEOUT = Duration.ofSeconds(5);
 
     static {
         cache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
@@ -96,14 +93,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
         return Mono.fromCallable(() -> UriUtils.setPathForUri(clusterUrl, ""))
-                .flatMap(url -> cache.computeIfAbsent(url, key -> {
-                    Sinks.One<CloudInfo> sink = Sinks.one();
-                    return fetchCloudInfoAsync(clusterUrl, givenHttpClient)
-                            .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
-                            .doOnSuccess(cloudInfo -> sink.emitValue(cloudInfo, Sinks.EmitFailureHandler.busyLooping(EMISSION_RETRY_TIMEOUT)))
-                            .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))
-                            .then(sink.asMono());
-                }));
+                .flatMap(url -> cache.computeIfAbsent(url, key -> fetchCloudInfoAsync(url, givenHttpClient)
+                        .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                        .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(url, e))));
     }
 
     private static Mono<CloudInfo> fetchCloudInfoAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
