@@ -3,18 +3,17 @@
 
 package com.microsoft.azure.kusto.data.exceptions;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import com.azure.core.exception.AzureException;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /*
   This class represents an error that returned from the query result
  */
-public class KustoServiceQueryError extends Exception {
-    private final List<Exception> exceptions;
+public class KustoServiceQueryError extends AzureException {
+    private final List<RuntimeException> exceptions;
 
     public KustoServiceQueryError(ArrayNode jsonExceptions, boolean isOneApi, String message) {
         super(message);
@@ -23,7 +22,7 @@ public class KustoServiceQueryError extends Exception {
             if (isOneApi) {
                 this.exceptions.add(new DataWebException(jsonExceptions.get(j).toString()));
             } else {
-                this.exceptions.add(new Exception(jsonExceptions.get(j).toString()));
+                this.exceptions.add(new RuntimeException(jsonExceptions.get(j).toString()));
             }
         }
     }
@@ -31,10 +30,10 @@ public class KustoServiceQueryError extends Exception {
     public KustoServiceQueryError(String message) {
         super(message);
         this.exceptions = new ArrayList<>();
-        this.exceptions.add(new Exception(message));
+        this.exceptions.add(new RuntimeException(message));
     }
 
-    public List<Exception> getExceptions() {
+    public List<RuntimeException> getExceptions() {
         return exceptions;
     }
 

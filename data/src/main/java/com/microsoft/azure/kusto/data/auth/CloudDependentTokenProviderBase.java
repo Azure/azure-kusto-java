@@ -3,19 +3,19 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.azure.core.http.HttpClient;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+
 import reactor.core.publisher.Mono;
 
 public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
@@ -54,7 +54,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
                 });
     }
 
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) {
         try {
             scopes.add(cloudInfo.determineScope());
         } catch (URISyntaxException e) {

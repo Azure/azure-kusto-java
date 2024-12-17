@@ -28,6 +28,11 @@ public class ExceptionUtils {
         return new DataServiceException(url.toString(), String.format("Exception in %s post request: %s", kind, e.getMessage()), permanent);
     }
 
+    // Useful in IOException, where message might not propagate to the base IOException
+    public static String getMessageEx(Exception e) {
+        return (e.getMessage() == null && e.getCause() != null) ? e.getCause().getMessage() : e.getMessage();
+    }
+
     public static Exception unwrapCloudInfoException(String clusterUrl, Throwable throwable) {
         if (throwable instanceof URISyntaxException) {
             return new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata:" + throwable.getMessage(),
@@ -37,7 +42,7 @@ public class ExceptionUtils {
         if (throwable instanceof IOException) {
             IOException ex = (IOException) throwable;
             if (!Utils.isRetriableIOException(ex)) {
-                return new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + ExceptionsUtils.getMessageEx(ex),
+                return new DataServiceException(clusterUrl, "IOException when trying to retrieve cluster metadata:" + getMessageEx(ex),
                         ex,
                         Utils.isRetriableIOException(ex));
             }

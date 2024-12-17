@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -51,7 +51,7 @@ public class IngestionUtils {
                         (compression != null && format.isCompressible()) ? stream.available() : 0);
             }
         } catch (IOException e) {
-            throw new IngestionClientException(ExceptionsUtils.getMessageEx(e), e);
+            throw new IngestionClientException(ExceptionUtils.getMessageEx(e), e);
         }
 
         return streamSourceInfo;

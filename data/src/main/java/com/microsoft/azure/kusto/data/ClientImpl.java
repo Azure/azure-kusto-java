@@ -10,10 +10,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
+import com.microsoft.azure.kusto.data.exceptions.ParseException;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 import com.azure.core.http.HttpClient;
@@ -26,7 +25,7 @@ import com.microsoft.azure.kusto.data.auth.TokenProviderFactory;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
@@ -143,7 +142,7 @@ class ClientImpl extends BaseClient {
     public Mono<String> executeToJsonResultAsync(String database, String command, ClientRequestProperties properties) {
         return Mono.defer(() -> {
             KustoRequest kr = new KustoRequest(command, database == null ? DEFAULT_DATABASE_NAME : database, properties);
-            return executeToJsonResultAsync(kr);
+            return executeWithTimeout(kr, ".executeToJsonResultAsync");
         });
     }
 
@@ -168,7 +167,7 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<KustoOperationResult> executeImplAsync(KustoRequest kr) {
-        return executeToJsonResultAsync(kr)
+        return executeWithTimeout(kr, ".executeImplAsync")
                 .flatMap(response -> {
                     String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
                     JsonResult jsonResult = new JsonResult(response, clusterEndpoint);
@@ -176,12 +175,14 @@ class ClientImpl extends BaseClient {
                 });
     }
 
-    private Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
-        return Mono.fromCallable(() -> new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1"))
-                .subscribeOn(Schedulers.boundedElastic())
-                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(res.getEndpoint(),
-                        "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
-                .onErrorMap(Exception.class, e -> new DataClientException(res.getEndpoint(), ExceptionsUtils.getMessageEx(e), e));
+    private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
+        return prepareRequestAsync(request)
+                .flatMap(requestContext -> {
+                    long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
+                    return MonitoredActivity.wrap(
+                            postAsync(requestContext.getHttpRequest(), timeoutMs),
+                            requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan));
+                });
     }
 
     Mono<KustoRequestContext> prepareRequestAsync(@NotNull KustoRequest kr) {
@@ -189,48 +190,26 @@ class ClientImpl extends BaseClient {
 
         String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
         Mono<String> authorization = getAuthorizationHeaderValueAsync();
-        HttpTracing tracing = buildTracing(kr);
-
-        return validateEndpointAsync()
-                .then(authorization.flatMap(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
-                        .switchIfEmpty(buildKustoRequestContext(kr, clusterEndpoint, tracing, null)));
-    }
-
-    private static Mono<KustoRequestContext> buildKustoRequestContext(KustoRequest kr, String clusterEndpoint, HttpTracing tracing, String authorizationToken) {
-        return Mono.fromCallable(() -> {
-            HttpRequest request = HttpRequestBuilder
-                    .newPost(clusterEndpoint)
-                    .createCommandPayload(kr)
-                    .withTracing(tracing)
-                    .withAuthorization(authorizationToken)
-                    .build();
-            return new KustoRequestContext(kr, request);
-        });
-    }
-
-    private HttpTracing buildTracing(KustoRequest kr) {
-        return HttpTracing.newBuilder()
+        HttpTracing tracing = HttpTracing
+                .newBuilder()
                 .withProperties(kr.getProperties())
                 .withRequestPrefix("KJC.execute")
                 .withActivitySuffix(kr.getCommandType().getActivityTypeSuffix())
                 .withClientDetails(clientDetails)
                 .build();
+
+        return validateEndpointAsync()
+                .then(authorization
+                        .map(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
+                        .switchIfEmpty(Mono.just(buildKustoRequestContext(kr, clusterEndpoint, tracing, null))));
     }
 
-    private Mono<String> executeToJsonResultAsync(KustoRequest kr) {
-        return prepareRequestAsync(kr)
-                .flatMap(requestContext -> {
-                    try {
-                        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
-
-                        // Get the response and trace the call
-                        return MonitoredActivity.wrap(
-                                postAsync(requestContext.getHttpRequest(), timeoutMs),
-                                requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(".executeToJsonResultAsync"));
-                    } catch (Exception e) {
-                        return Mono.error(e);
-                    }
-                });
+    private Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
+        return Mono.fromCallable(() -> new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1"))
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(res.getEndpoint(),
+                        "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
+                .onErrorMap(Exception.class, e -> new DataClientException(res.getEndpoint(), ExceptionUtils.getMessageEx(e), e));
     }
 
     private Mono<Void> validateEndpointAsync() {
@@ -240,12 +219,19 @@ class ClientImpl extends BaseClient {
 
         return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, null)
                 .map(CloudInfo::getLoginEndpoint)
-                .flatMap(loginEndpoint -> Mono.fromCallable(() -> {
-                    KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint);
-                    return true;
-                }))
+                .doOnNext(loginEndpoint -> KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint))
                 .doOnSuccess(ignored -> endpointValidated = true)
                 .then();
+    }
+
+    private static KustoRequestContext buildKustoRequestContext(KustoRequest kr, String clusterEndpoint, HttpTracing tracing, String authorizationToken) {
+        HttpRequest request = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .createCommandPayload(kr)
+                .withTracing(tracing)
+                .withAuthorization(authorizationToken)
+                .build();
+        return new KustoRequestContext(kr, request);
     }
 
     @Override
@@ -302,51 +288,49 @@ class ClientImpl extends BaseClient {
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
 
-        return Mono.fromCallable(() -> determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl))
-                .flatMap(timeoutMs -> {
+        long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
-                    // This was a separate method but was moved into the body of this method because it performs a side effect
-                    if (properties != null) {
-                        Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-                        while (iterator.hasNext()) {
-                            Map.Entry<String, Object> pair = iterator.next();
-                            headers.put(pair.getKey(), pair.getValue().toString());
-                        }
-                    }
+        // This was a separate method but was moved into the body of this method because it performs a side effect
+        if (properties != null) {
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Object> pair = iterator.next();
+                headers.put(pair.getKey(), pair.getValue().toString());
+            }
+        }
 
-                    return Mono.fromCallable(() -> {
-                        BinaryData data;
-                        if (isStreamSource) {
-                            // We use UncloseableStream to prevent HttpClient from closing the stream
-                            data = BinaryData.fromStream(new UncloseableStream(stream));
-                        } else {
-                            data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
-                        }
+        return Mono.fromCallable(() -> {
+            BinaryData data;
+            if (isStreamSource) {
+                // We use UncloseableStream to prevent HttpClient from closing the stream
+                data = BinaryData.fromStream(new UncloseableStream(stream));
+            } else {
+                data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
+            }
 
-                        HttpTracing tracing = HttpTracing
-                                .newBuilder()
-                                .withProperties(properties)
-                                .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
-                                .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
-                                .withClientDetails(clientDetails)
-                                .build();
+            HttpTracing tracing = HttpTracing
+                    .newBuilder()
+                    .withProperties(properties)
+                    .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
+                    .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
+                    .withClientDetails(clientDetails)
+                    .build();
 
-                        return HttpRequestBuilder
-                                .newPost(clusterEndpoint)
-                                .withTracing(tracing)
-                                .withHeaders(headers)
-                                .withAuthorization(authorizationToken)
-                                .withContentType(contentType)
-                                .withContentEncoding(contentEncoding)
-                                .withBody(data)
-                                .build();
-                    }).flatMap(httpRequest -> MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
-                            .flatMap(response -> Mono.fromCallable(() -> new KustoOperationResult(response, "v1")).subscribeOn(Schedulers.boundedElastic()))
-                            .onErrorMap(KustoServiceQueryError.class,
-                                    e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
-                                            e))
-                            .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e)));
-                })
+            return HttpRequestBuilder
+                    .newPost(clusterEndpoint)
+                    .withTracing(tracing)
+                    .withHeaders(headers)
+                    .withAuthorization(authorizationToken)
+                    .withContentType(contentType)
+                    .withContentEncoding(contentEncoding)
+                    .withBody(data)
+                    .build();
+        }).flatMap(httpRequest -> MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
+                .flatMap(response -> Mono.fromCallable(() -> new KustoOperationResult(response, "v1")).subscribeOn(Schedulers.boundedElastic()))
+                .onErrorMap(KustoServiceQueryError.class,
+                        e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
+                                e))
+                .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e)))
                 .doFinally(signalType -> {
                     if (isStreamSource && !leaveOpen) {
                         try {
@@ -412,7 +396,13 @@ class ClientImpl extends BaseClient {
     private Mono<InputStream> executeStreamingQueryAsync(@NotNull KustoRequest kr) {
         kr.validateAndOptimize();
         String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
-        HttpTracing tracing = buildTracing(kr);
+        HttpTracing tracing = HttpTracing
+                .newBuilder()
+                .withProperties(kr.getProperties())
+                .withRequestPrefix("KJC.executeStreaming")
+                .withActivitySuffix(kr.getCommandType().getActivityTypeSuffix())
+                .withClientDetails(clientDetails)
+                .build();
 
         return validateEndpointAsync()
                 .then(getAuthorizationHeaderValueAsync()
@@ -422,22 +412,20 @@ class ClientImpl extends BaseClient {
 
     private Mono<InputStream> executeStreamingQuery(String clusterEndpoint, KustoRequest kr,
             HttpTracing tracing, String authorizationToken) {
-        return Mono.fromCallable(() -> {
-            HttpRequest request = HttpRequestBuilder
-                    .newPost(clusterEndpoint)
-                    .createCommandPayload(kr)
-                    .withTracing(tracing)
-                    .withAuthorization(authorizationToken)
-                    .build();
-            long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
-            return MonitoredActivity.wrap(
-                    postToStreamingOutputAsync(request, timeoutMs, 0,
-                            kr.getProperties().getRedirectCount()),
-                    "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
-        }).flatMap(Function.identity());
+        HttpRequest request = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .createCommandPayload(kr)
+                .withTracing(tracing)
+                .withAuthorization(authorizationToken)
+                .build();
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
+        return MonitoredActivity.wrap(
+                postToStreamingOutputAsync(request, timeoutMs, 0,
+                        kr.getProperties().getRedirectCount()),
+                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
     }
 
-    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) throws DataClientException {
+    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
         Long timeoutMs;
         try {
             timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();

@@ -38,7 +38,7 @@ import reactor.core.scheduler.Schedulers;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
-    // TODO - this is never used?
+    // TODO - this is never used? should a max redirect count be included?
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final int EXTRA_TIMEOUT_FOR_CLIENT_SIDE = (int) TimeUnit.SECONDS.toMillis(30);
 
@@ -53,10 +53,18 @@ public abstract class BaseClient implements Client, StreamingClient {
 
     protected Mono<String> postAsync(HttpRequest request, long timeoutMs) {
         return httpClient.send(request, getContextTimeout(timeoutMs))
-                .flatMap(response -> Mono.using(
-                        () -> response,
-                        this::processResponseBodyAsync,
-                        HttpResponse::close))
+                .flatMap(response -> Utils.getResponseBodyAsMono(response)
+                        .flatMap(responseBody -> {
+                            switch (response.getStatusCode()) {
+                                case HttpStatus.OK:
+                                    return Mono.justOrEmpty(responseBody);
+                                case HttpStatus.TOO_MANY_REQS:
+                                    return Mono.error(new ThrottleException(response.getRequest().getUrl().toString()));
+                                default:
+                                    return Mono.error(createExceptionFromResponse(
+                                            response.getRequest().getUrl().toString(), response, null, responseBody));
+                            }
+                        }).doFinally(ignore -> response.close()))
                 .onErrorMap(e -> {
                     if (e instanceof DataServiceException) {
                         return e;
@@ -65,52 +73,28 @@ public abstract class BaseClient implements Client, StreamingClient {
                 });
     }
 
-    public Mono<String> processResponseBodyAsync(HttpResponse response) {
-        Mono<String> responseBodyMono = Utils.getResponseBodyAsMono(response);
-
-        return responseBodyMono
-                .flatMap(responseBody -> {
-                    switch (response.getStatusCode()) {
-                        case HttpStatus.OK:
-                            return Mono.justOrEmpty(responseBody);
-                        case HttpStatus.TOO_MANY_REQS:
-                            return Mono.error(new ThrottleException(response.getRequest().getUrl().toString()));
-                        default:
-                            return Mono.error(createExceptionFromResponse(
-                                    response.getRequest().getUrl().toString(), response, null, responseBody));
-                    }
-                });
-    }
-
     protected Mono<InputStream> postToStreamingOutputAsync(HttpRequest request, long timeoutMs,
             int currentRedirectCounter, int maxRedirectCount) {
         ResponseState state = new ResponseState();
         return httpClient.send(request, getContextTimeout(timeoutMs))
-                .flatMap(httpResponse -> processHttpResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount))
+                .flatMap(httpResponse -> {
+                    state.setHttpResponse(httpResponse);
+                    int responseStatusCode = httpResponse.getStatusCode();
+                    if (responseStatusCode == HttpStatus.OK) {
+                        state.setReturnInputStream(true);
+                        return httpResponse.getBodyAsInputStream()
+                                .flatMap(inputStream -> Mono
+                                        .fromCallable(() -> new EofSensorInputStream(new CloseParentResourcesStream(httpResponse, inputStream), null)));
+                    }
+
+                    return handleErrorResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount);
+                })
                 .onErrorMap(IOException.class, e -> new DataServiceException(request.getUrl().toString(),
                         "postToStreamingOutput failed to get or decompress response stream", e, false))
                 .onErrorMap(UncheckedIOException.class, e -> ExceptionUtils.createExceptionOnPost(e, request.getUrl(), "streaming async"))
                 .onErrorMap(Exception.class,
                         e -> createExceptionFromResponse(request.getUrl().toString(), state.getHttpResponse(), e, state.getErrorFromResponse()))
                 .doFinally(ignored -> closeResourcesIfNeeded(state.isReturnInputStream(), state.getHttpResponse()));
-    }
-
-    private Mono<InputStream> processHttpResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
-            long timeoutMs, int currentRedirectCounter, int maxRedirectCount) {
-        state.setHttpResponse(httpResponse);
-        int responseStatusCode = httpResponse.getStatusCode();
-        if (responseStatusCode == HttpStatus.OK) {
-            return handleSuccessfulResponse(httpResponse, state);
-        }
-
-        return handleErrorResponse(httpResponse, state, request, timeoutMs, currentRedirectCounter, maxRedirectCount);
-
-    }
-
-    private static Mono<InputStream> handleSuccessfulResponse(HttpResponse httpResponse, ResponseState state) {
-        state.setReturnInputStream(true);
-        return httpResponse.getBodyAsInputStream()
-                .flatMap(inputStream -> Mono.fromCallable(() -> new EofSensorInputStream(new CloseParentResourcesStream(httpResponse, inputStream), null)));
     }
 
     private Mono<InputStream> handleErrorResponse(HttpResponse httpResponse, ResponseState state, HttpRequest request,
@@ -135,13 +119,13 @@ public abstract class BaseClient implements Client, StreamingClient {
 
                                 return redirectLocation
                                         .filter(location -> !location.getValue().equals(request.getUrl().toString()))
-                                        .map(location -> Mono.fromCallable(() -> {
+                                        .map(location -> {
                                             HttpRequest redirectRequest = HttpRequestBuilder
                                                     .fromExistingRequest(request)
                                                     .withURL(location.getValue())
                                                     .build();
                                             return postToStreamingOutputAsync(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
-                                        }).flatMap(mono -> mono))
+                                        })
                                         .orElse(Mono.error(
                                                 createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse())));
                             }

@@ -82,7 +82,7 @@ public class KustoResultSetTable {
         this.tableKind = tableKind;
     }
 
-    protected KustoResultSetTable(JsonNode jsonTable) throws KustoServiceQueryError, JsonPropertyMissingException {
+    protected KustoResultSetTable(JsonNode jsonTable) {
         if (jsonTable.has(TABLE_NAME_PROPERTY_NAME)) {
             tableName = jsonTable.get(TABLE_NAME_PROPERTY_NAME).asText();
         }

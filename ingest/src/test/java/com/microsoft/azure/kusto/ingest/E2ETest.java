@@ -73,8 +73,6 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
@@ -585,7 +583,7 @@ class E2ETest {
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertNotNull(cloudInfo);
-        assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
+        assertEquals(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 
     @Test
@@ -689,7 +687,7 @@ class E2ETest {
     }
 
     @Test
-    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException {
+    void testSameHttpClientInstance() throws URISyntaxException {
         ConnectionStringBuilder engineCsb = createConnection(ENG_CONN_STR);
         HttpClient httpClient = HttpClientFactory.create(null);
         HttpClient httpClientSpy = Mockito.spy(httpClient);

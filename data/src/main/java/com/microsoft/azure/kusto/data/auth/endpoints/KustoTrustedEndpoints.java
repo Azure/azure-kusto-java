@@ -58,7 +58,7 @@ public class KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(String uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(String uri, String loginEndpoint) {
         try {
             validateTrustedEndpoint(new URI(uri), loginEndpoint);
         } catch (URISyntaxException ex) {
@@ -72,7 +72,7 @@ public class KustoTrustedEndpoints {
      * @param uri - Kusto endpoint
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(String uri) {
         try {
             // TODO: if this method will be used, replace the sync retrieveCloudInfoForCluster with the async one
             validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
@@ -88,7 +88,7 @@ public class KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against.
      * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(URI uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    public static void validateTrustedEndpoint(URI uri, String loginEndpoint) {
         Ensure.argIsNotNull(uri, "uri");
         String host = uri.getHost();
         // Check that target hostname is trusted and can accept security token
@@ -113,7 +113,7 @@ public class KustoTrustedEndpoints {
         additionalMatcher = FastSuffixMatcher.create(replace ? null : additionalMatcher, rules);
     }
 
-    private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) {
         // The loopback is unconditionally allowed (since we trust ourselves)
         if (UriUtils.isLocalAddress(hostname)) {
             return;

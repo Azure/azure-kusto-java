@@ -1,9 +1,10 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
+import com.azure.core.exception.AzureException;
 import com.azure.core.http.HttpResponse;
 import org.jetbrains.annotations.Nullable;
 
-public class WebException extends Exception {
+public class WebException extends AzureException {
     @Nullable
     protected final HttpResponse httpResponse;
 
