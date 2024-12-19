@@ -45,7 +45,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
 
     private final ObjectMapper objectMapper = Utils.getObjectMapper();
 
-    public KustoOperationResult(String response, String version) throws KustoServiceQueryError {
+    public KustoOperationResult(String response, String version) {
         MonitoredActivity.invoke((SupplierOneException<Void, KustoServiceQueryError>) () -> {
             kustoOperationResultImpl(response, version);
             return null;
@@ -53,7 +53,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         it = resultTables.iterator();
     }
 
-    private void kustoOperationResultImpl(String response, String version) throws KustoServiceQueryError {
+    private void kustoOperationResultImpl(String response, String version) {
         if (version.contains("v2")) {
             createFromV2Response(response);
         } else {
@@ -83,7 +83,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         return resultTables.stream().filter(t -> t.getTableKind().equals(WellKnownDataSet.PrimaryResult)).findFirst().orElse(null);
     }
 
-    private void createFromV1Response(String response) throws KustoServiceQueryError {
+    private void createFromV1Response(String response) {
         try {
             JsonNode jsonObject = objectMapper.readTree(response);
             if (jsonObject.has(TABLES_LIST_PROPERTY_NAME) && jsonObject.get(TABLES_LIST_PROPERTY_NAME).isArray()) {
@@ -121,7 +121,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
         }
     }
 
-    private void createFromV2Response(String response) throws KustoServiceQueryError {
+    private void createFromV2Response(String response) {
         ArrayNode jsonArray;
         try {
             JsonNode jsonNode = objectMapper.readTree(response);

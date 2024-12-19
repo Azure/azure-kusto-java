@@ -2,9 +2,9 @@ package com.microsoft.azure.kusto.data.exceptions;
 
 import com.azure.core.exception.AzureException;
 
-public class JsonPropertyMissingException extends AzureException {
+public class ParseException extends AzureException {
 
-    public JsonPropertyMissingException(String message) {
+    public ParseException(String message) {
         super(message);
     }
 }
