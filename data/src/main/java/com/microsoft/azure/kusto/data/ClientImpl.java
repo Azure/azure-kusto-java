@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.microsoft.azure.kusto.data.exceptions.ParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +26,7 @@ import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import com.microsoft.azure.kusto.data.exceptions.ParseException;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
@@ -303,7 +303,8 @@ class ClientImpl extends BaseClient {
             BinaryData data;
             if (isStreamSource) {
                 // We use UncloseableStream to prevent HttpClient from closing the stream
-                data = BinaryData.fromStream(new UncloseableStream(stream));
+                data = BinaryData.fromStream(new UncloseableStream(stream)); // TODO: fromStream says: "The InputStream is not closed by this function". Should
+                                                                             // UncloseableStream be removed?
             } else {
                 data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
             }

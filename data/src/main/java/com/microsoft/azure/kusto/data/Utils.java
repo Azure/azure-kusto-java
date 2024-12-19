@@ -1,38 +1,14 @@
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.http.HttpHeader;
-import com.azure.core.http.HttpHeaderName;
-import com.azure.core.http.HttpResponse;
-import com.azure.core.implementation.StringBuilderWriter;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.core.lang.Nullable;
-import io.github.resilience4j.retry.RetryConfig;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
-
-import javax.net.ssl.SSLException;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
-import java.io.SequenceInputStream;
-import java.io.Writer;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
@@ -41,10 +17,45 @@ import java.util.function.Predicate;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
+import javax.net.ssl.SSLException;
+
+import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
+import com.azure.core.http.HttpHeaders;
+import com.azure.core.http.HttpResponse;
+import com.azure.core.util.FluxUtil;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.core.lang.Nullable;
+import io.github.resilience4j.retry.RetryConfig;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.Unpooled;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+
 public class Utils {
+
+    // Use a custom parallel scheduler for retries to avoid thread starvation in case other services
+    // are using the reactor parallel scheduler
+    public static final Scheduler ADX_PARALLEL_SCHEDULER = Schedulers.newParallel(
+            "adx-kusto-parallel",
+            Schedulers.DEFAULT_POOL_SIZE,
+            true);
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
+    private static final int DEFAULT_BUFFER_LENGTH = 1024;
 
     // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
     // double value
@@ -130,67 +141,6 @@ public class Utils {
                 .build();
     }
 
-    public static String getContentAsString(HttpResponse response, byte[] content) {
-        return isGzipResponse(response)
-                ? gzipedInputToString(new ByteArrayInputStream(content))
-                : new String(content);
-    }
-
-    public static Mono<String> getResponseBodyAsMono(HttpResponse httpResponse) {
-        return isGzipResponse(httpResponse)
-                ? processGzipBody(httpResponse.getBody())
-                : processNonGzipBody(httpResponse.getBody());
-    }
-
-    private static Mono<String> processGzipBody(Flux<ByteBuffer> body) {
-        return body
-                .map(buffer -> {
-                    byte[] bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes);
-                    return new ByteArrayInputStream(bytes);
-                })
-                .collectList()
-                .flatMap(inputStreams -> Mono.fromCallable(() -> {
-                    try (GZIPInputStream gzipStream = new GZIPInputStream(new SequenceInputStream(Collections.enumeration(inputStreams)))) {
-                        return readStreamToString(gzipStream);
-                    }
-                }).subscribeOn(Schedulers.boundedElastic()));
-    }
-
-    private static Mono<String> processNonGzipBody(Flux<ByteBuffer> body) {
-        return body
-                .map(buffer -> {
-                    byte[] bytes = new byte[buffer.remaining()];
-                    buffer.get(bytes);
-                    return new String(bytes, StandardCharsets.UTF_8);
-                })
-                .reduce(String::concat);
-    }
-
-    private static String readStreamToString(InputStream inputStream) throws IOException {
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[1024];
-            int data;
-            while ((data = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, data);
-            }
-            return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
-        }
-    }
-
-    // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
-    public static String gzipedInputToString(InputStream in) {
-        try (GZIPInputStream gz = new GZIPInputStream(in)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            try (StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
-                copy(gz, sw);
-                return stringBuilder.toString();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * Checks if an HTTP response is GZIP compressed.
      *
@@ -204,34 +154,62 @@ public class Utils {
                 .isPresent();
     }
 
+    public static Mono<String> getResponseBody(HttpResponse httpResponse) {
+        return isGzipResponse(httpResponse)
+                ? processGzipBody(httpResponse.getBody())
+                : processNonGzipBody(httpResponse.getBody(), httpResponse.getHeaders());
+    }
+
+    private static Mono<String> processGzipBody(Flux<ByteBuffer> body) {
+        return body
+                .map(Unpooled::wrappedBuffer)
+                .collectList()
+                .flatMap(byteBuffs -> {
+                    ByteBuf combined = Unpooled.wrappedBuffer(byteBuffs.stream()
+                            .map(ByteBuf::nioBuffer)
+                            .toArray(ByteBuffer[]::new));
+
+                    return Mono.fromCallable(() -> {
+                        try (GZIPInputStream gzipStream = new GZIPInputStream(new ByteBufInputStream(combined));
+                                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                            byte[] buffer = new byte[DEFAULT_BUFFER_LENGTH];
+                            int data;
+                            while ((data = gzipStream.read(buffer)) != -1) {
+                                output.write(buffer, 0, data);
+                            }
+                            return new String(output.toByteArray(), StandardCharsets.UTF_8);
+                        } finally {
+                            combined.release();
+                        }
+                    });
+                }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private static Mono<String> processNonGzipBody(Flux<ByteBuffer> body, HttpHeaders headers) {
+        return FluxUtil.collectBytesFromNetworkResponse(body, headers)
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
     /**
      * Method responsible for constructing the correct InputStream type based on content encoding header
      *
      * @param response      The response object in order to determine the content encoding
      * @param contentStream The InputStream containing the content
      * @return The correct InputStream type based on content encoding
-     * @throws IOException An exception indicating an IO failure
      */
-    public static InputStream resolveInputStream(HttpResponse response, InputStream contentStream) throws IOException {
-        String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
-        if (contentEncoding.contains("gzip")) {
-            return new GZIPInputStream(contentStream);
-        } else if (contentEncoding.contains("deflate")) {
-            return new DeflaterInputStream(contentStream);
+    public static InputStream resolveInputStream(HttpResponse response, InputStream contentStream) {
+        try {
+            String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
+            if (contentEncoding.contains("gzip")) {
+                return new GZIPInputStream(contentStream);
+            } else if (contentEncoding.contains("deflate")) {
+                return new DeflaterInputStream(contentStream);
+            }
+            return contentStream;
+        } catch (IOException e) {
+            throw Exceptions.propagate(e);
         }
-        return contentStream;
     }
 
-    public static int copy(final InputStream input, final Writer writer)
-            throws IOException {
-        final InputStreamReader reader = new InputStreamReader(input);
-        final char[] buffer = new char[1024];
-        int count = 0;
-        int n;
-        while (-1 != (n = reader.read(buffer))) {
-            writer.write(buffer, 0, n);
-            count += n;
-        }
-        return count;
-    }
 }
