@@ -33,6 +33,7 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
@@ -117,20 +118,17 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
     private static Mono<CloudInfo> getCloudInfo(HttpResponse response, String clusterUrl) {
         int statusCode = response.getStatusCode();
-        return response.getBodyAsByteArray()
-                .flatMap(bodyAsBinaryData -> {
+        return Utils.getResponseBody(response)
+                .flatMap(content -> {
                     if (statusCode == HttpStatus.OK) {
-                        return Mono.fromCallable(() -> {
-                            String content = Utils.getContentAsString(response, bodyAsBinaryData);
-                            if (content.isEmpty() || content.equals("{}")) {
-                                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
-                            }
-                            return parseCloudInfo(content);
-                        });
+                        if (content.isEmpty() || content.equals("{}")) {
+                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                        }
+                        return Mono.just(parseCloudInfo(content));
                     } else if (statusCode == HttpStatus.NOT_FOUND) {
                         return Mono.just(DEFAULT_CLOUD);
                     } else {
-                        String errorFromResponse = new String(bodyAsBinaryData);
+                        String errorFromResponse = content;
                         if (errorFromResponse.isEmpty()) {
                             // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                             errorFromResponse = "";
@@ -141,22 +139,25 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 });
     }
 
-    private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
-        JsonNode jsonObject = objectMapper.readTree(content);
-        JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
-        if (innerObject == null) {
-            return DEFAULT_CLOUD;
-        } else {
-            return new CloudInfo(
-                    innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
-                    innerObject.has("LoginEndpoint") ? innerObject.get("LoginEndpoint").asText() : "",
-                    innerObject.has("KustoClientAppId") ? innerObject.get("KustoClientAppId").asText() : "",
-                    innerObject.has("KustoClientRedirectUri") ? innerObject.get("KustoClientRedirectUri").asText() : "",
-                    innerObject.has("KustoServiceResourceId") ? innerObject.get("KustoServiceResourceId").asText() : "",
-                    innerObject.has("FirstPartyAuthorityUrl") ? innerObject.get("FirstPartyAuthorityUrl").asText() : "");
+    private static CloudInfo parseCloudInfo(String content) {
+        try {
+            ObjectMapper objectMapper = Utils.getObjectMapper();
+            JsonNode jsonObject = objectMapper.readTree(content);
+            JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
+            if (innerObject == null) {
+                return DEFAULT_CLOUD;
+            } else {
+                return new CloudInfo(
+                        innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
+                        innerObject.has("LoginEndpoint") ? innerObject.get("LoginEndpoint").asText() : "",
+                        innerObject.has("KustoClientAppId") ? innerObject.get("KustoClientAppId").asText() : "",
+                        innerObject.has("KustoClientRedirectUri") ? innerObject.get("KustoClientRedirectUri").asText() : "",
+                        innerObject.has("KustoServiceResourceId") ? innerObject.get("KustoServiceResourceId").asText() : "",
+                        innerObject.has("FirstPartyAuthorityUrl") ? innerObject.get("FirstPartyAuthorityUrl").asText() : "");
+            }
+        } catch (JsonProcessingException e) {
+            throw Exceptions.propagate(e);
         }
-
     }
 
     @Override
