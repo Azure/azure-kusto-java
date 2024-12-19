@@ -45,7 +45,6 @@
         <commons-text.version>1.11.0</commons-text.version>
         <commons-codec.version>1.17.0</commons-codec.version>
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
-        <httpcore.version>4.4.16</httpcore.version>
         <fasterxml.jackson.core.version>2.16.0</fasterxml.jackson.core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <resilience4j.version>1.7.1</resilience4j.version>

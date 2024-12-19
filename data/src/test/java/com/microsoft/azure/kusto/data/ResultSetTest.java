@@ -1,15 +1,19 @@
 package com.microsoft.azure.kusto.data;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.COLUMNS_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.COLUMN_NAME_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.COLUMN_TYPE_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.COLUMN_TYPE_SECOND_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.EXCEPTIONS_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.ROWS_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.TABLE_ID_PROPERTY_NAME;
+import static com.microsoft.azure.kusto.data.KustoResultSetTable.TABLE_NAME_PROPERTY_NAME;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -18,12 +22,26 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import static com.microsoft.azure.kusto.data.KustoResultSetTable.*;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.azure.kusto.data.exceptions.DataWebException;
+import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
 
 public class ResultSetTest {
     private static final String STR_VAL = "str";
@@ -412,7 +430,7 @@ public class ResultSetTest {
                         "\"Columns\":" + columns + ",\"Rows\":" +
                         objectMapper.createArrayNode().add(row) + "}")));
         assertEquals(2, thrownException.getExceptions().size());
-        assertSame(thrownException.getExceptions().get(0).getClass(), Exception.class);
-        assertSame(thrownException.getExceptions().get(1).getClass(), Exception.class);
+        assertSame(thrownException.getExceptions().get(0).getClass(), RuntimeException.class);
+        assertSame(thrownException.getExceptions().get(1).getClass(), RuntimeException.class);
     }
 }

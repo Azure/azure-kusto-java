@@ -3,7 +3,9 @@
 
 package com.microsoft.azure.kusto.ingest.exceptions;
 
-public class IngestionServiceException extends Exception {
+import com.azure.core.exception.AzureException;
+
+public class IngestionServiceException extends AzureException { // TODO: remove throws from method declarations on async ingest impl
     private String ingestionSource;
 
     public String getIngestionSource() {
@@ -18,7 +20,7 @@ public class IngestionServiceException extends Exception {
         super(message, exception);
     }
 
-    public IngestionServiceException(String ingestionSource, String message, Exception exception) {
+    public IngestionServiceException(String ingestionSource, String message, RuntimeException exception) {
         this(message, exception);
         this.ingestionSource = ingestionSource;
     }

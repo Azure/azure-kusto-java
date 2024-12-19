@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.http.conn.util.InetAddressUtils;
 
@@ -149,7 +149,7 @@ public abstract class IngestClientBase implements IngestClient {
                         return ingestFromStreamImpl(streamSourceInfo,
                                 ingestionProperties);
                     } catch (IOException e) {
-                        throw new IngestionServiceException(ExceptionsUtils.getMessageEx(e), e);
+                        throw new IngestionServiceException(ExceptionUtils.getMessageEx(e), e);
                     }
                 },
                 getClientType().concat(".ingestFromStream"));

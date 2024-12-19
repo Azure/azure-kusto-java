@@ -11,7 +11,7 @@ import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
@@ -194,7 +194,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                     ingestionProperties.getIngestionMapping().getIngestionMappingReference(),
                     !(streamSourceInfo.getCompressionType() == null || !streamSourceInfo.isLeaveOpen()));
         } catch (DataClientException | IOException e) {
-            String msg = ExceptionsUtils.getMessageEx(e);
+            String msg = ExceptionUtils.getMessageEx(e);
             log.error(msg, e);
             throw new IngestionClientException(msg, e);
         } catch (DataServiceException e) {
