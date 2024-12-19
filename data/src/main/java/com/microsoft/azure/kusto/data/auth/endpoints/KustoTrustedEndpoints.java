@@ -1,12 +1,5 @@
 package com.microsoft.azure.kusto.data.auth.endpoints;
 
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -15,6 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.UriUtils;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 
 /**
  * A helper class to determine which DNS names are "well-known/trusted"'
@@ -56,7 +57,6 @@ public class KustoTrustedEndpoints {
      *
      * @param uri           - Kusto endpoint
      * @param loginEndpoint The login endpoint to check against.
-     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
     public static void validateTrustedEndpoint(String uri, String loginEndpoint) {
         try {
@@ -70,7 +70,6 @@ public class KustoTrustedEndpoints {
      * Throw an exception if the endpoint specified is not trusted.
      *
      * @param uri - Kusto endpoint
-     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
     public static void validateTrustedEndpoint(String uri) {
         try {
@@ -86,7 +85,6 @@ public class KustoTrustedEndpoints {
      *
      * @param uri           The endpoint to inspect.
      * @param loginEndpoint The login endpoint to check against.
-     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
     public static void validateTrustedEndpoint(URI uri, String loginEndpoint) {
         Ensure.argIsNotNull(uri, "uri");

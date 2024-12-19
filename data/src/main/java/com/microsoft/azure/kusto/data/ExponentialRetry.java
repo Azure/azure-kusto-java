@@ -1,13 +1,17 @@
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
-
 import java.lang.invoke.MethodHandles;
 import java.time.Duration;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
+import reactor.core.publisher.Mono;
+import reactor.util.annotation.Nullable;
+import reactor.util.retry.Retry;
 
 public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -66,7 +70,7 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
         return null;
     }
 
-    public Retry retry() {
+    public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
         return Retry.from(retrySignals -> retrySignals.flatMap(retrySignal -> {
 
             Retry.RetrySignal signalCopy = retrySignal.copy();
@@ -74,8 +78,9 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
             log.info("Retry attempt {}.", currentAttempt);
 
             Throwable failure = signalCopy.failure();
-            if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
-                log.error("Error is permanent, stopping.", failure);
+
+            if (!shouldRetry(failure, retriableErrorClasses)) {
+                log.error("Error is permanent or not retriable, stopping.", failure);
                 return Mono.error(failure);
             }
 
@@ -90,9 +95,21 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
 
             log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt, sleepMs / 1000);
 
-            // Each retry can occur on a different thread
-            return Mono.delay(Duration.ofMillis((long) sleepMs));
+            return Mono.delay(Duration.ofMillis((long) sleepMs), Utils.ADX_PARALLEL_SCHEDULER);
         }));
+    }
+
+    private static boolean shouldRetry(Throwable failure, List<Class<? extends Throwable>> retriableErrorClasses) {
+        if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
+            return false;
+        }
+
+        if (retriableErrorClasses != null) {
+            return retriableErrorClasses.stream()
+                    .anyMatch(errorClass -> errorClass.isInstance(failure));
+        }
+
+        return true;
     }
 
 }

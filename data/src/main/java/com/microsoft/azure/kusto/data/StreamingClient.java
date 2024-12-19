@@ -3,11 +3,9 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import reactor.core.publisher.Mono;
-
 import java.io.InputStream;
+
+import reactor.core.publisher.Mono;
 
 public interface StreamingClient {
     /**
@@ -26,7 +24,7 @@ public interface StreamingClient {
      * @return {@link KustoOperationResult} object including the ingestion result
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-            String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
+            String mappingName, boolean leaveOpen);
 
     Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat,
@@ -49,7 +47,7 @@ public interface StreamingClient {
     InputStream executeStreamingQuery(String command);
 
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
-            String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
+            String dataFormat, String ingestionMappingReference);
 
     Mono<InputStream> executeStreamingQueryAsync(String command);
 

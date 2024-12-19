@@ -110,6 +110,11 @@
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
                         <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                        <dependency>io.netty:netty-buffer:jar</dependency>
+                        <dependency>io.projectreactor.netty:reactor-netty-core:jar</dependency>
+                        <dependency>io.netty:netty-codec:jar</dependency>
+                        <dependency>io.netty:netty-transport:jar</dependency>
+                        <dependency>io.netty:netty-common:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>

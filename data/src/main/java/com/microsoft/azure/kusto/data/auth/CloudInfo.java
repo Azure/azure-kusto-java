@@ -33,7 +33,9 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
     private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
@@ -66,7 +68,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final ExponentialRetry exponentialRetryTemplate = new ExponentialRetry<>(ATTEMPT_COUNT);
+    private static final Retry RETRY_CONFIG = new ExponentialRetry<>(ATTEMPT_COUNT).retry(null);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {
@@ -92,7 +94,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         // for all corresponding threads
         return Mono.fromCallable(() -> new UrlPair(UriUtils.setPathForUri(clusterUrl, ""), UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT)))
                 .flatMap(urls -> cache.computeIfAbsent(urls.clusterEndpoint, key -> fetchCloudInfoAsync(urls, givenHttpClient)
-                        .retryWhen(new ExponentialRetry<>(exponentialRetryTemplate).retry())
+                        .retryWhen(RETRY_CONFIG)
                         .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(urls.clusterEndpoint, e))));
     }
 
@@ -117,20 +119,17 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
     private static Mono<CloudInfo> getCloudInfo(HttpResponse response, String clusterUrl) {
         int statusCode = response.getStatusCode();
-        return response.getBodyAsByteArray()
-                .flatMap(bodyAsBinaryData -> {
+        return Utils.getResponseBody(response)
+                .flatMap(content -> {
                     if (statusCode == HttpStatus.OK) {
-                        return Mono.fromCallable(() -> {
-                            String content = Utils.getContentAsString(response, bodyAsBinaryData);
-                            if (content.isEmpty() || content.equals("{}")) {
-                                throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
-                            }
-                            return parseCloudInfo(content);
-                        });
+                        if (content.isEmpty() || content.equals("{}")) {
+                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                        }
+                        return Mono.just(parseCloudInfo(content));
                     } else if (statusCode == HttpStatus.NOT_FOUND) {
                         return Mono.just(DEFAULT_CLOUD);
                     } else {
-                        String errorFromResponse = new String(bodyAsBinaryData);
+                        String errorFromResponse = content;
                         if (errorFromResponse.isEmpty()) {
                             // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                             errorFromResponse = "";
@@ -141,22 +140,25 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                 });
     }
 
-    private static CloudInfo parseCloudInfo(String content) throws JsonProcessingException {
-        ObjectMapper objectMapper = Utils.getObjectMapper();
-        JsonNode jsonObject = objectMapper.readTree(content);
-        JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
-        if (innerObject == null) {
-            return DEFAULT_CLOUD;
-        } else {
-            return new CloudInfo(
-                    innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
-                    innerObject.has("LoginEndpoint") ? innerObject.get("LoginEndpoint").asText() : "",
-                    innerObject.has("KustoClientAppId") ? innerObject.get("KustoClientAppId").asText() : "",
-                    innerObject.has("KustoClientRedirectUri") ? innerObject.get("KustoClientRedirectUri").asText() : "",
-                    innerObject.has("KustoServiceResourceId") ? innerObject.get("KustoServiceResourceId").asText() : "",
-                    innerObject.has("FirstPartyAuthorityUrl") ? innerObject.get("FirstPartyAuthorityUrl").asText() : "");
+    private static CloudInfo parseCloudInfo(String content) {
+        try {
+            ObjectMapper objectMapper = Utils.getObjectMapper();
+            JsonNode jsonObject = objectMapper.readTree(content);
+            JsonNode innerObject = jsonObject.has("AzureAD") ? jsonObject.get("AzureAD") : null;
+            if (innerObject == null) {
+                return DEFAULT_CLOUD;
+            } else {
+                return new CloudInfo(
+                        innerObject.has("LoginMfaRequired") && innerObject.get("LoginMfaRequired").asBoolean(),
+                        innerObject.has("LoginEndpoint") ? innerObject.get("LoginEndpoint").asText() : "",
+                        innerObject.has("KustoClientAppId") ? innerObject.get("KustoClientAppId").asText() : "",
+                        innerObject.has("KustoClientRedirectUri") ? innerObject.get("KustoClientRedirectUri").asText() : "",
+                        innerObject.has("KustoServiceResourceId") ? innerObject.get("KustoServiceResourceId").asText() : "",
+                        innerObject.has("FirstPartyAuthorityUrl") ? innerObject.get("FirstPartyAuthorityUrl").asText() : "");
+            }
+        } catch (JsonProcessingException e) {
+            throw Exceptions.propagate(e);
         }
-
     }
 
     @Override
