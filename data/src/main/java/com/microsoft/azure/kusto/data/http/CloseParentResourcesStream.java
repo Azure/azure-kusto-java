@@ -3,11 +3,11 @@
 
 package com.microsoft.azure.kusto.data.http;
 
-import com.azure.core.http.HttpResponse;
-import com.microsoft.azure.kusto.data.Utils;
-
 import java.io.IOException;
 import java.io.InputStream;
+
+import com.azure.core.http.HttpResponse;
+import com.microsoft.azure.kusto.data.Utils;
 
 /**
  * This class allows parent resources (HttpClient and HttpResponse) to be closed when the stream is closed.
@@ -19,8 +19,8 @@ public class CloseParentResourcesStream extends InputStream {
     private final InputStream innerStream;
     private final HttpResponse httpResponse;
 
-    public CloseParentResourcesStream(HttpResponse httpResponse) throws IOException {
-        this.innerStream = Utils.getResponseAsStream(httpResponse);
+    public CloseParentResourcesStream(HttpResponse httpResponse, InputStream inputStream) {
+        this.innerStream = Utils.resolveInputStream(httpResponse, inputStream);
         this.httpResponse = httpResponse;
     }
 

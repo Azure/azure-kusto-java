@@ -36,7 +36,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) {
         super.initializeWithCloudInfo(cloudInfo);
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
@@ -44,7 +44,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         firstPartyAuthorityUrl = StringUtils.appendIfMissing(firstPartyAuthorityUrl, "/");
     }
 
-    private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
+    private String determineAadAuthorityUrl(CloudInfo cloudInfo) {
         String aadAuthorityUrlFromEnv = System.getenv("AadAuthorityUri");
         String authorityIdToUse = authorityId != null ? authorityId : ORGANIZATION_URI_SUFFIX;
         try {
@@ -62,7 +62,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
                 .map(IAuthenticationResult::accessToken);
     }
 
-    protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireAccessTokenSilently() {
         try {
             return acquireAccessTokenSilentlyMsal();
         } catch (MalformedURLException e) {
@@ -76,9 +76,9 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal()
-            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException;
 
-    protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
+    protected abstract IAuthenticationResult acquireNewAccessToken();
 
     SilentParameters getSilentParameters(Set<IAccount> accountSet) {
         IAccount account = getAccount(accountSet);

@@ -6,13 +6,13 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
 import com.microsoft.azure.kusto.data.exceptions.OneApiError;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
@@ -310,7 +310,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             } catch (BlobStorageException e) {
                 throw new IngestionServiceException(
                         blobSourceInfo.getBlobPath(),
-                        "Failed getting blob properties: " + ExceptionsUtils.getMessageEx(e),
+                        "Failed getting blob properties: " + ExceptionUtils.getMessageEx(e),
                         e);
             }
         }

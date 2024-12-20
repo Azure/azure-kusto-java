@@ -1,9 +1,17 @@
 package com.microsoft.azure.kusto.data;
 
+import java.lang.invoke.MethodHandles;
+import java.time.Duration;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
+import reactor.core.publisher.Mono;
+import reactor.util.annotation.Nullable;
+import reactor.util.retry.Retry;
 
 public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -60,6 +68,51 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
         }
 
         return null;
+    }
+
+    public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
+        return Retry.from(retrySignals -> retrySignals.flatMap(retrySignal -> {
+
+            Retry.RetrySignal signalCopy = retrySignal.copy();
+            long currentAttempt = signalCopy.totalRetries();
+            log.info("Retry attempt {}.", currentAttempt);
+
+            Throwable failure = signalCopy.failure();
+
+            if (!shouldRetry(failure, retriableErrorClasses)) {
+                log.error("Error is permanent or not retriable, stopping.", failure);
+                return Mono.error(failure);
+            }
+
+            if (currentAttempt >= maxAttempts) {
+                log.info("Max retry attempts reached: {}.", currentAttempt);
+                return Mono.error(failure);
+            }
+
+            double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
+            double jitterSecs = (float) Math.random() * maxJitterSecs;
+            double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
+
+            log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt, sleepMs / 1000);
+
+            return Mono.delay(Duration.ofMillis((long) sleepMs), Utils.ADX_PARALLEL_SCHEDULER);
+        }));
+    }
+
+    private static boolean shouldRetry(Throwable failure, List<Class<? extends Throwable>> retriableErrorClasses) {
+        if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
+            return false;
+        }
+
+        if (retriableErrorClasses != null) {
+            for (Class<? extends Throwable> errorClass : retriableErrorClasses) {
+                if (errorClass.isInstance(failure)) {
+                    return true;
+                }
+            }
+        }
+
+        return true;
     }
 
 }

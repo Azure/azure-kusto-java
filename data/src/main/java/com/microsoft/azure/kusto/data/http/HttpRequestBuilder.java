@@ -1,5 +1,17 @@
 package com.microsoft.azure.kusto.data.http;
 
+import java.lang.invoke.MethodHandles;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpMethod;
 import com.azure.core.http.HttpRequest;
@@ -9,17 +21,6 @@ import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
-import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.lang.invoke.MethodHandles;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class HttpRequestBuilder {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -37,7 +38,7 @@ public class HttpRequestBuilder {
         return new HttpRequestBuilder(request);
     }
 
-    public static HttpRequestBuilder newPost(String url) throws DataClientException {
+    public static HttpRequestBuilder newPost(String url) {
         return new HttpRequestBuilder(HttpMethod.POST, url);
     }
 
@@ -45,7 +46,7 @@ public class HttpRequestBuilder {
         this.request = request;
     }
 
-    public HttpRequestBuilder(HttpMethod method, String url) throws DataClientException {
+    public HttpRequestBuilder(HttpMethod method, String url) {
         URL cleanURL = parseURLString(url);
         request = new HttpRequest(method, cleanURL);
     }
@@ -105,13 +106,13 @@ public class HttpRequestBuilder {
         return this.withHeaders(getTracingHeaders(tracing));
     }
 
-    public HttpRequestBuilder withURL(String url) throws DataClientException {
+    public HttpRequestBuilder withURL(String url) {
         URL cleanURL = parseURLString(url);
         request.setUrl(cleanURL);
         return this;
     }
 
-    public HttpRequest build() throws DataClientException {
+    public HttpRequest build() {
         // If has authorization header, ensure it is not sent over insecure channel
         boolean hasAuth = request.getHeaders().stream().anyMatch(h -> h.getName().equalsIgnoreCase(HttpHeaderName.AUTHORIZATION.toString()));
         if (hasAuth) {
@@ -139,7 +140,7 @@ public class HttpRequestBuilder {
     }
 
     @NotNull
-    private static URL parseURLString(String url) throws DataClientException {
+    private static URL parseURLString(String url) {
         try {
             // By nature of the try/catch only valid URLs pass through this function
             return new URL(url);
