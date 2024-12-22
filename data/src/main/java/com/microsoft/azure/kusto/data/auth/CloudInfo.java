@@ -17,6 +17,7 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.req.RequestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
@@ -127,7 +128,11 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         CloudInfo result;
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
         try {
-            HttpRequest request = new HttpRequest(HttpMethod.GET, UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT));
+            // Metadata endpoint is always on the root of the cluster
+            URIBuilder metadataEndpointUriBuilder = new URIBuilder(clusterUrl);
+            metadataEndpointUriBuilder.setPath(METADATA_ENDPOINT);
+
+            HttpRequest request = new HttpRequest(HttpMethod.GET, metadataEndpointUriBuilder.build().toString());
             request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
             request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
