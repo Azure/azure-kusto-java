@@ -677,6 +677,7 @@ class E2ETest {
 
     }
 
+    @Disabled("This test is disabled because it relies on the path part of the cluster Uri which we now ignore")
     @Test
     void testNoRedirectsCloudFail() {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
