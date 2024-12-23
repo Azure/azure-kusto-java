@@ -35,6 +35,8 @@ import com.microsoft.azure.kusto.data.req.RequestUtils;
 
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
@@ -90,23 +92,31 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
     public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
 
-        // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
+        // We ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
-        return Mono.fromCallable(() -> new UrlPair(UriUtils.setPathForUri(clusterUrl, ""), UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT)))
-                .flatMap(urls -> cache.computeIfAbsent(urls.clusterEndpoint, key -> fetchCloudInfoAsync(urls, givenHttpClient)
-                        .retryWhen(RETRY_CONFIG)
-                        .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(urls.clusterEndpoint, e))));
+        try {
+            Tuple2<String, String> clusterUrls = Tuples.of(
+                    UriUtils.setPathForUri(clusterUrl, ""), // Cluster endpoint
+                    UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT) // Metadata endpoint is always on the root of the cluster
+            );
+            return cache.computeIfAbsent(clusterUrls.getT1(), key -> fetchCloudInfoAsync(clusterUrls, givenHttpClient)
+                    .retryWhen(RETRY_CONFIG)
+                    .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrls.getT1(), e)));
+        } catch (URISyntaxException e) {
+            throw new DataServiceException(clusterUrl,
+                    "URISyntaxException when trying to retrieve cluster metadata: " + e.getMessage(), e, true);
+        }
     }
 
-    private static Mono<CloudInfo> fetchCloudInfoAsync(UrlPair clusterUrls, @Nullable HttpClient givenHttpClient) {
+    private static Mono<CloudInfo> fetchCloudInfoAsync(Tuple2<String, String> clusterUrls, @Nullable HttpClient givenHttpClient) {
         HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
-        HttpRequest request = new HttpRequest(HttpMethod.GET, clusterUrls.metadataEndpoint);
+        HttpRequest request = new HttpRequest(HttpMethod.GET, clusterUrls.getT2());
         request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
         request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
         return MonitoredActivity.wrap(localHttpClient.send(request, RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT)),
                 "CloudInfo.httpCall")
-                .flatMap(response -> getCloudInfo(response, clusterUrls.clusterEndpoint))
+                .flatMap(response -> getCloudInfo(response, clusterUrls.getT1()))
                 .doFinally(ignore -> {
                     if (givenHttpClient == null && localHttpClient instanceof Closeable) {
                         try {
@@ -225,13 +235,4 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return resourceUrl + ".default";
     }
 
-    private static class UrlPair {
-        final String clusterEndpoint;
-        final String metadataEndpoint;
-
-        UrlPair(String clusterEndpoint, String metadataEndpoint) {
-            this.clusterEndpoint = clusterEndpoint;
-            this.metadataEndpoint = metadataEndpoint;
-        }
-    }
 }

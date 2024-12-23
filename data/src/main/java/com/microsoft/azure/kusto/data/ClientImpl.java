@@ -243,9 +243,7 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat, String mappingName, boolean leaveOpen) {
-        if (stream == null) {
-            throw new IllegalArgumentException("The provided stream is null.");
-        }
+        Ensure.argIsNotNull(stream, "stream");
 
         return Mono.defer(() -> {
             String clusterEndpoint = buildClusterEndpoint(database, table, streamFormat, mappingName);
@@ -262,9 +260,7 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String database, String table, String blobUrl, ClientRequestProperties properties,
             String dataFormat, String mappingName) {
-        if (blobUrl == null) {
-            throw new IllegalArgumentException("The provided blobUrl is null.");
-        }
+        Ensure.argIsNotNull(blobUrl, "blobUrl");
 
         return Mono.defer(() -> {
             String clusterEndpoint = buildClusterEndpoint(database, table, dataFormat, mappingName)
@@ -299,38 +295,37 @@ class ClientImpl extends BaseClient {
             }
         }
 
-        return Mono.fromCallable(() -> {
-            BinaryData data;
-            if (isStreamSource) {
-                // We use UncloseableStream to prevent HttpClient from closing the stream
-                data = BinaryData.fromStream(new UncloseableStream(stream));
-            } else {
-                data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
-            }
+        BinaryData data;
+        if (isStreamSource) {
+            // We use UncloseableStream to prevent HttpClient from closing the stream
+            data = BinaryData.fromStream(new UncloseableStream(stream));
+        } else {
+            data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
+        }
 
-            HttpTracing tracing = HttpTracing
-                    .newBuilder()
-                    .withProperties(properties)
-                    .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
-                    .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
-                    .withClientDetails(clientDetails)
-                    .build();
+        HttpTracing tracing = HttpTracing
+                .newBuilder()
+                .withProperties(properties)
+                .withRequestPrefix("KJC.executeStreamingIngest" + (isStreamSource ? "" : "FromBlob"))
+                .withActivitySuffix(CommandType.STREAMING_INGEST.getActivityTypeSuffix())
+                .withClientDetails(clientDetails)
+                .build();
 
-            return HttpRequestBuilder
-                    .newPost(clusterEndpoint)
-                    .withTracing(tracing)
-                    .withHeaders(headers)
-                    .withAuthorization(authorizationToken)
-                    .withContentType(contentType)
-                    .withContentEncoding(contentEncoding)
-                    .withBody(data)
-                    .build();
-        }).flatMap(httpRequest -> MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
+        HttpRequest httpRequest = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .withTracing(tracing)
+                .withHeaders(headers)
+                .withAuthorization(authorizationToken)
+                .withContentType(contentType)
+                .withContentEncoding(contentEncoding)
+                .withBody(data)
+                .build();
+        return MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
                 .flatMap(response -> Mono.fromCallable(() -> new KustoOperationResult(response, "v1")).subscribeOn(Schedulers.boundedElastic()))
                 .onErrorMap(KustoServiceQueryError.class,
                         e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
                                 e))
-                .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e)))
+                .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e))
                 .doFinally(signalType -> {
                     if (isStreamSource && !leaveOpen) {
                         try {
