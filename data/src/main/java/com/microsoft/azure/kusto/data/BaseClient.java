@@ -53,15 +53,15 @@ public abstract class BaseClient implements Client, StreamingClient {
     protected Mono<String> postAsync(HttpRequest request, long timeoutMs) {
         return httpClient.send(request, getContextTimeout(timeoutMs))
                 .flatMap(response -> Utils.getResponseBody(response)
-                        .flatMap(responseBody -> {
+                        .map(responseBody -> {
                             switch (response.getStatusCode()) {
                                 case HttpStatus.OK:
-                                    return Mono.justOrEmpty(responseBody);
+                                    return responseBody;
                                 case HttpStatus.TOO_MANY_REQS:
-                                    return Mono.error(new ThrottleException(response.getRequest().getUrl().toString()));
+                                    throw new ThrottleException(response.getRequest().getUrl().toString());
                                 default:
-                                    return Mono.error(createExceptionFromResponse(
-                                            response.getRequest().getUrl().toString(), response, null, responseBody));
+                                    throw createExceptionFromResponse(
+                                            response.getRequest().getUrl().toString(), response, null, responseBody);
                             }
                         }).doFinally(ignore -> response.close()))
                 .onErrorMap(e -> {
@@ -81,7 +81,8 @@ public abstract class BaseClient implements Client, StreamingClient {
                     int responseStatusCode = httpResponse.getStatusCode();
                     if (responseStatusCode == HttpStatus.OK) {
                         state.setReturnInputStream(true);
-                        return httpResponse.getBodyAsInputStream() //TODO: since we want to just close on EOF should we implement EofSensorInputStream ourselves and remove the remaining Apache dependency or not?
+                        return httpResponse.getBodyAsInputStream() // TODO: since we want to just close on EOF should we implement EofSensorInputStream
+                                                                   // ourselves and remove the remaining Apache dependency or not?
                                 .map(inputStream -> new EofSensorInputStream(new CloseParentResourcesStream(httpResponse, inputStream), null));
                     }
 
@@ -101,9 +102,9 @@ public abstract class BaseClient implements Client, StreamingClient {
                 .flatMap(content -> {
                     state.setErrorFromResponse(content);
                     if (content.isEmpty() || content.equals("{}")) {
-                        return Mono.error(new DataServiceException(request.getUrl().toString(),
+                        throw new DataServiceException(request.getUrl().toString(),
                                 "postToStreamingOutputAsync failed to get or decompress response body.",
-                                true));
+                                true);
                     }
 
                     // Ideal to close here (as opposed to finally) so that if any data can't be flushed, the exception will be properly thrown and
@@ -122,11 +123,10 @@ public abstract class BaseClient implements Client, StreamingClient {
                                             .build();
                                     return postToStreamingOutputAsync(redirectRequest, timeoutMs, currentRedirectCounter + 1, maxRedirectCount);
                                 })
-                                .orElse(Mono.error(
-                                        createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse())));
+                                .orElseThrow(() -> createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse()));
                     }
 
-                    return Mono.error(createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse()));
+                    throw createExceptionFromResponse(request.getUrl().toString(), httpResponse, null, state.getErrorFromResponse());
                 });
     }
 

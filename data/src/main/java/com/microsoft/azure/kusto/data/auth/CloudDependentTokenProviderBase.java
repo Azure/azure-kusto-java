@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import com.azure.core.http.HttpClient;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 
@@ -42,12 +41,7 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
                             "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
                             .flatMap(cloudInfo -> {
                                 this.cloudInfo = cloudInfo;
-
-                                try {
-                                    initializeWithCloudInfo(cloudInfo);
-                                } catch (DataClientException | DataServiceException e) {
-                                    return Mono.error(e);
-                                }
+                                initializeWithCloudInfo(cloudInfo);
                                 this.initialized = true;
                                 return Mono.empty();
                             });

@@ -51,7 +51,8 @@ public class Utils {
 
     // Use a custom parallel scheduler for retries to avoid thread starvation in case other services
     // are using the reactor parallel scheduler
-    public static final Scheduler ADX_PARALLEL_SCHEDULER = Schedulers.newParallel( //TODO: does that make sense? Should this be done on boundedElastic instead or not at all?
+    public static final Scheduler ADX_PARALLEL_SCHEDULER = Schedulers.newParallel( // TODO: does that make sense? Should this be done on boundedElastic instead
+                                                                                   // or not at all?
             "adx-kusto-parallel",
             Schedulers.DEFAULT_POOL_SIZE,
             true);

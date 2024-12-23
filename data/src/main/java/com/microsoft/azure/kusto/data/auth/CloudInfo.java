@@ -92,7 +92,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
 
         // Ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
-        return Mono.fromCallable(() -> new UrlPair(UriUtils.setPathForUri(clusterUrl, ""), UriUtils.appendPathToUri(clusterUrl, METADATA_ENDPOINT)))
+        return Mono.fromCallable(() -> new UrlPair(UriUtils.setPathForUri(clusterUrl, ""), UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT)))
                 .flatMap(urls -> cache.computeIfAbsent(urls.clusterEndpoint, key -> fetchCloudInfoAsync(urls, givenHttpClient)
                         .retryWhen(RETRY_CONFIG)
                         .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(urls.clusterEndpoint, e))));
@@ -120,22 +120,22 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private static Mono<CloudInfo> getCloudInfo(HttpResponse response, String clusterUrl) {
         int statusCode = response.getStatusCode();
         return Utils.getResponseBody(response)
-                .flatMap(content -> {
+                .map(content -> {
                     if (statusCode == HttpStatus.OK) {
                         if (content.isEmpty() || content.equals("{}")) {
                             throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
                         }
-                        return Mono.just(parseCloudInfo(content));
+                        return parseCloudInfo(content);
                     } else if (statusCode == HttpStatus.NOT_FOUND) {
-                        return Mono.just(DEFAULT_CLOUD);
+                        return DEFAULT_CLOUD;
                     } else {
                         String errorFromResponse = content;
                         if (errorFromResponse.isEmpty()) {
                             // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                             errorFromResponse = "";
                         }
-                        return Mono.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
-                                "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS));
+                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
+                                "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS);
                     }
                 });
     }

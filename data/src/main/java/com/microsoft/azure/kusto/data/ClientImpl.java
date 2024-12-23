@@ -244,7 +244,7 @@ class ClientImpl extends BaseClient {
     public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat, String mappingName, boolean leaveOpen) {
         if (stream == null) {
-            return Mono.error(new IllegalArgumentException("The provided stream is null."));
+            throw new IllegalArgumentException("The provided stream is null.");
         }
 
         return Mono.defer(() -> {
@@ -263,7 +263,7 @@ class ClientImpl extends BaseClient {
     public Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String database, String table, String blobUrl, ClientRequestProperties properties,
             String dataFormat, String mappingName) {
         if (blobUrl == null) {
-            return Mono.error(new IllegalArgumentException("The provided blobUrl is null."));
+            throw new IllegalArgumentException("The provided blobUrl is null.");
         }
 
         return Mono.defer(() -> {
