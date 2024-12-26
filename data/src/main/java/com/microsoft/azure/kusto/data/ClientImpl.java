@@ -167,12 +167,16 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<KustoOperationResult> executeImplAsync(KustoRequest kr) {
+        String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
         return executeWithTimeout(kr, ".executeImplAsync")
-                .flatMap(response -> {
-                    String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
+                // .publishOn(Schedulers.boundedElastic()) TODO: should the following be published on a new thread?
+                .map(response -> {
                     JsonResult jsonResult = new JsonResult(response, clusterEndpoint);
-                    return processJsonResultAsync(jsonResult);
-                });
+                    return new KustoOperationResult(jsonResult.getResult(), jsonResult.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
+                })
+                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(clusterEndpoint,
+                        "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
+                .onErrorMap(Exception.class, e -> new DataClientException(clusterEndpoint, ExceptionUtils.getMessageEx(e), e));
     }
 
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
@@ -202,14 +206,6 @@ class ClientImpl extends BaseClient {
                 .then(authorization
                         .map(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
                         .switchIfEmpty(Mono.just(buildKustoRequestContext(kr, clusterEndpoint, tracing, null))));
-    }
-
-    private Mono<KustoOperationResult> processJsonResultAsync(JsonResult res) {
-        return Mono.fromCallable(() -> new KustoOperationResult(res.getResult(), res.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1"))
-                .subscribeOn(Schedulers.boundedElastic())
-                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(res.getEndpoint(),
-                        "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
-                .onErrorMap(Exception.class, e -> new DataClientException(res.getEndpoint(), ExceptionUtils.getMessageEx(e), e));
     }
 
     private Mono<Void> validateEndpointAsync() {
@@ -321,7 +317,8 @@ class ClientImpl extends BaseClient {
                 .withBody(data)
                 .build();
         return MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
-                .flatMap(response -> Mono.fromCallable(() -> new KustoOperationResult(response, "v1")).subscribeOn(Schedulers.boundedElastic()))
+                // .publishOn(Schedulers.boundedElastic()) TODO: should the following be published on a new thread?
+                .map(response -> new KustoOperationResult(response, "v1"))
                 .onErrorMap(KustoServiceQueryError.class,
                         e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
                                 e))

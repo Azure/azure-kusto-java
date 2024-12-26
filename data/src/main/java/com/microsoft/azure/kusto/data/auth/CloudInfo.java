@@ -40,7 +40,7 @@ import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
-    private static final ConcurrentMap<String, Mono<CloudInfo>> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Mono<CloudInfo>> CACHE = new ConcurrentHashMap<>();
 
     public static final String METADATA_ENDPOINT = "v1/rest/auth/metadata";
     public static final String DEFAULT_KUSTO_CLIENT_APP_ID = "db662dc1-0cfe-4e1c-a843-19a68e65be58";
@@ -60,7 +60,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private static final Duration CLOUD_INFO_TIMEOUT = Duration.ofSeconds(10);
 
     static {
-        cache.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
+        CACHE.put(LOCALHOST, Mono.just(DEFAULT_CLOUD));
     }
 
     private final boolean loginMfaRequired;
@@ -83,13 +83,14 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     }
 
     public static void manuallyAddToCache(String clusterUrl, Mono<CloudInfo> cloudInfoMono) throws URISyntaxException {
-        cache.putIfAbsent(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
+        CACHE.putIfAbsent(UriUtils.setPathForUri(clusterUrl, ""), cloudInfoMono);
     }
 
     public static CloudInfo retrieveCloudInfoForCluster(String clusterUrl) {
         return retrieveCloudInfoForClusterAsync(clusterUrl, null).block();
     }
 
+    //TODO: should we have a max_cache_size check? e.g. if (CACHE.size() >= MAX_CACHE_SIZE) {CACHE.clear();}
     public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
 
         // We ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
@@ -99,7 +100,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
                     UriUtils.setPathForUri(clusterUrl, ""), // Cluster endpoint
                     UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT) // Metadata endpoint is always on the root of the cluster
             );
-            return cache.computeIfAbsent(clusterUrls.getT1(), key -> fetchCloudInfoAsync(clusterUrls, givenHttpClient)
+            return CACHE.computeIfAbsent(clusterUrls.getT1(), key -> fetchCloudInfoAsync(clusterUrls, givenHttpClient)
                     .retryWhen(RETRY_CONFIG)
                     .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrls.getT1(), e)));
         } catch (URISyntaxException e) {
