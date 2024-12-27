@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Added
+- The SDK now provides Reactor Core-based asynchronous APIs for all query, management, streaming query/ingestion (StreamingClient) endpoints,
+enabling non-blocking operations. You can read more about Reactor Core and [Mono type here](https://projectreactor.io/docs/core/release/api/).
+
+### Changed
+- [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
+internally and block for results.
+
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added
 - A new policy heuristic for choosing between queuing and streaming in Managed streaming client. A policy can be configured
