@@ -10,6 +10,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -27,13 +28,13 @@ public class PemWriter {
     public static byte[] encodeToPem(byte @NotNull [] certificatePrivateKey, @Nullable List<X509Certificate> x509CertificateChain) throws CertificateEncodingException {
         ByteBuf sb = Unpooled.buffer();
         sb.writeBytes(BEGIN_PRIVATE_kEY).writeBytes(NEWLINE);
-        sb.writeBytes(certificatePrivateKey).writeBytes(NEWLINE);
+        sb.writeBytes(Base64.getEncoder().encode(certificatePrivateKey)).writeBytes(NEWLINE);
         sb.writeBytes(END_PRIVATE_kEY).writeBytes(NEWLINE);
 
         if (x509CertificateChain != null) {
             for (X509Certificate cert : x509CertificateChain) {
                 sb.writeBytes(BEGIN_CERTIFICATE).writeBytes(NEWLINE);
-                sb.writeBytes(cert.getEncoded()).writeBytes(NEWLINE);
+                sb.writeBytes(Base64.getEncoder().encode(cert.getEncoded())).writeBytes(NEWLINE);
                 sb.writeBytes(END_CERTIFICATE).writeBytes(NEWLINE);
             }
         }
