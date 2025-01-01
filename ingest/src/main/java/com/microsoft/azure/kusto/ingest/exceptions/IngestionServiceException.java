@@ -5,7 +5,8 @@ package com.microsoft.azure.kusto.ingest.exceptions;
 
 import com.azure.core.exception.AzureException;
 
-public class IngestionServiceException extends AzureException { // TODO: remove throws from method declarations on async ingest impl
+public class IngestionServiceException extends AzureException { // TODO: remove throws from internal method declarations (not from public Apis) on async ingest
+                                                                // impl
     private String ingestionSource;
 
     public String getIngestionSource() {

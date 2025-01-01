@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -56,8 +55,6 @@ public class Utils {
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
-    private static final int DEFAULT_BUFFER_LENGTH = 1024;
-    private static final ThreadLocal<StringBuilder> sb = ThreadLocal.withInitial(StringBuilder::new);
 
     // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
     // double value
@@ -158,75 +155,48 @@ public class Utils {
 
     public static Mono<String> getResponseBody(HttpResponse httpResponse) {
         return isGzipResponse(httpResponse)
-                ? processGzipBody(httpResponse.getBodyAsInputStream())
-                : httpResponse.getBodyAsString(StandardCharsets.UTF_8);
+                ? processGzipBody(httpResponse.getBody())
+                : processNonGzipBody(httpResponse.getBody());
     }
 
-    // TODO: delete all comments
-
-    // (Ohad, Asaf opinions?):
-    // This aggregates the entire compressed stream into memory which is required by GZIPInputStream.
-    // GZIPInputStream is also blocking
-    // Additional memory overhead is added due to ByteArrayOutputStream copies.
-    // Same with all methods provided from HttpResponse object such as:
-    // response.getBodyAsByteArray(), getBodyAsString() (for non gzip) etc.
-    //
-    // The most I could test with is 2000000 records (dataset.csv format) and all methods, including this
-    // and the one below as well as the methods from HttpResponse, had almost the same query time.
-    // I am not sure how representative this is for you guys.
-    public static Mono<String> processGzipBody(Mono<InputStream> body) {
-        return body
-                .map(inputStream -> {
-                    try (GZIPInputStream gzipStream = new GZIPInputStream(inputStream);
-                            ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-
-                        byte[] buffer = new byte[DEFAULT_BUFFER_LENGTH];
-                        int bytesRead;
-                        while ((bytesRead = gzipStream.read(buffer)) != -1) {
-                            output.write(buffer, 0, bytesRead);
-                        }
-
-                        return new String(output.toByteArray(), StandardCharsets.UTF_8);
-                    } catch (IOException e) {
-                        throw Exceptions.propagate(e);
-                    }
-                }).subscribeOn(Schedulers.boundedElastic());
-    }
-
-    // Alternative an approach to streaming decompression. I had some OOM errors locally though on KustoOperationResult.createFromV2Response
-    public static Mono<String> processGzipBody1(Flux<ByteBuffer> gzipBody) {
+    public static Mono<String> processGzipBody(Flux<ByteBuffer> gzipBody) {
         // To ensure efficiency in terms of performance and memory allocation, a streaming
         // chunked decompression approach is utilized using Netty's EmbeddedChannel. This allows the decompression
         // to occur in chunks, making it more memory-efficient for large payloads, as it prevents the entire
-        // compressed stream from being loaded into memory at once (which is required by GZIPInputStream for decompression).
-        // Flux.create() emits decompressed data as it becomes available, while ensuring backpressure.
-        // Decompression is offloaded to `boundedElastic()`, which prevents thread blocking and significantly improves performance.
+        // compressed stream from being loaded into memory at once (which for example is required by GZIPInputStream for decompression).
 
         EmbeddedChannel channel = new EmbeddedChannel(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
 
         return gzipBody
-                .flatMap(byteBuffer -> {
-                    ByteBuf byteBuf = Unpooled.wrappedBuffer(byteBuffer);
-                    channel.writeInbound(byteBuf); // Write chunk to channel for decompression
-                    if (byteBuf.refCnt() > 0) {
-                        byteBuf.release();
+                .reduce(new StringBuilder(), (stringBuilder, byteBuffer) -> {
+                    channel.writeInbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for decompression
+
+                    ByteBuf decompressedByteBuf = channel.readInbound();
+                    if (decompressedByteBuf == null) {
+                        return stringBuilder;
                     }
 
-                    // Read decompressed data from the channel and emit each chunk as a String
-                    return Flux.<String>create(sink -> {
-                        ByteBuf decompressedByteBuf;
-                        while ((decompressedByteBuf = channel.readInbound()) != null) {
-                            sink.next(decompressedByteBuf.toString(StandardCharsets.UTF_8));
-                            if (decompressedByteBuf.refCnt() > 0) {
-                                decompressedByteBuf.release();
-                            }
-                        }
-                        sink.complete();
-                    }).doOnError(ignore -> channel.finish());
-                }).subscribeOn(Schedulers.boundedElastic())
-                .reduce(new StringBuilder(), StringBuilder::append) // TODO: this will cause memory problems right?
+                    String string = decompressedByteBuf.toString(StandardCharsets.UTF_8);
+                    decompressedByteBuf.release();
+
+                    if (!channel.inboundMessages().isEmpty()) {
+                        throw new IllegalStateException("Expected exactly one message in the channel.");
+                    }
+
+                    stringBuilder.append(string);
+                    return stringBuilder;
+                })
                 .map(StringBuilder::toString)
-                .doFinally(ignore -> channel.finish());
+                .doFinally(ignore -> channel.finishAndReleaseAll());
+    }
+
+    private static Mono<String> processNonGzipBody(Flux<ByteBuffer> gzipBody) {
+        return gzipBody
+                .reduce(new StringBuilder(), (sb, bf) -> {
+                    sb.append(StandardCharsets.UTF_8.decode(bf.asReadOnlyBuffer()));
+                    return sb;
+                })
+                .map(StringBuilder::toString);
     }
 
     /**

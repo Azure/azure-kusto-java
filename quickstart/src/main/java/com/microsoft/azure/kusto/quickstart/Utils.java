@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -176,7 +178,10 @@ public class Utils {
 
                     System.out.println();
                 }
-
+            } catch (DataServiceException e) {
+                errorHandler(String.format("Server error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
+            } catch (DataClientException e) {
+                errorHandler(String.format("Client error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             } catch (Exception e) {
                 errorHandler(String.format("Unexpected error while trying to execute query '%s' on database '%s'%n%n", command, databaseName), e);
             }

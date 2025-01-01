@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
-    // TODO - this is never used? should a max redirect count be included?
+    // TODO - this is never used?
     private static final int MAX_REDIRECT_COUNT = 1;
     private static final int EXTRA_TIMEOUT_FOR_CLIENT_SIDE = (int) TimeUnit.SECONDS.toMillis(30);
 

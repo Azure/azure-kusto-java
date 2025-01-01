@@ -169,7 +169,7 @@ class ClientImpl extends BaseClient {
     private Mono<KustoOperationResult> executeImplAsync(KustoRequest kr) {
         String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
         return executeWithTimeout(kr, ".executeImplAsync")
-                // .publishOn(Schedulers.boundedElastic()) TODO: should the following be published on a new thread?
+                .publishOn(Schedulers.boundedElastic())
                 .map(response -> {
                     JsonResult jsonResult = new JsonResult(response, clusterEndpoint);
                     return new KustoOperationResult(jsonResult.getResult(), jsonResult.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
@@ -317,7 +317,7 @@ class ClientImpl extends BaseClient {
                 .withBody(data)
                 .build();
         return MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
-                // .publishOn(Schedulers.boundedElastic()) TODO: should the following be published on a new thread?
+                .publishOn(Schedulers.boundedElastic())
                 .map(response -> new KustoOperationResult(response, "v1"))
                 .onErrorMap(KustoServiceQueryError.class,
                         e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),

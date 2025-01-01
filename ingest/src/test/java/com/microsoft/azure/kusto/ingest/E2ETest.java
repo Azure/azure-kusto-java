@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
@@ -714,8 +715,13 @@ class E2ETest {
             try {
                 Client client = ClientFactory.createClient(
                         ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"));
-                client.executeQuery("db", "table");
-                Assertions.fail("Expected exception");
+                try {
+                    client.executeQuery("db", "table");
+                    Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertTrue(e.getMessage().contains("metadata"));
+                }
             } catch (Exception e) {
                 return e;
             }
@@ -738,6 +744,9 @@ class E2ETest {
                 try {
                     client.executeQuery("db", "table");
                     Assertions.fail("Expected exception");
+                } catch (DataServiceException e) {
+                    Assertions.assertTrue(e.getMessage().contains("" + code));
+                    Assertions.assertFalse(e.getMessage().contains("metadata"));
                 } catch (Exception e) {
                     return e;
                 }

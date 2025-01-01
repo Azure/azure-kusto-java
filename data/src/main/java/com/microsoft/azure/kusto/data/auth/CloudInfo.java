@@ -35,8 +35,6 @@ import com.microsoft.azure.kusto.data.req.RequestUtils;
 
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 import reactor.util.retry.Retry;
 
 public class CloudInfo implements TraceableAttributes, Serializable {
@@ -96,57 +94,59 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         // We ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made
         // for all corresponding threads
         try {
-            Tuple2<String, String> clusterUrls = Tuples.of(
-                    UriUtils.setPathForUri(clusterUrl, ""), // Cluster endpoint
-                    UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT) // Metadata endpoint is always on the root of the cluster
-            );
-            return CACHE.computeIfAbsent(clusterUrls.getT1(), key -> fetchCloudInfoAsync(clusterUrls, givenHttpClient)
+            String clusterEndpoint = UriUtils.setPathForUri(clusterUrl, "");
+            return CACHE.computeIfAbsent(clusterEndpoint, key -> fetchCloudInfoAsync(clusterEndpoint, givenHttpClient)
                     .retryWhen(RETRY_CONFIG)
-                    .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterUrls.getT1(), e)));
-        } catch (URISyntaxException e) {
-            throw new DataServiceException(clusterUrl,
-                    "URISyntaxException when trying to retrieve cluster metadata: " + e.getMessage(), e, true);
+                    .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterEndpoint, e)));
+        } catch (URISyntaxException ex) {
+            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true);
         }
     }
 
-    private static Mono<CloudInfo> fetchCloudInfoAsync(Tuple2<String, String> clusterUrls, @Nullable HttpClient givenHttpClient) {
-        HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
-        HttpRequest request = new HttpRequest(HttpMethod.GET, clusterUrls.getT2());
-        request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
-        request.setHeader(HttpHeaderName.ACCEPT, "application/json");
+    private static Mono<CloudInfo> fetchCloudInfoAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
+        try {
+            HttpClient localHttpClient = givenHttpClient == null ? HttpClientFactory.create(null) : givenHttpClient;
+            String metadataEndpoint = UriUtils.setPathForUri(clusterUrl, METADATA_ENDPOINT); // Metadata endpoint is always on the root of the cluster
+            HttpRequest request = new HttpRequest(HttpMethod.GET, metadataEndpoint);
+            request.setHeader(HttpHeaderName.ACCEPT_ENCODING, "gzip,deflate");
+            request.setHeader(HttpHeaderName.ACCEPT, "application/json");
 
-        return MonitoredActivity.wrap(localHttpClient.send(request, RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT)),
-                "CloudInfo.httpCall")
-                .flatMap(response -> getCloudInfo(response, clusterUrls.getT1()))
-                .doFinally(ignore -> {
-                    if (givenHttpClient == null && localHttpClient instanceof Closeable) {
-                        try {
-                            ((Closeable) localHttpClient).close();
-                        } catch (IOException ignore1) {
+            return MonitoredActivity.wrap(localHttpClient.send(request, RequestUtils.contextWithTimeout(CLOUD_INFO_TIMEOUT)),
+                    "CloudInfo.httpCall")
+                    .flatMap(response -> getCloudInfo(response, clusterUrl))
+                    .doFinally(ignore -> {
+                        if (givenHttpClient == null && localHttpClient instanceof Closeable) {
+                            try {
+                                ((Closeable) localHttpClient).close();
+                            } catch (IOException ignore1) {
+                            }
                         }
-                    }
-                });
+                    });
+        } catch (URISyntaxException e) {
+            throw new DataServiceException(clusterUrl, "URISyntaxException when trying to retrieve cluster metadata: " + e.getMessage(), e, true);
+        }
     }
 
     private static Mono<CloudInfo> getCloudInfo(HttpResponse response, String clusterUrl) {
         int statusCode = response.getStatusCode();
         return Utils.getResponseBody(response)
-                .map(content -> {
+                .handle((content, sink) -> {
                     if (statusCode == HttpStatus.OK) {
                         if (content.isEmpty() || content.equals("{}")) {
-                            throw new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true);
+                            sink.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, received no data", true));
+                            return;
                         }
-                        return parseCloudInfo(content);
+                        sink.next(parseCloudInfo(content));
                     } else if (statusCode == HttpStatus.NOT_FOUND) {
-                        return DEFAULT_CLOUD;
+                        sink.next(DEFAULT_CLOUD);
                     } else {
                         String errorFromResponse = content;
                         if (errorFromResponse.isEmpty()) {
                             // Fixme: Missing reason phrase to add to exception. Potentially want to use an enum.
                             errorFromResponse = "";
                         }
-                        throw new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
-                                "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS);
+                        sink.error(new DataServiceException(clusterUrl, "Error in metadata endpoint, got code: " + statusCode +
+                                "\nWith error: " + errorFromResponse, statusCode != HttpStatus.TOO_MANY_REQS));
                     }
                 });
     }

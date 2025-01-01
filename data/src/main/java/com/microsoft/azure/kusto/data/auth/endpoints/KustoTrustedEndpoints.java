@@ -57,8 +57,9 @@ public class KustoTrustedEndpoints {
      *
      * @param uri           - Kusto endpoint
      * @param loginEndpoint The login endpoint to check against.
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(String uri, String loginEndpoint) {
+    public static void validateTrustedEndpoint(String uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
         try {
             validateTrustedEndpoint(new URI(uri), loginEndpoint);
         } catch (URISyntaxException ex) {
@@ -70,8 +71,9 @@ public class KustoTrustedEndpoints {
      * Throw an exception if the endpoint specified is not trusted.
      *
      * @param uri - Kusto endpoint
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(String uri) {
+    public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
             // TODO: if this method will be used, replace the sync retrieveCloudInfoForCluster with the async one
             validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
@@ -85,8 +87,9 @@ public class KustoTrustedEndpoints {
      *
      * @param uri           The endpoint to inspect.
      * @param loginEndpoint The login endpoint to check against.
+     * @throws KustoClientInvalidConnectionStringException - Endpoint is not a trusted Kusto endpoint
      */
-    public static void validateTrustedEndpoint(URI uri, String loginEndpoint) {
+    public static void validateTrustedEndpoint(URI uri, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
         Ensure.argIsNotNull(uri, "uri");
         String host = uri.getHost();
         // Check that target hostname is trusted and can accept security token
