@@ -62,13 +62,10 @@ public class AadAuthenticationHelperTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder
                 .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
 
-        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
+        CertificateTokenProvider aadAuthenticationHelper = (CertificateTokenProvider) TokenProviderFactory.createTokenProvider(csb, null);
 
         aadAuthenticationHelper.initialize().block();
-        assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
-        assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
-        Assertions.assertThrows(DataServiceException.class,
-                aadAuthenticationHelper::acquireNewAccessToken);
+        Assertions.assertThrows(DataClientException.class, aadAuthenticationHelper::acquireAccessToken);
     }
 
     public static KeyCert readPem(String path, String password)

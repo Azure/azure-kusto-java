@@ -78,6 +78,10 @@ public abstract class AzureIdentityTokenProvider extends CloudDependentTokenProv
         tokenRequestContext = new TokenRequestContext().addScopes(scopes.toArray(new String[0]));
     }
 
+    public String getTenantId() {
+        return tenantId;
+    }
+
     protected abstract CredentialBuilderBase<?> initBuilder();
 
     // This method exists since there is no common build() method for all of the Azure Identity builders

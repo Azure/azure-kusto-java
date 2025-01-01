@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
+import java.util.Collections;
 
 public class TokenProviderFactory {
     private TokenProviderFactory() {
@@ -26,14 +27,15 @@ public class TokenProviderFactory {
         if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
             if (StringUtils.isNotBlank(csb.getApplicationKey())) {
                 return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
-            } else if (csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty() && csb.getPrivateKey() != null) {
-                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
-                String applicationClientId = csb.getApplicationClientId();
-                return new SubjectNameIssuerTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
-            } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
-                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
-                String applicationClientId = csb.getApplicationClientId();
-                return new ApplicationCertificateTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
+            } else if (csb.getPrivateKey() != null && ((csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty()) || csb.getX509Certificate() != null)) {
+                return new CertificateTokenProvider(clusterUrl,
+                        csb.getAuthorityId(),
+                        csb.getApplicationClientId(),
+                        httpClient,
+                        csb.getPrivateKey().getEncoded(),
+                        csb.getX509CertificateChain() != null ? csb.getX509CertificateChain() : Collections.singletonList(csb.getX509Certificate()),
+                        csb.getX509CertificateChain() != null
+                );
             } else {
                 throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
             }
