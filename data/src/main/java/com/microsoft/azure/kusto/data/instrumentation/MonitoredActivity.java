@@ -21,10 +21,7 @@ public class MonitoredActivity {
     }
 
     public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan) {
-        return Mono.defer(() -> {
-            Tracer.Span span = Tracer.startSpan(nameOfSpan, new HashMap<>());
-            return mono.doFinally(ignore -> span.close());
-        });
+        return wrap(mono, nameOfSpan, new HashMap<>());
     }
 
     public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
