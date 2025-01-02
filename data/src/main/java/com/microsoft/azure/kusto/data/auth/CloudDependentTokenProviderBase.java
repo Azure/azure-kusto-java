@@ -29,23 +29,22 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
 
     @Override
     final Mono<Void> initialize() {
-        return Mono.fromCallable(() -> initialized)
-                .flatMap(initialized -> {
-                    if (initialized) {
-                        return Mono.empty();
-                    }
-                    // trace retrieveCloudInfo
-                    return MonitoredActivity.wrap(
-                            CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl,
-                                    httpClient),
-                            "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
-                            .flatMap(cloudInfo -> {
-                                this.cloudInfo = cloudInfo;
-                                initializeWithCloudInfo(cloudInfo);
-                                this.initialized = true;
-                                return Mono.empty();
-                            });
-                });
+        return Mono.defer(() -> {
+            if (initialized) {
+                return Mono.empty();
+            }
+
+            // trace retrieveCloudInfo
+            return MonitoredActivity.wrap(
+                    CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, httpClient),
+                    "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
+                    .doOnNext(cloudInfoResult -> {
+                        this.cloudInfo = cloudInfoResult;
+                        initializeWithCloudInfo(cloudInfoResult);
+                        this.initialized = true;
+                    })
+                    .then();
+        });
     }
 
     protected void initializeWithCloudInfo(CloudInfo cloudInfo) {
