@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpRequest;
 import com.azure.core.util.BinaryData;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
@@ -40,6 +39,7 @@ import com.microsoft.azure.kusto.data.res.JsonResult;
 
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
 
 class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
@@ -179,20 +179,19 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
+        long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
+
         return prepareRequestAsync(request)
-                .flatMap(requestContext -> {
-                    long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
-                    return MonitoredActivity.wrap(
-                            postAsync(requestContext.getHttpRequest(), timeoutMs),
-                            requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan));
-                });
+                .zipWhen(requestContext -> MonitoredActivity.wrap(
+                        postAsync(requestContext.getHttpRequest(), timeoutMs),
+                        requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan)))
+                .map(Tuple2::getT2);
     }
 
     Mono<KustoRequestContext> prepareRequestAsync(@NotNull KustoRequest kr) {
         kr.validateAndOptimize();
 
         String clusterEndpoint = String.format(kr.getCommandType().getEndpoint(), clusterUrl);
-        Mono<String> authorization = getAuthorizationHeaderValueAsync();
         HttpTracing tracing = HttpTracing
                 .newBuilder()
                 .withProperties(kr.getProperties())
@@ -201,10 +200,15 @@ class ClientImpl extends BaseClient {
                 .withClientDetails(clientDetails)
                 .build();
 
+        HttpRequestBuilder requestBuilder = HttpRequestBuilder
+                .newPost(clusterEndpoint)
+                .createCommandPayload(kr)
+                .withTracing(tracing);
+
         return validateEndpointAsync()
-                .then(authorization
-                        .map(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
-                        .switchIfEmpty(Mono.defer(() -> Mono.just(buildKustoRequestContext(kr, clusterEndpoint, tracing, null)))));
+                .then(getAuthorizationHeaderValueAsync()
+                        .doOnNext(requestBuilder::withAuthorization)
+                        .thenReturn(new KustoRequestContext(kr, requestBuilder.build())));
     }
 
     private Mono<Void> validateEndpointAsync() {
@@ -217,16 +221,6 @@ class ClientImpl extends BaseClient {
                 .doOnNext(loginEndpoint -> KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint))
                 .doOnSuccess(ignored -> endpointValidated = true)
                 .then();
-    }
-
-    private static KustoRequestContext buildKustoRequestContext(KustoRequest kr, String clusterEndpoint, HttpTracing tracing, String authorizationToken) {
-        HttpRequest request = HttpRequestBuilder
-                .newPost(clusterEndpoint)
-                .createCommandPayload(kr)
-                .withTracing(tracing)
-                .withAuthorization(authorizationToken)
-                .build();
-        return new KustoRequestContext(kr, request);
     }
 
     @Override
@@ -266,14 +260,11 @@ class ClientImpl extends BaseClient {
 
     private Mono<KustoOperationResult> executeStreamingIngestImplAsync(String clusterEndpoint, InputStream stream, String blobUrl,
             ClientRequestProperties properties, boolean leaveOpen) {
-        return validateEndpointAsync()
-                .then(getAuthorizationHeaderValueAsync()
-                        .flatMap(token -> executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen, token))
-                        .switchIfEmpty(executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen, null)));
+        return validateEndpointAsync().then(executeStreamingIngest(clusterEndpoint, stream, blobUrl, properties, leaveOpen));
     }
 
     private Mono<KustoOperationResult> executeStreamingIngest(String clusterEndpoint, InputStream stream, String blobUrl,
-            ClientRequestProperties properties, boolean leaveOpen, String authorizationToken) {
+            ClientRequestProperties properties, boolean leaveOpen) {
         boolean isStreamSource = stream != null;
         Map<String, String> headers = new HashMap<>();
         String contentEncoding = isStreamSource ? "gzip" : null;
@@ -306,31 +297,30 @@ class ClientImpl extends BaseClient {
                 .withClientDetails(clientDetails)
                 .build();
 
-        HttpRequest httpRequest = HttpRequestBuilder
+        HttpRequestBuilder httpRequestBuilder = HttpRequestBuilder
                 .newPost(clusterEndpoint)
                 .withTracing(tracing)
                 .withHeaders(headers)
-                .withAuthorization(authorizationToken)
                 .withContentType(contentType)
                 .withContentEncoding(contentEncoding)
-                .withBody(data)
-                .build();
-        return MonitoredActivity.wrap(postAsync(httpRequest, timeoutMs), "ClientImpl.executeStreamingIngest")
-                .publishOn(Schedulers.boundedElastic())
-                .map(response -> new KustoOperationResult(response, "v1"))
-                .onErrorMap(KustoServiceQueryError.class,
-                        e -> new DataClientException(clusterEndpoint, "Error converting json response to KustoOperationResult:" + e.getMessage(),
-                                e))
-                .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e))
-                .doFinally(signalType -> {
-                    if (isStreamSource && !leaveOpen) {
-                        try {
-                            stream.close();
-                        } catch (IOException e) {
-                            LOGGER.debug("executeStreamingIngest: Error while closing the stream.", e);
-                        }
-                    }
-                });
+                .withBody(data);
+
+        return getAuthorizationHeaderValueAsync()
+                .doOnNext(httpRequestBuilder::withAuthorization)
+                .then(MonitoredActivity.wrap(postAsync(httpRequestBuilder.build(), timeoutMs), "ClientImpl.executeStreamingIngest")
+                        .publishOn(Schedulers.boundedElastic())
+                        .map(response -> new KustoOperationResult(response, "v1"))
+                        .onErrorMap(KustoServiceQueryError.class, e -> new DataClientException(clusterEndpoint, e.getMessage(), e))
+                        .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e))
+                        .doFinally(signalType -> {
+                            if (isStreamSource && !leaveOpen) {
+                                try {
+                                    stream.close();
+                                } catch (IOException e) {
+                                    LOGGER.debug("executeStreamingIngest: Error while closing the stream.", e);
+                                }
+                            }
+                        }));
     }
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {
@@ -395,25 +385,22 @@ class ClientImpl extends BaseClient {
                 .withClientDetails(clientDetails)
                 .build();
 
-        return validateEndpointAsync()
-                .then(getAuthorizationHeaderValueAsync()
-                        .flatMap(authorizationToken -> executeStreamingQuery(clusterEndpoint, kr, tracing, authorizationToken))
-                        .switchIfEmpty(executeStreamingQuery(clusterEndpoint, kr, tracing, null)));
+        return validateEndpointAsync().then(executeStreamingQuery(clusterEndpoint, kr, tracing));
     }
 
     private Mono<InputStream> executeStreamingQuery(String clusterEndpoint, KustoRequest kr,
-            HttpTracing tracing, String authorizationToken) {
-        HttpRequest request = HttpRequestBuilder
+            HttpTracing tracing) {
+        HttpRequestBuilder requestBuilder = HttpRequestBuilder
                 .newPost(clusterEndpoint)
                 .createCommandPayload(kr)
-                .withTracing(tracing)
-                .withAuthorization(authorizationToken)
-                .build();
+                .withTracing(tracing);
         long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
-        return MonitoredActivity.wrap(
-                postToStreamingOutputAsync(request, timeoutMs, 0,
-                        kr.getProperties().getRedirectCount()),
-                "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties()));
+        return getAuthorizationHeaderValueAsync()
+                .doOnNext(requestBuilder::withAuthorization)
+                .then(MonitoredActivity.wrap(
+                        postToStreamingOutputAsync(requestBuilder.build(), timeoutMs, 0,
+                                kr.getProperties().getRedirectCount()),
+                        "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties())));
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
