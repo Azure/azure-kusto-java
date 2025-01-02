@@ -21,13 +21,17 @@ public class MonitoredActivity {
     }
 
     public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan) {
-        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, new HashMap<>()))
-                .flatMap(span -> mono.doOnTerminate(span::close));
+        return Mono.defer(() -> {
+            Tracer.Span span = Tracer.startSpan(nameOfSpan, new HashMap<>());
+            return mono.doFinally(ignore -> span.close());
+        });
     }
 
     public static <T> Mono<T> wrap(Mono<T> mono, String nameOfSpan, Map<String, String> attributes) {
-        return Mono.fromCallable(() -> Tracer.startSpan(nameOfSpan, attributes))
-                .flatMap(span -> mono.doOnTerminate(span::close));
+        return Mono.defer(() -> {
+            Tracer.Span span = Tracer.startSpan(nameOfSpan, attributes);
+            return mono.doFinally(ignore -> span.close());
+        });
     }
 
     public static <T, U extends Exception> Mono<T> invokeAsync(FunctionOneException<Mono<T>, Tracer.Span, U> function,

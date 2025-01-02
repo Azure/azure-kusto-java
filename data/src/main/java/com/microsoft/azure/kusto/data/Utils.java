@@ -40,18 +40,9 @@ import io.netty.handler.codec.compression.ZlibWrapper;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 public class Utils {
 
-    // Use a custom parallel scheduler for retries to avoid thread starvation in case other services
-    // are using the reactor parallel scheduler
-    public static final Scheduler ADX_PARALLEL_SCHEDULER = Schedulers.newParallel( // TODO: does that make sense? Should this be done on boundedElastic instead
-                                                                                   // or not at all?
-            "adx-kusto-parallel",
-            Schedulers.DEFAULT_POOL_SIZE,
-            true);
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);

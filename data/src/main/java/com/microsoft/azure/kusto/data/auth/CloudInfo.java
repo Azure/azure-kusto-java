@@ -88,7 +88,6 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         return retrieveCloudInfoForClusterAsync(clusterUrl, null).block();
     }
 
-    // TODO: should we have a max_cache_size check? e.g. if (CACHE.size() >= MAX_CACHE_SIZE) {CACHE.clear();}
     public static Mono<CloudInfo> retrieveCloudInfoForClusterAsync(String clusterUrl, @Nullable HttpClient givenHttpClient) {
 
         // We ensure that if multiple threads request the cloud info for the same cluster url, only one http call will be made

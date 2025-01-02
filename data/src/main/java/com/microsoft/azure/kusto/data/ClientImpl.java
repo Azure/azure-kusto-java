@@ -174,8 +174,7 @@ class ClientImpl extends BaseClient {
                     JsonResult jsonResult = new JsonResult(response, clusterEndpoint);
                     return new KustoOperationResult(jsonResult.getResult(), jsonResult.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
                 })
-                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(clusterEndpoint,
-                        "Error found while parsing json response as KustoOperationResult:" + e, e, e.isPermanent()))
+                .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(clusterEndpoint, e.getMessage(), e, e.isPermanent()))
                 .onErrorMap(Exception.class, e -> new DataClientException(clusterEndpoint, ExceptionUtils.getMessageEx(e), e));
     }
 
@@ -205,7 +204,7 @@ class ClientImpl extends BaseClient {
         return validateEndpointAsync()
                 .then(authorization
                         .map(token -> buildKustoRequestContext(kr, clusterEndpoint, tracing, token))
-                        .switchIfEmpty(Mono.just(buildKustoRequestContext(kr, clusterEndpoint, tracing, null))));
+                        .switchIfEmpty(Mono.defer(() -> Mono.just(buildKustoRequestContext(kr, clusterEndpoint, tracing, null)))));
     }
 
     private Mono<Void> validateEndpointAsync() {

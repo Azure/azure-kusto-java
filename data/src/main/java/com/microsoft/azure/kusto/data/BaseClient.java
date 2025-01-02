@@ -37,8 +37,6 @@ import reactor.core.publisher.Mono;
 
 public abstract class BaseClient implements Client, StreamingClient {
 
-    // TODO - this is never used?
-    private static final int MAX_REDIRECT_COUNT = 1;
     private static final int EXTRA_TIMEOUT_FOR_CLIENT_SIDE = (int) TimeUnit.SECONDS.toMillis(30);
 
     // Make logger available to implementations

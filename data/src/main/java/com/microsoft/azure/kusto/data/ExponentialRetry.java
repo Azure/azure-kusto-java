@@ -9,8 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import reactor.core.Exceptions;
-import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 import reactor.util.retry.Retry;
 
@@ -71,36 +69,28 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
         return null;
     }
 
+    /**
+     * Creates a retry mechanism with exponential backoff and jitter.
+     *
+     * @param retriableErrorClasses A list of error classes that are considered retriable. If null,
+     *                              the method retries for all errors (default behavior).
+     * @return A configured {@link Retry} instance
+     */
     public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
-        return Retry.from(retrySignals -> retrySignals.flatMap(retrySignal -> {
-
-            Retry.RetrySignal signalCopy = retrySignal.copy();
-            long currentAttempt = signalCopy.totalRetries();
-            Throwable failure = signalCopy.failure();
-
-            if (!shouldRetry(failure, retriableErrorClasses)) {
-                log.error("Error is permanent or not retriable, stopping.", failure);
-                throw Exceptions.propagate(failure);
-            }
-
-            if (currentAttempt >= maxAttempts) {
-                log.info("Max retry attempts reached: {}.", currentAttempt);
-                throw Exceptions.propagate(failure);
-            }
-
-            double currentSleepSecs = sleepBaseSecs * (float) Math.pow(2, currentAttempt);
-            double jitterSecs = (float) Math.random() * maxJitterSecs;
-            double sleepMs = (currentSleepSecs + jitterSecs) * 1000;
-
-            log.info("Attempt {} failed, trying again after sleep of {} seconds.", currentAttempt + 1, sleepMs / 1000);
-
-            // The retry occurs on a different thread by default.
-            return Mono.delay(Duration.ofMillis((long) sleepMs), Utils.ADX_PARALLEL_SCHEDULER);
-        }));
+        return Retry.backoff(maxAttempts, Duration.ofSeconds((long) sleepBaseSecs))
+                .maxBackoff(Duration.ofSeconds(30))
+                .jitter(maxJitterSecs)
+                .filter(throwable -> shouldRetry(throwable, retriableErrorClasses))
+                .doAfterRetry(retrySignal -> {
+                    long currentAttempt = retrySignal.totalRetries() + 1;
+                    log.info("Attempt {} failed, trying again.", currentAttempt);
+                })
+                .onRetryExhaustedThrow((spec, signal) -> signal.failure());
     }
 
     private static boolean shouldRetry(Throwable failure, List<Class<? extends Throwable>> retriableErrorClasses) {
         if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
+            log.error("Error is permanent, stopping.", failure);
             return false;
         }
 
