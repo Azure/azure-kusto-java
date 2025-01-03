@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data.req;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.CommandType;
 import org.apache.commons.lang3.StringUtils;
+import reactor.util.annotation.Nullable;
 
 public class KustoRequest {
 
@@ -154,6 +155,7 @@ public class KustoRequest {
      * A getter for this KustoRequest object's inner ClientRequestProperties.
      * @return the properties
      */
+    @Nullable
     public ClientRequestProperties getProperties() {
         return properties;
     }
@@ -185,6 +187,10 @@ public class KustoRequest {
         if (commandType == null) {
             commandType = determineCommandType(command);
         }
+    }
+
+    public int getRedirectCount() {
+        return properties == null ? 0 : properties.getRedirectCount();
     }
 
     private CommandType determineCommandType(String command) {

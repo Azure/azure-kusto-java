@@ -368,10 +368,8 @@ class ClientImpl extends BaseClient {
 
     @Override
     public Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties) {
-        return Mono.defer(() -> {
-            KustoRequest kr = new KustoRequest(command, database, properties);
-            return executeStreamingQueryAsync(kr);
-        });
+        KustoRequest kr = new KustoRequest(command, database, properties);
+        return executeStreamingQueryAsync(kr);
     }
 
     private Mono<InputStream> executeStreamingQueryAsync(@NotNull KustoRequest kr) {
@@ -399,7 +397,7 @@ class ClientImpl extends BaseClient {
                 .doOnNext(requestBuilder::withAuthorization)
                 .then(MonitoredActivity.wrap(
                         postToStreamingOutputAsync(requestBuilder.build(), timeoutMs, 0,
-                                kr.getProperties().getRedirectCount()),
+                                kr.getRedirectCount()),
                         "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties())));
     }
 
