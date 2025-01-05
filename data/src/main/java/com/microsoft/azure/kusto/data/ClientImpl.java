@@ -179,12 +179,13 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
-        long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
-
         return prepareRequestAsync(request)
-                .zipWhen(requestContext -> MonitoredActivity.wrap(
-                        postAsync(requestContext.getHttpRequest(), timeoutMs),
-                        requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan)))
+                .zipWhen(requestContext -> {
+                    long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
+                    return MonitoredActivity.wrap(
+                            postAsync(requestContext.getHttpRequest(), timeoutMs),
+                            requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan));
+                })
                 .map(Tuple2::getT2);
     }
 
