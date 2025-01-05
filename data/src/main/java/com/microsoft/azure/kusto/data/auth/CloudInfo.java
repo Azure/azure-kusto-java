@@ -94,7 +94,11 @@ public class CloudInfo implements TraceableAttributes, Serializable {
         // for all corresponding threads
         try {
             String clusterEndpoint = UriUtils.setPathForUri(clusterUrl, "");
-            return CACHE.computeIfAbsent(clusterEndpoint, key -> fetchCloudInfoAsync(clusterEndpoint, givenHttpClient)
+            return CACHE.computeIfAbsent(clusterEndpoint, key ->
+
+            // If an error occurs, each time the retryWhen subscribes to fetchCloudInfoAsync create a new instance
+            // instead of using the same fetchCloudInfoAsync Mono for all retries
+            Mono.defer(() -> fetchCloudInfoAsync(clusterEndpoint, givenHttpClient))
                     .retryWhen(RETRY_CONFIG)
                     .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterEndpoint, e))
                     .doOnError(ignore -> CACHE.remove(clusterEndpoint))
