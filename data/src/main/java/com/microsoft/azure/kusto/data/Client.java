@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+
 import reactor.core.publisher.Mono;
 
 public interface Client {
@@ -15,11 +16,12 @@ public interface Client {
 
     KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeQueryAsync(String command);
+    Mono<KustoOperationResult> executeQueryAsync(String command) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeQueryAsync(String database, String command);
+    Mono<KustoOperationResult> executeQueryAsync(String database, String command) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties);
+    Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException;
 
     KustoOperationResult executeMgmt(String command) throws DataServiceException, DataClientException;
 
@@ -27,13 +29,14 @@ public interface Client {
 
     KustoOperationResult executeMgmt(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeMgmtAsync(String command);
+    Mono<KustoOperationResult> executeMgmtAsync(String command) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeMgmtAsync(String database, String command);
+    Mono<KustoOperationResult> executeMgmtAsync(String database, String command) throws DataServiceException, DataClientException;
 
-    Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties);
+    Mono<KustoOperationResult> executeMgmtAsync(String database, String command, ClientRequestProperties properties)
+            throws DataServiceException, DataClientException;
 
     String executeToJsonResult(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 
-    Mono<String> executeToJsonResultAsync(String database, String command, ClientRequestProperties properties);
+    Mono<String> executeToJsonResultAsync(String database, String command, ClientRequestProperties properties) throws DataServiceException, DataClientException;
 }
