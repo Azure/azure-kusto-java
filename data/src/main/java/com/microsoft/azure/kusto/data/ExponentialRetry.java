@@ -7,7 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoDataExceptionBase;
 
 import reactor.util.annotation.Nullable;
 import reactor.util.retry.Retry;
@@ -73,7 +73,7 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
      * Creates a retry mechanism with exponential backoff and jitter.
      *
      * @param retriableErrorClasses A list of error classes that are considered retriable. If null,
-     *                              the method retries for all errors (default behavior).
+     *                              the method does not retry.
      * @return A configured {@link Retry} instance
      */
     public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
@@ -89,9 +89,8 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     }
 
     private static boolean shouldRetry(Throwable failure, List<Class<? extends Throwable>> retriableErrorClasses) {
-        if (failure instanceof DataServiceException && ((DataServiceException) failure).isPermanent()) {
-            log.error("Error is permanent, stopping.", failure);
-            return false;
+        if (failure instanceof KustoDataExceptionBase) {
+            return !((KustoDataExceptionBase) failure).isPermanent();
         }
 
         if (retriableErrorClasses != null) {
@@ -99,7 +98,7 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
                     .anyMatch(errorClass -> errorClass.isInstance(failure));
         }
 
-        return true;
+        return false;
     }
 
 }
