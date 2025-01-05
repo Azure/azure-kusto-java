@@ -96,7 +96,9 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             String clusterEndpoint = UriUtils.setPathForUri(clusterUrl, "");
             return CACHE.computeIfAbsent(clusterEndpoint, key -> fetchCloudInfoAsync(clusterEndpoint, givenHttpClient)
                     .retryWhen(RETRY_CONFIG)
-                    .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterEndpoint, e)));
+                    .onErrorMap(e -> ExceptionUtils.unwrapCloudInfoException(clusterEndpoint, e))
+                    .doOnError(ignore -> CACHE.remove(clusterEndpoint))
+                    .share());
         } catch (URISyntaxException ex) {
             throw new DataServiceException(clusterUrl, "Error in metadata endpoint, cluster uri invalid", ex, true);
         }

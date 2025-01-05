@@ -83,7 +83,7 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
                 .filter(throwable -> shouldRetry(throwable, retriableErrorClasses))
                 .doAfterRetry(retrySignal -> {
                     long currentAttempt = retrySignal.totalRetries() + 1;
-                    log.info("Attempt {} failed, trying again.", currentAttempt);
+                    log.info("Attempt {} failed.", currentAttempt);
                 })
                 .onRetryExhaustedThrow((spec, signal) -> signal.failure());
     }
