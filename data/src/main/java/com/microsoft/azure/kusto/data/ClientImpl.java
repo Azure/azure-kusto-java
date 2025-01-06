@@ -318,7 +318,6 @@ class ClientImpl extends BaseClient {
                         .publishOn(Schedulers.boundedElastic())
                         .map(response -> new KustoOperationResult(response, "v1"))
                         .onErrorMap(KustoServiceQueryError.class, e -> new DataClientException(clusterEndpoint, e.getMessage(), e))
-                        .onErrorMap(IOException.class, e -> new DataClientException(clusterUrl, e.getMessage(), e))
                         .doFinally(signalType -> {
                             if (isStreamSource && !leaveOpen) {
                                 try {
