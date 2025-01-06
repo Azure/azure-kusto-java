@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
@@ -59,7 +58,6 @@ import org.mockito.Mockito;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpResponse;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +73,7 @@ import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
 import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
@@ -701,9 +700,7 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(1)).sendSync(any(), any())) {
-        }
-
+        Mockito.verify(httpClientSpy, atLeast(2)).send(any(), any());
     }
 
     @Disabled("This test is disabled because it relies on the path part of the cluster Uri which we now ignore")
