@@ -32,7 +32,8 @@ public interface StreamingClient {
             String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
 
     Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
-            String streamFormat, String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
+            String streamFormat,
+            String mappingName, boolean leaveOpen);
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
@@ -55,15 +56,14 @@ public interface StreamingClient {
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
             String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
 
-    Mono<InputStream> executeStreamingQueryAsync(String command) throws DataServiceException, DataClientException;
+    Mono<InputStream> executeStreamingQueryAsync(String command);
 
-    Mono<InputStream> executeStreamingQueryAsync(String database, String command) throws DataServiceException, DataClientException;
+    Mono<InputStream> executeStreamingQueryAsync(String database, String command);
 
-    Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties)
-            throws DataServiceException, DataClientException;
+    Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties);
 
     Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String databaseName, String tableName, String blobUrl,
             ClientRequestProperties clientRequestProperties,
-            String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
+            String dataFormat, String ingestionMappingReference);
 
 }
