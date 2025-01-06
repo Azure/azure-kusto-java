@@ -2,7 +2,9 @@ package com.microsoft.azure.kusto.data.req;
 
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.CommandType;
-import org.apache.commons.lang3.StringUtils;
+import com.microsoft.azure.kusto.data.Ensure;
+
+import reactor.util.annotation.Nullable;
 
 public class KustoRequest {
 
@@ -154,6 +156,7 @@ public class KustoRequest {
      * A getter for this KustoRequest object's inner ClientRequestProperties.
      * @return the properties
      */
+    @Nullable
     public ClientRequestProperties getProperties() {
         return properties;
     }
@@ -171,20 +174,21 @@ public class KustoRequest {
         if (database == null) {
             database = DEFAULT_DATABASE_NAME;
         }
-        // Argument validation
-        if (StringUtils.isEmpty(database)) {
-            throw new IllegalArgumentException("Database is empty");
-        }
-        if (StringUtils.isEmpty(command)) {
-            throw new IllegalArgumentException("Command is empty");
-        }
+
+        Ensure.stringIsNotEmpty(database, "database");
+        Ensure.stringIsNotEmpty(command, "command");
+
         // Optimize the command by removing superfluous whitespace
         command = command.trim();
-        // Set command type if it wasn't provided. This is solely used by the deprecated methods in Client interface
-        // and the executeToJSON methods since they bypass the query/mgmt methods.
+
+        // Set command type if it wasn't provided. This is solely used executeToJsonResult methods since they bypass the query/mgmt methods.
         if (commandType == null) {
             commandType = determineCommandType(command);
         }
+    }
+
+    public int getRedirectCount() {
+        return properties == null ? 0 : properties.getRedirectCount();
     }
 
     private CommandType determineCommandType(String command) {

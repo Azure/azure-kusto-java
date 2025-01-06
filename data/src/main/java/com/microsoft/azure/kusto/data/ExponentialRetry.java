@@ -1,9 +1,16 @@
 package com.microsoft.azure.kusto.data;
 
+import java.lang.invoke.MethodHandles;
+import java.time.Duration;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
+import com.microsoft.azure.kusto.data.exceptions.KustoDataExceptionBase;
+
+import reactor.util.annotation.Nullable;
+import reactor.util.retry.Retry;
 
 public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -60,6 +67,38 @@ public class ExponentialRetry<E1 extends Throwable, E2 extends Throwable> {
         }
 
         return null;
+    }
+
+    /**
+     * Creates a retry mechanism with exponential backoff and jitter.
+     *
+     * @param retriableErrorClasses A list of error classes that are considered retriable. If null,
+     *                              the method does not retry.
+     * @return A configured {@link Retry} instance
+     */
+    public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
+        return Retry.backoff(maxAttempts, Duration.ofSeconds((long) sleepBaseSecs))
+                .maxBackoff(Duration.ofSeconds(30))
+                .jitter(maxJitterSecs)
+                .filter(throwable -> shouldRetry(throwable, retriableErrorClasses))
+                .doAfterRetry(retrySignal -> {
+                    long currentAttempt = retrySignal.totalRetries() + 1;
+                    log.info("Attempt {} failed.", currentAttempt);
+                })
+                .onRetryExhaustedThrow((spec, signal) -> signal.failure());
+    }
+
+    private static boolean shouldRetry(Throwable failure, List<Class<? extends Throwable>> retriableErrorClasses) {
+        if (failure instanceof KustoDataExceptionBase) {
+            return !((KustoDataExceptionBase) failure).isPermanent();
+        }
+
+        if (retriableErrorClasses != null) {
+            return retriableErrorClasses.stream()
+                    .anyMatch(errorClass -> errorClass.isInstance(failure));
+        }
+
+        return false;
     }
 
 }

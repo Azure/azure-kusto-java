@@ -3,10 +3,10 @@
 
 package com.microsoft.azure.kusto.data;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.io.FileNotFoundException;
+
+import org.apache.commons.lang3.StringUtils;
 
 public class Ensure {
 
@@ -46,6 +46,12 @@ public class Ensure {
     public static void isFalse(boolean condition, String message) {
         if (condition) {
             throw new IllegalArgumentException("Condition evaluated to True: " + message);
+        }
+    }
+
+    public static void stringIsNotEmpty(String str, String varName) {
+        if (StringUtils.isEmpty(str)) {
+            throw new IllegalArgumentException(varName + " is empty.");
         }
     }
 }

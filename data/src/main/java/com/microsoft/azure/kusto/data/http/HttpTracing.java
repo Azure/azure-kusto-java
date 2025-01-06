@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.data.http;
 
 import com.microsoft.azure.kusto.data.ClientDetails;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import reactor.util.annotation.Nullable;
 
 public class HttpTracing {
     private ClientRequestProperties properties;
@@ -12,6 +13,7 @@ public class HttpTracing {
     private HttpTracing() {
     }
 
+    @Nullable
     public ClientRequestProperties getProperties() {
         return properties;
     }

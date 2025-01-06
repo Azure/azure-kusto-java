@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.data.req.KustoRequest;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -204,11 +205,11 @@ public class HeaderTest {
     }
 
     @Test
-    public void testNoAuth() throws URISyntaxException, DataServiceException, DataClientException {
-        CloudInfo.manuallyAddToCache("http://help.kusto.windows.net", CloudInfo.DEFAULT_CLOUD);
+    public void testNoAuth() throws URISyntaxException {
+        CloudInfo.manuallyAddToCache("http://help.kusto.windows.net", Mono.just(CloudInfo.DEFAULT_CLOUD));
 
         ClientImpl noAuthClient = (ClientImpl) ClientFactory.createClient(new ConnectionStringBuilder("http://help.kusto.windows.net"));
-        noAuthClient.prepareRequest(new KustoRequest("test"));
+        noAuthClient.prepareRequestAsync(new KustoRequest("test")).block();
     }
 
     @Test
@@ -225,7 +226,6 @@ public class HeaderTest {
             // Expected
         }
     }
-
 
     private Map<String, String> extractHeadersFromAzureRequest(HttpRequest request) {
         Map<String, String> uncomplicatedHeaders = new HashMap<>();

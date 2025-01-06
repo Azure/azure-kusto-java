@@ -3,7 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest.exceptions;
 
-public class IngestionClientException extends Exception {
+import com.azure.core.exception.AzureException;
+
+public class IngestionClientException extends AzureException { // TODO: remove throws from internal method declarations (not from public Apis) on async ingest
+                                                               // impl
     private String ingestionSource;
 
     public String getIngestionSource() {
@@ -18,7 +21,7 @@ public class IngestionClientException extends Exception {
         super(message, throwable);
     }
 
-    public IngestionClientException(String ingestionSource, String message, Exception exception) {
+    public IngestionClientException(String ingestionSource, String message, RuntimeException exception) {
         this(message, exception);
         this.ingestionSource = ingestionSource;
     }

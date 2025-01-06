@@ -1,6 +1,8 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
-public abstract class KustoDataExceptionBase extends Exception {
+import com.azure.core.exception.AzureException;
+
+public abstract class KustoDataExceptionBase extends AzureException {
     private final String ingestionSource;
     private final boolean isPermanent;
 

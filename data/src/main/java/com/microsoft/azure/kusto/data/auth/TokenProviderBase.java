@@ -2,10 +2,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.HttpClient;
 import com.microsoft.azure.kusto.data.UriUtils;
-import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +9,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class TokenProviderBase implements TraceableAttributes {
     protected final Logger logger = LoggerFactory.getLogger(getClass());

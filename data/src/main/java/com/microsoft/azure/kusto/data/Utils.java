@@ -1,28 +1,12 @@
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.http.HttpHeader;
-import com.azure.core.http.HttpHeaderName;
-import com.azure.core.http.HttpResponse;
-import com.azure.core.implementation.StringBuilderWriter;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.core.lang.Nullable;
-import io.github.resilience4j.retry.RetryConfig;
-
-import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.Writer;
-import java.io.InputStreamReader;
 import java.net.NoRouteToHostException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Optional;
@@ -32,7 +16,33 @@ import java.util.function.Predicate;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
+import javax.net.ssl.SSLException;
+
+import com.azure.core.http.HttpHeader;
+import com.azure.core.http.HttpHeaderName;
+import com.azure.core.http.HttpResponse;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.core.lang.Nullable;
+import io.github.resilience4j.retry.RetryConfig;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.compression.ZlibCodecFactory;
+import io.netty.handler.codec.compression.ZlibWrapper;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 public class Utils {
+
     private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
@@ -121,21 +131,9 @@ public class Utils {
                 .build();
     }
 
-    // TODO Copied from apache IoUtils - should we take it back ? don't recall why removed
-    public static String gzipedInputToString(InputStream in) {
-        try (GZIPInputStream gz = new GZIPInputStream(in)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            try (StringBuilderWriter sw = new StringBuilderWriter(stringBuilder)) {
-                copy(gz, sw);
-                return stringBuilder.toString();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /**
      * Checks if an HTTP response is GZIP compressed.
+     *
      * @param response The HTTP response to check
      * @return a boolean indicating if the CONTENT_ENCODING header contains "gzip"
      */
@@ -146,33 +144,71 @@ public class Utils {
                 .isPresent();
     }
 
-    /**
-     * Gets an HTTP response body as an InputStream.
-     * @param response The response object to convert to an InputStream
-     * @return The response body as an InputStream
-     * @throws IOException An exception indicating an IO failure
-     */
-    public static InputStream getResponseAsStream(HttpResponse response) throws IOException {
-        InputStream contentStream = response.getBodyAsBinaryData().toStream();
-        String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
-        if (contentEncoding.contains("gzip")) {
-            return new GZIPInputStream(contentStream);
-        } else if (contentEncoding.contains("deflate")) {
-            return new DeflaterInputStream(contentStream);
-        }
-        return contentStream;
+    public static Mono<String> getResponseBody(HttpResponse httpResponse) {
+        return isGzipResponse(httpResponse)
+                ? processGzipBody(httpResponse.getBody())
+                : processNonGzipBody(httpResponse.getBody());
     }
 
-    public static int copy(final InputStream input, final Writer writer)
-            throws IOException {
-        final InputStreamReader reader = new InputStreamReader(input);
-        final char[] buffer = new char[1024];
-        int count = 0;
-        int n;
-        while (-1 != (n = reader.read(buffer))) {
-            writer.write(buffer, 0, n);
-            count += n;
-        }
-        return count;
+    public static Mono<String> processGzipBody(Flux<ByteBuffer> gzipBody) {
+        // To ensure efficiency in terms of performance and memory allocation, a streaming
+        // chunked decompression approach is utilized using Netty's EmbeddedChannel. This allows the decompression
+        // to occur in chunks, making it more memory-efficient for large payloads, as it prevents the entire
+        // compressed stream from being loaded into memory at once (which for example is required by GZIPInputStream for decompression).
+
+        EmbeddedChannel channel = new EmbeddedChannel(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
+
+        return gzipBody
+                .reduce(new StringBuilder(), (stringBuilder, byteBuffer) -> {
+                    channel.writeInbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for decompression
+
+                    ByteBuf decompressedByteBuf = channel.readInbound();
+                    if (decompressedByteBuf == null) {
+                        return stringBuilder;
+                    }
+
+                    String string = decompressedByteBuf.toString(StandardCharsets.UTF_8);
+                    decompressedByteBuf.release();
+
+                    if (!channel.inboundMessages().isEmpty()) {
+                        throw new IllegalStateException("Expected exactly one message in the channel.");
+                    }
+
+                    stringBuilder.append(string);
+                    return stringBuilder;
+                })
+                .map(StringBuilder::toString)
+                .doFinally(ignore -> channel.finishAndReleaseAll());
     }
+
+    private static Mono<String> processNonGzipBody(Flux<ByteBuffer> gzipBody) {
+        return gzipBody
+                .reduce(new StringBuilder(), (sb, bf) -> {
+                    sb.append(StandardCharsets.UTF_8.decode(bf.asReadOnlyBuffer()));
+                    return sb;
+                })
+                .map(StringBuilder::toString);
+    }
+
+    /**
+     * Method responsible for constructing the correct InputStream type based on content encoding header
+     *
+     * @param response      The response object in order to determine the content encoding
+     * @param contentStream The InputStream containing the content
+     * @return The correct InputStream type based on content encoding
+     */
+    public static InputStream resolveInputStream(HttpResponse response, InputStream contentStream) {
+        try {
+            String contentEncoding = response.getHeaders().get(HttpHeaderName.CONTENT_ENCODING).getValue();
+            if (contentEncoding.contains("gzip")) {
+                return new GZIPInputStream(contentStream);
+            } else if (contentEncoding.contains("deflate")) {
+                return new DeflaterInputStream(contentStream);
+            }
+            return contentStream;
+        } catch (IOException e) {
+            throw Exceptions.propagate(e);
+        }
+    }
+
 }

@@ -3,10 +3,12 @@
 
 package com.microsoft.azure.kusto.data;
 
+import java.io.InputStream;
+
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
-import java.io.InputStream;
+import reactor.core.publisher.Mono;
 
 public interface StreamingClient {
     /**
@@ -27,8 +29,11 @@ public interface StreamingClient {
      * @throws DataServiceException An exception returned from the service
      */
     KustoOperationResult executeStreamingIngest(String database, String table, InputStream stream, ClientRequestProperties properties, String streamFormat,
-            String mappingName, boolean leaveOpen)
-            throws DataServiceException, DataClientException;
+            String mappingName, boolean leaveOpen) throws DataServiceException, DataClientException;
+
+    Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
+            String streamFormat,
+            String mappingName, boolean leaveOpen);
 
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
@@ -50,4 +55,15 @@ public interface StreamingClient {
 
     KustoOperationResult executeStreamingIngestFromBlob(String databaseName, String tableName, String blobUrl, ClientRequestProperties clientRequestProperties,
             String dataFormat, String ingestionMappingReference) throws DataServiceException, DataClientException;
+
+    Mono<InputStream> executeStreamingQueryAsync(String command);
+
+    Mono<InputStream> executeStreamingQueryAsync(String database, String command);
+
+    Mono<InputStream> executeStreamingQueryAsync(String database, String command, ClientRequestProperties properties);
+
+    Mono<KustoOperationResult> executeStreamingIngestFromBlobAsync(String databaseName, String tableName, String blobUrl,
+            ClientRequestProperties clientRequestProperties,
+            String dataFormat, String ingestionMappingReference);
+
 }

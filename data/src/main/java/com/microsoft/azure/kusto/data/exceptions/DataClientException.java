@@ -29,7 +29,7 @@ public class DataClientException extends KustoDataExceptionBase {
         }
         if (throwable instanceof Exception) {
             Exception ex = (Exception) throwable;
-            return new DataClientException(clusterUrl, ExceptionsUtils.getMessageEx(ex), ex);
+            return new DataClientException(clusterUrl, ExceptionUtils.getMessageEx(ex), ex);
         }
 
         return new DataClientException(clusterUrl, throwable.toString(), null);
