@@ -175,7 +175,13 @@ class ClientImpl extends BaseClient {
                     return new KustoOperationResult(jsonResult.getResult(), jsonResult.getEndpoint().endsWith("v2/rest/query") ? "v2" : "v1");
                 })
                 .onErrorMap(KustoServiceQueryError.class, e -> new DataServiceException(clusterEndpoint, e.getMessage(), e, e.isPermanent()))
-                .onErrorMap(Exception.class, e -> new DataClientException(clusterEndpoint, ExceptionUtils.getMessageEx(e), e));
+                .onErrorMap(Exception.class, e -> {
+                    if (e instanceof DataServiceException) {
+                        return e;
+                    }
+
+                    return new DataClientException(clusterEndpoint, ExceptionUtils.getMessageEx(e), e);
+                });
     }
 
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
