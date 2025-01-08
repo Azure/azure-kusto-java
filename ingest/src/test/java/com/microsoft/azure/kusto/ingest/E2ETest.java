@@ -762,7 +762,10 @@ class E2ETest {
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException, URISyntaxException {
         try (ResourceManager resourceManager = new ResourceManager(dmCslClient, null)) {
             KustoResultSetTable primaryResults = dmCslClient.executeMgmt(".show export containers").getPrimaryResults();
-            primaryResults.next();
+            if (!primaryResults.next()) {
+                throw new IllegalStateException("No export containers found");
+            }
+
             String containerUrl = primaryResults.getString("StorageRoot");
             ContainerWithSas container = new ContainerWithSas(containerUrl, null);
             AzureStorageClient azureStorageClient = new AzureStorageClient();
