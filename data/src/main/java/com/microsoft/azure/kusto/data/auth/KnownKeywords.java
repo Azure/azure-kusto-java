@@ -37,7 +37,8 @@ public enum KnownKeywords {
     private String type;
     private boolean isSecret;
 
-    public static final Map<String, KnownKeywords> knownKeywords = Arrays.stream(KnownKeywords.values()).collect(HashMap::new, (map, keyword) -> map.put(keyword.name, keyword), HashMap::putAll);
+    public static final Map<String, KnownKeywords> knownKeywords = Arrays.stream(KnownKeywords.values()).collect(HashMap::new,
+            (map, keyword) -> map.put(keyword.name, keyword), HashMap::putAll);
 
     KnownKeywords(String name, boolean isSupported) {
         this.name = name;
@@ -64,7 +65,4 @@ public enum KnownKeywords {
         return isSupported;
     }
 
-    public String toKeywordString(Object value) {
-        return name + "=" + value.toString();
-    }
 }

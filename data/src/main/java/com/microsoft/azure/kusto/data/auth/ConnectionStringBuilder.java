@@ -171,8 +171,7 @@ public class ConnectionStringBuilder {
 
         for (Tuple2<KnownKeywords, String> entry : entries) {
             sb.append(entry._1.name()).append("=").append(
-                    !showSecrets && entry._1.isSecret() ? SECRET_REPLACEMENT : entry._2
-            ).append(";");
+                    !showSecrets && entry._1.isSecret() ? SECRET_REPLACEMENT : entry._2).append(";");
         }
 
         return sb.toString();
@@ -366,15 +365,15 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              String applicationKey) {
+            String applicationClientId,
+            String applicationKey) {
         return createWithAadApplicationCredentials(clusterUrl, applicationClientId, applicationKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCredentials(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              String applicationKey,
-                                                                              String authorityId) {
+            String applicationClientId,
+            String applicationKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -434,17 +433,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              X509Certificate x509Certificate,
-                                                                              PrivateKey privateKey) {
+            String applicationClientId,
+            X509Certificate x509Certificate,
+            PrivateKey privateKey) {
         return createWithAadApplicationCertificate(clusterUrl, applicationClientId, x509Certificate, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificate(String clusterUrl,
-                                                                              String applicationClientId,
-                                                                              X509Certificate x509Certificate,
-                                                                              PrivateKey privateKey,
-                                                                              String authorityId) {
+            String applicationClientId,
+            X509Certificate x509Certificate,
+            PrivateKey privateKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -471,17 +470,17 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-                                                                                               String applicationClientId,
-                                                                                               List<X509Certificate> x509CertificateChain,
-                                                                                               PrivateKey privateKey) {
+            String applicationClientId,
+            List<X509Certificate> x509CertificateChain,
+            PrivateKey privateKey) {
         return createWithAadApplicationCertificateSubjectNameIssuer(clusterUrl, applicationClientId, x509CertificateChain, privateKey, null);
     }
 
     public static ConnectionStringBuilder createWithAadApplicationCertificateSubjectNameIssuer(String clusterUrl,
-                                                                                               String applicationClientId,
-                                                                                               List<X509Certificate> x509CertificateChain,
-                                                                                               PrivateKey privateKey,
-                                                                                               String authorityId) {
+            String applicationClientId,
+            List<X509Certificate> x509CertificateChain,
+            PrivateKey privateKey,
+            String authorityId) {
         if (StringUtils.isEmpty(clusterUrl)) {
             throw new IllegalArgumentException("clusterUrl cannot be null or empty");
         }
@@ -612,23 +611,10 @@ public class ConnectionStringBuilder {
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
     public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser,
-                                    @Nullable String overrideUser, Pair<String, String>... additionalFields) {
+            @Nullable String overrideUser, Pair<String, String>... additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();
     }
 
-    enum ConnectionStringKeyword {
-        DataSource,
-        UsernameHint,
-        UseDeviceCodeAuth,
-        TokenProvider,
-        ApplicationClientId,
-        ApplicationKey,
-        UserToken,
-        AuthorityId,
-        ApplicationNameForTracing,
-        UserNameForTracing,
-        ClientVersionForTracing
-    }
 }
