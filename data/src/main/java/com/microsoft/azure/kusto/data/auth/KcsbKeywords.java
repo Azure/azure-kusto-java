@@ -31,8 +31,8 @@ public class KcsbKeywords {
     public KcsbKeywords() {
     }
 
-    public static String normalizeString(String keyword) {
-        return keyword.toLowerCase().replace(" ", "").replace("_", "");
+    public static String normalize(String keyword) {
+        return keyword.toLowerCase().replace(" ", "");
     }
 
     @NotNull
@@ -49,13 +49,13 @@ public class KcsbKeywords {
                     keyword.setType(keywordData.type);
                     keyword.setSecret(keywordData.secret);
 
-                    value.lookup.put(normalizeString(keywordData.name), keyword);
+                    value.lookup.put(normalize(keywordData.name), keyword);
 
                     for (String alias : keywordData.aliases) {
                         if (value.lookup.containsKey(alias)) {
                             throw new RuntimeException("KCSB keywordMap alias is duplicated: `" + alias + "`");
                         }
-                        value.lookup.put(normalizeString(alias), keyword);
+                        value.lookup.put(normalize(alias), keyword);
                     }
                 }
 
@@ -67,7 +67,7 @@ public class KcsbKeywords {
     }
 
     public KnownKeywords get(String keyword) {
-        KnownKeywords result = lookup.get(normalizeString(keyword));
+        KnownKeywords result = lookup.get(normalize(keyword));
         if (result == null) {
             throw new IllegalArgumentException("Keyword `" + keyword + "` is not a known keyword");
         }

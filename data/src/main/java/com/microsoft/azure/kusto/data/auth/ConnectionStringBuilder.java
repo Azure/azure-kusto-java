@@ -170,7 +170,7 @@ public class ConnectionStringBuilder {
 
         for (Pair<KnownKeywords, String> entry : entries) {
             sb.append(entry.getLeft().name()).append("=").append(
-                    !showSecrets && entry.getLeft().isSecret() ? SECRET_REPLACEMENT : entry.getRight()).append(";");
+                    (!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight()).append(";");
         }
 
         return sb.toString();
