@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.TokenCredential;
 import com.microsoft.azure.kusto.data.ClientDetails;
-import io.vavr.Tuple2;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -134,44 +133,44 @@ public class ConnectionStringBuilder {
     }
 
     public String toString(boolean showSecrets) {
-        ArrayList<Tuple2<KnownKeywords, String>> entries = new ArrayList<>();
+        ArrayList<Pair<KnownKeywords, String>> entries = new ArrayList<>();
         if (!StringUtils.isBlank(clusterUrl)) {
-            entries.add(new Tuple2<>(KnownKeywords.DATA_SOURCE, clusterUrl));
+            entries.add(Pair.of(KnownKeywords.DATA_SOURCE, clusterUrl));
         }
 
         if (!StringUtils.isBlank(usernameHint)) {
-            entries.add(new Tuple2<>(KnownKeywords.USER_ID, usernameHint));
+            entries.add(Pair.of(KnownKeywords.USER_ID, usernameHint));
         }
 
         if (!StringUtils.isBlank(applicationClientId)) {
-            entries.add(new Tuple2<>(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId));
+            entries.add(Pair.of(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId));
         }
 
         if (!StringUtils.isBlank(applicationKey)) {
-            entries.add(new Tuple2<>(KnownKeywords.APPLICATION_KEY, applicationKey));
+            entries.add(Pair.of(KnownKeywords.APPLICATION_KEY, applicationKey));
         }
 
         if (!StringUtils.isBlank(aadAuthorityId)) {
-            entries.add(new Tuple2<>(KnownKeywords.AUTHORITY_ID, aadAuthorityId));
+            entries.add(Pair.of(KnownKeywords.AUTHORITY_ID, aadAuthorityId));
         }
 
         if (!StringUtils.isBlank(accessToken)) {
-            entries.add(new Tuple2<>(KnownKeywords.USER_TOKEN, accessToken));
+            entries.add(Pair.of(KnownKeywords.USER_TOKEN, accessToken));
         }
 
         if (!StringUtils.isBlank(applicationNameForTracing)) {
-            entries.add(new Tuple2<>(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing));
+            entries.add(Pair.of(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing));
         }
 
         if (!StringUtils.isBlank(userNameForTracing)) {
-            entries.add(new Tuple2<>(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing));
+            entries.add(Pair.of(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing));
         }
 
         StringBuilder sb = new StringBuilder();
 
-        for (Tuple2<KnownKeywords, String> entry : entries) {
-            sb.append(entry._1.name()).append("=").append(
-                    !showSecrets && entry._1.isSecret() ? SECRET_REPLACEMENT : entry._2).append(";");
+        for (Pair<KnownKeywords, String> entry : entries) {
+            sb.append(entry.getLeft().name()).append("=").append(
+                    !showSecrets && entry.getLeft().isSecret() ? SECRET_REPLACEMENT : entry.getRight()).append(";");
         }
 
         return sb.toString();
