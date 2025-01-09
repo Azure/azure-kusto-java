@@ -69,11 +69,11 @@ public class KcsbKeywords {
     public KnownKeywords get(String keyword) {
         KnownKeywords result = lookup.get(normalizeString(keyword));
         if (result == null) {
-            throw new RuntimeException("Keyword `" + keyword + "` is not a known keyword");
+            throw new IllegalArgumentException("Keyword `" + keyword + "` is not a known keyword");
         }
 
         if (!result.isSupported()) {
-            throw new RuntimeException("Keyword `" + keyword + "` is not supported");
+            throw new IllegalArgumentException("Keyword `" + keyword + "` is not supported");
         }
 
         return result;
