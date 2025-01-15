@@ -760,7 +760,7 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException, URISyntaxException {
-        KustoResultSetTable primaryResults = dmCslClient.executeMgmt(".show export containers").getPrimaryResults();
+        KustoResultSetTable primaryResults = dmCslClient.executeMgmt(DB_NAME,".show export containers").getPrimaryResults();
         if (primaryResults.count() == 0) {
             throw new IllegalStateException("No export containers found");
         }
