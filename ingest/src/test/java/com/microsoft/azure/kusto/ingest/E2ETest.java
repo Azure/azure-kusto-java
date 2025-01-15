@@ -760,34 +760,36 @@ class E2ETest {
 
     @Test
     void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException, URISyntaxException {
-        try (ResourceManager resourceManager = new ResourceManager(dmCslClient, null)) {
-            KustoResultSetTable primaryResults = dmCslClient.executeMgmt(".show export containers").getPrimaryResults();
-            if (!primaryResults.next()) {
-                throw new IllegalStateException("No export containers found");
-            }
+        KustoResultSetTable primaryResults = dmCslClient.executeMgmt(DB_NAME, ".show export containers").getPrimaryResults();
+        if (primaryResults.count() == 0) {
+            throw new IllegalStateException("No export containers found");
+        }
 
-            String containerUrl = primaryResults.getString("StorageRoot");
-            ContainerWithSas container = new ContainerWithSas(containerUrl, null);
-            AzureStorageClient azureStorageClient = new AzureStorageClient();
+        if (!primaryResults.next()) {
+            throw new IllegalStateException("No export containers found");
+        }
 
-            for (TestDataItem item : dataForTests) {
-                if (item.testOnstreamingIngestion) {
-                    String blobName = String.format("%s__%s.%s.gz",
-                            "testStreamingIngestFromBlob",
-                            UUID.randomUUID(),
-                            item.ingestionProperties.getDataFormat());
+        String containerUrl = primaryResults.getString("StorageRoot");
+        ContainerWithSas container = new ContainerWithSas(containerUrl, null);
+        AzureStorageClient azureStorageClient = new AzureStorageClient();
 
-                    String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                String blobName = String.format("%s__%s.%s.gz",
+                        "testStreamingIngestFromBlob",
+                        UUID.randomUUID(),
+                        item.ingestionProperties.getDataFormat());
 
-                    azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
-                            container.getContainer(), !item.file.getName().endsWith(".gz"));
-                    try {
-                        streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
-                    } catch (Exception ex) {
-                        Assertions.fail(ex);
-                    }
-                    assertRowCount(item.rows, false);
+                String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+
+                azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
+                        container.getContainer(), !item.file.getName().endsWith(".gz"));
+                try {
+                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
                 }
+                assertRowCount(item.rows, false);
             }
         }
     }
