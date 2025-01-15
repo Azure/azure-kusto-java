@@ -40,8 +40,8 @@ jobs:
       - name: Run the Maven verify phase
         run: mvn verify
         env:
-          DM_CONNECTION_STRING: ${{ secrets.ENGINE_CONNECTION_STRING }}
-          ENGINE_CONNECTION_STRING: ${{ secrets.DM_CONNECTION_STRING }}
+          DM_CONNECTION_STRING: ${{ secrets.DM_CONNECTION_STRING }}
+          ENGINE_CONNECTION_STRING: ${{ secrets.ENGINE_CONNECTION_STRING }}
           TEST_DATABASE: ${{ secrets.TEST_DATABASE }}
           APP_ID: ${{ secrets.APP_ID }}
           TENANT_ID: ${{ secrets.TENANT_ID }}
