@@ -168,12 +168,21 @@ public class ConnectionStringBuilder {
 
         StringBuilder sb = new StringBuilder();
 
-        for (Pair<KnownKeywords, String> entry : entries) {
+        for (int i = 0; i < entries.size(); i++) {
+            Pair<KnownKeywords, String> entry = entries.get(i);
             sb.append(entry.getLeft().getCanonicalName()).append("=").append(
-                    (!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight()).append(";");
+                    (!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
+            if (i < entries.size() - 1) {
+                sb.append(";");
+            }
         }
 
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return toString(false);
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
