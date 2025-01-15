@@ -32,16 +32,16 @@ public enum KnownKeywords {
     APPLICATION_CERTIFICATE_ISSUER_DISTINGUISHED_NAME("Application Certificate Issuer Distinguished Name", false),
     APPLICATION_CERTIFICATE_SUBJECT_DISTINGUISHED_NAME("Application Certificate Subject Distinguished Name", false);
 
-    private final String name;
+    private final String canonicalName;
     private final boolean isSupported;
     private String type;
     private boolean isSecret;
 
     public static final Map<String, KnownKeywords> knownKeywords = Arrays.stream(KnownKeywords.values()).collect(HashMap::new,
-            (map, keyword) -> map.put(keyword.name, keyword), HashMap::putAll);
+            (map, keyword) -> map.put(keyword.canonicalName, keyword), HashMap::putAll);
 
-    KnownKeywords(String name, boolean isSupported) {
-        this.name = name;
+    KnownKeywords(String canonicalName, boolean isSupported) {
+        this.canonicalName = canonicalName;
         this.isSupported = isSupported;
     }
 
@@ -63,6 +63,10 @@ public enum KnownKeywords {
 
     public boolean isSupported() {
         return isSupported;
+    }
+
+    public String getCanonicalName() {
+        return canonicalName;
     }
 
 }

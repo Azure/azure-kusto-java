@@ -169,7 +169,7 @@ public class ConnectionStringBuilder {
         StringBuilder sb = new StringBuilder();
 
         for (Pair<KnownKeywords, String> entry : entries) {
-            sb.append(entry.getLeft().name()).append("=").append(
+            sb.append(entry.getLeft().getCanonicalName()).append("=").append(
                     (!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight()).append(";");
         }
 
@@ -217,7 +217,7 @@ public class ConnectionStringBuilder {
 
         String[] connStrArr = connectionString.split(";");
         if (!connStrArr[0].contains("=")) {
-            connStrArr[0] = KnownKeywords.DATA_SOURCE.name() + "=" + connStrArr[0];
+            connStrArr[0] = KnownKeywords.DATA_SOURCE.getCanonicalName() + "=" + connStrArr[0];
         }
 
         for (String kvp : connStrArr) {
