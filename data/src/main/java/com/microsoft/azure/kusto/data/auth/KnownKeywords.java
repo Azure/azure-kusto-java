@@ -16,10 +16,10 @@ public enum KnownKeywords {
     USER_TOKEN("User Token", true),
     APPLICATION_CERTIFICATE_BLOB("Application Certificate Blob", true),
     APPLICATION_CERTIFICATE_X5C("Application Certificate SendX5c", true),
-    APPLICATION_CERTIFICATE_THUMBPRINT("Application Certificate Thumbprint", true),
     APPLICATION_NAME_FOR_TRACING("Application Name for Tracing", true),
     USER_NAME_FOR_TRACING("User Name for Tracing", true),
     PASSWORD("Password", false), // TODO - should this be enabled for alignment?
+    APPLICATION_CERTIFICATE_THUMBPRINT("Application Certificate Thumbprint", false),
     DSTS_FEDERATED_SECURITY("dSTS Federated Security", false),
     STREAMING("Streaming", false),
     UNCOMPRESSED("Uncompressed", false),
