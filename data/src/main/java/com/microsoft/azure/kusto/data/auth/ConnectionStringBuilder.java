@@ -5,7 +5,6 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.TokenCredential;
 import com.microsoft.azure.kusto.data.ClientDetails;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +23,6 @@ public class ConnectionStringBuilder {
     private String applicationClientId;
     private String applicationKey;
     // Public certificate
-    private byte[] certificateBytes;
     private String initialCatalog;
     private boolean sendX509;
     private boolean aadFederatedSecurity;
@@ -76,9 +74,7 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = null;
         this.appendedClientVersionForTracing = null;
         this.applicationNameForTracing = null;
-        this.certificateBytes = null;
         this.sendX509 = false;
-        this.certificateBytes = null;
         this.initialCatalog = null;
     }
 
@@ -107,9 +103,6 @@ public class ConnectionStringBuilder {
             case AUTHORITY_ID:
                 this.aadAuthorityId = value;
                 break;
-            case APPLICATION_CERTIFICATE_BLOB:
-                this.certificateBytes = Base64.getDecoder().decode(value);
-                throw new NotImplementedException("Application certificate blob is not supported yet.");
             case APPLICATION_CERTIFICATE_X5C:
                 this.sendX509 = Boolean.parseBoolean(value);
                 break;
@@ -206,7 +199,6 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = other.userNameForTracing;
         this.appendedClientVersionForTracing = other.appendedClientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
-        this.certificateBytes = other.certificateBytes;
         this.sendX509 = other.sendX509;
         this.initialCatalog = other.initialCatalog;
         this.aadFederatedSecurity = other.aadFederatedSecurity;
@@ -216,7 +208,7 @@ public class ConnectionStringBuilder {
     /**
      * Creates a ConnectionStringBuilder from a connection string. For more information please look <a href="https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto">here</a>.
      *
-     * @param connectionString The connection string should be of the format: <p>https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord</p>
+     * @param connectionString The connection string should be of the format: <p>https://clusterName.location.kusto.windows.net;Fed=true;Application Client Id=****;Application Key=****</p>
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
