@@ -27,7 +27,6 @@ public class HttpRequestBuilder {
 
     // TODO - maybe save this in a resource
     private static final String KUSTO_API_VERSION = "2019-02-13";
-    private static final String JAVA_INGEST_ACTIVITY_TYPE_PREFIX = "DN.JavaClient.Execute";
     private static final String CLIENT_VERSION_HEADER = "x-ms-client-version";
     private static final String APP_HEADER = "x-ms-app";
     private static final String USER_HEADER = "x-ms-user";
@@ -182,11 +181,6 @@ public class HttpRequestBuilder {
 
         // Configures Keep-Alive on all requests traced
         headers.put("Connection", "Keep-Alive");
-
-        UUID activityId = UUID.randomUUID();
-        String activityContext = String.format("%s%s/%s, ActivityId=%s, ParentId=%s, ClientRequestId=%s",
-                JAVA_INGEST_ACTIVITY_TYPE_PREFIX, tracing.getActivityTypeSuffix(), activityId, activityId, activityId, clientRequestId);
-        headers.put("x-ms-activitycontext", activityContext);
 
         // replace non-ascii characters in header values with '?'
         headers.replaceAll((_i, v) -> v == null ? null : v.replaceAll("[^\\x00-\\x7F]", "?"));
