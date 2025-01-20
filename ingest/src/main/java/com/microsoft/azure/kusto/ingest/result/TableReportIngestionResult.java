@@ -3,12 +3,13 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableAsyncClient;
 import com.azure.data.tables.implementation.models.TableServiceErrorException;
-import com.azure.data.tables.models.TableEntity;
+import reactor.core.publisher.Mono;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class TableReportIngestionResult implements IngestionResult {
     private final List<IngestionStatusInTableDescription> descriptors;
@@ -18,15 +19,26 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() throws TableServiceErrorException {
-        List<IngestionStatus> results = new LinkedList<>();
-        for (IngestionStatusInTableDescription descriptor : descriptors) {
-            TableClient table = descriptor.getTableClient();
-            TableEntity entity = table.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey());
-            results.add(IngestionStatus.fromEntity(entity));
-        }
+    public Mono<List<IngestionStatus>> getIngestionStatusCollection() throws TableServiceErrorException {
+        List<Mono<IngestionStatus>> ingestionStatusMonos = descriptors.stream()
+                .map(descriptor -> {
+                    TableAsyncClient tableAsyncClient = descriptor.getTableAsyncClient();
+                    if (tableAsyncClient != null) {
+                        return tableAsyncClient.getEntity(descriptor.getPartitionKey(), descriptor.getRowKey())
+                                .map(IngestionStatus::fromEntity);
+                    } else {
+                        return Mono.<IngestionStatus>empty();
+                    }
+                })
+                .collect(Collectors.toList());
 
-        return results;
+        return Mono.zip(ingestionStatusMonos, results -> {
+            List<IngestionStatus> resultList = new LinkedList<>();
+            for (Object result : results) {
+                resultList.add((IngestionStatus) result);
+            }
+            return resultList;
+        });
     }
 
     @Override

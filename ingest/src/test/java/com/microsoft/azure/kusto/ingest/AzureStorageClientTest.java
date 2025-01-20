@@ -3,29 +3,34 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableAsyncClient;
 import com.azure.data.tables.models.TableEntity;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobAsyncClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
-import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueAsyncClient;
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.shouldCompress;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 class AzureStorageClientTest {
     static private final AzureStorageClient azureStorageClient = new AzureStorageClient();
@@ -34,7 +39,7 @@ class AzureStorageClientTest {
     static private String testFilePath;
     static private File testFile;
     static private File testFileCompressed;
-    static private BlobClient blob;
+    static private BlobAsyncClient blob;
 
     @BeforeAll
     static void setUp() {
@@ -42,7 +47,7 @@ class AzureStorageClientTest {
         testFile = new File(testFilePath);
         String testFilePathCompressed = Paths.get("src", "test", "resources", "testdata.json.gz").toString();
         testFileCompressed = new File(testFilePathCompressed);
-        blob = TestUtils.containerWithSasFromContainerName("storageUrl").getContainer().getBlobClient("bloby");
+        blob = TestUtils.containerWithSasFromContainerName("storageUrl").getAsyncContainer().getBlobAsyncClient("bloby");
     }
 
     @BeforeEach
@@ -54,7 +59,7 @@ class AzureStorageClientTest {
             throws IOException {
         Ensure.fileExists(file, "file");
         CompressionType sourceCompressionType = IngestionUtils.getCompression(file.getPath());
-        azureStorageClientSpy.uploadLocalFileToBlob(file, blobName, new BlobContainerClientBuilder().endpoint(storageUri).buildClient(),
+        azureStorageClientSpy.uploadLocalFileToBlob(file, blobName, new BlobContainerClientBuilder().endpoint(storageUri).buildAsyncClient(),
                 shouldCompress(sourceCompressionType, dataFormat));
     }
 
@@ -67,7 +72,7 @@ class AzureStorageClientTest {
 
     @Test
     void postMessageToQueue_NullContent_IllegalArgumentException() {
-        QueueClient queue = TestUtils.queueWithSasFromQueueName("queue1").getQueue();
+        QueueAsyncClient queue = TestUtils.queueWithSasFromQueueName("queue1").getAsyncQueue();
         assertThrows(
                 IllegalArgumentException.class,
                 () -> azureStorageClient.postMessageToQueue(queue, null));
@@ -77,7 +82,7 @@ class AzureStorageClientTest {
     void postMessageToQueue_NullEntity_IllegalArgumentException() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> azureStorageClient.azureTableInsertEntity(mock(TableClient.class), null));
+                () -> azureStorageClient.azureTableInsertEntity(mock(TableAsyncClient.class), null));
     }
 
     @Test
@@ -89,23 +94,29 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void uploadLocalFileToBlob_UncompressedFile_CompressAndUploadFileToBlobIsCalled()
-            throws IOException {
-        doNothing().when(azureStorageClientSpy).compressAndUploadFileToBlob(any(File.class), any(BlobClient.class));
+    void uploadLocalFileToBlob_UncompressedFile_CompressAndUploadFileToBlobIsCalled() throws IOException {
+        doAnswer(answer -> Mono.empty())
+                .when(azureStorageClientSpy)
+                .compressAndUploadFileToBlob(any(File.class), any(BlobAsyncClient.class));
 
-        azureStorageClientSpy.uploadLocalFileToBlob(testFile, "blobName",
-                new BlobContainerClientBuilder().endpoint("https://testcontosourl.com/blob").buildClient(), true);
-        verify(azureStorageClientSpy).compressAndUploadFileToBlob(any(), any(BlobClient.class));
+        azureStorageClientSpy.uploadLocalFileToBlob(
+                testFile,
+                "blobName",
+                new BlobContainerClientBuilder().endpoint("https://testcontosourl.com/blob").buildAsyncClient(),
+                true);
+
+        verify(azureStorageClientSpy).compressAndUploadFileToBlob(any(), any(BlobAsyncClient.class));
     }
 
     @Test
-    void uploadLocalFileToBlob_CompressedFile_UploadFileToBlobIsCalled()
-            throws IOException {
-        doNothing().when(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(BlobClient.class));
+    void uploadLocalFileToBlob_CompressedFile_UploadFileToBlobIsCalled() throws IOException {
+        doAnswer(answer -> Mono.empty())
+                .when(azureStorageClientSpy)
+                .uploadFileToBlob(any(File.class), any(BlobAsyncClient.class));
 
         uploadLocalFileToBlob(testFileCompressed, "blobName",
                 "https://testcontosourl.com/blob", IngestionProperties.DataFormat.CSV);
-        verify(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(BlobClient.class));
+        verify(azureStorageClientSpy).uploadFileToBlob(any(File.class), any(BlobAsyncClient.class));
     }
 
     @Test
@@ -138,32 +149,34 @@ class AzureStorageClientTest {
     }
 
     @Test
-    void uploadStreamToBlob_NotCompressMode_UploadStreamIsCalled()
-            throws IOException, URISyntaxException {
+    void uploadStreamToBlob_NotCompressMode_UploadStreamIsCalled() throws IOException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            doNothing().when(azureStorageClientSpy).uploadStream(any(InputStream.class), any(BlobClient.class));
+            doAnswer(answer -> Mono.empty())
+                    .when(azureStorageClientSpy)
+                    .uploadStream(any(InputStream.class), any(BlobAsyncClient.class));
 
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName",
-                    new BlobContainerClientBuilder().endpoint("https://ms.com/storageUrl").buildClient(), false);
-            verify(azureStorageClientSpy).uploadStream(isA(InputStream.class), isA(BlobClient.class));
+                    new BlobContainerClientBuilder().endpoint("https://ms.com/storageUrl").buildAsyncClient(), false);
+            verify(azureStorageClientSpy).uploadStream(isA(InputStream.class), isA(BlobAsyncClient.class));
         }
     }
 
     @Test
-    void uploadStreamToBlob_CompressMode_CompressAndUploadStreamIsCalled()
-            throws IOException, URISyntaxException {
+    void uploadStreamToBlob_CompressMode_CompressAndUploadStreamIsCalled() throws IOException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            doNothing().when(azureStorageClientSpy)
-                    .compressAndUploadStream(any(InputStream.class), any(BlobClient.class));
+            doAnswer(answer -> Mono.empty())
+                    .when(azureStorageClientSpy)
+                    .compressAndUploadStream(any(InputStream.class), any(BlobAsyncClient.class));
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName",
-                    new BlobContainerClientBuilder().endpoint("https://ms.com/storageUrl").buildClient(), true);
-            verify(azureStorageClientSpy).compressAndUploadStream(isA(InputStream.class), isA(BlobClient.class));
+                    new BlobContainerClientBuilder().endpoint("https://ms.com/storageUrl").buildAsyncClient(), true);
+            verify(azureStorageClientSpy).compressAndUploadStream(isA(InputStream.class), isA(BlobAsyncClient.class));
         }
     }
 
     @Test
     void UploadStreamToBlob_NullInputStream_IllegalArgumentException() {
-        BlobContainerClient container = new BlobContainerClientBuilder().endpoint("https://blobPath.blob.core.windows.net/container/blob").buildClient();
+        BlobContainerAsyncClient container = new BlobContainerClientBuilder().endpoint("https://blobPath.blob.core.windows.net/container/blob")
+                .buildAsyncClient();
         assertThrows(
                 IllegalArgumentException.class,
                 () -> azureStorageClient.uploadStreamToBlob(null, "blobName", container, false));
@@ -172,7 +185,8 @@ class AzureStorageClientTest {
     @Test
     void uploadStreamToBlob_NullBlobName_IllegalArgumentException() throws IOException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            BlobContainerClient storageUrl = new BlobContainerClientBuilder().endpoint("https://blobPath.blob.core.windows.net/container/blob").buildClient();
+            BlobContainerAsyncClient storageUrl = new BlobContainerClientBuilder().endpoint("https://blobPath.blob.core.windows.net/container/blob")
+                    .buildAsyncClient();
             assertThrows(
                     IllegalArgumentException.class,
                     () -> azureStorageClient.uploadStreamToBlob(stream, null, storageUrl, false));

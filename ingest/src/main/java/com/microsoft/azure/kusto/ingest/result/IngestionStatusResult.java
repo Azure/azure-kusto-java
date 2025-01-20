@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
+import reactor.core.publisher.Mono;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -15,8 +17,13 @@ public class IngestionStatusResult implements IngestionResult {
     }
 
     @Override
-    public List<IngestionStatus> getIngestionStatusCollection() {
-        return Collections.singletonList(this.ingestionStatus);
+    public Mono<List<IngestionStatus>> getIngestionStatusCollection() {
+        return Mono.defer(() -> {
+            if (ingestionStatus != null) {
+                return Mono.just(Collections.singletonList(ingestionStatus));
+            }
+            return Mono.empty();
+        });
     }
 
     @Override

@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import reactor.core.publisher.Mono;
 
 import java.io.Closeable;
 
@@ -31,6 +32,8 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    Mono<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
+
     /**
      * <p>Ingest data from a blob storage into Kusto database.</p>
      * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto database,
@@ -46,6 +49,8 @@ public interface IngestClient extends Closeable {
      */
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
+
+    Mono<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
 
     /**
      * <p>Ingest data from a Result Set into Kusto database.</p>
@@ -66,6 +71,8 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    Mono<IngestionResult> ingestFromResultSetAsync(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
+
     /**
      * <p>Ingest data from an input stream, into Kusto database.</p>
      * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto database,
@@ -81,4 +88,6 @@ public interface IngestClient extends Closeable {
      */
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
+
+    Mono<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
 }

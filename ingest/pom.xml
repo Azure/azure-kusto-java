@@ -109,6 +109,9 @@
                         <dependency>com.microsoft.azure:msal4j:jar</dependency>
                         <dependency>io.projectreactor:reactor-core:jar</dependency>
                         <dependency>com.fasterxml.jackson.core:jackson-core:jar</dependency>
+                        <dependency>io.netty:netty-buffer:jar</dependency>
+                        <dependency>io.netty:netty-codec:jar</dependency>
+                        <dependency>io.netty:netty-transport:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                     <ignoredNonTestScopedDependencies>
@@ -280,6 +283,13 @@
             <artifactId>kusto-data</artifactId>
             <version>6.0.0</version>
             <scope>compile</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-test -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <version>${reactor-test.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

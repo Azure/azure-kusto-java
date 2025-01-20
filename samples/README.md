@@ -248,12 +248,12 @@ FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length()
 
 From stream:
 ```java
-OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status; //TODO: this is async now? should we have a sync equivalent?
 ```
 
 From File:
 ```java
-OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status; //TODO: this is async now? should we have a sync equivalent?
 ```
 
 ### How to run this sample
@@ -331,12 +331,12 @@ IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestio
 5. Retrieve ingestion status and wait for result
 
 ```java
-List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection();
+List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection(); //TODO: this is async now? should we have a sync equivalent?
 
 while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
     Thread.sleep(1000);
     timeoutInSec -= 1;
-    statuses = ingestionResult.getIngestionStatusCollection();
+    statuses = ingestionResult.getIngestionStatusCollection(); //TODO: this is async now? should we have a sync equivalent?
 }
 ```
 

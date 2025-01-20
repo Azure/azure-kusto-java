@@ -1,25 +1,30 @@
 package com.microsoft.azure.kusto.ingest;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-import com.microsoft.azure.kusto.data.instrumentation.Tracer;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -30,75 +35,104 @@ public class ResourceAlgorithms {
     private ResourceAlgorithms() {
     }
 
-    private static <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> TOut resourceActionWithRetries(ResourceManager resourceManager,
-            List<TWrapper> resources, FunctionOneException<TOut, TWrapper, Exception> action, String actionName, Map<String, String> additionalAttributes)
-            throws IngestionClientException {
+    public static <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> Mono<TOut> resourceActionWithRetriesAsync(
+            ResourceManager resourceManager,
+            List<TWrapper> resources,
+            FunctionOneException<Mono<TOut>, TWrapper, Exception> action,
+            String actionName,
+            Map<String, String> additionalAttributes) {
 
         if (resources.isEmpty()) {
             throw new IngestionClientException(String.format("%s: No resources were provided.", actionName));
         }
 
         List<Map<String, String>> totalAttributes = new ArrayList<>();
-        Exception ex = null;
-        for (int i = 0; i < RETRY_COUNT; i++) {
-            TWrapper resource = resources.get(i % resources.size());
-            try {
-                Map<String, String> attributes = new HashMap<>();
-                attributes.put("resource", resource.getEndpointWithoutSas());
-                attributes.put("account", resource.getAccountName());
-                attributes.put("type", resource.getClass().getName());
-                attributes.put("retry", String.valueOf(i));
-                attributes.putAll(additionalAttributes);
-                totalAttributes.add(attributes);
 
-                return MonitoredActivity.invoke((FunctionOneException<TOut, Tracer.Span, Exception>) (Tracer.Span span) -> {
-                    try {
-                        TOut result = action.apply(resource);
-                        resourceManager.reportIngestionResult(resource, true);
-                        return result;
-                    } catch (Exception e) {
-                        resourceManager.reportIngestionResult(resource, false);
-                        span.addException(e);
-                        throw e;
-                    }
-                }, actionName, attributes);
-            } catch (Exception e) {
-                ex = e;
-                log.warn(String.format("Error during retry %d of %d for %s", i + 1, RETRY_COUNT, actionName), e);
-            }
-        }
-        throw new IngestionClientException(String.format("%s: All %d retries failed with last error: %s\n. Used resources: %s", actionName, RETRY_COUNT,
-                totalAttributes.stream().map(x -> String.format("%s (%s)", x.get("resource"), x.get("account"))).collect(Collectors.joining(", ")),
-                ExceptionUtils.getMessageEx(ex)));
+        return attemptAction(1, resources, resourceManager, action, actionName, additionalAttributes, null, totalAttributes);
     }
 
-    public static void postToQueueWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob)
-            throws IngestionClientException, IngestionServiceException, JsonProcessingException {
+    private static <TInner, TWrapper extends ResourceWithSas<TInner>, TOut> Mono<TOut> attemptAction(
+            int attempt,
+            List<TWrapper> resources,
+            ResourceManager resourceManager,
+            FunctionOneException<Mono<TOut>, TWrapper, Exception> action,
+            String actionName,
+            Map<String, String> additionalAttributes,
+            Exception ex,
+            List<Map<String, String>> totalAttributes) {
+
+        if (attempt > RETRY_COUNT) {
+            String errorMessage = String.format("%s: All %d retries failed with last error: %s\n. Used resources: %s",
+                    actionName,
+                    RETRY_COUNT,
+                    ex != null ? ExceptionUtils.getMessageEx(ex) : "",
+                    totalAttributes.stream()
+                            .map(x -> String.format("%s (%s)", x.get("resource"), x.get("account")))
+                            .collect(Collectors.joining(", ")));
+            throw new IngestionClientException(errorMessage);
+        }
+
+        TWrapper resource = resources.get((attempt - 1) % resources.size());
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("resource", resource.getEndpointWithoutSas());
+        attributes.put("account", resource.getAccountName());
+        attributes.put("type", resource.getClass().getName());
+        attributes.put("retry", String.valueOf(attempt));
+        attributes.putAll(additionalAttributes);
+        totalAttributes.add(attributes);
+
+        log.info(String.format("Attempt %d of %d for %s.", attempt, RETRY_COUNT, actionName));
+        return MonitoredActivity.invokeAsync(
+                span -> action.apply(resource)
+                        .doOnSuccess(ignored -> resourceManager.reportIngestionResult(resource, true)),
+                actionName,
+                attributes)
+                .onErrorResume(e -> {
+                    log.warn(String.format("Error during attempt %d of %d for %s.", attempt, RETRY_COUNT, actionName), e);
+                    resourceManager.reportIngestionResult(resource, false);
+                    return attemptAction(attempt + 1, resources, resourceManager, action, actionName, additionalAttributes, (Exception) e, totalAttributes);
+                });
+    }
+
+    public static Mono<Void> postToQueueWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob) {
         ObjectMapper objectMapper = Utils.getObjectMapper();
-        String message = objectMapper.writeValueAsString(blob);
-        resourceActionWithRetries(resourceManager, resourceManager.getShuffledQueues(), queue -> {
-            azureStorageClient.postMessageToQueue(queue.getQueue(), message);
-            return null;
-        }, "ResourceAlgorithms.postToQueueWithRetries",
+        String message;
+        try {
+            message = objectMapper.writeValueAsString(blob);
+        } catch (Exception e) {
+            throw new IngestionClientException("Failed to ingest from blob", e);
+        }
+
+        return resourceActionWithRetriesAsync(
+                resourceManager,
+                resourceManager.getShuffledQueues(), // TODO: revisit this impl if getShuffledContainers is async
+                queue -> azureStorageClient.postMessageToQueue(queue.getAsyncQueue(), message),
+                "ResourceAlgorithms.postToQueueWithRetriesAsync",
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static String uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
-            String blobName, boolean shouldCompress)
-            throws IngestionClientException, IngestionServiceException {
-        return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
-            azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-        }, "ResourceAlgorithms.uploadLocalFileWithRetries", Collections.emptyMap());
+    public static Mono<String> uploadStreamToBlobWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
+            String blobName, boolean shouldCompress) {
+
+        return resourceActionWithRetriesAsync(
+                resourceManager,
+                resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
+                container -> azureStorageClient.uploadStreamToBlob(stream, blobName, container.getAsyncContainer(), shouldCompress)
+                        .thenReturn(container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()),
+                "ResourceAlgorithms.uploadStreamToBlobWithRetriesAsync",
+                Collections.emptyMap());
     }
 
-    public static String uploadLocalFileWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, File file, String blobName,
-            boolean shouldCompress)
-            throws IngestionClientException, IngestionServiceException {
-        return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
-            azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
-        }, "ResourceAlgorithms.uploadLocalFileWithRetries", Collections.emptyMap());
+    public static Mono<String> uploadLocalFileWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, File file,
+            String blobName,
+            boolean shouldCompress) {
+        return resourceActionWithRetriesAsync(
+                resourceManager,
+                resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
+                container -> azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getAsyncContainer(), shouldCompress)
+                        .thenReturn(container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()),
+                "ResourceAlgorithms.uploadLocalFileWithRetriesAsync",
+                Collections.emptyMap());
     }
 
     @NotNull

@@ -156,13 +156,13 @@ public class Utils {
         // to occur in chunks, making it more memory-efficient for large payloads, as it prevents the entire
         // compressed stream from being loaded into memory at once (which for example is required by GZIPInputStream for decompression).
 
-        EmbeddedChannel channel = new EmbeddedChannel(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
+        EmbeddedChannel decoder = new EmbeddedChannel(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
 
         return gzipBody
                 .reduce(new StringBuilder(), (stringBuilder, byteBuffer) -> {
-                    channel.writeInbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for decompression
+                    decoder.writeInbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for decompression
 
-                    ByteBuf decompressedByteBuf = channel.readInbound();
+                    ByteBuf decompressedByteBuf = decoder.readInbound();
                     if (decompressedByteBuf == null) {
                         return stringBuilder;
                     }
@@ -170,7 +170,7 @@ public class Utils {
                     String string = decompressedByteBuf.toString(StandardCharsets.UTF_8);
                     decompressedByteBuf.release();
 
-                    if (!channel.inboundMessages().isEmpty()) {
+                    if (!decoder.inboundMessages().isEmpty()) { // TODO: remove this when we are sure that only one message exists in the channel
                         throw new IllegalStateException("Expected exactly one message in the channel.");
                     }
 
@@ -178,7 +178,7 @@ public class Utils {
                     return stringBuilder;
                 })
                 .map(StringBuilder::toString)
-                .doFinally(ignore -> channel.finishAndReleaseAll());
+                .doFinally(ignore -> decoder.finishAndReleaseAll());
     }
 
     private static Mono<String> processNonGzipBody(Flux<ByteBuffer> gzipBody) {

@@ -1,15 +1,15 @@
 package com.microsoft.azure.kusto.ingest.resources;
 
 import com.azure.core.http.HttpClient;
-import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.microsoft.azure.kusto.data.UriUtils;
 
 import java.net.URISyntaxException;
 
-public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
+public class ContainerWithSas implements ResourceWithSas<BlobContainerAsyncClient> {
     private final String sas;
-    private final BlobContainerClient container;
+    private final BlobContainerAsyncClient asyncContainer;
 
     public ContainerWithSas(String url, HttpClient httpClient) throws URISyntaxException {
         String[] parts = UriUtils.getSasAndEndpointFromResourceURL(url);
@@ -17,33 +17,33 @@ public class ContainerWithSas implements ResourceWithSas<BlobContainerClient> {
         String sas = parts[1];
         this.sas = '?' + sas;
 
-        this.container = new BlobContainerClientBuilder()
+        this.asyncContainer = new BlobContainerClientBuilder()
                 .endpoint(endpoint)
                 .sasToken(sas)
                 .httpClient(httpClient)
-                .buildClient();
+                .buildAsyncClient();
     }
 
     public String getSas() {
         return sas;
     }
 
-    public BlobContainerClient getContainer() {
-        return container;
+    public BlobContainerAsyncClient getAsyncContainer() {
+        return asyncContainer;
     }
 
     @Override
     public String getEndpointWithoutSas() {
-        return container.getBlobContainerUrl();
+        return asyncContainer.getBlobContainerUrl();
     }
 
     @Override
     public String getAccountName() {
-        return container.getAccountName();
+        return asyncContainer.getAccountName();
     }
 
     @Override
-    public BlobContainerClient getResource() {
-        return container;
+    public BlobContainerAsyncClient getResource() {
+        return asyncContainer;
     }
 }
