@@ -10,6 +10,7 @@ import java.util.Map;
 
 public class KcsbKeywords {
     public KeywordData[] keywords;
+    public String version;
 
     private final Map<String, KnownKeywords> lookup = new HashMap<>();
 
