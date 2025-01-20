@@ -17,7 +17,13 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
+    private static final KcsbKeywords KCSB_KEYWORDS = KcsbKeywords.getInstance();
+
     public static final String SECRET_REPLACEMENT = "****";
+    public static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
+
+    private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
+
     private String clusterUrl;
     private String usernameHint;
     private String applicationClientId;
@@ -42,14 +48,11 @@ public class ConnectionStringBuilder {
     private boolean useManagedIdentityAuth;
     private boolean useAzureCli;
     private boolean useUserPromptAuth;
-    // TODO - use this for when moving to az identity
     private boolean useCertificateAuth;
     private String userNameForTracing;
     private String appendedClientVersionForTracing;
     private String applicationNameForTracing;
-    private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
 
-    private static final KcsbKeywords KCSB_KEYWORDS = KcsbKeywords.getInstance();
 
     private ConnectionStringBuilder() {
         this.aadFederatedSecurity = false;
@@ -88,7 +91,7 @@ public class ConnectionStringBuilder {
             case INITIAL_CATALOG:
                 this.initialCatalog = value;
                 break;
-            case FEDERATED_SECURITY: // todo - decide default for this
+            case FEDERATED_SECURITY:
                 this.aadFederatedSecurity = Boolean.parseBoolean(value);
                 break;
             case APPLICATION_CLIENT_ID:
@@ -164,7 +167,7 @@ public class ConnectionStringBuilder {
             sb.append(entry.getLeft().getCanonicalName())
                 .append("=")
                 .append((!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
-                
+
             if (i < entries.size() - 1) {
                 sb.append(";");
             }
@@ -304,6 +307,27 @@ public class ConnectionStringBuilder {
 
     boolean isUseUserPromptAuth() {
         return useUserPromptAuth;
+    }
+
+    boolean isUseCertificateAuth() {
+        return useCertificateAuth;
+    }
+
+    boolean isAadFederatedSecurity() {
+        return aadFederatedSecurity;
+    }
+
+    boolean shouldSendX509() {
+        return sendX509;
+    }
+
+    /**
+     * Gets the default database to connect to.
+     *
+     * @return The default database to connect to.
+     */
+    public String getInitialCatalog() {
+        return initialCatalog == null ? DEFAULT_DATABASE_NAME : initialCatalog;
     }
 
     /**

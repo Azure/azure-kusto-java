@@ -45,7 +45,6 @@ class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
-    private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
@@ -53,6 +52,7 @@ class ClientImpl extends BaseClient {
     private final TokenProviderBase aadAuthenticationHelper;
 
     private final String clusterUrl;
+    private final String defaultDatabaseName;
     private final ClientDetails clientDetails;
     private boolean endpointValidated = false;
 
@@ -71,11 +71,12 @@ class ClientImpl extends BaseClient {
         clusterUrl = csb.getClusterUrl();
         aadAuthenticationHelper = clusterUrl.toLowerCase().startsWith(CloudInfo.LOCALHOST) ? null : TokenProviderFactory.createTokenProvider(csb, httpClient);
         clientDetails = new ClientDetails(csb.getApplicationNameForTracing(), csb.getUserNameForTracing(), csb.getClientVersionForTracing());
+        defaultDatabaseName = csb.getInitialCatalog();
     }
 
     @Override
     public KustoOperationResult executeQuery(String command) {
-        return executeQuery(DEFAULT_DATABASE_NAME, command);
+        return executeQuery(defaultDatabaseName, command);
     }
 
     @Override
@@ -90,7 +91,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public Mono<KustoOperationResult> executeQueryAsync(String command) {
-        return executeQueryAsync(DEFAULT_DATABASE_NAME, command);
+        return executeQueryAsync(defaultDatabaseName, command);
     }
 
     @Override
@@ -105,7 +106,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public KustoOperationResult executeMgmt(String command) {
-        return executeMgmt(DEFAULT_DATABASE_NAME, command);
+        return executeMgmt(defaultDatabaseName, command);
     }
 
     @Override
@@ -120,12 +121,12 @@ class ClientImpl extends BaseClient {
 
     @Override
     public Mono<KustoOperationResult> executeMgmtAsync(String command) {
-        return executeMgmtAsync(DEFAULT_DATABASE_NAME, command);
+        return executeMgmtAsync(defaultDatabaseName, command);
     }
 
     @Override
     public Mono<KustoOperationResult> executeMgmtAsync(String database, String command) {
-        return executeMgmtAsync(DEFAULT_DATABASE_NAME, command, null);
+        return executeMgmtAsync(defaultDatabaseName, command, null);
     }
 
     @Override
@@ -141,7 +142,7 @@ class ClientImpl extends BaseClient {
     @Override
     public Mono<String> executeToJsonResultAsync(String database, String command, ClientRequestProperties properties) {
         return Mono.defer(() -> {
-            KustoRequest kr = new KustoRequest(command, database == null ? DEFAULT_DATABASE_NAME : database, properties);
+            KustoRequest kr = new KustoRequest(command, database == null ? defaultDatabaseName : database, properties);
             return executeWithTimeout(kr, ".executeToJsonResultAsync");
         });
     }
@@ -349,7 +350,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public InputStream executeStreamingQuery(String command) {
-        return executeStreamingQuery(DEFAULT_DATABASE_NAME, command);
+        return executeStreamingQuery(defaultDatabaseName, command);
     }
 
     @Override
@@ -364,7 +365,7 @@ class ClientImpl extends BaseClient {
 
     @Override
     public Mono<InputStream> executeStreamingQueryAsync(String command) {
-        return executeStreamingQueryAsync(DEFAULT_DATABASE_NAME, command);
+        return executeStreamingQueryAsync(defaultDatabaseName, command);
     }
 
     @Override

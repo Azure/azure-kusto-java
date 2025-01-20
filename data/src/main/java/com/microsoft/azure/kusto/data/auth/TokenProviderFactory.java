@@ -26,14 +26,17 @@ public class TokenProviderFactory {
         if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
             if (StringUtils.isNotBlank(csb.getApplicationKey())) {
                 return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
-            } else if (csb.getX509CertificateChain() != null && !csb.getX509CertificateChain().isEmpty() && csb.getPrivateKey() != null) {
-                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
-                String applicationClientId = csb.getApplicationClientId();
-                return new SubjectNameIssuerTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
-            } else if (csb.getX509Certificate() != null && csb.getPrivateKey() != null) {
-                IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
-                String applicationClientId = csb.getApplicationClientId();
-                return new ApplicationCertificateTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
+            } else if (csb.isUseCertificateAuth()) {
+                if (csb.shouldSendX509()) {
+                    IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
+                    String applicationClientId = csb.getApplicationClientId();
+                    return new SubjectNameIssuerTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
+                } else {
+                    IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificate(csb.getPrivateKey(), csb.getX509Certificate());
+                    String applicationClientId = csb.getApplicationClientId();
+                    return new ApplicationCertificateTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
+                }
+
             } else {
                 throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
             }
@@ -52,7 +55,7 @@ public class TokenProviderFactory {
             return new ManagedIdentityTokenProvider(clusterUrl, csb.getManagedIdentityClientId(), httpClient);
         } else if (csb.isUseAzureCli()) {
             return new AzureCliTokenProvider(clusterUrl, httpClient);
-        } else if (csb.isUseUserPromptAuth()) {
+        } else if (csb.isUseUserPromptAuth() || csb.isAadFederatedSecurity()) { // If Fed=true, and no other auth method is specified, we assume user prompt
             if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();
                 return new UserPromptTokenProvider(clusterUrl, usernameHint, authorityId, httpClient);

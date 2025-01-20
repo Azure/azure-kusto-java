@@ -46,6 +46,10 @@ public class KcsbKeywords {
                 // Validate the keywords
                 for (KeywordData keywordData : value.keywords) {
                     KnownKeywords keyword = KnownKeywords.knownKeywords.get(keywordData.name);
+                    if (keyword == null) {
+                        throw new RuntimeException("Got unexpected keyword from embedded resource: `" + keywordData.name + "`. This is a bug in the SDK - please report it.");
+                    }
+
                     keyword.setType(keywordData.type);
                     keyword.setSecret(keywordData.secret);
 
