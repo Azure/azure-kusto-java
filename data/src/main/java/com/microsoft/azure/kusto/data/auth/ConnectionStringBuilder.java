@@ -163,8 +163,10 @@ public class ConnectionStringBuilder {
 
         for (int i = 0; i < entries.size(); i++) {
             Pair<KnownKeywords, String> entry = entries.get(i);
-            sb.append(entry.getLeft().getCanonicalName()).append("=").append(
-                    (!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
+            sb.append(entry.getLeft().getCanonicalName())
+                .append("=")
+                .append((!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
+                
             if (i < entries.size() - 1) {
                 sb.append(";");
             }
