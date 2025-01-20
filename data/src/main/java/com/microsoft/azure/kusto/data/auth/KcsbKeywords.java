@@ -69,11 +69,11 @@ public class KcsbKeywords {
     public KnownKeywords get(String keyword) {
         KnownKeywords result = lookup.get(normalize(keyword));
         if (result == null) {
-            throw new IllegalArgumentException("Keyword `" + keyword + "` is not a known keyword");
+            throw new IllegalArgumentException("The Connection String keyword `" + keyword + "` is unknown.");
         }
 
         if (!result.isSupported()) {
-            throw new IllegalArgumentException("Keyword `" + keyword + "` is not supported");
+            throw new IllegalArgumentException("The Connection String keyword `" + keyword + "` is not supported by this SDK.");
         }
 
         return result;

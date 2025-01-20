@@ -80,9 +80,6 @@ public class ConnectionStringBuilder {
 
     private void assignValue(String rawKey, String value) {
         KnownKeywords parsedKey = KCSB_KEYWORDS.get(rawKey);
-        if (parsedKey == null) {
-            throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
-        }
 
         switch (parsedKey) {
             case DATA_SOURCE:
@@ -121,12 +118,13 @@ public class ConnectionStringBuilder {
                 this.accessToken = value;
                 break;
             default:
-                throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
+                throw new IllegalArgumentException("Unexpected keyword error for `" + rawKey + "`. This is a bug - please report it.");
         }
     }
 
     public String toString(boolean showSecrets) {
         ArrayList<Pair<KnownKeywords, String>> entries = new ArrayList<>();
+
         if (!StringUtils.isBlank(clusterUrl)) {
             entries.add(Pair.of(KnownKeywords.DATA_SOURCE, clusterUrl));
         }
