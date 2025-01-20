@@ -196,15 +196,13 @@ class ConnectionStringBuilderTest {
     @Test
     void testWithUnsupportedKeyword() {
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;DstsFed=true")
-                );
+                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;DstsFed=true"));
     }
 
     @Test
     void testWithInvalidKeyword() {
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;InvalidKey=invalidKey")
-                );
+                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;InvalidKey=invalidKey"));
     }
 
     @Test

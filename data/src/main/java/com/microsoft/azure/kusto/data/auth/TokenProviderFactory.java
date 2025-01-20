@@ -28,7 +28,8 @@ public class TokenProviderFactory {
                 return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
             } else if (csb.isUseCertificateAuth()) {
                 if (csb.shouldSendX509()) {
-                    IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(), csb.getX509CertificateChain());
+                    IClientCertificate clientCertificate = ClientCredentialFactory.createFromCertificateChain(csb.getPrivateKey(),
+                            csb.getX509CertificateChain());
                     String applicationClientId = csb.getApplicationClientId();
                     return new SubjectNameIssuerTokenProvider(clusterUrl, applicationClientId, clientCertificate, authorityId, httpClient);
                 } else {
