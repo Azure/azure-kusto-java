@@ -13,11 +13,10 @@ class ManagedStreamingQueuingPolicyTest {
         // Test with dataSize, rawDataSize, compressed and dataFormat parameters
         // Adjust these values according to your needs
         long dataSize = 0;
-        long rawDataSize = 0;
         boolean compressed = false;
         IngestionProperties.DataFormat dataFormat = IngestionProperties.DataFormat.CSV;
 
-        boolean result = policy.shouldUseQueuedIngestion(dataSize, rawDataSize, compressed, dataFormat);
+        boolean result = policy.shouldUseQueuedIngestion(dataSize, compressed, dataFormat);
 
         // Assert the result
         // Adjust the expected result according to your needs

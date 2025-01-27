@@ -139,6 +139,9 @@ public abstract class BaseClient implements Client, StreamingClient {
                 LOGGER.debug("json processing error happened while parsing errorFromResponse {}", e.getMessage(), e);
             }
         } else {
+            if (httpResponse.getStatusCode() == HttpStatus.FORBIDDEN || httpResponse.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                isPermanent = true;
+            }
             message = String.format("Http StatusCode='%s'", httpResponse.getStatusCode());
         }
 

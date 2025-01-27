@@ -3,14 +3,17 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
+import java.io.File;
 import java.util.Map;
 import java.util.UUID;
 
 import static com.microsoft.azure.kusto.data.Ensure.stringIsNotBlank;
 
 public class BlobSourceInfo extends AbstractSourceInfo {
-
     private String blobPath;
+
+    // For internal usage - only when we create the blob
+    private Long blobExactSize = null;
     private CompressionType compressionType;
 
     public String getBlobPath() {
@@ -25,23 +28,17 @@ public class BlobSourceInfo extends AbstractSourceInfo {
         this.blobPath = blobPath;
     }
 
-    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
-    public BlobSourceInfo(String blobPath, long rawSizeInBytes) {
-        this(blobPath);
-        this.setRawSizeInBytes(rawSizeInBytes);
+    public BlobSourceInfo(String blobPath, CompressionType compressionType) {
+        this(blobPath, compressionType, null);
+    }
+    public BlobSourceInfo(String blobPath, CompressionType compressionType, UUID sourceId) {
+        setBlobPath(blobPath);
+        setCompressionType(compressionType);
+        setSourceId(sourceId);
     }
 
-    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
-    public BlobSourceInfo(String blobPath, long rawSizeInBytes, CompressionType compressionType) {
-        this(blobPath);
-        this.compressionType = compressionType;
-        this.setRawSizeInBytes(rawSizeInBytes);
-    }
-
-    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
-    public BlobSourceInfo(String blobPath, long rawSizeInBytes, UUID sourceId) {
-        this(blobPath, rawSizeInBytes);
-        this.setSourceId(sourceId);
+    public Long getBlobExactSize() {
+        return blobExactSize;
     }
 
     public CompressionType getCompressionType() {
@@ -65,5 +62,27 @@ public class BlobSourceInfo extends AbstractSourceInfo {
             attributes.put("sourceId", sourceId.toString());
         }
         return attributes;
+    }
+
+    /*
+        For internal usage, adding blobExactSize
+     */
+    public static BlobSourceInfo fromFile(String blobPath, FileSourceInfo fileSourceInfo, CompressionType sourceCompressionType, boolean gotCompressed) {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, gotCompressed ? CompressionType.gz : sourceCompressionType,
+                fileSourceInfo.getSourceId());
+        if (sourceCompressionType == null) {
+            blobSourceInfo.blobExactSize = new File(fileSourceInfo.getFilePath()).length();
+        }
+
+        return blobSourceInfo;
+    }
+
+    /*
+      For internal usage, adding blobExactSize
+   */
+    public static BlobSourceInfo fromStream(String blobPath, Integer size, StreamSourceInfo streamSourceInfo) {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getCompressionType(), streamSourceInfo.getSourceId());
+        blobSourceInfo.blobExactSize = size.longValue();
+        return blobSourceInfo;
     }
 }

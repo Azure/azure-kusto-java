@@ -93,7 +93,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         ingestionProperties.validate();
 
         try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, false, ingestionProperties.getDataFormat());
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, false);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -111,8 +111,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         ingestionProperties.validate();
 
         try {
-            BlobClient blobClient = new BlobClientBuilder().endpoint(blobSourceInfo.getBlobPath()).buildClient();
-            return ingestFromBlob(blobSourceInfo, ingestionProperties, blobClient, null);
+            return ingestFromBlob(blobSourceInfo, ingestionProperties, null);
         } catch (IllegalArgumentException e) {
             String msg = "Unexpected error when ingesting a blob - Invalid blob path.";
             log.error(msg, e);
@@ -236,37 +235,27 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo,
             IngestionProperties ingestionProperties,
-            BlobClient cloudBlockBlob,
             @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         // trace ingestFromBlob
         return MonitoredActivity.invoke(
                 (SupplierTwoExceptions<IngestionResult, IngestionClientException, IngestionServiceException>) () -> ingestFromBlobImpl(blobSourceInfo,
-                        ingestionProperties, cloudBlockBlob, clientRequestId),
+                        ingestionProperties, clientRequestId),
                 getClientType().concat(".ingestFromBlob"),
                 getIngestionTraceAttributes(blobSourceInfo, ingestionProperties));
     }
 
-    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties, BlobClient cloudBlockBlob,
+    private IngestionResult ingestFromBlobImpl(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties,
             @Nullable String clientRequestId)
             throws IngestionClientException, IngestionServiceException {
         String blobPath = blobSourceInfo.getBlobPath();
-        try {
-            // No need to check blob size if it was given to us that it's not empty
-            if (blobSourceInfo.getRawSizeInBytes() == 0 && cloudBlockBlob.getProperties().getBlobSize() == 0) {
-                String message = "Empty blob.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-        } catch (BlobStorageException ex) {
-            throw new IngestionClientException(String.format("Exception trying to read blob metadata,%s",
-                    ex.getStatusCode() == 403 ? "this might mean the blob doesn't exist" : ""), ex);
-        }
+
         ClientRequestProperties clientRequestProperties = null;
         if (StringUtils.isNotBlank(clientRequestId)) {
             clientRequestProperties = new ClientRequestProperties();
             clientRequestProperties.setClientRequestId(clientRequestId);
         }
+
         IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
         try {
             this.streamingClient.executeStreamingIngestFromBlob(ingestionProperties.getDatabaseName(),

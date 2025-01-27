@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,12 +84,12 @@ public class ResourceAlgorithms {
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static String uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
-            String blobName, boolean shouldCompress)
+    public static Pair<String, Integer> uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
+                                                                      String blobName, boolean shouldCompress)
             throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
-            azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
+            int size = azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
+            return Pair.of(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas(), size);
         }, "ResourceAlgorithms.uploadLocalFileWithRetries", Collections.emptyMap());
     }
 

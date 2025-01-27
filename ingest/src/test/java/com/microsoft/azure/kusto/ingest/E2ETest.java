@@ -21,7 +21,6 @@ import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
@@ -343,7 +342,7 @@ class E2ETest {
     void testIngestFromFile(boolean isManaged) {
         for (TestDataItem item : dataForTests) {
             if (!item.testReportMethodTable) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath());
                 try {
                     ((isManaged && item.testOnManaged) ? managedStreamingIngestClient : ingestClient).ingestFromFile(fileSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
@@ -358,7 +357,7 @@ class E2ETest {
     void testIngestFromFileWithTable() {
         for (TestDataItem item : dataForTests) {
             if (item.testReportMethodTable) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath());
                 try {
                     ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
@@ -409,7 +408,7 @@ class E2ETest {
     void testStreamingIngestFromFile() {
         for (TestDataItem item : dataForTests) {
             if (item.testOnstreamingIngestion) {
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath());
                 try {
                     streamingIngestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
                 } catch (Exception ex) {
@@ -558,7 +557,7 @@ class E2ETest {
             }
         };
 
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath(), item.file.length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(item.file.getPath());
         try {
             ingestClient.ingestFromFile(fileSourceInfo, item.ingestionProperties);
         } catch (Exception ex) {
@@ -711,7 +710,7 @@ class E2ETest {
     }
 
     @Test
-    void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException {
+    void testStreamingIngestFromBlob() throws IngestionServiceException, IOException {
         try (ResourceManager resourceManager = new ResourceManager(dmCslClient, null)) {
             ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
             AzureStorageClient azureStorageClient = new AzureStorageClient();

@@ -16,7 +16,7 @@ class SourceInfoTest {
 
     @Test
     void validate_BlankFilePath_IllegalArgumentException() {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo("", 0);
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("");
         assertThrows(IllegalArgumentException.class, fileSourceInfo::validate);
     }
 

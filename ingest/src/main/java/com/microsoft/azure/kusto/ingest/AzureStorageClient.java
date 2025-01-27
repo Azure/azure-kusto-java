@@ -86,8 +86,8 @@ public class AzureStorageClient {
         blobClient.uploadFromFile(sourceFile.getPath());
     }
 
-    void uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
-            throws IOException, URISyntaxException, BlobStorageException {
+    int uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
+            throws IOException, BlobStorageException {
         log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
 
         // Ensure
@@ -97,37 +97,43 @@ public class AzureStorageClient {
 
         BlobClient blobClient = container.getBlobClient(blobName);
         if (shouldCompress) {
-            compressAndUploadStream(inputStream, blobClient);
+            return compressAndUploadStream(inputStream, blobClient);
         } else {
-            uploadStream(inputStream, blobClient);
+            return uploadStream(inputStream, blobClient);
         }
     }
 
-    void uploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
+    int uploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
         OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream(true);
-        copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
+        int size = copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
         blobOutputStream.close();
+        return size;
     }
 
-    void compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
+    int compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
         try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
-            copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
+            return copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
         }
     }
 
-    private void copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
+    // Returns original stream size
+    private int copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
         byte[] buffer = new byte[bufferSize];
         int length;
+        int size = 0;
         while ((length = inputStream.read(buffer)) > 0) {
+            size += length;
             outputStream.write(buffer, 0, length);
         }
+
+        return size;
     }
 }
