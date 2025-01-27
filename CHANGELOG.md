@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all query, management, streaming query/ingestion (StreamingClient) endpoints,
 enabling non-blocking operations. You can read more about Reactor Core and [Mono type here](https://projectreactor.io/docs/core/release/api/).
-
+- `ConnectionStringBuilder` now supports keywords without regards to spaces or case. It now supports `toString()` that prints a canonical connection string, with censored secrets by default.
 ### Changed
 - [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
 internally and block for results.
