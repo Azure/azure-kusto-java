@@ -4,12 +4,12 @@ import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.CommandType;
 import com.microsoft.azure.kusto.data.Ensure;
 
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import reactor.util.annotation.Nullable;
 
 public class KustoRequest {
 
     private static final String ADMIN_COMMANDS_PREFIX = ".";
-    private static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
 
     private String command;
     private CommandType commandType;
@@ -172,7 +172,7 @@ public class KustoRequest {
     /** Validates and optimizes the KustoQuery object. */
     public void validateAndOptimize() {
         if (database == null) {
-            database = DEFAULT_DATABASE_NAME;
+            database = ConnectionStringBuilder.DEFAULT_DATABASE_NAME;
         }
 
         Ensure.stringIsNotEmpty(database, "database");
