@@ -1,15 +1,16 @@
 package com.microsoft.azure.kusto.data.format;
 
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.Ensure;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.ParseException;
-
 import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.exceptions.ParseException;
 
 public class CslTimespanFormat extends CslFormat {
     public static final String KUSTO_TIMESPAN_PATTERN = "HH:mm:ss.SSSSSSS";

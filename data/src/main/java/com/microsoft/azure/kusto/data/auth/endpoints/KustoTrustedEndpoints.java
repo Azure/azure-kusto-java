@@ -1,18 +1,21 @@
 package com.microsoft.azure.kusto.data.auth.endpoints;
 
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Predicate;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.UriUtils;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
+import com.microsoft.azure.kusto.data.exceptions.KustoClientInvalidConnectionStringException;
 
 /**
  * A helper class to determine which DNS names are "well-known/trusted"'
@@ -72,8 +75,9 @@ public class KustoTrustedEndpoints {
      */
     public static void validateTrustedEndpoint(String uri) throws KustoClientInvalidConnectionStringException {
         try {
+            // TODO: if this method will be used, replace the sync retrieveCloudInfoForCluster with the async one
             validateTrustedEndpoint(new URI(uri), CloudInfo.retrieveCloudInfoForCluster(uri).getLoginEndpoint());
-        } catch (URISyntaxException | DataServiceException ex) {
+        } catch (URISyntaxException ex) {
             throw new KustoClientInvalidConnectionStringException(ex);
         }
     }
@@ -110,7 +114,7 @@ public class KustoTrustedEndpoints {
         additionalMatcher = FastSuffixMatcher.create(replace ? null : additionalMatcher, rules);
     }
 
-    private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) throws KustoClientInvalidConnectionStringException {
+    private static void validateHostnameIsTrusted(String hostname, String loginEndpoint) {
         // The loopback is unconditionally allowed (since we trust ourselves)
         if (UriUtils.isLocalAddress(hostname)) {
             return;

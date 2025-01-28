@@ -3,24 +3,35 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
+import com.azure.core.credential.TokenCredential;
 import com.microsoft.azure.kusto.data.ClientDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 public class ConnectionStringBuilder {
+    private static final KcsbKeywords KCSB_KEYWORDS = KcsbKeywords.getInstance();
+
+    public static final String SECRET_REPLACEMENT = "****";
+    public static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
+
+    private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
+
     private String clusterUrl;
     private String usernameHint;
     private String applicationClientId;
     private String applicationKey;
     // Public certificate
+    private String initialCatalog;
+    private boolean sendX509;
+    private boolean aadFederatedSecurity;
     private X509Certificate x509Certificate;
     // Chain comprised of public certificate, its CA's certificate, and the root CA's certificate
     private List<X509Certificate> x509CertificateChain;
@@ -30,51 +41,20 @@ public class ConnectionStringBuilder {
     private String aadAuthorityId;
     private String accessToken;
     private Callable<String> tokenProvider;
+    private Mono<String> asyncTokenProvider;
+    private TokenCredential customTokenCredential;
     private String managedIdentityClientId;
     private boolean useDeviceCodeAuth;
     private boolean useManagedIdentityAuth;
     private boolean useAzureCli;
     private boolean useUserPromptAuth;
+    private boolean useCertificateAuth;
     private String userNameForTracing;
     private String appendedClientVersionForTracing;
     private String applicationNameForTracing;
-    private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
-
-    private static final Map<String, ConnectionStringKeyword> stringKeywordMap = new HashMap<>();
-
-    static {
-        stringKeywordMap.put("Data Source".toLowerCase(), ConnectionStringKeyword.DataSource);
-        stringKeywordMap.put("Addr".toLowerCase(), ConnectionStringKeyword.DataSource);
-        stringKeywordMap.put("Address".toLowerCase(), ConnectionStringKeyword.DataSource);
-        stringKeywordMap.put("Network Address".toLowerCase(), ConnectionStringKeyword.DataSource);
-        stringKeywordMap.put("Server".toLowerCase(), ConnectionStringKeyword.DataSource);
-
-        // used for user prompt authentication
-        stringKeywordMap.put("User ID".toLowerCase(), ConnectionStringKeyword.UsernameHint);
-        stringKeywordMap.put("UID".toLowerCase(), ConnectionStringKeyword.UsernameHint);
-        stringKeywordMap.put("User".toLowerCase(), ConnectionStringKeyword.UsernameHint);
-
-        stringKeywordMap.put("Authority ID".toLowerCase(), ConnectionStringKeyword.AuthorityId);
-        stringKeywordMap.put("TenantId".toLowerCase(), ConnectionStringKeyword.AuthorityId);
-
-        stringKeywordMap.put("Application Client Id".toLowerCase(), ConnectionStringKeyword.ApplicationClientId);
-        stringKeywordMap.put("AppClientId".toLowerCase(), ConnectionStringKeyword.ApplicationClientId);
-
-        stringKeywordMap.put("Application Key".toLowerCase(), ConnectionStringKeyword.ApplicationKey);
-        stringKeywordMap.put("AppKey".toLowerCase(), ConnectionStringKeyword.ApplicationKey);
-
-        stringKeywordMap.put("User Token".toLowerCase(), ConnectionStringKeyword.UserToken);
-        stringKeywordMap.put("UserToken".toLowerCase(), ConnectionStringKeyword.UserToken);
-        stringKeywordMap.put("UsrToken".toLowerCase(), ConnectionStringKeyword.UserToken);
-
-        stringKeywordMap.put("Application Name for Tracing".toLowerCase(), ConnectionStringKeyword.ApplicationNameForTracing);
-
-        stringKeywordMap.put("User Name for Tracing".toLowerCase(), ConnectionStringKeyword.UserNameForTracing);
-
-        stringKeywordMap.put("Client Version for Tracing".toLowerCase(), ConnectionStringKeyword.ClientVersionForTracing);
-    }
 
     private ConnectionStringBuilder() {
+        this.aadFederatedSecurity = false;
         this.clusterUrl = null;
         this.usernameHint = null;
         this.applicationClientId = null;
@@ -85,55 +65,119 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = null;
         this.accessToken = null;
         this.tokenProvider = null;
+        this.asyncTokenProvider = null;
+        this.customTokenCredential = null;
         this.managedIdentityClientId = null;
         this.useDeviceCodeAuth = false;
         this.useManagedIdentityAuth = false;
         this.useAzureCli = false;
         this.useUserPromptAuth = false;
+        this.useCertificateAuth = false;
         this.userNameForTracing = null;
         this.appendedClientVersionForTracing = null;
         this.applicationNameForTracing = null;
+        this.sendX509 = false;
+        this.initialCatalog = null;
     }
 
     private void assignValue(String rawKey, String value) {
-        rawKey = rawKey.trim().toLowerCase();
-        ConnectionStringKeyword parsedKey = stringKeywordMap.get(rawKey);
-        if (parsedKey == null) {
-            throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
-        }
+        KnownKeywords parsedKey = KCSB_KEYWORDS.get(rawKey);
 
         switch (parsedKey) {
-            case DataSource:
+            case DATA_SOURCE:
                 this.clusterUrl = value;
                 break;
-            case ApplicationClientId:
+            case INITIAL_CATALOG:
+                this.initialCatalog = value;
+                break;
+            case FEDERATED_SECURITY:
+                this.aadFederatedSecurity = Boolean.parseBoolean(value);
+                break;
+            case APPLICATION_CLIENT_ID:
                 this.applicationClientId = value;
                 break;
-            case ApplicationKey:
+            case APPLICATION_KEY:
                 this.applicationKey = value;
                 break;
-            case AuthorityId:
+            case AUTHORITY_ID:
                 this.aadAuthorityId = value;
                 break;
-            case ApplicationNameForTracing:
+            case APPLICATION_CERTIFICATE_X5C:
+                this.sendX509 = Boolean.parseBoolean(value);
+                break;
+            case APPLICATION_NAME_FOR_TRACING:
                 this.applicationNameForTracing = value;
                 break;
-            case UserNameForTracing:
+            case USER_NAME_FOR_TRACING:
                 this.userNameForTracing = value;
                 break;
-            case ClientVersionForTracing:
-                this.appendedClientVersionForTracing = value;
-                break;
-            case UsernameHint:
+            case USER_ID:
                 this.usernameHint = value;
                 this.useUserPromptAuth = true;
                 break;
-            case UserToken:
+            case USER_TOKEN:
+            case APPLICATION_TOKEN:
                 this.accessToken = value;
                 break;
             default:
-                throw new IllegalArgumentException("Error: unsupported key " + rawKey + " in connection string");
+                throw new IllegalArgumentException("Unexpected keyword error for `" + rawKey + "`. This is a bug - please report it.");
         }
+    }
+
+    public String toString(boolean showSecrets) {
+        ArrayList<Pair<KnownKeywords, String>> entries = new ArrayList<>();
+
+        if (!StringUtils.isBlank(clusterUrl)) {
+            entries.add(Pair.of(KnownKeywords.DATA_SOURCE, clusterUrl));
+        }
+
+        if (!StringUtils.isBlank(usernameHint)) {
+            entries.add(Pair.of(KnownKeywords.USER_ID, usernameHint));
+        }
+
+        if (!StringUtils.isBlank(applicationClientId)) {
+            entries.add(Pair.of(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId));
+        }
+
+        if (!StringUtils.isBlank(applicationKey)) {
+            entries.add(Pair.of(KnownKeywords.APPLICATION_KEY, applicationKey));
+        }
+
+        if (!StringUtils.isBlank(aadAuthorityId)) {
+            entries.add(Pair.of(KnownKeywords.AUTHORITY_ID, aadAuthorityId));
+        }
+
+        if (!StringUtils.isBlank(accessToken)) {
+            entries.add(Pair.of(KnownKeywords.USER_TOKEN, accessToken));
+        }
+
+        if (!StringUtils.isBlank(applicationNameForTracing)) {
+            entries.add(Pair.of(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing));
+        }
+
+        if (!StringUtils.isBlank(userNameForTracing)) {
+            entries.add(Pair.of(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing));
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < entries.size(); i++) {
+            Pair<KnownKeywords, String> entry = entries.get(i);
+            sb.append(entry.getLeft().getCanonicalName())
+                    .append("=")
+                    .append((!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
+
+            if (i < entries.size() - 1) {
+                sb.append(";");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return toString(false);
     }
 
     public ConnectionStringBuilder(ConnectionStringBuilder other) {
@@ -147,6 +191,8 @@ public class ConnectionStringBuilder {
         this.aadAuthorityId = other.aadAuthorityId;
         this.accessToken = other.accessToken;
         this.tokenProvider = other.tokenProvider;
+        this.asyncTokenProvider = other.asyncTokenProvider;
+        this.customTokenCredential = other.customTokenCredential;
         this.managedIdentityClientId = other.managedIdentityClientId;
         this.useAzureCli = other.useAzureCli;
         this.useDeviceCodeAuth = other.useDeviceCodeAuth;
@@ -155,12 +201,16 @@ public class ConnectionStringBuilder {
         this.userNameForTracing = other.userNameForTracing;
         this.appendedClientVersionForTracing = other.appendedClientVersionForTracing;
         this.applicationNameForTracing = other.applicationNameForTracing;
+        this.sendX509 = other.sendX509;
+        this.initialCatalog = other.initialCatalog;
+        this.aadFederatedSecurity = other.aadFederatedSecurity;
+        this.useCertificateAuth = other.useCertificateAuth;
     }
 
     /**
-     * Creates a ConnectionStringBuilder from a connection string. For more information please look at: https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto
+     * Creates a ConnectionStringBuilder from a connection string. For more information please look <a href="https://docs.microsoft.com/azure/data-explorer/kusto/api/connection-strings/kusto">here</a>.
      *
-     * @param connectionString The connection string should be of the format: https://clusterName.location.kusto.windows.net;AAD User ID="user@microsoft.com";Password=P@ssWord
+     * @param connectionString The connection string should be of the format: <p>https://clusterName.location.kusto.windows.net;Fed=true;Application Client Id=****;Application Key=****</p>
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
@@ -170,7 +220,7 @@ public class ConnectionStringBuilder {
 
         String[] connStrArr = connectionString.split(";");
         if (!connStrArr[0].contains("=")) {
-            connStrArr[0] = "Data Source=" + connStrArr[0];
+            connStrArr[0] = KnownKeywords.DATA_SOURCE.getCanonicalName() + "=" + connStrArr[0];
         }
 
         for (String kvp : connStrArr) {
@@ -230,6 +280,14 @@ public class ConnectionStringBuilder {
         return tokenProvider;
     }
 
+    public Mono<String> getAsyncTokenProvider() {
+        return asyncTokenProvider;
+    }
+
+    public TokenCredential getCustomTokenCredential() {
+        return customTokenCredential;
+    }
+
     public String getManagedIdentityClientId() {
         return managedIdentityClientId;
     }
@@ -248,6 +306,27 @@ public class ConnectionStringBuilder {
 
     boolean isUseUserPromptAuth() {
         return useUserPromptAuth;
+    }
+
+    boolean isUseCertificateAuth() {
+        return useCertificateAuth;
+    }
+
+    boolean isAadFederatedSecurity() {
+        return aadFederatedSecurity;
+    }
+
+    boolean shouldSendX509() {
+        return sendX509;
+    }
+
+    /**
+     * Gets the default database to connect to.
+     *
+     * @return The default database to connect to.
+     */
+    public String getInitialCatalog() {
+        return initialCatalog == null ? DEFAULT_DATABASE_NAME : initialCatalog;
     }
 
     /**
@@ -329,6 +408,7 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.applicationClientId = applicationClientId;
         csb.applicationKey = applicationKey;
@@ -350,6 +430,7 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.aadAuthorityId = authorityId;
         csb.usernameHint = usernameHint;
@@ -367,6 +448,7 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.aadAuthorityId = authorityId;
         csb.useDeviceCodeAuth = true;
@@ -399,8 +481,11 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.applicationClientId = applicationClientId;
+        csb.useCertificateAuth = true;
+        csb.sendX509 = false;
         csb.x509Certificate = x509Certificate;
         csb.privateKey = privateKey;
         csb.aadAuthorityId = authorityId;
@@ -433,7 +518,10 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
+        csb.useCertificateAuth = true;
+        csb.sendX509 = true;
         csb.applicationClientId = applicationClientId;
         csb.x509CertificateChain = x509CertificateChain;
         csb.privateKey = privateKey;
@@ -450,6 +538,7 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.accessToken = token;
         return csb;
@@ -465,8 +554,25 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.tokenProvider = tokenProviderCallable;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithAadAsyncTokenProviderAuthentication(String clusterUrl, Mono<String> tokenProviderCallable) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenProviderCallable == null) {
+            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
+        csb.clusterUrl = clusterUrl;
+        csb.asyncTokenProvider = tokenProviderCallable;
         return csb;
     }
 
@@ -480,6 +586,7 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.managedIdentityClientId = managedIdentityClientId;
         csb.useManagedIdentityAuth = true;
@@ -492,8 +599,25 @@ public class ConnectionStringBuilder {
         }
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
         csb.useAzureCli = true;
+        return csb;
+    }
+
+    public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable TokenCredential tokenCredential) {
+        if (StringUtils.isEmpty(clusterUrl)) {
+            throw new IllegalArgumentException("clusterUrl cannot be null or empty");
+        }
+
+        if (tokenCredential == null) {
+            throw new IllegalArgumentException("tokenCredential cannot be null");
+        }
+
+        ConnectionStringBuilder csb = new ConnectionStringBuilder();
+        csb.aadFederatedSecurity = true;
+        csb.clusterUrl = clusterUrl;
+        csb.customTokenCredential = tokenCredential;
         return csb;
     }
 
@@ -516,17 +640,4 @@ public class ConnectionStringBuilder {
         userNameForTracing = clientDetails.getUserNameForTracing();
     }
 
-    enum ConnectionStringKeyword {
-        DataSource,
-        UsernameHint,
-        UseDeviceCodeAuth,
-        TokenProvider,
-        ApplicationClientId,
-        ApplicationKey,
-        UserToken,
-        AuthorityId,
-        ApplicationNameForTracing,
-        UserNameForTracing,
-        ClientVersionForTracing
-    }
 }

@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.UriUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -13,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import reactor.core.publisher.Mono;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
@@ -36,7 +36,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     @Override
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) {
         super.initializeWithCloudInfo(cloudInfo);
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
@@ -44,7 +44,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         firstPartyAuthorityUrl = StringUtils.appendIfMissing(firstPartyAuthorityUrl, "/");
     }
 
-    private String determineAadAuthorityUrl(CloudInfo cloudInfo) throws DataClientException {
+    private String determineAadAuthorityUrl(CloudInfo cloudInfo) {
         String aadAuthorityUrlFromEnv = System.getenv("AadAuthorityUri");
         String authorityIdToUse = authorityId != null ? authorityId : ORGANIZATION_URI_SUFFIX;
         try {
@@ -55,18 +55,14 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     @Override
-    protected String acquireAccessTokenImpl() throws DataServiceException, DataClientException {
-        IAuthenticationResult accessTokenResult = acquireAccessTokenSilently();
-        if (accessTokenResult == null) {
-            // trace acquireNewAccessToken
-            accessTokenResult = MonitoredActivity.invoke(
-                    (SupplierTwoExceptions<IAuthenticationResult, DataServiceException, DataClientException>) this::acquireNewAccessToken,
-                    getAuthMethod().concat(".acquireNewAccessToken"));
-        }
-        return accessTokenResult.accessToken();
+    protected Mono<String> acquireAccessTokenImpl() {
+        return Mono.fromCallable(this::acquireAccessTokenSilently)
+                .switchIfEmpty(Mono.defer(() -> MonitoredActivity.wrap(Mono.fromCallable(this::acquireNewAccessToken),
+                        getAuthMethod().concat(".acquireNewAccessToken"), getTracingAttributes())))
+                .map(IAuthenticationResult::accessToken);
     }
 
-    protected IAuthenticationResult acquireAccessTokenSilently() throws DataServiceException, DataClientException {
+    protected IAuthenticationResult acquireAccessTokenSilently() {
         try {
             return acquireAccessTokenSilentlyMsal();
         } catch (MalformedURLException e) {
@@ -80,9 +76,9 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
     }
 
     protected abstract IAuthenticationResult acquireAccessTokenSilentlyMsal()
-            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException, DataServiceException;
+            throws MalformedURLException, InterruptedException, ExecutionException, TimeoutException;
 
-    protected abstract IAuthenticationResult acquireNewAccessToken() throws DataServiceException, DataClientException;
+    protected abstract IAuthenticationResult acquireNewAccessToken();
 
     SilentParameters getSilentParameters(Set<IAccount> accountSet) {
         IAccount account = getAccount(accountSet);

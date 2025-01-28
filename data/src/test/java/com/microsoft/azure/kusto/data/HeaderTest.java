@@ -2,13 +2,17 @@ package com.microsoft.azure.kusto.data;
 
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpRequest;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpTracing;
+import com.microsoft.azure.kusto.data.req.KustoRequest;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -198,6 +202,29 @@ public class HeaderTest {
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
 
         Assertions.assertEquals("Kusto.myConnector:{myVersion}|App.{myApp}:{myAppVersion}|myField:{myValue}", headers.get("x-ms-app"));
+    }
+
+    @Test
+    public void testNoAuth() throws URISyntaxException {
+        CloudInfo.manuallyAddToCache("http://help.kusto.windows.net", Mono.just(CloudInfo.DEFAULT_CLOUD));
+
+        ClientImpl noAuthClient = (ClientImpl) ClientFactory.createClient(new ConnectionStringBuilder("http://help.kusto.windows.net"));
+        noAuthClient.prepareRequestAsync(new KustoRequest("test")).block();
+    }
+
+    @Test
+    public void testHttpRequestNoAuth() throws DataClientException {
+        HttpRequestBuilder.newPost("http://testcluster.kusto.windows.net")
+                .build();
+
+        try {
+            HttpRequestBuilder.newPost("http://testcluster.kusto.windows.net")
+                    .withAuthorization("some token")
+                    .build();
+            Assertions.fail("Expected exception");
+        } catch (DataClientException e) {
+            // Expected
+        }
     }
 
     private Map<String, String> extractHeadersFromAzureRequest(HttpRequest request) {

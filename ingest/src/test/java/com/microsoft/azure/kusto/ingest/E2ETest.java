@@ -3,42 +3,24 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.core.http.HttpClient;
-import com.azure.core.http.HttpResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.microsoft.azure.kusto.data.*;
-import com.microsoft.azure.kusto.data.auth.CloudInfo;
-import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
-import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
-import com.microsoft.azure.kusto.data.http.HttpClientProperties;
-import com.microsoft.azure.kusto.data.http.HttpClientFactory;
-import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
-import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
-import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
-import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
-import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.StopWatch;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.INGEST_PREFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.PROTOCOL_SUFFIX;
+import static com.microsoft.azure.kusto.ingest.IngestClientBase.isReservedHostname;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 
-import org.apache.http.conn.util.InetAddressUtils;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -50,14 +32,61 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.microsoft.azure.kusto.ingest.IngestClientBase.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.atLeast;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.StopWatch;
+import org.apache.http.conn.util.InetAddressUtils;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
+
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.core.http.HttpClient;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ClientFactory;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.KustoResultSetTable;
+import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.auth.CloudInfo;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
+import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
+import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
+import com.microsoft.azure.kusto.data.http.HttpClientFactory;
+import com.microsoft.azure.kusto.data.http.HttpClientProperties;
+import com.microsoft.azure.kusto.ingest.IngestionMapping.IngestionMappingKind;
+import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
+import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
+import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class E2ETest {
@@ -140,7 +169,7 @@ class E2ETest {
     @AfterAll
     public static void tearDown() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists skip-seal", tableName), null);
             ingestClient.close();
             managedStreamingIngestClient.close();
         } catch (Exception ex) {
@@ -154,12 +183,12 @@ class E2ETest {
 
     private static void createTableAndMapping() {
         try {
-            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName));
-            queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".drop table %s ifexists", tableName), null);
+            queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s %s", tableName, tableColumns), null);
             LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of("UTC")).plusDays(1);
             String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
             String autoDeletePolicy = "@'{ \"ExpiryDate\" : \"" + expiryDate + "\", \"DeleteIfNotEmpty\": true }'";
-            queryClient.executeToJsonResult(DB_NAME, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy));
+            queryClient.executeToJsonResult(DB_NAME, String.format(".alter table %s policy auto_delete %s", tableName, autoDeletePolicy), null);
         } catch (Exception ex) {
             Assertions.fail("Failed to drop and create new table", ex);
         }
@@ -168,13 +197,13 @@ class E2ETest {
         try {
             String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
             queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s ingestion json mapping '%s' '%s'",
-                    tableName, mappingReference, mappingAsString));
+                    tableName, mappingReference, mappingAsString), null);
         } catch (Exception ex) {
             Assertions.fail("Failed to create ingestion mapping", ex);
         }
 
         try {
-            queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema");
+            queryClient.executeToJsonResult(DB_NAME, ".clear database cache streamingingestion schema", null);
         } catch (Exception ex) {
             Assertions.fail("Failed to refresh cache", ex);
         }
@@ -278,7 +307,7 @@ class E2ETest {
                 Thread.sleep(i * 100);
 
                 if (checkViaJson) {
-                    String result = queryClient.executeToJsonResult(DB_NAME, String.format("%s | count", tableName));
+                    String result = queryClient.executeToJsonResult(DB_NAME, String.format("%s | count", tableName), null);
                     JsonNode jsonNode = objectMapper.readTree(result);
                     ArrayNode jsonArray = jsonNode.isArray() ? (ArrayNode) jsonNode : null;
                     JsonNode primaryResult = null;
@@ -351,6 +380,26 @@ class E2ETest {
                 assertRowCount(item.rows, false);
             }
         }
+    }
+
+    @Test
+    void testCallbackAndTokenCredentialAuth() throws URISyntaxException {
+        CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(ENG_CONN_STR);
+        TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(cloudInfo.determineScope());
+
+        ConnectionStringBuilder syncCallback = ConnectionStringBuilder.createWithAadTokenProviderAuthentication(ENG_CONN_STR,
+                () -> new AzureCliCredentialBuilder().build().getTokenSync(tokenRequestContext).getToken());
+
+        Assertions.assertEquals(1, ClientFactory.createClient(syncCallback).executeMgmt(".show version").getPrimaryResults().count());
+
+        ConnectionStringBuilder asyncCallback = ConnectionStringBuilder.createWithAadAsyncTokenProviderAuthentication(ENG_CONN_STR,
+                new AzureCliCredentialBuilder().build().getToken(tokenRequestContext).map(AccessToken::getToken));
+
+        Assertions.assertEquals(1, ClientFactory.createClient(asyncCallback).executeMgmt(".show version").getPrimaryResults().count());
+
+        ConnectionStringBuilder tokenCredential = ConnectionStringBuilder.createWithTokenCredential(ENG_CONN_STR, new AzureCliCredentialBuilder().build());
+
+        Assertions.assertEquals(1, ClientFactory.createClient(tokenCredential).executeMgmt(".show version").getPrimaryResults().count());
     }
 
     @Test
@@ -529,22 +578,22 @@ class E2ETest {
     }
 
     @Test
-    void testCloudInfoWithCluster() throws DataServiceException {
+    void testCloudInfoWithCluster() {
         String clusterUrl = ENG_CONN_STR;
         CloudInfo cloudInfo = CloudInfo.retrieveCloudInfoForCluster(clusterUrl);
         assertNotSame(CloudInfo.DEFAULT_CLOUD, cloudInfo);
         assertNotNull(cloudInfo);
-        assertSame(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
+        assertEquals(cloudInfo, CloudInfo.retrieveCloudInfoForCluster(clusterUrl));
     }
 
     @Test
-    void testCloudInfoWith404() throws DataServiceException {
+    void testCloudInfoWith404() {
         String fakeClusterUrl = "https://www.microsoft.com/";
         assertSame(CloudInfo.DEFAULT_CLOUD, CloudInfo.retrieveCloudInfoForCluster(fakeClusterUrl));
     }
 
     @Test
-    void testParameterizedQuery() throws DataServiceException, DataClientException {
+    void testParameterizedQuery() {
         IngestionProperties ingestionPropertiesWithoutMapping = new IngestionProperties(DB_NAME, tableName);
         ingestionPropertiesWithoutMapping.setFlushImmediately(true);
         ingestionPropertiesWithoutMapping.setDataFormat(DataFormat.CSV);
@@ -585,7 +634,7 @@ class E2ETest {
     }
 
     @Test
-    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws DataClientException, DataServiceException, IOException {
+    void testPerformanceKustoOperationResultVsJsonVsStreamingQuery() throws IOException {
         ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
         String query = tableName + " | take 100000"; // Best to use a table that has many records, to mimic performance use case
         StopWatch stopWatch = new StopWatch();
@@ -638,7 +687,7 @@ class E2ETest {
     }
 
     @Test
-    void testSameHttpClientInstance() throws DataClientException, DataServiceException, URISyntaxException {
+    void testSameHttpClientInstance() throws URISyntaxException {
         ConnectionStringBuilder engineCsb = createConnection(ENG_CONN_STR);
         HttpClient httpClient = HttpClientFactory.create(null);
         HttpClient httpClientSpy = Mockito.spy(httpClient);
@@ -650,11 +699,10 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
-        try (HttpResponse httpResponse = Mockito.verify(httpClientSpy, atLeast(2)).sendSync(any(), any())) {
-        }
-
+        Mockito.verify(httpClientSpy, atLeast(2)).send(any(), any());
     }
 
+    @Disabled("This test is disabled because it relies on the path part of the cluster Uri which we now ignore")
     @Test
     void testNoRedirectsCloudFail() {
         KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
@@ -710,29 +758,37 @@ class E2ETest {
     }
 
     @Test
-    void testStreamingIngestFromBlob() throws IngestionServiceException, IOException {
-        try (ResourceManager resourceManager = new ResourceManager(dmCslClient, null)) {
-            ContainerWithSas container = resourceManager.getShuffledContainers().get(0);
-            AzureStorageClient azureStorageClient = new AzureStorageClient();
+    void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException, URISyntaxException {
+        KustoResultSetTable primaryResults = dmCslClient.executeMgmt(DB_NAME, ".show export containers").getPrimaryResults();
+        if (primaryResults.count() == 0) {
+            throw new IllegalStateException("No export containers found");
+        }
 
-            for (TestDataItem item : dataForTests) {
-                if (item.testOnstreamingIngestion) {
-                    String blobName = String.format("%s__%s.%s.gz",
-                            "testStreamingIngestFromBlob",
-                            UUID.randomUUID(),
-                            item.ingestionProperties.getDataFormat());
+        if (!primaryResults.next()) {
+            throw new IllegalStateException("No export containers found");
+        }
 
-                    String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+        String containerUrl = primaryResults.getString("StorageRoot");
+        ContainerWithSas container = new ContainerWithSas(containerUrl, null);
+        AzureStorageClient azureStorageClient = new AzureStorageClient();
 
-                    azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
-                            container.getContainer(), !item.file.getName().endsWith(".gz"));
-                    try {
-                        streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
-                    } catch (Exception ex) {
-                        Assertions.fail(ex);
-                    }
-                    assertRowCount(item.rows, false);
+        for (TestDataItem item : dataForTests) {
+            if (item.testOnstreamingIngestion) {
+                String blobName = String.format("%s__%s.%s.gz",
+                        "testStreamingIngestFromBlob",
+                        UUID.randomUUID(),
+                        item.ingestionProperties.getDataFormat());
+
+                String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+
+                azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
+                        container.getContainer(), !item.file.getName().endsWith(".gz"));
+                try {
+                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                } catch (Exception ex) {
+                    Assertions.fail(ex);
                 }
+                assertRowCount(item.rows, false);
             }
         }
     }

@@ -10,7 +10,7 @@ permissions:
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9].*"
   workflow_dispatch:
     inputs:
         tag:
@@ -57,8 +57,8 @@ jobs:
       - name: Run the Maven verify phase
         run: mvn -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn --batch-mode --update-snapshots -Dmaven.test.skip=true verify
         env:
-          DM_CONNECTION_STRING: https://ingest-sdkse2etest.eastus.kusto.windows.net
-          ENGINE_CONNECTION_STRING: https://sdkse2etest.eastus.kusto.windows.net
+          DM_CONNECTION_STRING: ${{ secrets.DM_CONNECTION_STRING }}
+          ENGINE_CONNECTION_STRING: ${{ secrets.ENGINE_CONNECTION_STRING }}
           TEST_DATABASE: e2e
           APP_ID: ${{ secrets.APP_ID }}
           TENANT_ID: ${{ secrets.TENANT_ID }}

@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Utils;
-import com.microsoft.azure.kusto.data.exceptions.ExceptionsUtils;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.Tracer;
@@ -70,7 +70,7 @@ public class ResourceAlgorithms {
         }
         throw new IngestionClientException(String.format("%s: All %d retries failed with last error: %s\n. Used resources: %s", actionName, RETRY_COUNT,
                 totalAttributes.stream().map(x -> String.format("%s (%s)", x.get("resource"), x.get("account"))).collect(Collectors.joining(", ")),
-                ExceptionsUtils.getMessageEx(ex)));
+                ExceptionUtils.getMessageEx(ex)));
     }
 
     public static void postToQueueWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, IngestionBlobInfo blob)

@@ -192,4 +192,26 @@ class ConnectionStringBuilderTest {
         Assertions.assertDoesNotThrow(() -> ConnectionStringBuilder
                 .createWithDeviceCode("resource.uri"));
     }
+
+    @Test
+    void testWithUnsupportedKeyword() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;DstsFed=true"));
+    }
+
+    @Test
+    void testWithInvalidKeyword() {
+        Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new ConnectionStringBuilder("Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;InvalidKey=invalidKey"));
+    }
+
+    @Test
+    void testStringConversion() {
+        String connectionString = "Data Source=mycluster.kusto.windows.net;AppClientId=myclientid;AppKey=myappkey;";
+        ConnectionStringBuilder builder = new ConnectionStringBuilder(connectionString);
+
+        // Assert that the fields have been set correctly
+        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=****", builder.toString());
+        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=myappkey", builder.toString(true));
+    }
 }

@@ -3,19 +3,19 @@
 
 package com.microsoft.azure.kusto.data.auth;
 
-import com.azure.core.http.HttpClient;
-import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import com.azure.core.http.HttpClient;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
+
+import reactor.core.publisher.Mono;
 
 public abstract class CloudDependentTokenProviderBase extends TokenProviderBase {
     private static final String ERROR_INVALID_SERVICE_RESOURCE_URL = "Error determining scope due to invalid Kusto Service Resource URL";
@@ -28,20 +28,26 @@ public abstract class CloudDependentTokenProviderBase extends TokenProviderBase 
     }
 
     @Override
-    synchronized void initialize() throws DataClientException, DataServiceException {
-        if (initialized) {
-            return;
-        }
-        // trace retrieveCloudInfo
-        cloudInfo = MonitoredActivity.invoke(
-                (SupplierTwoExceptions<CloudInfo, DataClientException, DataServiceException>) () -> CloudInfo.retrieveCloudInfoForCluster(clusterUrl,
-                        httpClient),
-                "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes());
-        initializeWithCloudInfo(cloudInfo);
-        initialized = true;
+    final Mono<Void> initialize() {
+        return Mono.defer(() -> {
+            if (initialized) {
+                return Mono.empty();
+            }
+
+            // trace retrieveCloudInfo
+            return MonitoredActivity.wrap(
+                    CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, httpClient),
+                    "CloudDependentTokenProviderBase.retrieveCloudInfo", getTracingAttributes())
+                    .doOnNext(cloudInfoResult -> {
+                        this.cloudInfo = cloudInfoResult;
+                        initializeWithCloudInfo(cloudInfoResult);
+                        this.initialized = true;
+                    })
+                    .then();
+        });
     }
 
-    protected void initializeWithCloudInfo(CloudInfo cloudInfo) throws DataClientException, DataServiceException {
+    protected void initializeWithCloudInfo(CloudInfo cloudInfo) {
         try {
             scopes.add(cloudInfo.determineScope());
         } catch (URISyntaxException e) {
