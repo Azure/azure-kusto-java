@@ -22,8 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class ManagedStreamingTest {
-//    private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
-//    private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+    // private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
+    // private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     public static final String ACCOUNT_NAME = "someaccount";
     private static QueuedIngestClient queuedIngestClientMock;
     private static IngestionProperties ingestionProperties;
@@ -31,32 +31,32 @@ public class ManagedStreamingTest {
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClientSpy;
 
-//    @BeforeAll
-//    static void setUp() throws Exception {
-//        when(resourceManagerMock.getShuffledContainers())
-//                .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
-//        when(resourceManagerMock.getShuffledQueues())
-//                .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
-//
-//        when(resourceManagerMock.getStatusTable())
-//                .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
-//
-//        when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
-//
-//        doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
-//
-//        doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
-//        streamingClientMock = mock(StreamingClient.class);
-//        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-//                isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
-//
-//        ingestionProperties = new IngestionProperties("dbName", "tableName");
-//        managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
-//                streamingClientMock);
-//        queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
-//        managedStreamingIngestClientSpy = spy(
-//                new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
-//    }
+    // @BeforeAll
+    // static void setUp() throws Exception {
+    // when(resourceManagerMock.getShuffledContainers())
+    // .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+    // when(resourceManagerMock.getShuffledQueues())
+    // .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
+    //
+    // when(resourceManagerMock.getStatusTable())
+    // .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
+    //
+    // when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
+    //
+    // doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
+    //
+    // doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
+    // streamingClientMock = mock(StreamingClient.class);
+    // when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+    // isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
+    //
+    // ingestionProperties = new IngestionProperties("dbName", "tableName");
+    // managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
+    // streamingClientMock);
+    // queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
+    // managedStreamingIngestClientSpy = spy(
+    // new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
+    // }
 
     static ByteArrayInputStream createStreamOfSize(int size) throws UnsupportedEncodingException {
         char[] charArray = new char[size];
@@ -160,7 +160,6 @@ public class ManagedStreamingTest {
         assertTrue(new ManagedStreamingQueuingPolicy(factor).shouldUseQueuedIngestion(bigFile,
                 false, IngestionProperties.DataFormat.CSV));
 
-
         // By default this big file will not be allowed, set a factor of 2.0 to allow bigger files to stream
         // 10 / 2 >? 2 * 4 -> false
         int reallyBigFile = 10 * 1024 * 1024;
@@ -170,7 +169,7 @@ public class ManagedStreamingTest {
                 false, IngestionProperties.DataFormat.CSV));
     }
 
-        @Test
+    @Test
     void ManagedStreaming_BigFile_ShouldQueueTheFullStream() throws IOException, IngestionClientException, IngestionServiceException {
         EmptyAvailableByteArrayOutputStream inputStream = new EmptyAvailableByteArrayOutputStream(
                 createStreamOfSize(ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 10));

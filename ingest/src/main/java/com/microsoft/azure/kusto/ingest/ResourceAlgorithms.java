@@ -84,8 +84,9 @@ public class ResourceAlgorithms {
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static Pair<String, Integer> uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
-                                                                      String blobName, boolean shouldCompress)
+    public static Pair<String, Integer> uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient,
+            InputStream stream,
+            String blobName, boolean shouldCompress)
             throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
             int size = azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);

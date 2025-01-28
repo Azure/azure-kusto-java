@@ -31,6 +31,7 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     public BlobSourceInfo(String blobPath, CompressionType compressionType) {
         this(blobPath, compressionType, null);
     }
+
     public BlobSourceInfo(String blobPath, CompressionType compressionType, UUID sourceId) {
         setBlobPath(blobPath);
         setCompressionType(compressionType);
@@ -65,7 +66,7 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     }
 
     /*
-        For internal usage, adding blobExactSize
+     * For internal usage, adding blobExactSize
      */
     public static BlobSourceInfo fromFile(String blobPath, FileSourceInfo fileSourceInfo, CompressionType sourceCompressionType, boolean gotCompressed) {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, gotCompressed ? CompressionType.gz : sourceCompressionType,
@@ -78,8 +79,8 @@ public class BlobSourceInfo extends AbstractSourceInfo {
     }
 
     /*
-      For internal usage, adding blobExactSize
-   */
+     * For internal usage, adding blobExactSize
+     */
     public static BlobSourceInfo fromStream(String blobPath, Integer size, StreamSourceInfo streamSourceInfo) {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getCompressionType(), streamSourceInfo.getSourceId());
         blobSourceInfo.blobExactSize = size.longValue();
