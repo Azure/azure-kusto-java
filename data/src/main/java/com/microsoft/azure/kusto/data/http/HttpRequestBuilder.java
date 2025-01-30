@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.lang3.StringUtils;
+import com.azure.core.util.CoreUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,25 +153,25 @@ public class HttpRequestBuilder {
         Map<String, String> headers = new HashMap<>();
 
         String version = tracing.getClientDetails().getClientVersionForTracing();
-        if (StringUtils.isNotBlank(version)) {
+        if (!CoreUtils.isNullOrEmpty(version)) {
             headers.put(CLIENT_VERSION_HEADER, version);
         }
 
         String app = (tracing.getProperties() == null || tracing.getProperties().getApplication() == null)
                 ? tracing.getClientDetails().getApplicationForTracing()
                 : tracing.getProperties().getApplication();
-        if (StringUtils.isNotBlank(app)) {
+        if (!CoreUtils.isNullOrEmpty(app)) {
             headers.put(APP_HEADER, app);
         }
 
         String user = (tracing.getProperties() == null || tracing.getProperties().getUser() == null) ? tracing.getClientDetails().getUserNameForTracing()
                 : tracing.getProperties().getUser();
-        if (StringUtils.isNotBlank(user)) {
+        if (!CoreUtils.isNullOrEmpty(user)) {
             headers.put(USER_HEADER, user);
         }
 
         String clientRequestId;
-        if (tracing.getProperties() != null && StringUtils.isNotBlank(tracing.getProperties().getClientRequestId())) {
+        if (tracing.getProperties() != null && !CoreUtils.isNullOrEmpty(tracing.getProperties().getClientRequestId())) {
             clientRequestId = tracing.getProperties().getClientRequestId();
         } else {
             clientRequestId = String.format("%s;%s", tracing.getClientRequestIdPrefix(), UUID.randomUUID());

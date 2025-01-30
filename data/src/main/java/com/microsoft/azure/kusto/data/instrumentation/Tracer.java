@@ -7,6 +7,8 @@ import com.azure.core.util.tracing.ProcessKind;
 import java.util.Map;
 
 public class Tracer {
+    private Tracer() {
+    }
     private static final boolean IS_TRACING_DISABLED = Configuration.getGlobalConfiguration().get(Configuration.PROPERTY_AZURE_TRACING_DISABLED, false);
     private static com.azure.core.util.tracing.Tracer tracer;
     private static volatile boolean initialized = false;
