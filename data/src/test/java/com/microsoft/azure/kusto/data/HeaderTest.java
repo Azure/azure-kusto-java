@@ -5,9 +5,11 @@ import com.azure.core.http.HttpRequest;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpTracing;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -52,8 +54,8 @@ public class HeaderTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         csb.setApplicationNameForTracing("testApp");
         csb.setUserNameForTracing("testUser");
-        csb.setConnectorDetails("testApp","testVersion", null, null,
-                false, null, Collections.emptyMap());
+        csb.setClientVersionForTracing("testVersion");
+
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
         ClientRequestProperties crp = new ClientRequestProperties();
@@ -84,8 +86,7 @@ public class HeaderTest {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
         csb.setApplicationNameForTracing("testApp");
         csb.setUserNameForTracing("testUser");
-        csb.setConnectorDetails("testApp","testVersion", null, null,
-                false, null, Collections.emptyMap());
+        csb.setClientVersionForTracing("testVersion");
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -117,8 +118,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNameAndVersion() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", null, null,
-                false, null, Collections.emptyMap());
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, false, null, Collections.emptyMap());
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -148,8 +148,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNoAppVersion() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", null, null,
-                true, "myApp", Collections.emptyMap());
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, true, "myApp", Collections.emptyMap());
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -179,8 +178,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorFull() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", "myApp", "myAppVersion",
-                true, "myUser", Collections.singletonMap("myField", "myValue"));
+        csb.setConnectorDetails("myConnector", "myVersion", "myApp", "myAppVersion", true, "myUser", Collections.singletonMap("myField", "myValue"));
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
