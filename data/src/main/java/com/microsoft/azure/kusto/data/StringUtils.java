@@ -1,6 +1,8 @@
 package com.microsoft.azure.kusto.data;
 
-public class StringUtils extends org.apache.commons.lang3.StringUtils {
+import com.azure.core.util.CoreUtils;
+
+public class StringUtils {
     private StringUtils() {
         // Hide constructor for static class
     }
@@ -18,7 +20,7 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils {
     }
 
     public static String normalizeEntityName(String name) {
-        if (StringUtils.isBlank(name)) {
+        if (CoreUtils.isNullOrEmpty(name)) {
             return name;
         } else if (name.startsWith("[")) {
             return name;
