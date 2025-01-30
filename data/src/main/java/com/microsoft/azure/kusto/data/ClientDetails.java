@@ -44,7 +44,7 @@ public class ClientDetails {
             });
         } else if(DEFAULT_VERSION.equalsIgnoreCase(key)) {
             return defaultValues.computeIfAbsent(key, k -> {
-                Map<String,String> baseMap = new HashMap<>();
+                Map<String,String> baseMap = new LinkedHashMap<>();
                 baseMap.put("Kusto.Java.Client", Utils.getPackageVersion());
                 baseMap.put(String.format("Runtime.%s", escapeField(getRuntime())), getJavaVersion());
                 return formatHeader(baseMap);
@@ -87,7 +87,7 @@ public class ClientDetails {
     public static ClientDetails fromConnectorDetails(String name, String version, boolean sendUser, @Nullable String overrideUser, @Nullable String appName,
             @Nullable String appVersion, Map<String, String> additionalFields) {
         // make an array
-        Map<String, String> additionalFieldsMap = new HashMap<>();
+        Map<String, String> additionalFieldsMap = new LinkedHashMap<>();
         additionalFieldsMap.put("Kusto." + name, version);
 
         if (appName == null) {
