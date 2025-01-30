@@ -28,7 +28,8 @@ public class ClientDetails {
 
     private static String unpackLazy(String key) {
         if(DEFAULT_APPLICATION.equalsIgnoreCase(key)) {
-            return defaultValues.putIfAbsent(key, UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command")));
+            return defaultValues.computeIfAbsent(key,
+                    k->UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command")));
         } else if(DEFAULT_USER.equalsIgnoreCase(key)) {
             return defaultValues.computeIfAbsent(key, k -> {
                 String user = System.getProperty("user.name");
