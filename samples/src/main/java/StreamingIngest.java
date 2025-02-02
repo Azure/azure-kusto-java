@@ -58,7 +58,8 @@ public class StreamingIngest {
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().block()
+                .get(0).status;
         System.out.println(status.toString());
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
@@ -71,7 +72,7 @@ public class StreamingIngest {
          * stream content is already compressed, we should set this property true to avoid double compression.
          */
         streamSourceInfo.setCompressionType(CompressionType.gz);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().block().get(0).status;
         System.out.println(status.toString());
 
         // Open JSON File Stream and Ingest
@@ -79,7 +80,7 @@ public class StreamingIngest {
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
         fileInputStream = new FileInputStream(resourcesDirectory + "dataset.json");
         streamSourceInfo.setStream(fileInputStream);
-        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().block().get(0).status;
         System.out.println(status.toString());
     }
 
@@ -90,7 +91,8 @@ public class StreamingIngest {
         String path = resourcesDirectory + "dataset.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
-        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().block()
+                .get(0).status;
         System.out.println(status.toString());
 
         // Ingest compressed JSON file
@@ -98,7 +100,7 @@ public class StreamingIngest {
         fileSourceInfo = new FileSourceInfo(path, new File(path).length());
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
-        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().block().get(0).status;
         System.out.println(status.toString());
     }
 }

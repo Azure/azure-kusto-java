@@ -409,7 +409,7 @@ try {
   } finally {
       client.close();
   }
-  IngestionStatus ingestionStatus = ingestionResult.getIngestionStatusCollection().get(0);
+  IngestionStatus ingestionStatus = ingestionResult.getIngestionStatusCollection().get(0);  //TODO: block here?
   if (ingestionStatus.status != OperationStatus.Queued){
       throw new Exception(&quot;Failed upload&quot; + ingestionStatus.errorCodeString);
   }
