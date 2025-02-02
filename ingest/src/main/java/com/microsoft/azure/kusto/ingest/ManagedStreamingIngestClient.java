@@ -38,8 +38,8 @@ import java.util.UUID;
  * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
  * By default the policy for choosing a queued ingestion on the first try is the checking of weather the size of the estimated
  * raw stream size (a conversion to compressed CSV) is bigger than 4MB, it will fall back to the queued streaming client.
- * Use {@link #setQueuingPolicy(ManagedStreamingQueuingPolicy)} to override the predicate heuristics.
- * Use SourceInfo.setRawSizeInBytes to set the raw size of the data. * <p>
+ * Use {@link #setQueuingPolicyFactor(double)} to override the predicate heuristics.
+ * Use SourceInfo.setRawSizeInBytes to set the raw size of the data.
  */
 public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
@@ -51,7 +51,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     private final ExponentialRetry exponentialRetryTemplate;
     private HttpClient httpClient = null;
     private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
-    private static final String fallbackLogString = "Data size is greater than max streaming size according to the policy. Falling back to queued.";
+    private static final String fallbackLogString = "Data size for source id '%s' is greater than max streaming size according to the policy. Falling back to queued.";
 
     /**
      * @param dmConnectionString dm connection string
@@ -276,7 +276,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         fileSourceInfo.validate();
         ingestionProperties.validate();
         try {
-            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true, ingestionProperties.getDataFormat());
+            StreamSourceInfo streamSourceInfo = IngestionUtils.fileToStream(fileSourceInfo, true);
             return ingestFromStream(streamSourceInfo, ingestionProperties);
         } catch (FileNotFoundException e) {
             log.error("File not found when ingesting a file.", e);
@@ -304,7 +304,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         BlobClient blobClient = blobClientBuilder.buildClient();
         long blobSize = 0;
-        if (blobSourceInfo.getRawSizeInBytes() <= 0) {
+        if (blobSourceInfo.getBlobExactSize() <= 0) {
             try {
                 blobSize = blobClient.getProperties().getBlobSize();
             } catch (BlobStorageException e) {
@@ -315,9 +315,9 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             }
         }
 
-        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
+        if (queuingPolicy.shouldUseQueuedIngestion(blobSize,
                 blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info(fallbackLogString);
+            log.info(String.format(fallbackLogString, blobSourceInfo.getSourceId()));
             return queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         }
 
@@ -336,7 +336,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             try {
                 if (blobClient != null) {
                     String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromBlob;%s;%d", sourceInfo.getSourceId(), currentAttempt);
-                    return streamingIngestClient.ingestFromBlob((BlobSourceInfo) sourceInfo, ingestionProperties, blobClient, clientRequestId);
+                    return streamingIngestClient.ingestFromBlob((BlobSourceInfo) sourceInfo, ingestionProperties, clientRequestId);
                 } else {
                     String clientRequestId = String.format("KJC.executeManagedStreamingIngest.ingestFromStream;%s;%d", sourceInfo.getSourceId(),
                             currentAttempt);
@@ -405,9 +405,9 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         byte[] streamingBytes;
         InputStream byteArrayStream;
 
-        if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(), streamSourceInfo.getRawSizeInBytes(),
+        if (queuingPolicy.shouldUseQueuedIngestion(streamSourceInfo.getStream().available(),
                 streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info(fallbackLogString);
+            log.info(String.format(fallbackLogString, sourceId));
             return queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
         }
 
@@ -421,11 +421,11 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                         ManagedStreamingQueuingPolicy.MAX_STREAMING_STREAM_SIZE_BYTES + 1);
                 byteArrayStream = new ByteArrayInputStream(streamingBytes);
                 int size = streamingBytes.length;
-                if (queuingPolicy.shouldUseQueuedIngestion(size, streamSourceInfo.getRawSizeInBytes(),
+                if (queuingPolicy.shouldUseQueuedIngestion(size,
                         streamSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-                    log.info(fallbackLogString);
                     StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
                             streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
+                    log.info(String.format(fallbackLogString, managedSourceInfo.getSourceId()));
 
                     return queuedIngestClient.ingestFromStream(managedSourceInfo, ingestionProperties);
                 }
@@ -443,8 +443,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             throw new IngestionClientException("Failed to read from stream.", e);
         }
 
-        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType(),
-                streamSourceInfo.getRawSizeInBytes());
+        StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream, true, sourceId, streamSourceInfo.getCompressionType());
         try {
             IngestionResult result = streamWithRetries(managedSourceInfo, ingestionProperties, null);
             if (result != null) {
@@ -461,12 +460,16 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
-    /*
-     * Set the policy that handles the logic over which data size would the client choose to directly use queued ingestion instead of trying streaming ingestion
-     * first.
-     */
-    public void setQueuingPolicy(ManagedStreamingQueuingPolicy queuingPolicy) {
-        this.queuingPolicy = queuingPolicy;
+    /**
+     * <p>setQueuingPolicyFactor</p>
+     * A factor used to tune the policy that handles the logic over which data size would the client choose to directly
+     * use queued ingestion instead of trying streaming ingestion first.
+     * Setting the factor will create a new {@link ManagedStreamingQueuingPolicy} with this factor, switching
+     * {@link ManagedStreamingQueuingPolicy.Default} which is created with no factor.
+     * @param factor - Default is 1.
+     **/
+    public void setQueuingPolicyFactor(double factor) {
+        this.queuingPolicy = new ManagedStreamingQueuingPolicy(factor);
     }
 
     @Override

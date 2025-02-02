@@ -14,6 +14,4 @@ public interface SourceInfo {
     UUID getSourceId();
 
     void setSourceId(UUID sourceId);
-
-    long getRawSizeInBytes();
 }

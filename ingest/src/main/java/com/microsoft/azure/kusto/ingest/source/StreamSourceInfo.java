@@ -4,8 +4,6 @@
 package com.microsoft.azure.kusto.ingest.source;
 
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -63,12 +61,6 @@ public class StreamSourceInfo extends AbstractSourceInfo {
     public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType) {
         this(stream, leaveOpen, sourceId);
         setCompressionType(compressionType);
-    }
-
-    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
-    public StreamSourceInfo(InputStream stream, boolean leaveOpen, UUID sourceId, CompressionType compressionType, long rawDataSize) {
-        this(stream, leaveOpen, sourceId, compressionType);
-        setRawSizeInBytes(rawDataSize);
     }
 
     public void validate() {

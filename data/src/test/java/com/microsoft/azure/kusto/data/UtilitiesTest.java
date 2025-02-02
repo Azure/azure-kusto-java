@@ -106,15 +106,23 @@ class UtilitiesTest {
     }
 
     @Test
-    @DisplayName("Test exception creation from a blank error message")
+    @DisplayName("Test exception creation from non oneApiError")
     void createExceptionFromBlankErrorMessage() {
         String errorMessage = " ";
         HttpResponse basicHttpResponse = getHttpResponse(HttpStatus.UNAUTHORIZED);
         DataServiceException error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
                 errorMessage);
         Assertions.assertEquals("Http StatusCode='401', ActivityId='1234'", error.getMessage());
-        Assertions.assertFalse(error.isPermanent());
+        Assertions.assertTrue(error.isPermanent());
         Assertions.assertEquals(HttpStatus.UNAUTHORIZED, Objects.requireNonNull(error.getStatusCode()).intValue());
+
+        basicHttpResponse = getHttpResponse(HttpStatus.NOT_FOUND);
+        error = BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", basicHttpResponse, new Exception(),
+                errorMessage);
+        Assertions.assertEquals("Http StatusCode='404', ActivityId='1234'", error.getMessage());
+        Assertions.assertFalse(error.isPermanent());
+        Assertions.assertEquals(HttpStatus.NOT_FOUND, Objects.requireNonNull(error.getStatusCode()).intValue());
+
     }
 
     @Test
