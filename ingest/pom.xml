@@ -185,16 +185,6 @@
             <version>${slf4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>${commons-text.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${fasterxml.jackson.core.version}</version>
@@ -204,11 +194,6 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>${apache.httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -261,11 +246,6 @@
             <version>${annotations.version}</version>
         </dependency>
         <dependency>
-            <groupId>commons-codec</groupId>
-            <artifactId>commons-codec</artifactId>
-            <version>${commons-codec.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-retry</artifactId>
             <version>${resilience4j.version}</version>
@@ -274,12 +254,6 @@
             <groupId>io.vavr</groupId>
             <artifactId>vavr</artifactId>
             <version>${io.vavr.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure.kusto</groupId>
-            <artifactId>kusto-data</artifactId>
-            <version>6.0.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>

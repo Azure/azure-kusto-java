@@ -12,6 +12,14 @@ enabling non-blocking operations. You can read more about Reactor Core and [Mono
 - [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
 internally and block for results.
 
+## [6.0.1-ALPHA-01] - 2025-02-05
+### Added
+- Remove dependency on commons lang.
+- [BREAKING] setConnectorDetails method in ConnectionStringBuilder accepts a Map instead of varargs of Pairs.
+### Fixed
+- Some better error messages
+
+
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added
 - A new policy heuristic for choosing between queuing and streaming in Managed streaming client. A policy can be configured
