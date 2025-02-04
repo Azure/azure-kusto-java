@@ -214,6 +214,6 @@ public class Utils {
     }
 
     public static boolean isNullOrEmpty(String str) {
-        return str!=null && CoreUtils.isNullOrEmpty(str.trim());
+        return str == null || CoreUtils.isNullOrEmpty(str.trim());
     }
 }
