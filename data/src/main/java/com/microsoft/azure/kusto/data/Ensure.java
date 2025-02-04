@@ -6,11 +6,11 @@ package com.microsoft.azure.kusto.data;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import com.azure.core.util.CoreUtils;
+
 
 public class Ensure {
     public static void stringIsNotBlank(String str, String varName) {
-        if (CoreUtils.isNullOrEmpty(str)) {
+        if (Utils.isNullOrEmpty(str)) {
             throw new IllegalArgumentException(varName + " is blank.");
         }
     }
@@ -49,7 +49,7 @@ public class Ensure {
     }
 
     public static void stringIsNotEmpty(String str, String varName) {
-        if (CoreUtils.isNullOrEmpty(str)) {
+        if (Utils.isNullOrEmpty(str)) {
             throw new IllegalArgumentException(varName + " is empty.");
         }
     }

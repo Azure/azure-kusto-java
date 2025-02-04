@@ -1,6 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.util.CoreUtils;
 import reactor.util.annotation.Nullable;
 
 import java.util.*;
@@ -11,10 +10,7 @@ public class ClientDetails {
 
     public static final String NONE = "[none]";
 
-    private static final ConcurrentHashMap<String, String> defaultValues = new ConcurrentHashMap<>();
-    public static final String DEFAULT_APPLICATION = "defaultApplication";
-    public static final String DEFAULT_USER = "defaultUser";
-    public static final String DEFAULT_VERSION = "defaultVersion";
+    private static final ConcurrentHashMap<DefaultValues, String> defaultValues = new ConcurrentHashMap<>();
 
     private final String applicationForTracing;
     private final String userNameForTracing;
@@ -26,23 +22,23 @@ public class ClientDetails {
         this.appendedClientVersionForTracing = appendedClientVersionForTracing;
     }
 
-    private static String unpackLazy(String key) {
-        if(DEFAULT_APPLICATION.equalsIgnoreCase(key)) {
+    private static String unpackLazy(DefaultValues key) {
+        if(DefaultValues.DEFAULT_APPLICATION == key) {
             return defaultValues.computeIfAbsent(key,
                     k->UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command")));
-        } else if(DEFAULT_USER.equalsIgnoreCase(key)) {
+        } else if(DefaultValues.DEFAULT_USER == key) {
             return defaultValues.computeIfAbsent(key, k -> {
                 String user = System.getProperty("user.name");
-                if (CoreUtils.isNullOrEmpty(user)) {
+                if (Utils.isNullOrEmpty(user)) {
                     user = System.getenv("USERNAME");
                     String domain = System.getenv("USERDOMAIN");
-                    if (!CoreUtils.isNullOrEmpty(domain) && !CoreUtils.isNullOrEmpty(user)) {
+                    if (!Utils.isNullOrEmpty(domain) && !Utils.isNullOrEmpty(user)) {
                         user = domain + "\\" + user;
                     }
                 }
-                return !CoreUtils.isNullOrEmpty(user) ? user : NONE;
+                return !Utils.isNullOrEmpty(user) ? user : NONE;
             });
-        } else if(DEFAULT_VERSION.equalsIgnoreCase(key)) {
+        } else if(DefaultValues.DEFAULT_VERSION == key) {
             return defaultValues.computeIfAbsent(key, k -> {
                 Map<String,String> baseMap = new LinkedHashMap<>();
                 baseMap.put("Kusto.Java.Client", Utils.getPackageVersion());
@@ -62,8 +58,8 @@ public class ClientDetails {
      */
     private static String formatHeader(Map<String, String> args) {
         return args.entrySet().stream().
-                filter(arg -> !CoreUtils.isNullOrEmpty(arg.getKey())
-                        && !CoreUtils.isNullOrEmpty(arg.getValue()))
+                filter(arg -> !Utils.isNullOrEmpty(arg.getKey())
+                        && !Utils.isNullOrEmpty(arg.getValue()))
                 .map(arg -> String.format("%s:%s", arg.getKey(), escapeField(arg.getValue())))
                 .collect(Collectors.joining("|"));
     }
@@ -91,7 +87,7 @@ public class ClientDetails {
         additionalFieldsMap.put("Kusto." + name, version);
 
         if (appName == null) {
-            appName = unpackLazy(DEFAULT_APPLICATION);
+            appName = unpackLazy(DefaultValues.DEFAULT_APPLICATION);
         }
         if (appVersion == null) {
             appVersion = NONE;
@@ -110,7 +106,7 @@ public class ClientDetails {
             if (overrideUser != null) {
                 user = overrideUser;
             } else {
-                user = unpackLazy(DEFAULT_USER);
+                user = unpackLazy(DefaultValues.DEFAULT_USER);
             }
         }
 
@@ -119,7 +115,7 @@ public class ClientDetails {
 
     private static String getJavaVersion() {
         String version = System.getProperty("java.version");
-        if (CoreUtils.isNullOrEmpty(version)) {
+        if (Utils.isNullOrEmpty(version)) {
             return "UnknownVersion";
         }
         return version;
@@ -127,28 +123,43 @@ public class ClientDetails {
 
     private static String getRuntime() {
         String runtime = System.getProperty("java.runtime.name");
-        if (CoreUtils.isNullOrEmpty(runtime)) {
+        if (Utils.isNullOrEmpty(runtime)) {
             runtime = System.getProperty("java.vm.name");
         }
-        if (CoreUtils.isNullOrEmpty(runtime)) {
+        if (Utils.isNullOrEmpty(runtime)) {
             runtime = System.getProperty("java.vendor");
         }
-        if (CoreUtils.isNullOrEmpty(runtime)) {
+        if (Utils.isNullOrEmpty(runtime)) {
             runtime = "UnknownRuntime";
         }
         return runtime;
     }
 
     public String getApplicationForTracing() {
-        return applicationForTracing == null ? unpackLazy(DEFAULT_APPLICATION) : applicationForTracing;
+        return applicationForTracing == null ? unpackLazy(DefaultValues.DEFAULT_APPLICATION) : applicationForTracing;
     }
 
     public String getUserNameForTracing() {
-        return userNameForTracing == null ? unpackLazy(DEFAULT_USER) : userNameForTracing;
+        return userNameForTracing == null ? unpackLazy(DefaultValues.DEFAULT_USER) : userNameForTracing;
     }
 
     public String getClientVersionForTracing() {
-        return unpackLazy(DEFAULT_VERSION) + (appendedClientVersionForTracing == null ? "" : "|" + appendedClientVersionForTracing);
+        return unpackLazy(DefaultValues.DEFAULT_VERSION) + (appendedClientVersionForTracing == null ? "" : "|" + appendedClientVersionForTracing);
     }
 
+    enum DefaultValues {
+        DEFAULT_APPLICATION("defaultApplication"),
+        DEFAULT_USER("defaultUser"),
+        DEFAULT_VERSION("defaultVersion");
+
+        private final String value;
+
+        DefaultValues(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
 }

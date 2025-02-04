@@ -4,8 +4,10 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.core.util.CoreUtils;
+
 import com.microsoft.azure.kusto.data.ClientDetails;
+import com.microsoft.azure.kusto.data.Utils;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
@@ -126,42 +128,42 @@ public class ConnectionStringBuilder {
     }
 
     public String toString(boolean showSecrets) {
-        Map<KnownKeywords, String> entries = new HashMap<>();
+        Map<KnownKeywords, String> entries = new LinkedHashMap<>();
 
-        if (!CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (!Utils.isNullOrEmpty(clusterUrl)) {
             entries.put(KnownKeywords.DATA_SOURCE, clusterUrl);
         }
 
-        if (!CoreUtils.isNullOrEmpty(usernameHint)) {
+        if (!Utils.isNullOrEmpty(usernameHint)) {
             entries.put(KnownKeywords.USER_ID, usernameHint);
         }
 
-        if (!CoreUtils.isNullOrEmpty(applicationClientId)) {
+        if (!Utils.isNullOrEmpty(applicationClientId)) {
             entries.put(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId);
         }
 
-        if (!CoreUtils.isNullOrEmpty(applicationKey)) {
+        if (!Utils.isNullOrEmpty(applicationKey)) {
             entries.put(KnownKeywords.APPLICATION_KEY, applicationKey);
         }
 
-        if (!CoreUtils.isNullOrEmpty(aadAuthorityId)) {
+        if (!Utils.isNullOrEmpty(aadAuthorityId)) {
             entries.put(KnownKeywords.AUTHORITY_ID, aadAuthorityId);
         }
 
-        if (!CoreUtils.isNullOrEmpty(accessToken)) {
+        if (!Utils.isNullOrEmpty(accessToken)) {
             entries.put(KnownKeywords.USER_TOKEN, accessToken);
         }
 
-        if (!CoreUtils.isNullOrEmpty(applicationNameForTracing)) {
+        if (!Utils.isNullOrEmpty(applicationNameForTracing)) {
             entries.put(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing);
         }
 
-        if (!CoreUtils.isNullOrEmpty(userNameForTracing)) {
+        if (!Utils.isNullOrEmpty(userNameForTracing)) {
             entries.put(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing);
         }
         StringBuilder sb = new StringBuilder();
         entries.entrySet().stream()
-                .filter(entry -> !CoreUtils.isNullOrEmpty(entry.getValue()))
+                .filter(entry -> !Utils.isNullOrEmpty(entry.getValue()))
                 .forEach(entry -> sb.append(entry.getKey().getCanonicalName())
                         .append("=")
                         .append((!showSecrets && entry.getKey().isSecret()) ? SECRET_REPLACEMENT : entry.getValue())
@@ -208,7 +210,7 @@ public class ConnectionStringBuilder {
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
-        if (CoreUtils.isNullOrEmpty(connectionString)) {
+        if (Utils.isNullOrEmpty(connectionString)) {
             throw new IllegalArgumentException("connectionString cannot be null or empty");
         }
 
@@ -219,12 +221,12 @@ public class ConnectionStringBuilder {
 
         for (String kvp : connStrArr) {
             kvp = kvp.trim();
-            if (CoreUtils.isNullOrEmpty(kvp)) {
+            if (Utils.isNullOrEmpty(kvp)) {
                 continue;
             }
             String[] kvpArr = kvp.split("=");
             String val = kvpArr[1].trim();
-            if (!CoreUtils.isNullOrEmpty(val)) {
+            if (!Utils.isNullOrEmpty(val)) {
                 assignValue(kvpArr[0], val);
             }
         }
@@ -357,6 +359,7 @@ public class ConnectionStringBuilder {
      * Sets the client version for tracing.
      * This appends the given version to the Kusto Java SDK version.
      */
+    @Deprecated
     public void setClientVersionForTracing(String clientVersionForTracing) {
         this.appendedClientVersionForTracing = clientVersionForTracing;
     }
@@ -390,13 +393,13 @@ public class ConnectionStringBuilder {
             String applicationClientId,
             String applicationKey,
             String authorityId) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
-        if (CoreUtils.isNullOrEmpty(applicationClientId)) {
+        if (Utils.isNullOrEmpty(applicationClientId)) {
             throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
-        if (CoreUtils.isNullOrEmpty(applicationKey)) {
+        if (Utils.isNullOrEmpty(applicationKey)) {
             throw new IllegalArgumentException("applicationKey cannot be null or empty");
         }
 
@@ -418,7 +421,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String authorityId, String usernameHint) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 
@@ -436,7 +439,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl, String authorityId) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
@@ -459,10 +462,10 @@ public class ConnectionStringBuilder {
             X509Certificate x509Certificate,
             PrivateKey privateKey,
             String authorityId) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
-        if (CoreUtils.isNullOrEmpty(applicationClientId)) {
+        if (Utils.isNullOrEmpty(applicationClientId)) {
             throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (x509Certificate == null) {
@@ -496,10 +499,10 @@ public class ConnectionStringBuilder {
             List<X509Certificate> x509CertificateChain,
             PrivateKey privateKey,
             String authorityId) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
-        if (CoreUtils.isNullOrEmpty(applicationClientId)) {
+        if (Utils.isNullOrEmpty(applicationClientId)) {
             throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
         }
         if (x509CertificateChain == null || x509CertificateChain.isEmpty()) {
@@ -522,10 +525,10 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadAccessTokenAuthentication(String clusterUrl, String token) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
-        if (CoreUtils.isNullOrEmpty(token)) {
+        if (Utils.isNullOrEmpty(token)) {
             throw new IllegalArgumentException("token cannot be null or empty");
         }
 
@@ -537,7 +540,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String clusterUrl, Callable<String> tokenProviderCallable) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 
@@ -553,7 +556,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadAsyncTokenProviderAuthentication(String clusterUrl, Mono<String> tokenProviderCallable) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 
@@ -573,7 +576,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl, String managedIdentityClientId) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 
@@ -586,7 +589,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAzureCli(String clusterUrl) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 
@@ -598,7 +601,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable TokenCredential tokenCredential) {
-        if (CoreUtils.isNullOrEmpty(clusterUrl)) {
+        if (Utils.isNullOrEmpty(clusterUrl)) {
             throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
         }
 

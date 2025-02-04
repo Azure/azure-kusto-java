@@ -1,6 +1,6 @@
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.util.CoreUtils;
+
 
 public class StringUtils {
     private StringUtils() {
@@ -20,7 +20,7 @@ public class StringUtils {
     }
 
     public static String normalizeEntityName(String name) {
-        if (CoreUtils.isNullOrEmpty(name)) {
+        if (Utils.isNullOrEmpty(name)) {
             return name;
         } else if (name.startsWith("[")) {
             return name;
