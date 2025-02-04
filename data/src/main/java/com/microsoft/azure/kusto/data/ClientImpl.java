@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.azure.core.util.CoreUtils;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.azure.core.http.HttpClient;
@@ -333,18 +333,18 @@ class ClientImpl extends BaseClient {
     }
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {
-        if (CoreUtils.isNullOrEmpty(database)) {
+        if (Utils.isNullOrEmpty(database)) {
             throw new IllegalArgumentException("Parameter database is empty.");
         }
-        if (CoreUtils.isNullOrEmpty(table)) {
+        if (Utils.isNullOrEmpty(table)) {
             throw new IllegalArgumentException("Parameter table is empty.");
         }
-        if (CoreUtils.isNullOrEmpty(format)) {
+        if (Utils.isNullOrEmpty(format)) {
             throw new IllegalArgumentException("Parameter format is empty.");
         }
         String clusterEndpoint = String.format(CommandType.STREAMING_INGEST.getEndpoint(), clusterUrl, database, table, format);
 
-        if (!CoreUtils.isNullOrEmpty(mappingName)) {
+        if (!Utils.isNullOrEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
         return clusterEndpoint;

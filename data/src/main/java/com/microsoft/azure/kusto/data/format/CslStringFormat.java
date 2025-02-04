@@ -1,7 +1,8 @@
 package com.microsoft.azure.kusto.data.format;
 
-import com.azure.core.util.CoreUtils;
+
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.Utils;
 import org.apache.commons.text.StringEscapeUtils;
 
 import java.util.HashSet;
@@ -44,7 +45,7 @@ public class CslStringFormat extends CslFormat {
         }
 
         String multilineString = parseMultilineString(result);
-        if (!CoreUtils.isNullOrEmpty(multilineString)) {
+        if (!Utils.isNullOrEmpty(multilineString)) {
             return multilineString;
         }
 

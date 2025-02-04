@@ -21,6 +21,8 @@ import javax.net.ssl.SSLException;
 import com.azure.core.http.HttpHeader;
 import com.azure.core.http.HttpHeaderName;
 import com.azure.core.http.HttpResponse;
+
+import com.azure.core.util.CoreUtils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -211,4 +213,7 @@ public class Utils {
         }
     }
 
+    public static boolean isNullOrEmpty(String str) {
+        return str!=null && CoreUtils.isNullOrEmpty(str.trim());
+    }
 }

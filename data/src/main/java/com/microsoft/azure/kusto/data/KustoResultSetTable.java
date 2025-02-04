@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.data;
 
-import com.azure.core.util.CoreUtils;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
@@ -91,7 +91,7 @@ public class KustoResultSetTable {
         }
         tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME) ? jsonTable.get(TABLE_ID_PROPERTY_NAME).asText() : EMPTY_STRING;
         String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME) ? jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText() : EMPTY_STRING;
-        tableKind = CoreUtils.isNullOrEmpty(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
+        tableKind = Utils.isNullOrEmpty(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
 
         if (jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
             ArrayNode columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);

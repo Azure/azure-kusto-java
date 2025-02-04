@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.quickstart;
 
 import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
-import com.azure.core.util.CoreUtils;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -525,12 +525,12 @@ public class SampleApp {
      */
     private static void createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName,
             String mappingValue, IngestionProperties.DataFormat dataFormat) {
-        if (useExistingMapping || CoreUtils.isNullOrEmpty(mappingValue)) {
+        if (useExistingMapping || Utils.isNullOrEmpty(mappingValue)) {
             return;
         }
         IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
         waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
-        mappingName = !CoreUtils.isNullOrEmpty(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
+        mappingName = !Utils.isNullOrEmpty(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
 
         String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", StringUtils.normalizeEntityName(tableName),
                 ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);
