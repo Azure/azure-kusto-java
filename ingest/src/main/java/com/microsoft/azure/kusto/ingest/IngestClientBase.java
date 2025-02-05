@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.IOException;
@@ -54,8 +55,9 @@ public abstract class IngestClientBase implements IngestClient {
         }
 
         boolean isLocalhost = authority.contains("localhost");
+        String host = StringUtils.isEmpty(uri.getHost()) ? "" : uri.getHost();
 
-        return isLocalhost || isIpAddress || uri.getHost().equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalhost || isIpAddress || host.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
