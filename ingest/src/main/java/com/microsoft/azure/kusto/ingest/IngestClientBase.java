@@ -46,17 +46,16 @@ public abstract class IngestClientBase implements IngestClient {
         }
 
         String authority = uri.getAuthority().toLowerCase();
-        boolean isIPFlag;
+        boolean isIpAddress;
         if (authority.startsWith("[") && authority.endsWith("]")) {
-            authority = authority.substring(1, authority.length() - 1);
-            isIPFlag = true;
+            isIpAddress = true;
         } else {
-            isIPFlag = InetAddressUtils.isIPv4Address(authority);
+            isIpAddress = InetAddressUtils.isIPv4Address(authority);
         }
 
-        boolean isLocalFlag = authority.contains("localhost");
+        boolean isLocalhost = authority.contains("localhost");
 
-        return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalhost || isIpAddress || uri.getHost().equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
