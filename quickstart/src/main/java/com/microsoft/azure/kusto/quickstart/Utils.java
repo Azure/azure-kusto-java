@@ -161,7 +161,7 @@ public class Utils {
             KustoOperationResult result;
 
             try {
-                result = kustoClient.executeQuery(databaseName, command, clientRequestProperties);
+                result = command.startsWith(MgmtPrefix) ? kustoClient.executeMgmt(databaseName, command, clientRequestProperties) : kustoClient.executeQuery(databaseName, command, clientRequestProperties);
                 System.out.printf("Response from executed command '%s':%n", command);
                 KustoResultSetTable primaryResults = result.getPrimaryResults();
 
