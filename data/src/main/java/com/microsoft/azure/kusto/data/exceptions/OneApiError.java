@@ -4,6 +4,11 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
 
 public class OneApiError {
     public OneApiError(String code, String message, String description, String type, JsonNode context, boolean permanent) {
@@ -13,6 +18,12 @@ public class OneApiError {
         this.type = type;
         this.context = context;
         this.permanent = permanent;
+    }
+
+    public static OneApiError[] fromJsonArray(ArrayNode array) {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(array.elements(), Spliterator.ORDERED), false)
+                .map(x -> OneApiError.fromJsonObject(x.get("error")))
+                .toArray(OneApiError[]::new);
     }
 
     public static OneApiError fromJsonObject(JsonNode jsonObject) {

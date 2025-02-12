@@ -39,7 +39,6 @@ public class KustoResultSetTable {
     protected static final String COLUMN_TYPE_SECOND_PROPERTY_NAME = "DataType";
     protected static final String ROWS_PROPERTY_NAME = "Rows";
     protected static final String EXCEPTIONS_PROPERTY_NAME = "Exceptions";
-    static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions";
 
     private static final String EMPTY_STRING = "";
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
@@ -129,14 +128,11 @@ public class KustoResultSetTable {
                 if (jsonRows.get(i).getNodeType() == JsonNodeType.OBJECT) {
                     exceptions = row.has(EXCEPTIONS_PROPERTY_NAME) ? ((ArrayNode) row.get(EXCEPTIONS_PROPERTY_NAME)) : null;
                     if (exceptions != null) {
-                        if (exceptions.size() == 1) {
-                            String message = exceptions.get(0).asText();
-                            throw new KustoServiceQueryError(exceptions, true, message);
-                        } else {
-                            throw new KustoServiceQueryError(exceptions, false, EXCEPTIONS_MESSAGE);
-                        }
+                        throw KustoServiceQueryError.fromOneApiErrorArray(exceptions, exceptions.size() == 1); // TODO: this is the same logic as before, should
+                                                                                                               // check with Yehezkel why isOneApi error is true
+                                                                                                               // if there is one exception
                     } else {
-                        throw new KustoServiceQueryError((ArrayNode) row.get(ONE_API_ERRORS_PROPERTY_NAME), true, EXCEPTIONS_MESSAGE);
+                        throw KustoServiceQueryError.fromOneApiErrorArray((ArrayNode) row.get(ONE_API_ERRORS_PROPERTY_NAME), true);
                     }
                 }
                 ArrayNode rowAsJsonArray = (ArrayNode) jsonRows.get(i);

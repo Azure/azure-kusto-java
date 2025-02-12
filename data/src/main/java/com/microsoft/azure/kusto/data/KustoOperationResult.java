@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import com.microsoft.azure.kusto.data.exceptions.OneApiError;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierOneException;
 import org.slf4j.Logger;
@@ -17,8 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.util.*;
-
-import static com.microsoft.azure.kusto.data.KustoResultSetTable.EXCEPTIONS_MESSAGE;
 
 public class KustoOperationResult implements Iterator<KustoResultSetTable> {
 
@@ -137,16 +134,7 @@ public class KustoOperationResult implements Iterator<KustoResultSetTable> {
                             node.has(HAS_ERRORS_PROPERTY_NAME) && node.get(HAS_ERRORS_PROPERTY_NAME).asBoolean()) {
                         ArrayNode oneApiErrors = (ArrayNode) node.get(ONE_API_ERRORS_PROPERTY_NAME);
 
-                        if (oneApiErrors != null) {
-                            if (oneApiErrors.size() == 1) {
-                                String message = OneApiError.fromJsonObject(oneApiErrors.get(0).get("error")).getDescription();
-                                throw new KustoServiceQueryError(oneApiErrors, true, message);
-                            } else {
-                                throw new KustoServiceQueryError(oneApiErrors, true, EXCEPTIONS_MESSAGE);
-                            }
-                        } else {
-                            throw new KustoServiceQueryError((ArrayNode) node.get(ONE_API_ERRORS_PROPERTY_NAME), true, EXCEPTIONS_MESSAGE);
-                        }
+                        throw KustoServiceQueryError.fromOneApiErrorArray(oneApiErrors, true);
                     }
                     if (frameType.equals(DATA_TABLE_FRAME_TYPE_PROPERTY_VALUE)) {
                         resultTables.add(new KustoResultSetTable(node));
