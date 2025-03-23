@@ -47,8 +47,7 @@
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
         <fasterxml.jackson.core.version>2.16.0</fasterxml.jackson.core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
-        <resilience4j.version>1.7.1</resilience4j.version>
-        <io.vavr.version>0.10.4</io.vavr.version>
+        <resilience4j.version>2.3.0</resilience4j.version>
         <!-- Test dependencies -->
         <bouncycastle.version>1.77</bouncycastle.version>
         <jsonassert.version>1.5.0</jsonassert.version>
