@@ -26,7 +26,7 @@ public class HttpRequestBuilder {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     // TODO - maybe save this in a resource
-    private static final String KUSTO_API_VERSION = "2019-02-13";
+    private static final String KUSTO_API_VERSION = "2024-12-12";
     private static final String CLIENT_VERSION_HEADER = "x-ms-client-version";
     private static final String APP_HEADER = "x-ms-app";
     private static final String USER_HEADER = "x-ms-user";
