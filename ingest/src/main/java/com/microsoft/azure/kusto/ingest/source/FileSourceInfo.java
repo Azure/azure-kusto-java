@@ -41,8 +41,4 @@ public class FileSourceInfo extends AbstractSourceInfo {
         }
         return attributes;
     }
-
-    public long fileSize() {
-        return 0;
-    }
 }

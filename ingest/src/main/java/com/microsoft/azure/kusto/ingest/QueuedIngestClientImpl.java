@@ -211,13 +211,17 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
-            Pair<String, Integer> blobUploadedDetails = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
+            ResourceAlgorithms.UploadResult blobUploadedDetails = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
                     azureStorageClient,
                     streamSourceInfo.getStream(),
                     blobName,
                     shouldCompress);
-
-            BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromStream(blobUploadedDetails.getKey(), blobUploadedDetails.getValue(), streamSourceInfo);
+            if (blobUploadedDetails.size == 0){
+                String message = "Empty stream.";
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
+            BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromStream(blobUploadedDetails.blobPath, blobUploadedDetails.size, streamSourceInfo);
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {

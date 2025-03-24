@@ -84,13 +84,16 @@ public class ResourceAlgorithms {
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static Pair<String, Integer> uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient,
+    public static UploadResult uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient,
             InputStream stream,
             String blobName, boolean shouldCompress)
             throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
             int size = azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
-            return Pair.of(container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas(), size);
+            UploadResult uploadResult = new UploadResult();
+            uploadResult.blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+            uploadResult.size = size;
+            return uploadResult;
         }, "ResourceAlgorithms.uploadLocalFileWithRetries", Collections.emptyMap());
     }
 
@@ -139,4 +142,8 @@ public class ResourceAlgorithms {
         return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
     }
 
+    public static class UploadResult {
+        public String blobPath;
+        public int size;
+    }
 }

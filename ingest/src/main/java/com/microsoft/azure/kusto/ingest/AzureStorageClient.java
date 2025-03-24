@@ -103,17 +103,19 @@ public class AzureStorageClient {
         }
     }
 
+    // Returns original stream size
     int uploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blob, "blob");
 
         OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream(true);
-        int size = copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
+        int originalSize = copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
         blobOutputStream.close();
-        return size;
+        return originalSize;
     }
 
+    // Returns original stream size
     int compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
         // Ensure
         Ensure.argIsNotNull(inputStream, "inputStream");

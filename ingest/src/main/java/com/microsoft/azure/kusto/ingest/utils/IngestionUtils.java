@@ -1,7 +1,5 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
-import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -29,7 +27,7 @@ public class IngestionUtils {
         String filePath = fileSourceInfo.getFilePath();
         File file = new File(filePath);
         if (file.length() == 0) {
-            String message = "Empty file.";
+            String message = "Empty file: " + file.getName();
             log.error(message);
             throw new IngestionClientException(message);
         }
