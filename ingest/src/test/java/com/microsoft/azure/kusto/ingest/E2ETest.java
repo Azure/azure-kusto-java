@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
+import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.http.conn.util.InetAddressUtils;
