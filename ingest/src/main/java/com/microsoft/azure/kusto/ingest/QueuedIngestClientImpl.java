@@ -216,7 +216,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     streamSourceInfo.getStream(),
                     blobName,
                     shouldCompress);
-            if (blobUploadedDetails.size == 0){
+            if (blobUploadedDetails.size == 0) {
                 String message = "Empty stream.";
                 log.error(message);
                 throw new IngestionClientException(message);

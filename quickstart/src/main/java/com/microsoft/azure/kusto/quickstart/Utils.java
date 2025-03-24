@@ -273,7 +273,8 @@ public class Utils {
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0
             // Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), blobUrl.contains(".gz") ? CompressionType.gz : null, UUID.randomUUID());
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), blobUrl.contains(".gz") ? CompressionType.gz : null,
+                    UUID.randomUUID());
 
             try {
                 ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
