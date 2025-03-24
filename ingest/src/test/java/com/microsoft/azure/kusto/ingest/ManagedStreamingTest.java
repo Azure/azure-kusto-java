@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -8,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.result.OperationStatus;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.apache.commons.lang3.function.BooleanConsumer;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -16,14 +19,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class ManagedStreamingTest {
-    // private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
-    // private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
+     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
+     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
     public static final String ACCOUNT_NAME = "someaccount";
     private static QueuedIngestClient queuedIngestClientMock;
     private static IngestionProperties ingestionProperties;
@@ -31,32 +35,32 @@ public class ManagedStreamingTest {
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClientSpy;
 
-    // @BeforeAll
-    // static void setUp() throws Exception {
-    // when(resourceManagerMock.getShuffledContainers())
-    // .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
-    // when(resourceManagerMock.getShuffledQueues())
-    // .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
-    //
-    // when(resourceManagerMock.getStatusTable())
-    // .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
-    //
-    // when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
-    //
-    // doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
-    //
-    // doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
-    // streamingClientMock = mock(StreamingClient.class);
-    // when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-    // isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
-    //
-    // ingestionProperties = new IngestionProperties("dbName", "tableName");
-    // managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
-    // streamingClientMock);
-    // queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
-    // managedStreamingIngestClientSpy = spy(
-    // new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
-    // }
+     @BeforeAll
+     static void setUp() throws Exception {
+     when(resourceManagerMock.getShuffledContainers())
+     .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
+     when(resourceManagerMock.getShuffledQueues())
+     .thenReturn(Collections.singletonList(TestUtils.queueWithSasFromAccountNameAndQueueName(ACCOUNT_NAME, "someQueue")));
+
+     when(resourceManagerMock.getStatusTable())
+     .thenReturn(TestUtils.tableWithSasFromTableName("http://statusTable.com"));
+
+     when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
+
+     doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
+
+     doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
+     streamingClientMock = mock(StreamingClient.class);
+     when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+     isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
+
+     ingestionProperties = new IngestionProperties("dbName", "tableName");
+     managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
+     streamingClientMock);
+     queuedIngestClientMock = mock(QueuedIngestClientImpl.class);
+     managedStreamingIngestClientSpy = spy(
+     new ManagedStreamingIngestClient(mock(StreamingIngestClient.class), queuedIngestClientMock, new ExponentialRetry(1)));
+     }
 
     static ByteArrayInputStream createStreamOfSize(int size) throws UnsupportedEncodingException {
         char[] charArray = new char[size];
