@@ -417,6 +417,11 @@ class ClientImpl extends BaseClient {
             throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
         }
 
+        Object skipBoolean = properties == null ? null : properties.getOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT);
+        if (skipBoolean instanceof Boolean && (Boolean) skipBoolean) {
+            return Long.MAX_VALUE;
+        }
+
         if (timeoutMs == null) {
             switch (commandType) {
                 case ADMIN_COMMAND:

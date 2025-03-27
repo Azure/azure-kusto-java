@@ -250,10 +250,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
 
     JsonNode toJson() {
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
-        Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
-        if (timeoutObj != null) {
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsCslTimespan(timeoutObj));
-        }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
