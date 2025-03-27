@@ -45,6 +45,7 @@ class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
+    private static final Long CLIENT_GRACE_PERIOD_IN_MILLISECS = TimeUnit.SECONDS.toMillis(30);
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
@@ -429,7 +430,7 @@ class ClientImpl extends BaseClient {
             }
         }
 
-        return timeoutMs;
+        return timeoutMs + CLIENT_GRACE_PERIOD_IN_MILLISECS;
     }
 
     private Mono<String> getAuthorizationHeaderValueAsync() {
