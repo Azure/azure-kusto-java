@@ -273,20 +273,39 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
                     Iterator<String> optionsIt = optionsJson.fieldNames();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
-                        crp.setOption(optionName, optionsJson.get(optionName).asText());
+                        crp.setOption(optionName, unwrapJsonValue(optionsJson.get(optionName)));
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
                     JsonNode parameters = jsonObj.get(propertyName);
                     Iterator<String> parametersIt = parameters.fieldNames();
                     while (parametersIt.hasNext()) {
                         String parameterName = parametersIt.next();
-                        crp.setParameter(parameterName, parameters.get(parameterName).asText());
+                        crp.setParameter(parameterName, unwrapJsonValue(parameters.get(parameterName)));
                     }
                 }
             }
             return crp;
         }
 
+        return null;
+    }
+
+    private static Object unwrapJsonValue(JsonNode jsonNode) {
+        if (jsonNode.isBoolean()) {
+            return jsonNode.asBoolean();
+        } else if (jsonNode.isTextual()) {
+            return jsonNode.asText();
+        } else if (jsonNode.isInt()) {
+            return jsonNode.asInt();
+        } else if (jsonNode.isLong()) {
+            return jsonNode.asLong();
+        } else if (jsonNode.isDouble()) {
+            return jsonNode.asDouble();
+        } else if (jsonNode.isBigInteger()) {
+            return jsonNode.bigIntegerValue();
+        } else if (jsonNode.isBigDecimal()) {
+            return jsonNode.decimalValue();
+        }
         return null;
     }
 
