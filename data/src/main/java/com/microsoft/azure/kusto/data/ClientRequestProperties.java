@@ -40,6 +40,7 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
  */
 public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
+    public static final String OPTION_SERVER_TIMEOUT_NO_REQUEST_TIMEOUT = "norequesttimeout";
 
     // If set and positive, indicates the maximum number of HTTP redirects that the client will process. [Integer]
     public static final String OPTION_CLIENT_MAX_REDIRECT_COUNT = "client_max_redirect_count";
@@ -54,7 +55,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     private static final String PARAMETERS_KEY = "Parameters";
     private final Map<String, Object> parameters;
     private final Map<String, Object> options;
-    static final long MIN_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(1);
+    static final long MIN_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(1);
     static final long MAX_TIMEOUT_MS = TimeUnit.HOURS.toMillis(1);
     private String clientRequestId;
     private String application;
@@ -172,10 +173,15 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     /**
-     * Gets the amount of time a query may execute on the service before it times out. Value must be between 1 minute and 1 hour,
+     * Gets the amount of time a query may execute on the service before it times out. Value must be between 1 second and 1 hour,
      * and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
     public Long getTimeoutInMilliSec() {
+        Object noTimeout = getOption(OPTION_SERVER_TIMEOUT_NO_REQUEST_TIMEOUT);
+        if (noTimeout instanceof Boolean && (Boolean) noTimeout) {
+            return null;
+        }
+
         return getTimeoutInMilliSec(getOption(OPTION_SERVER_TIMEOUT));
     }
 
@@ -244,10 +250,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
 
     JsonNode toJson() {
         ObjectNode optionsAsJSON = Utils.getObjectMapper().valueToTree(this.options);
-        Object timeoutObj = getOption(OPTION_SERVER_TIMEOUT);
-        if (timeoutObj != null) {
-            optionsAsJSON.put(OPTION_SERVER_TIMEOUT, getTimeoutAsCslTimespan(timeoutObj));
-        }
 
         ObjectNode json = Utils.getObjectMapper().createObjectNode();
         json.set(OPTIONS_KEY, optionsAsJSON);
@@ -271,20 +273,39 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
                     Iterator<String> optionsIt = optionsJson.fieldNames();
                     while (optionsIt.hasNext()) {
                         String optionName = optionsIt.next();
-                        crp.setOption(optionName, optionsJson.get(optionName).asText());
+                        crp.setOption(optionName, unwrapJsonValue(optionsJson.get(optionName)));
                     }
                 } else if (propertyName.equals(PARAMETERS_KEY)) {
                     JsonNode parameters = jsonObj.get(propertyName);
                     Iterator<String> parametersIt = parameters.fieldNames();
                     while (parametersIt.hasNext()) {
                         String parameterName = parametersIt.next();
-                        crp.setParameter(parameterName, parameters.get(parameterName).asText());
+                        crp.setParameter(parameterName, unwrapJsonValue(parameters.get(parameterName)));
                     }
                 }
             }
             return crp;
         }
 
+        return null;
+    }
+
+    private static Object unwrapJsonValue(JsonNode jsonNode) {
+        if (jsonNode.isBoolean()) {
+            return jsonNode.asBoolean();
+        } else if (jsonNode.isTextual()) {
+            return jsonNode.asText();
+        } else if (jsonNode.isInt()) {
+            return jsonNode.asInt();
+        } else if (jsonNode.isLong()) {
+            return jsonNode.asLong();
+        } else if (jsonNode.isDouble()) {
+            return jsonNode.asDouble();
+        } else if (jsonNode.isBigInteger()) {
+            return jsonNode.bigIntegerValue();
+        } else if (jsonNode.isBigDecimal()) {
+            return jsonNode.decimalValue();
+        }
         return null;
     }
 
