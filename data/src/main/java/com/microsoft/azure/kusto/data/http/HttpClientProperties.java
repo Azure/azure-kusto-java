@@ -142,11 +142,10 @@ public class HttpClientProperties {
          * @return the builder instance
          * @see <a href="https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core/README.md#http-timeouts">azure-core timouts</a>
          */
-        public HttpClientPropertiesBuilder readTimeout (Integer readTimeout) {
+        public HttpClientPropertiesBuilder readTimeout(Integer readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }
-
 
         /**
          * Sets the total maximum number of connections the client may keep open at the same time.
