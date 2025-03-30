@@ -177,11 +177,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      * and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
     public Long getTimeoutInMilliSec() {
-        Object noTimeout = getOption(OPTION_SERVER_TIMEOUT_NO_REQUEST_TIMEOUT);
-        if (noTimeout instanceof Boolean && (Boolean) noTimeout) {
-            return null;
-        }
-
         return getTimeoutInMilliSec(getOption(OPTION_SERVER_TIMEOUT));
     }
 
