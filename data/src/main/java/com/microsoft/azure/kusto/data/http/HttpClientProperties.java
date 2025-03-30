@@ -108,7 +108,7 @@ public class HttpClientProperties {
         private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
 
-        public HttpClientPropertiesBuilder() {
+        private HttpClientPropertiesBuilder() {
         }
 
         /**

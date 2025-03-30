@@ -45,7 +45,6 @@ class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
-    private static final Long CLIENT_GRACE_PERIOD_IN_MILLISECS = TimeUnit.SECONDS.toMillis(30);
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
@@ -189,8 +188,7 @@ class ClientImpl extends BaseClient {
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
         return prepareRequestAsync(request)
                 .zipWhen(requestContext -> {
-                    ClientRequestProperties properties = request.getProperties() == null ? new ClientRequestProperties() : request.getProperties();
-                    long timeoutMs = determineTimeout(properties, request.getCommandType(), clusterUrl);
+                    long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
                     return MonitoredActivity.wrap(
                             postAsync(requestContext.getHttpRequest(), timeoutMs),
                             requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan));
@@ -280,15 +278,15 @@ class ClientImpl extends BaseClient {
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
 
-        properties = properties == null ? new ClientRequestProperties() : properties;
-
         long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
         // This was a separate method but was moved into the body of this method because it performs a side effect
-        Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Object> pair = iterator.next();
-            headers.put(pair.getKey(), pair.getValue().toString());
+        if (properties != null) {
+            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+            while (iterator.hasNext()) {
+                Map.Entry<String, Object> pair = iterator.next();
+                headers.put(pair.getKey(), pair.getValue().toString());
+            }
         }
 
         BinaryData data;
@@ -401,15 +399,13 @@ class ClientImpl extends BaseClient {
                 .newPost(clusterEndpoint)
                 .createCommandPayload(kr)
                 .withTracing(tracing);
-        ClientRequestProperties properties = kr.getProperties() == null ? new ClientRequestProperties() : kr.getProperties();
-        long timeoutMs = determineTimeout(properties, kr.getCommandType(), clusterUrl);
-
+        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
         return getAuthorizationHeaderValueAsync()
                 .doOnNext(requestBuilder::withAuthorization)
                 .then(MonitoredActivity.wrap(
                         postToStreamingOutputAsync(requestBuilder.build(), timeoutMs, 0,
                                 kr.getRedirectCount()),
-                        "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), properties)));
+                        "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties())));
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
@@ -418,11 +414,6 @@ class ClientImpl extends BaseClient {
             timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
         } catch (ParseException e) {
             throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
-        }
-
-        Object skipBoolean = properties == null ? null : properties.getOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT);
-        if (skipBoolean instanceof Boolean && (Boolean) skipBoolean) {
-            return Long.MAX_VALUE;
         }
 
         if (timeoutMs == null) {
@@ -437,10 +428,8 @@ class ClientImpl extends BaseClient {
                     timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
             }
         }
-        // If we set the timeout ourself, we need to update the server header
-        properties.setTimeoutInMilliSec(timeoutMs);
 
-        return timeoutMs + CLIENT_GRACE_PERIOD_IN_MILLISECS;
+        return timeoutMs;
     }
 
     private Mono<String> getAuthorizationHeaderValueAsync() {

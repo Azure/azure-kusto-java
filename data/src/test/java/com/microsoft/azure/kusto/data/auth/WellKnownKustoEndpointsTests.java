@@ -167,11 +167,13 @@ public class WellKnownKustoEndpointsTests {
     @Test
     @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
     void failForInvalidLogin() throws URISyntaxException {
-        /*
-         * TODO - this makes other tests fail, figure out why and re-enable. CloudInfo.manuallyAddToCache("https://resource.uri", Mono.just(new CloudInfo(
-         * DEFAULT_LOGIN_MFA_REQUIRED, "https://InvalidLogin.uri", DEFAULT_KUSTO_CLIENT_APP_ID, DEFAULT_REDIRECT_URI, DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
-         * DEFAULT_FIRST_PARTY_AUTHORITY_URL)));
-         */
+        CloudInfo.manuallyAddToCache("https://resource.uri", Mono.just(new CloudInfo(
+                DEFAULT_LOGIN_MFA_REQUIRED,
+                "https://InvalidLogin.uri",
+                DEFAULT_KUSTO_CLIENT_APP_ID,
+                DEFAULT_REDIRECT_URI,
+                DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
+                DEFAULT_FIRST_PARTY_AUTHORITY_URL)));
 
     }
 

@@ -39,9 +39,8 @@ class ClientRequestPropertiesTest {
                         TimeUnit.DAYS.toMillis(1) + TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(40) + TimeUnit.SECONDS.toMillis(2) + 100, "01:00:00",
                         ClientRequestProperties.MAX_TIMEOUT_MS),
                 // If set to under MIN_TIMEOUT_MS - value should be MIN_TIMEOUT_MS
-                Arguments.of("00:00:12.6", TimeUnit.MILLISECONDS.toMillis(12600), "00:00:12.600", TimeUnit.MILLISECONDS.toMillis(12600)),
-                Arguments.of("00:00:00.6", TimeUnit.MILLISECONDS.toMillis(6), "00:00:01", ClientRequestProperties.MIN_TIMEOUT_MS),
-                Arguments.of("00:00:00", 0L, "00:00:01", ClientRequestProperties.MIN_TIMEOUT_MS),
+                Arguments.of("00:00:12.6", TimeUnit.SECONDS.toMillis(12) + 600, "00:01:00", ClientRequestProperties.MIN_TIMEOUT_MS),
+                Arguments.of("00:00:00", 0L, "00:01:00", ClientRequestProperties.MIN_TIMEOUT_MS),
                 Arguments.of(null, null, null, null));
     }
 
