@@ -3,26 +3,24 @@ package com.microsoft.azure.kusto.data.http;
 import com.azure.core.http.HttpClientProvider;
 import com.azure.core.http.ProxyOptions;
 
-import java.time.Duration;
-
 /**
  * HTTP client properties.
  */
 public class HttpClientProperties {
     private final Integer maxIdleTime;
     private final boolean keepAlive;
-    private final Integer maxKeepAliveTime;
     private final Integer maxConnectionTotal;
     private final Class<? extends HttpClientProvider> provider;
     private final ProxyOptions proxy;
+    private final Integer readTimeout;
 
     private HttpClientProperties(HttpClientPropertiesBuilder builder) {
         this.maxIdleTime = builder.maxIdleTime;
         this.keepAlive = builder.keepAlive;
-        this.maxKeepAliveTime = builder.maxKeepAliveTime;
         this.maxConnectionTotal = builder.maxConnectionsTotal;
         this.provider = builder.provider;
         this.proxy = builder.proxy;
+        this.readTimeout = builder.readTimeout;
     }
 
     /**
@@ -45,31 +43,27 @@ public class HttpClientProperties {
     }
 
     /**
-     * Indicates whether or not a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
+     * The amount of time between each response data read from the network before timing out.
+     * Defaults to 1 hour.
+     * @return read timeout in seconds
+     * @see <a href="https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core/README.md#http-timeouts">azure-core timouts</a>
+     */
+    public Integer readTimeout() {
+        return readTimeout;
+    }
+
+    /**
+     * Indicates whether a custom connection keep-alive time should be used. If set to {@code false}, the HTTP
      * client will use the default connection keep-alive strategy, which is to use only the server instructions
      * (if any) set in the {@code Keep-Alive} response header.
      * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
      * server instructions set in the {@code Keep-Alive} response header; if the response doesn't contain a
-     * {@code Keep-Alive} header, the client will use a default keep-alive period indicated by
-     * {@linkplain #maxKeepAliveTime()}.
      *
      * @return whether a custom connection keep-alive strategy should be used
-     * @see #maxKeepAliveTime()
      * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
      */
     public boolean isKeepAlive() {
         return keepAlive;
-    }
-
-    /**
-     * The time a connection can remain idle as part of the keep-alive strategy. This value is only used if
-     * {@linkplain #isKeepAlive()} is set to {@code true}.
-     * Defaults to 2 minutes.
-     *
-     * @return the maximum custom keep-alive time expressed in seconds
-     */
-    public Integer maxKeepAliveTime() {
-        return maxKeepAliveTime;
     }
 
     /**
@@ -103,12 +97,12 @@ public class HttpClientProperties {
 
         private Integer maxIdleTime = 120;
         private boolean keepAlive;
-        private Integer maxKeepAliveTime = 120;
+        private Integer readTimeout = 60 * 60;
         private Integer maxConnectionsTotal = 40;
         private Class<? extends HttpClientProvider> provider = null;
         private ProxyOptions proxy = null;
 
-        private HttpClientPropertiesBuilder() {
+        public HttpClientPropertiesBuilder() {
         }
 
         /**
@@ -130,13 +124,10 @@ public class HttpClientProperties {
          * (if any) set in the {@code Keep-Alive} response header.
          * If set to {@code true}, the HTTP client will use a custom connection keep-alive strategy which uses the
          * server instructions set in the {@code Keep-Alive} response header; if the response doesn't contain a
-         * {@code Keep-Alive} header, the client will use a default keep-alive period which is configurable via
-         * {@linkplain #maxKeepAliveTime(Integer)}.
          *
          * @param keepAlive set to {@code false} to use a default keep-alive strategy or to {@code true} to use a
          *                  custom one
          * @return the builder instance
-         * @see #maxKeepAliveTime(Integer)
          * @see <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Keep-Alive">Keep-Alive</a>
          */
         public HttpClientPropertiesBuilder keepAlive(boolean keepAlive) {
@@ -145,17 +136,17 @@ public class HttpClientProperties {
         }
 
         /**
-         * Sets the time a connection can remain idle as part of the keep-alive strategy. This value is only used if
-         * {@linkplain #keepAlive(boolean)} is set to {@code true}.
-         * Defaults to 120 seconds (2 minutes).
-         *
-         * @param maxKeepAliveTime the maximum time a connection may remain idle, expressed in seconds
+         * Sets the amount of time between each response data read from the network before timing out.
+         * Defaults to 1 hour.
+         * @param readTimeout the maximum custom keep-alive time expressed in seconds
          * @return the builder instance
+         * @see <a href="https://github.com/Azure/azure-sdk-for-java/blob/main/sdk/core/azure-core/README.md#http-timeouts">azure-core timouts</a>
          */
-        public HttpClientPropertiesBuilder maxKeepAliveTime(Integer maxKeepAliveTime) {
-            this.maxKeepAliveTime = maxKeepAliveTime;
+        public HttpClientPropertiesBuilder readTimeout (Integer readTimeout) {
+            this.readTimeout = readTimeout;
             return this;
         }
+
 
         /**
          * Sets the total maximum number of connections the client may keep open at the same time.
