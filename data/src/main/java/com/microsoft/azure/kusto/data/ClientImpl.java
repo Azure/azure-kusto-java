@@ -413,16 +413,16 @@ class ClientImpl extends BaseClient {
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
-        Long timeoutMs;
-        try {
-            timeoutMs = properties == null ? null : properties.getTimeoutInMilliSec();
-        } catch (ParseException e) {
-            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
-        }
-
-        Object skipBoolean = properties == null ? null : properties.getOption(ClientRequestProperties.OPTION_SERVER_TIMEOUT);
+        Object skipBoolean = properties.getOption(ClientRequestProperties.OPTION_NO_REQUEST_TIMEOUT);
         if (skipBoolean instanceof Boolean && (Boolean) skipBoolean) {
             return Long.MAX_VALUE;
+        }
+
+        Long timeoutMs;
+        try {
+            timeoutMs = properties.getTimeoutInMilliSec();
+        } catch (ParseException e) {
+            throw new DataClientException(clusterUrl, "Failed to parse timeout from ClientRequestProperties");
         }
 
         if (timeoutMs == null) {

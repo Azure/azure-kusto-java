@@ -40,7 +40,7 @@ import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
  */
 public class ClientRequestProperties implements Serializable, TraceableAttributes {
     public static final String OPTION_SERVER_TIMEOUT = "servertimeout";
-    public static final String OPTION_SERVER_TIMEOUT_NO_REQUEST_TIMEOUT = "norequesttimeout";
+    public static final String OPTION_NO_REQUEST_TIMEOUT = "norequesttimeout";
 
     // If set and positive, indicates the maximum number of HTTP redirects that the client will process. [Integer]
     public static final String OPTION_CLIENT_MAX_REDIRECT_COUNT = "client_max_redirect_count";
