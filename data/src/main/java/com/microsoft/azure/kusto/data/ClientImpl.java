@@ -189,7 +189,8 @@ class ClientImpl extends BaseClient {
     private Mono<String> executeWithTimeout(KustoRequest request, String nameOfSpan) {
         return prepareRequestAsync(request)
                 .zipWhen(requestContext -> {
-                    long timeoutMs = determineTimeout(request.getProperties(), request.getCommandType(), clusterUrl);
+                    ClientRequestProperties properties = request.getProperties() == null ? new ClientRequestProperties() : request.getProperties();
+                    long timeoutMs = determineTimeout(properties, request.getCommandType(), clusterUrl);
                     return MonitoredActivity.wrap(
                             postAsync(requestContext.getHttpRequest(), timeoutMs),
                             requestContext.getSdkRequest().getCommandType().getActivityTypeSuffix().concat(nameOfSpan));
@@ -279,15 +280,15 @@ class ClientImpl extends BaseClient {
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
 
+        properties = properties == null ? new ClientRequestProperties() : properties;
+
         long timeoutMs = determineTimeout(properties, CommandType.STREAMING_INGEST, clusterUrl);
 
         // This was a separate method but was moved into the body of this method because it performs a side effect
-        if (properties != null) {
-            Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
-            while (iterator.hasNext()) {
-                Map.Entry<String, Object> pair = iterator.next();
-                headers.put(pair.getKey(), pair.getValue().toString());
-            }
+        Iterator<Map.Entry<String, Object>> iterator = properties.getOptions();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Object> pair = iterator.next();
+            headers.put(pair.getKey(), pair.getValue().toString());
         }
 
         BinaryData data;
@@ -400,13 +401,15 @@ class ClientImpl extends BaseClient {
                 .newPost(clusterEndpoint)
                 .createCommandPayload(kr)
                 .withTracing(tracing);
-        long timeoutMs = determineTimeout(kr.getProperties(), kr.getCommandType(), clusterUrl);
+        ClientRequestProperties properties = kr.getProperties() == null ? new ClientRequestProperties() : kr.getProperties();
+        long timeoutMs = determineTimeout(properties, kr.getCommandType(), clusterUrl);
+
         return getAuthorizationHeaderValueAsync()
                 .doOnNext(requestBuilder::withAuthorization)
                 .then(MonitoredActivity.wrap(
                         postToStreamingOutputAsync(requestBuilder.build(), timeoutMs, 0,
                                 kr.getRedirectCount()),
-                        "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), kr.getProperties())));
+                        "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), properties)));
     }
 
     private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
@@ -434,6 +437,8 @@ class ClientImpl extends BaseClient {
                     timeoutMs = QUERY_TIMEOUT_IN_MILLISECS;
             }
         }
+        // If we set the timeout ourself, we need to update the server header
+        properties.setTimeoutInMilliSec(timeoutMs);
 
         return timeoutMs + CLIENT_GRACE_PERIOD_IN_MILLISECS;
     }
