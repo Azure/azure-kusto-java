@@ -16,6 +16,7 @@ enabling non-blocking operations. You can read more about Reactor Core and [Mono
 ### Changed
 - [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
 internally and block for results.
+- [BREAKING] Removing max keep alive from HttpClientPropertiesBuilder.
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added
