@@ -26,6 +26,7 @@ import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
+import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.util.annotation.Nullable;
@@ -33,6 +34,7 @@ import reactor.util.annotation.Nullable;
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -139,8 +141,9 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     log.info("Refreshing Ingestion Resources");
                     IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
                     Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
-                    KustoOperationResult ingestionResourcesResults = Retry.decorateCheckedSupplier(retry,
-                            () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).get();
+                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
+                            () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
+                    KustoOperationResult ingestionResourcesResults = retryExecute.apply();
                     if (ingestionResourcesResults != null) {
                         KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
                         // Add the received values to the new ingestion resources
@@ -234,8 +237,9 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 try {
                     log.info("Refreshing Ingestion Auth Token");
                     Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
-                    KustoOperationResult identityTokenResult = Retry.decorateCheckedSupplier(retry,
-                            () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND)).get();
+                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
+                            () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
+                    KustoOperationResult identityTokenResult = retryExecute.apply();
                     if (identityTokenResult != null
                             && identityTokenResult.hasNext()
                             && !identityTokenResult.getResultTables().isEmpty()) {
