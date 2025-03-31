@@ -304,7 +304,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         BlobClient blobClient = blobClientBuilder.buildClient();
         long blobSize = 0;
-        if (blobSourceInfo.getBlobExactSize() <= 0) {
+        if (blobSourceInfo.getBlobExactSize() != null) {
             try {
                 blobSize = blobClient.getProperties().getBlobSize();
             } catch (BlobStorageException e) {
