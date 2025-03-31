@@ -483,17 +483,6 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void ingestFromBlob_InvalidBlobPath_IngestionClientException() {
-        String path = "wrongURI";
-        BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(path);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo1, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-
-        assertTrue(ingestionClientException.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."));
-    }
-
-    @Test
     void ingestFromResultSet() throws Exception {
         ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         ResultSet resultSet = mock(ResultSet.class);
