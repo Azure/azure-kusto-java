@@ -165,6 +165,19 @@ public class WellKnownKustoEndpointsTests {
     }
 
     @Test
+    @DisplayName("validate auth with certificate throws exception when missing or invalid parameters")
+    void failForInvalidLogin() throws URISyntaxException {
+        CloudInfo.manuallyAddToCache("https://resource2.uri", Mono.just(new CloudInfo(
+                DEFAULT_LOGIN_MFA_REQUIRED,
+                "https://InvalidLogin.uri",
+                DEFAULT_KUSTO_CLIENT_APP_ID,
+                DEFAULT_REDIRECT_URI,
+                DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
+                DEFAULT_FIRST_PARTY_AUTHORITY_URL)));
+
+    }
+
+    @Test
     public void wellKnownKustoEndpoints_NationalClustersTest() throws KustoClientInvalidConnectionStringException, URISyntaxException {
         for (String c : new String[] {
                 String.format("https://kustozszokb5yrauyq.kusto.chinacloudapi.cn,%s", chinaCloudLogin),
