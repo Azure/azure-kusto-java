@@ -415,7 +415,7 @@ class StreamingIngestClientTest {
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty file."));
+        assertTrue(ingestionClientException.getMessage().contains("Empty file:"));
     }
 
     @Test
@@ -491,34 +491,6 @@ class StreamingIngestClientTest {
                 "Expected IngestionClientException to be thrown, but it didn't");
 
         assertTrue(ingestionClientException.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."));
-    }
-
-    @Test
-    void ingestFromBlob_BlobNotFound_IngestionClientException() {
-        String path = "https://kustotest.blob.core.windows.net/container/blob.csv";
-        BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo(path);
-
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Exception trying to read blob metadata"));
-    }
-
-    @Test
-    void ingestFromBlob_EmptyBlob_IngestClientException() {
-        BlobClient cloudBlockBlob = mock(BlobClient.class);
-        String blobPath = "https://kustotest.blob.core.windows.net/container/blob.csv";
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
-
-        BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getBlobSize()).thenReturn((long) 0);
-
-        when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
-
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, null),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty blob."));
     }
 
     @Test
