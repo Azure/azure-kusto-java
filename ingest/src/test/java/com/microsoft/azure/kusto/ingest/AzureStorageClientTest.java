@@ -141,7 +141,7 @@ class AzureStorageClientTest {
     void uploadStreamToBlob_NotCompressMode_UploadStreamIsCalled()
             throws IOException, URISyntaxException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            doNothing().when(azureStorageClientSpy).uploadStream(any(InputStream.class), any(BlobClient.class));
+            doReturn(10).when(azureStorageClientSpy).uploadStream(any(InputStream.class), any(BlobClient.class));
 
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName",
                     new BlobContainerClientBuilder().endpoint("https://ms.com/storageUrl").buildClient(), false);
