@@ -464,8 +464,8 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
      * <p>setQueuingPolicyFactor</p>
      * A factor used to tune the policy that handles the logic over which data size would the client choose to directly
      * use queued ingestion instead of trying streaming ingestion first.
-     * Setting the factor will create a new {@link ManagedStreamingQueuingPolicy} with this factor, switching
-     * {@link ManagedStreamingQueuingPolicy.Default} which is created with no factor.
+     * Setting the factor will create a new {@link ManagedStreamingQueuingPolicy} with this factor, which will be used
+     * in the future ingestion calls.
      * @param factor - Default is 1.
      **/
     public void setQueuingPolicyFactor(double factor) {
