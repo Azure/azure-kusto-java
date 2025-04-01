@@ -1,17 +1,20 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.CoreUtils;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
+import org.apache.http.conn.util.InetAddressUtils;
+
+import java.net.URI;
+
 import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
-import org.apache.http.conn.util.InetAddressUtils;
 import reactor.core.publisher.Mono;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,17 +47,17 @@ public abstract class IngestClientBase implements IngestClient {
         }
 
         String authority = uri.getAuthority().toLowerCase();
-        boolean isIPFlag;
+        boolean isIpAddress;
         if (authority.startsWith("[") && authority.endsWith("]")) {
-            authority = authority.substring(1, authority.length() - 1);
-            isIPFlag = true;
+            isIpAddress = true;
         } else {
-            isIPFlag = InetAddressUtils.isIPv4Address(authority);
+            isIpAddress = InetAddressUtils.isIPv4Address(authority);
         }
 
-        boolean isLocalFlag = authority.contains("localhost");
+        boolean isLocalhost = authority.contains("localhost");
+        String host = CoreUtils.isNullOrEmpty(uri.getHost()) ? "" : uri.getHost();
 
-        return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalhost || isIpAddress || host.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     public IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties) {

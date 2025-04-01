@@ -17,6 +17,11 @@ enabling non-blocking operations. You can read more about Reactor Core and [Mono
 internally and block for results.
 - [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
   internally and block for results.
+- [BREAKING] Removing max keep alive from HttpClientPropertiesBuilder.
+### Fixed
+- Fixed edge cases in query timeouts.
+- Long Queries would time out after 2 minutes. Remove keep alive timeout to fix.
+
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added
