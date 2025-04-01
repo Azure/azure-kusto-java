@@ -1,5 +1,7 @@
 package com.microsoft.azure.kusto.data.exceptions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -44,6 +46,23 @@ class KustoServiceQueryErrorTest {
         assertEquals(2, error.getExceptions().size());
         assertEquals("Exception 1", error.getExceptions().get(0).getMessage());
         assertEquals("Exception 2", error.getExceptions().get(1).getMessage());
+    }
+
+    @Test
+    void testFromOneApiErrorArrayWithMultipleExceptionsOneApi() throws JsonProcessingException {
+        String json = "{\"OneApiErrors\":[{\"error\":{\"code\":\"Internal service error\",\"message\":\"Request aborted due to an internal service error.\",\"@type\":\"Kusto.Data.Exceptions.KustoDataStreamException\",\"@message\":\"Query execution has resulted in error (0x80DA0006): Query is expired.\",\"@context\":{\"timestamp\":\"2024-01-15T19:45:16.8109217Z\",\"serviceAlias\":\"YISCHOEN2\",\"machineName\":\"KEngine000000\",\"processName\":\"Kusto.WinSvc.Svc\",\"processId\":9108,\"threadId\":10152,\"clientRequestId\":\"KJC.execute;bfdd8642-513b-41f0-99c1-8dbf1a91340e\",\"activityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"subActivityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"activityType\":\"GW.Http.CallContext\",\"parentActivityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"activityStack\":\"(Activity stack: CRID=KJC.execute;bfdd8642-513b-41f0-99c1-8dbf1a91340e ARID=1ddf9081-c289-42c8-8c3e-323698910b76 > GW.Http.CallContext/1ddf9081-c289-42c8-8c3e-323698910b76)\"},\"@permanent\":false}},{\"error\":{\"code\":\"Some other error\",\"message\":\"Some other error\",\"@type\":\"Kusto.Data.Exceptions.KustoDataStreamException\",\"@message\":\"Query execution has resulted in error (0x80DA0006): Query is expired.\",\"@context\":{\"timestamp\":\"2024-01-15T19:45:16.8109217Z\",\"serviceAlias\":\"YISCHOEN2\",\"machineName\":\"KEngine000000\",\"processName\":\"Kusto.WinSvc.Svc\",\"processId\":9108,\"threadId\":10152,\"clientRequestId\":\"KJC.execute;bfdd8642-513b-41f0-99c1-8dbf1a91340e\",\"activityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"subActivityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"activityType\":\"GW.Http.CallContext\",\"parentActivityId\":\"1ddf9081-c289-42c8-8c3e-323698910b76\",\"activityStack\":\"(Activity stack: CRID=KJC.execute;bfdd8642-513b-41f0-99c1-8dbf1a91340e ARID=1ddf9081-c289-42c8-8c3e-323698910b76 > GW.Http.CallContext/1ddf9081-c289-42c8-8c3e-323698910b76)\"},\"@permanent\":false}}]}";
+
+        // Parse the JSON string to get the OneApiErrors array
+        ObjectMapper objectMapper = new ObjectMapper();
+        ArrayNode jsonExceptions = (ArrayNode) objectMapper.readTree(json).get("OneApiErrors");
+
+
+        KustoServiceQueryError error = KustoServiceQueryError.fromOneApiErrorArray(jsonExceptions, true);
+
+        assertEquals("Query execution failed with multiple inner exceptions:\n" +
+                "Internal service error: Request aborted due to an internal service error.\n" +
+                "Some other error: Some other error\n", error.getMessage());
+
     }
 
     @Test

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.azure.core.exception.AzureException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /*
@@ -41,12 +42,19 @@ public class KustoServiceQueryError extends AzureException {
         }
 
         for (int i = 0; i < jsonExceptions.size(); i++) {
+            JsonNode jsonNode = jsonExceptions.get(i);
+            String value = jsonNode.isTextual() ? jsonNode.asText() : jsonNode.toString();
+            String message = value;
+            RuntimeException exception;
             if (isOneApi) {
-                exceptions.add(new DataWebException(jsonExceptions.get(i).asText()));
+                DataWebException ex = new DataWebException(value);
+                message = ex.getApiError().getCode() + ": " + ex.getApiError().getMessage();
+                exception = ex;
             } else {
-                exceptions.add(new RuntimeException(jsonExceptions.get(i).asText()));
+                exception = new RuntimeException(value);
             }
-            sb.append(jsonExceptions.get(i).asText());
+            exceptions.add(exception);
+            sb.append(message);
             sb.append("\n");
         }
 
