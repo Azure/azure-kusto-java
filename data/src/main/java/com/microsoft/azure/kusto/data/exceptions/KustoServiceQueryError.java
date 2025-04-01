@@ -42,11 +42,11 @@ public class KustoServiceQueryError extends AzureException {
 
         for (int i = 0; i < jsonExceptions.size(); i++) {
             if (isOneApi) {
-                exceptions.add(new DataWebException(jsonExceptions.get(i).toString()));
+                exceptions.add(new DataWebException(jsonExceptions.get(i).asText()));
             } else {
-                exceptions.add(new RuntimeException(jsonExceptions.get(i).toString()));
+                exceptions.add(new RuntimeException(jsonExceptions.get(i).asText()));
             }
-            sb.append(jsonExceptions.get(i).toString());
+            sb.append(jsonExceptions.get(i).asText());
             sb.append("\n");
         }
 
