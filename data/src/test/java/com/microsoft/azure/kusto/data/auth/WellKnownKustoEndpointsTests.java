@@ -174,7 +174,6 @@ public class WellKnownKustoEndpointsTests {
                 DEFAULT_REDIRECT_URI,
                 DEFAULT_KUSTO_SERVICE_RESOURCE_ID,
                 DEFAULT_FIRST_PARTY_AUTHORITY_URL)));
-
     }
 
     @Test
