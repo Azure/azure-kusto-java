@@ -136,7 +136,7 @@ class E2ETest {
             dmCslClient = ClientFactory.createClient(dmCsb);
             ingestClient = IngestClientFactory.createClient(dmCsb, HttpClientProperties.builder()
                     .keepAlive(true)
-                    .maxKeepAliveTime(120)
+                    .readTimeout(60 * 60)
                     .maxIdleTime(60)
                     .maxConnectionsTotal(50)
                     .build());
@@ -759,7 +759,7 @@ class E2ETest {
     }
 
     @Test
-    void testStreamingIngestFromBlob() throws IngestionClientException, IngestionServiceException, IOException, URISyntaxException {
+    void testStreamingIngestFromBlob() throws IngestionServiceException, IOException, URISyntaxException {
         KustoResultSetTable primaryResults = dmCslClient.executeMgmt(DB_NAME, ".show export containers").getPrimaryResults();
         if (primaryResults.count() == 0) {
             throw new IllegalStateException("No export containers found");
