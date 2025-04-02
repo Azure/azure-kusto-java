@@ -226,7 +226,7 @@ class ClientImpl extends BaseClient {
             return Mono.empty();
         }
 
-        return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, null)
+        return CloudInfo.retrieveCloudInfoForClusterAsync(clusterUrl, this.httpClient)
                 .map(CloudInfo::getLoginEndpoint)
                 .doOnNext(loginEndpoint -> KustoTrustedEndpoints.validateTrustedEndpoint(clusterUrl, loginEndpoint))
                 .doOnSuccess(ignored -> endpointValidated = true)

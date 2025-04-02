@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -242,7 +243,7 @@ public class Utils {
             // instead of the default below of 0.
             // Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), 0, UUID.randomUUID());
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), UUID.randomUUID());
 
             try {
                 ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -273,7 +274,8 @@ public class Utils {
             // Tip 1: For optimal ingestion batching and performance,specify the uncompressed data size in the file descriptor instead of the default below of 0
             // Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), 0, UUID.randomUUID());
+            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(String.format("quickstart/%s", blobUrl), blobUrl.contains(".gz") ? CompressionType.gz : null,
+                    UUID.randomUUID());
 
             try {
                 ingestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);

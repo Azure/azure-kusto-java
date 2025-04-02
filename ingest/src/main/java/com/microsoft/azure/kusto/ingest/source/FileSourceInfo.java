@@ -23,14 +23,8 @@ public class FileSourceInfo extends AbstractSourceInfo {
         this.filePath = filePath;
     }
 
-    // An estimation of the raw (uncompressed, un-indexed) size of the data, for binary formatted files - use only if known
-    public FileSourceInfo(String filePath, long rawSizeInBytes) {
+    public FileSourceInfo(String filePath, UUID sourceId) {
         this(filePath);
-        this.setRawSizeInBytes(rawSizeInBytes);
-    }
-
-    public FileSourceInfo(String filePath, long rawSizeInBytes, UUID sourceId) {
-        this(filePath, rawSizeInBytes);
         this.setSourceId(sourceId);
     }
 

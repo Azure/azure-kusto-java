@@ -22,6 +22,7 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
 import org.jetbrains.annotations.Nullable;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
 
     public static final String CLASS_NAME = QueuedIngestClientImpl.class.getSimpleName();
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int COMPRESSED_FILE_MULTIPLIER = 11;
     private final ResourceManager resourceManager;
     private final AzureStorageClient azureStorageClient;
     String connectionDataSource;
@@ -98,8 +98,8 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     ingestionProperties.getDatabaseName(), ingestionProperties.getTableName(), this.applicationForTracing,
                     this.clientVersionForTracing);
             String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
-            if (blobSourceInfo.getRawSizeInBytes() > 0L) {
-                ingestionBlobInfo.setRawDataSize(blobSourceInfo.getRawSizeInBytes());
+            if (blobSourceInfo.getBlobExactSize() != null) {
+                ingestionBlobInfo.setRawDataSize(blobSourceInfo.getBlobExactSize());
             } else {
                 log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
             }
@@ -175,12 +175,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     shouldCompress ? CompressionType.gz : sourceCompressionType);
 
             String blobPath = ResourceAlgorithms.uploadLocalFileWithRetries(resourceManager, azureStorageClient, file, blobName, shouldCompress);
-
-            long rawDataSize = fileSourceInfo.getRawSizeInBytes() > 0L ? fileSourceInfo.getRawSizeInBytes()
-                    : estimateFileRawSize(filePath, ingestionProperties.getDataFormat().isCompressible());
-
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, rawDataSize, fileSourceInfo.getSourceId());
-
+            BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromFile(blobPath, fileSourceInfo, sourceCompressionType, shouldCompress);
             return ingestFromBlob(blobSourceInfo, ingestionProperties);
         } catch (BlobStorageException e) {
             throw new IngestionServiceException("Failed to ingest from file", e);
@@ -216,13 +211,17 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     dataFormat.getKustoValue(), // Used to use an empty string if the DataFormat was empty. Now it can't be empty, with a default of CSV.
                     shouldCompress ? CompressionType.gz : streamSourceInfo.getCompressionType());
 
-            String blobPath = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
+            ResourceAlgorithms.UploadResult blobUploadedDetails = ResourceAlgorithms.uploadStreamToBlobWithRetries(resourceManager,
                     azureStorageClient,
                     streamSourceInfo.getStream(),
                     blobName,
                     shouldCompress);
-
-            BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath, streamSourceInfo.getRawSizeInBytes(), streamSourceInfo.getSourceId());
+            if (blobUploadedDetails.size == 0) {
+                String message = "Empty stream.";
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
+            BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromStream(blobUploadedDetails.blobPath, blobUploadedDetails.size, streamSourceInfo);
 
             ingestionResult = ingestFromBlob(blobSourceInfo, ingestionProperties);
             if (!streamSourceInfo.isLeaveOpen()) {
@@ -239,11 +238,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
     @Override
     protected String getClientType() {
         return CLASS_NAME;
-    }
-
-    private long estimateFileRawSize(String filePath, boolean isCompressible) {
-        long fileSize = new File(filePath).length();
-        return (IngestionUtils.getCompression(filePath) != null || !isCompressible) ? fileSize * COMPRESSED_FILE_MULTIPLIER : fileSize;
     }
 
     String genBlobName(String fileName, String databaseName, String tableName, String dataFormat, CompressionType compressionType) {

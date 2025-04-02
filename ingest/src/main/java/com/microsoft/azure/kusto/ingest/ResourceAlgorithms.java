@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,12 +84,16 @@ public class ResourceAlgorithms {
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static String uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
+    public static UploadResult uploadStreamToBlobWithRetries(ResourceManager resourceManager, AzureStorageClient azureStorageClient,
+            InputStream stream,
             String blobName, boolean shouldCompress)
             throws IngestionClientException, IngestionServiceException {
         return resourceActionWithRetries(resourceManager, resourceManager.getShuffledContainers(), container -> {
-            azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
-            return (container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas());
+            int size = azureStorageClient.uploadStreamToBlob(stream, blobName, container.getContainer(), shouldCompress);
+            UploadResult uploadResult = new UploadResult();
+            uploadResult.blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+            uploadResult.size = size;
+            return uploadResult;
         }, "ResourceAlgorithms.uploadLocalFileWithRetries", Collections.emptyMap());
     }
 
@@ -137,4 +142,8 @@ public class ResourceAlgorithms {
         return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
     }
 
+    public static class UploadResult {
+        public String blobPath;
+        public int size;
+    }
 }
