@@ -243,7 +243,7 @@ public class Utils {
             // instead of the default below of 0.
             // Otherwise, the service will determine the file size, requiring an additional s2s call and may not be accurate for compressed files.
             // Tip 2: To correlate between ingestion operations in your applications and Kusto, set the source ID and log it somewhere.
-            FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), 0, UUID.randomUUID());
+            FileSourceInfo fileSourceInfo = new FileSourceInfo(String.format("quickstart/%s", filePath), UUID.randomUUID());
 
             try {
                 ingestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
