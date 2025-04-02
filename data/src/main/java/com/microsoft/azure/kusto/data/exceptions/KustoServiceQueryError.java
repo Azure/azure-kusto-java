@@ -48,7 +48,10 @@ public class KustoServiceQueryError extends AzureException {
             RuntimeException exception;
             if (isOneApi) {
                 DataWebException ex = new DataWebException(value);
-                message = ex.getApiError().getCode() + ": " + ex.getApiError().getMessage();
+                OneApiError apiError = ex.getApiError();
+                if (apiError != null) {
+                    message = apiError.getCode() + ": " + apiError.getMessage();
+                }
                 exception = ex;
             } else {
                 exception = new RuntimeException(value);
@@ -71,7 +74,7 @@ public class KustoServiceQueryError extends AzureException {
     }
 
     public boolean isPermanent() {
-        if (exceptions.size() > 0 && exceptions.get(0) instanceof DataWebException) {
+        if (!exceptions.isEmpty() && exceptions.get(0) instanceof DataWebException) {
             return ((DataWebException) exceptions.get(0)).getApiError().isPermanent();
         }
 
