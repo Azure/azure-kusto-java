@@ -156,6 +156,7 @@
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
             <version>${project.parent.version}</version>
+            <scope>compile</scope>
         </dependency>
         <!-- Azure bom libraries -->
         <dependency>
@@ -274,12 +275,6 @@
             <groupId>io.vavr</groupId>
             <artifactId>vavr</artifactId>
             <version>${io.vavr.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure.kusto</groupId>
-            <artifactId>kusto-data</artifactId>
-            <version>6.0.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 </project>
