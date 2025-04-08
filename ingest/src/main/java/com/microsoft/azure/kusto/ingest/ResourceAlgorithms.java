@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,14 +112,20 @@ public class ResourceAlgorithms {
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
     }
 
-    public static Mono<String> uploadStreamToBlobWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
+    public static Mono<UploadResult> uploadStreamToBlobWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
             String blobName, boolean shouldCompress) {
+
 
         return resourceActionWithRetriesAsync(
                 resourceManager,
                 resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
                 container -> azureStorageClient.uploadStreamToBlob(stream, blobName, container.getAsyncContainer(), shouldCompress)
-                        .thenReturn(container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()),
+                        .map((size) -> {
+                            UploadResult uploadResult = new UploadResult();
+                            uploadResult.blobPath = container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()
+                            uploadResult.size = size;
+                            return uploadResult;
+                        }),
                 "ResourceAlgorithms.uploadStreamToBlobWithRetriesAsync",
                 Collections.emptyMap());
     }
@@ -149,9 +156,8 @@ public class ResourceAlgorithms {
                         .filter(Objects::nonNull))
                 // So we combine the list of the first element of each list, then the second element, etc.
                 .collect(Collectors.toList());
-    }
-
-    public static <T extends ResourceWithSas<?>> List<T> getShuffledResources(List<RankedStorageAccount> shuffledAccounts, List<T> resourceOfType) {
+   }
++    public static <T extends ResourceWithSas<?>> List<T> getShuffledResources(List<RankedStorageAccount> shuffledAccounts, List<T> resourceOfType) {
         Map<String, List<T>> accountToResourcesMap = groupResourceByAccountName(resourceOfType);
 
         List<List<T>> validResources = shuffledAccounts.stream()
@@ -171,4 +177,9 @@ public class ResourceAlgorithms {
         return resourceSet.stream().collect(Collectors.groupingBy(ResourceWithSas::getAccountName, Collectors.toList()));
     }
 
+    public static class UploadResult {
+        public String blobPath;
+        public int size;
+    }
 }
+

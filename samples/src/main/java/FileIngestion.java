@@ -30,7 +30,7 @@ public class FileIngestion {
                 IngestionProperties ingestionProperties = new IngestionProperties("db2", "TestTable");
                 ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
                 ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
-                FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\data\\a.csv", 0);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo("C:\\Users\\ohbitton\\OneDrive - Microsoft\\Desktop\\data\\a.csv");
                 IngestionResult ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
                 ByteArrayOutputStream st = new ByteArrayOutputStream();
                 st.write("asd,2".getBytes());

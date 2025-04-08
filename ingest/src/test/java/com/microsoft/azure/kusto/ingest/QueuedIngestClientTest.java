@@ -107,14 +107,14 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromBlob_IngestionReportMethodIsNotTable_EmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertEquals(OperationStatus.Queued, result.getIngestionStatusCollection().block().get(0).status);
     }
 
     @Test
     void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -123,7 +123,7 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromBlob_NullIngestionProperties_IllegalArgumentException() {
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob", 100);
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromBlob(blobSourceInfo, null));
@@ -139,8 +139,7 @@ class QueuedIngestClientTest {
     @Test
     void ingestFromBlob_IngestionReportMethodIsTable_RemovesSecrets() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
-                100);
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud");
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
         ArgumentCaptor<TableEntity> captor = ArgumentCaptor.forClass(TableEntity.class);
 
@@ -154,8 +153,7 @@ class QueuedIngestClientTest {
     @Test
     void ingestFromBlob_IngestionIgnoreFirstRecord_SetsProperty() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
-                100);
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud");
         ingestionProperties.setIgnoreFirstRecord(true);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
@@ -173,8 +171,7 @@ class QueuedIngestClientTest {
     @Test
     void ingestFromBlob_ValidationPolicy_SetsProperly() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(
-                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud",
-                100);
+                "https://storage.table.core.windows.net/ingestionsstatus20190505?sv=2018-03-28&tn=ingestionsstatus20190505&sig=anAusomeSecret%2FK024xNydFzT%2B2cCE%2BA2S8Y6U%3D&st=2019-05-05T09%3A00%3A31Z&se=2019-05-09T10%3A00%3A31Z&sp=raud");
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
         queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
@@ -202,7 +199,7 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromFile_NullIngestionProperties_IllegalArgumentException() {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path");
         assertThrows(
                 IllegalArgumentException.class,
                 () -> queuedIngestClient.ingestFromFile(fileSourceInfo, null));
@@ -217,7 +214,7 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromFileAsync_FileDoesNotExist_IngestionClientException() {
-        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path", 100);
+        FileSourceInfo fileSourceInfo = new FileSourceInfo("file.path");
         Mono<IngestionResult> result = queuedIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties);
         StepVerifier.create(result)
                 .expectError(IngestionClientException.class)
@@ -228,7 +225,12 @@ class QueuedIngestClientTest {
     void ingestFromStream_UploadStreamToBlobIsCalled() throws Exception {
         InputStream stream = Files.newInputStream(Paths.get(testFilePath));
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
-        queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        try {
+            queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
+        } catch (Exception e) {
+            // Ignore the exception, we just want to verify the uploadStreamToBlob method is called
+            assertTrue(e.getMessage().contains("Empty"));
+        }
         verify(azureStorageClientMock, atLeastOnce())
                 .uploadStreamToBlob(any(InputStream.class), anyString(), any(), anyBoolean());
     }

@@ -49,8 +49,8 @@ import java.util.UUID;
  * It tries {@value ATTEMPT_COUNT} times using the streaming client, after which it falls back to the queued streaming client in case of failure.
  * By default the policy for choosing a queued ingestion on the first try is the checking of weather the size of the estimated
  * raw stream size (a conversion to compressed CSV) is bigger than 4MB, it will fall back to the queued streaming client.
- * Use {@link #setQueuingPolicy(ManagedStreamingQueuingPolicy)} to override the predicate heuristics.
- * Use SourceInfo.setRawSizeInBytes to set the raw size of the data. * <p>
+ * Use {@link #setQueuingPolicyFactor(double)} to override the predicate heuristics.
+ * Use SourceInfo.setRawSizeInBytes to set the raw size of the data.
  */
 public class ManagedStreamingIngestClient extends IngestClientBase implements QueuedIngestClient {
 
@@ -62,7 +62,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
     private final ExponentialRetry exponentialRetryTemplate;
     private HttpClient httpClient = null;
     private ManagedStreamingQueuingPolicy queuingPolicy = ManagedStreamingQueuingPolicy.Default;
-    private static final String FALLBACK_LOG_STRING = "Data size is greater than max streaming size according to the policy. Falling back to queued.";
+    private static final String FALLBACK_LOG_STRING = "Data size for source id '%s' is greater than max streaming size according to the policy. Falling back to queued.";
 
     /**
      * @param dmConnectionString dm connection string
@@ -307,23 +307,23 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
         BlobAsyncClient blobAsyncClient = blobClientBuilder.buildAsyncClient();
 
-        return (blobSourceInfo.getRawSizeInBytes() > 0
-                ? Mono.just(blobSourceInfo.getRawSizeInBytes())
+        return (blobSourceInfo.getBlobExactSize() > 0
+                ? Mono.just(blobSourceInfo.getBlobExactSize())
                 : blobAsyncClient.getProperties().map(BlobProperties::getBlobSize))
-                        .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException(
-                                blobSourceInfo.getBlobPath(),
-                                "Failed getting blob properties: " + ExceptionUtils.getMessageEx(e),
-                                e))
-                        .flatMap(blobSize -> handleIngestion(blobSourceInfo, ingestionProperties, blobAsyncClient, blobSize));
+                .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException(
+                        blobSourceInfo.getBlobPath(),
+                        "Failed getting blob properties: " + ExceptionUtils.getMessageEx(e),
+                        e))
+                .flatMap(blobSize -> handleIngestion(blobSourceInfo, ingestionProperties, blobAsyncClient, blobSize));
     }
+
 
     private Mono<IngestionResult> handleIngestion(BlobSourceInfo blobSourceInfo,
             IngestionProperties ingestionProperties,
             BlobAsyncClient blobAsyncClient,
             long blobSize) {
-        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getRawSizeInBytes(),
-                blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
-            log.info(FALLBACK_LOG_STRING);
+        if (queuingPolicy.shouldUseQueuedIngestion(blobSize, blobSourceInfo.getCompressionType() != null, ingestionProperties.getDataFormat())) {
+            log.info(String.format(FALLBACK_LOG_STRING, blobSourceInfo.getSourceId()));
             return queuedIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
         }
 
@@ -402,7 +402,6 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
             int availableBytes = streamSourceInfo.getStream().available();
             boolean shouldUseQueuedIngestion = queuingPolicy.shouldUseQueuedIngestion(
                     availableBytes,
-                    streamSourceInfo.getRawSizeInBytes(),
                     streamSourceInfo.getCompressionType() != null,
                     ingestionProperties.getDataFormat());
             return shouldUseQueuedIngestion
@@ -433,15 +432,13 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
                 boolean shouldUseQueuedIngestion = queuingPolicy.shouldUseQueuedIngestion(
                         size,
-                        streamSourceInfo.getRawSizeInBytes(),
                         streamSourceInfo.getCompressionType() != null,
                         ingestionProperties.getDataFormat());
 
                 if (shouldUseQueuedIngestion) {
-                    log.info(FALLBACK_LOG_STRING);
-                    StreamSourceInfo managedSourceInfo = new StreamSourceInfo(
-                            new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
-                            streamSourceInfo.isLeaveOpen(), streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType());
+                    log.info(String.format(FALLBACK_LOG_STRING, blobSourceInfo.getSourceId()));
+                    StreamSourceInfo managedSourceInfo = new StreamSourceInfo(new SequenceInputStream(byteArrayStream, streamSourceInfo.getStream()),
+                            streamSourceInfo.isLeaveOpen(), sourceId, streamSourceInfo.getCompressionType());
 
                     return queuedIngestClient.ingestFromStreamAsync(managedSourceInfo, ingestionProperties);
                 }
@@ -457,8 +454,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
                 }
 
                 StreamSourceInfo managedSourceInfo = new StreamSourceInfo(byteArrayStream,
-                        true, streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType(),
-                        streamSourceInfo.getRawSizeInBytes());
+                        true, streamSourceInfo.getSourceId(), streamSourceInfo.getCompressionType());
                 return Mono.defer(() -> executeStream(managedSourceInfo, ingestionProperties, null))
                         .retryWhen(new ExponentialRetry(exponentialRetryTemplate).retry(null))
                         .onErrorResume(ignored -> queuedIngestClient.ingestFromStreamAsync(managedSourceInfo, ingestionProperties))
@@ -478,12 +474,16 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
     }
 
-    /*
-     * Set the policy that handles the logic over which data size would the client choose to directly use queued ingestion instead of trying streaming ingestion
-     * first.
-     */
-    public void setQueuingPolicy(ManagedStreamingQueuingPolicy queuingPolicy) {
-        this.queuingPolicy = queuingPolicy;
+    /**
+     * <p>setQueuingPolicyFactor</p>
+     * A factor used to tune the policy that handles the logic over which data size would the client choose to directly
+     * use queued ingestion instead of trying streaming ingestion first.
+     * Setting the factor will create a new {@link ManagedStreamingQueuingPolicy} with this factor, which will be used
+     * in the future ingestion calls.
+     * @param factor - Default is 1.
+     **/
+    public void setQueuingPolicyFactor(double factor) {
+        this.queuingPolicy = new ManagedStreamingQueuingPolicy(factor);
     }
 
     @Override

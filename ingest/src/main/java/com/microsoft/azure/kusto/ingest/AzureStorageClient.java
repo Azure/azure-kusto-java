@@ -83,11 +83,11 @@ public class AzureStorageClient {
         return blobAsyncClient.uploadFromFile(sourceFile.getPath());
     }
 
-    Mono<Void> uploadStreamToBlob(InputStream inputStream,
-            String blobName,
-            BlobContainerAsyncClient asyncContainer,
-            boolean shouldCompress) {
-        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, asyncContainer);
+    Mono<Integer> uploadStreamToBlob(InputStream inputStream,
+                                     String blobName,
+                                     BlobContainerAsyncClient asyncContainer,
+                                     boolean shouldCompress) {
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
 
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.stringIsNotBlank(blobName, "blobName");
@@ -101,22 +101,24 @@ public class AzureStorageClient {
         }
     }
 
-    Mono<Void> uploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
+    // Returns original stream size
+    Mono<Integer> uploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
         return IngestionUtils.toByteArray(inputStream)
                 .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true))
-                .then();
+                .thenReturn(100);//TODO
     }
 
-    Mono<Void> compressAndUploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
+    // Returns original stream size
+    Mono<Integer> compressAndUploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
         return IngestionUtils.toCompressedByteArray(inputStream, false)
                 .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true))
-                .then();
+                .thenReturn(100);
     }
 
 }

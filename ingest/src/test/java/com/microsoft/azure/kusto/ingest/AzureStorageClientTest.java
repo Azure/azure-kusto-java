@@ -25,12 +25,7 @@ import java.nio.file.Paths;
 
 import static com.microsoft.azure.kusto.ingest.IngestClientBase.shouldCompress;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 class AzureStorageClientTest {
     static private final AzureStorageClient azureStorageClient = new AzureStorageClient();
@@ -151,7 +146,7 @@ class AzureStorageClientTest {
     @Test
     void uploadStreamToBlob_NotCompressMode_UploadStreamIsCalled() throws IOException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            doAnswer(answer -> Mono.empty())
+            doAnswer(answer -> Mono.just(10))
                     .when(azureStorageClientSpy)
                     .uploadStream(any(InputStream.class), any(BlobAsyncClient.class));
 
@@ -164,7 +159,7 @@ class AzureStorageClientTest {
     @Test
     void uploadStreamToBlob_CompressMode_CompressAndUploadStreamIsCalled() throws IOException {
         try (InputStream stream = Files.newInputStream(Paths.get(testFilePath))) {
-            doAnswer(answer -> Mono.empty())
+            doAnswer(answer -> Mono.just(10))
                     .when(azureStorageClientSpy)
                     .compressAndUploadStream(any(InputStream.class), any(BlobAsyncClient.class));
             azureStorageClientSpy.uploadStreamToBlob(stream, "blobName",

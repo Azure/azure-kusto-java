@@ -6,17 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Changed
+
+- [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
+  internally and block for results.
+- [BREAKING] Streaming client no longer check for blob size and if it exists.
+### Added
+- The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
+    enabling non-blocking operations.
+ 
+## [6.0.1]
+
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all query, management, streaming query/ingestion (StreamingClient) endpoints,
 enabling non-blocking operations. You can read more about Reactor Core and [Mono type here](https://projectreactor.io/docs/core/release/api/).
 - `ConnectionStringBuilder` now supports keywords without regards to spaces or case. It now supports `toString()` that prints a canonical connection string, with censored secrets by default.
-- The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
-  enabling non-blocking operations.
+
 ### Changed
 - [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
 internally and block for results.
-- [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
-  internally and block for results.
+- [BREAKING] Make ManagedStreamingQueuingPolicy internal, expose just a factor
+- [BREAKING] Don't allow users to pass raw data size, provide it only if we have it
+
 - [BREAKING] Removing max keep alive from HttpClientPropertiesBuilder.
 ### Fixed
 - Fixed edge cases in query timeouts.

@@ -35,7 +35,7 @@ public class TableStatus {
                 ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
                 ingestionProperties.setReportMethod(QUEUE_AND_TABLE);
                 ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"));
                 ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             }
             List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection().block(); // TODO: how to handle this

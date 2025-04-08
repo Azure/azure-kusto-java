@@ -278,12 +278,6 @@
             <artifactId>vavr</artifactId>
             <version>${io.vavr.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure.kusto</groupId>
-            <artifactId>kusto-data</artifactId>
-            <version>6.0.0</version>
-            <scope>compile</scope>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-test -->
         <dependency>
             <groupId>io.projectreactor</groupId>
