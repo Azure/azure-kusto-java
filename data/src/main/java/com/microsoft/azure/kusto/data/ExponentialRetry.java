@@ -3,6 +3,7 @@ package com.microsoft.azure.kusto.data;
 import java.lang.invoke.MethodHandles;
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,13 +43,20 @@ public class ExponentialRetry {
      *
      * @param retriableErrorClasses A list of error classes that are considered retriable. If null,
      *                              the method does not retry.
+    * @param filter A filter to use. Default is retrying retriable errors.
      * @return A configured {@link Retry} instance
      */
-    public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses) {
+    public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses,
+                       @Nullable Predicate<? super Throwable> filter) {
+        if (retriableErrorClasses != null && filter != null) {
+            throw new IllegalArgumentException("Cannot specify both retriableErrorClasses and filter");
+        }
+
+        Predicate<? super Throwable> filterToUse  = filter == null ? throwable -> shouldRetry(throwable, retriableErrorClasses) : filter;
         return Retry.backoff(maxAttempts, Duration.ofSeconds((long) sleepBaseSecs))
                 .maxBackoff(Duration.ofSeconds(30))
                 .jitter(maxJitterSecs)
-                .filter(throwable -> shouldRetry(throwable, retriableErrorClasses))
+                .filter(filterToUse)
                 .doAfterRetry(retrySignal -> {
                     long currentAttempt = retrySignal.totalRetries() + 1;
                     log.info("Attempt {} failed.", currentAttempt);

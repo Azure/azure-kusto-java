@@ -68,7 +68,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
     private final String kustoServiceResourceId;
     private final String firstPartyAuthorityUrl;
     private static final int ATTEMPT_COUNT = 3;
-    private static final Retry RETRY_CONFIG = new ExponentialRetry(ATTEMPT_COUNT).retry(null);
+    private static final Retry RETRY_CONFIG = new ExponentialRetry(ATTEMPT_COUNT).retry(null, null);
 
     public CloudInfo(boolean loginMfaRequired, String loginEndpoint, String kustoClientAppId, String kustoClientRedirectUri, String kustoServiceResourceId,
             String firstPartyAuthorityUrl) {

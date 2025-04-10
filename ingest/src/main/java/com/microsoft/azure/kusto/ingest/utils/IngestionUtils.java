@@ -195,4 +195,20 @@ public class IngestionUtils {
             }
         });
     }
+
+    public static class IntegerHolder {
+        int value;
+
+        public int increment() {
+            return value++;
+        }
+
+        public void add(int length) {
+            value += length;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
 }

@@ -87,7 +87,7 @@ public class AzureStorageClient {
                                      String blobName,
                                      BlobContainerAsyncClient asyncContainer,
                                      boolean shouldCompress) {
-        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, asyncContainer.getBlobContainerUrl());
 
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.stringIsNotBlank(blobName, "blobName");
@@ -106,9 +106,14 @@ public class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
+        IngestionUtils.IntegerHolder size = new IngestionUtils.IntegerHolder();
+
         return IngestionUtils.toByteArray(inputStream)
-                .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true))
-                .thenReturn(100);//TODO
+                .flatMap(bytes -> {
+                    size.add(bytes.length);
+                    return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true);
+                })
+                .map(x ->  size.getValue());
     }
 
     // Returns original stream size
@@ -116,9 +121,13 @@ public class AzureStorageClient {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
+        IngestionUtils.IntegerHolder size = new IngestionUtils.IntegerHolder();
         return IngestionUtils.toCompressedByteArray(inputStream, false)
-                .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true))
-                .thenReturn(100);
+                .flatMap(bytes -> {
+                    size.add(bytes.length);
+                    return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true);
+                })
+                .map(x ->  size.getValue());
     }
 
 }

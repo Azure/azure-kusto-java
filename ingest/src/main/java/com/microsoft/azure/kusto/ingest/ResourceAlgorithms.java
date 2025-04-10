@@ -82,12 +82,11 @@ public class ResourceAlgorithms {
         attributes.putAll(additionalAttributes);
         totalAttributes.add(attributes);
 
-        log.info(String.format("Attempt %d of %d for %s.", attempt, RETRY_COUNT, actionName));
         return MonitoredActivity.invokeAsync(
-                span -> action.apply(resource)
-                        .doOnSuccess(ignored -> resourceManager.reportIngestionResult(resource, true)),
-                actionName,
-                attributes)
+                        span -> action.apply(resource)
+                                .doOnSuccess(ignored -> resourceManager.reportIngestionResult(resource, true)),
+                        actionName,
+                        attributes)
                 .onErrorResume(e -> {
                     log.warn(String.format("Error during attempt %d of %d for %s.", attempt, RETRY_COUNT, actionName), e);
                     resourceManager.reportIngestionResult(resource, false);
@@ -113,16 +112,14 @@ public class ResourceAlgorithms {
     }
 
     public static Mono<UploadResult> uploadStreamToBlobWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, InputStream stream,
-            String blobName, boolean shouldCompress) {
-
-
+                                                                        String blobName, boolean shouldCompress) {
         return resourceActionWithRetriesAsync(
                 resourceManager,
                 resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
                 container -> azureStorageClient.uploadStreamToBlob(stream, blobName, container.getAsyncContainer(), shouldCompress)
                         .map((size) -> {
                             UploadResult uploadResult = new UploadResult();
-                            uploadResult.blobPath = container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()
+                            uploadResult.blobPath = container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
                             uploadResult.size = size;
                             return uploadResult;
                         }),
@@ -131,8 +128,8 @@ public class ResourceAlgorithms {
     }
 
     public static Mono<String> uploadLocalFileWithRetriesAsync(ResourceManager resourceManager, AzureStorageClient azureStorageClient, File file,
-            String blobName,
-            boolean shouldCompress) {
+                                                               String blobName,
+                                                               boolean shouldCompress) {
         return resourceActionWithRetriesAsync(
                 resourceManager,
                 resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
@@ -150,14 +147,15 @@ public class ResourceAlgorithms {
         return IntStream.range(0, longestResourceList).boxed()
                 // This flat maps combines all the inner lists
                 .flatMap(i ->
-                // For each list, get the i'th element if it exists, or null otherwise (if the list is shorter)
-                validResources.stream().map(r -> r.size() > i ? r.get(i) : null)
-                        // Remove nulls
-                        .filter(Objects::nonNull))
+                        // For each list, get the i'th element if it exists, or null otherwise (if the list is shorter)
+                        validResources.stream().map(r -> r.size() > i ? r.get(i) : null)
+                                // Remove nulls
+                                .filter(Objects::nonNull))
                 // So we combine the list of the first element of each list, then the second element, etc.
                 .collect(Collectors.toList());
-   }
-+    public static <T extends ResourceWithSas<?>> List<T> getShuffledResources(List<RankedStorageAccount> shuffledAccounts, List<T> resourceOfType) {
+    }
+
+    public static <T extends ResourceWithSas<?>> List<T> getShuffledResources(List<RankedStorageAccount> shuffledAccounts, List<T> resourceOfType) {
         Map<String, List<T>> accountToResourcesMap = groupResourceByAccountName(resourceOfType);
 
         List<List<T>> validResources = shuffledAccounts.stream()

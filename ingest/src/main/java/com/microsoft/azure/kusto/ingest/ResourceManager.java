@@ -66,7 +66,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
     private static final double JITTER_FACTOR = 0.5;
     private static final reactor.util.retry.Retry RETRY_CONFIG = new ExponentialRetry(MAX_RETRY_ATTEMPTS, BASE_INTERVAL, JITTER_FACTOR)
-            .retry(Collections.singletonList(ThrottleException.class)); // TODO: fix import after removing vavr
+            .retry(Collections.singletonList(ThrottleException.class), null); // TODO: fix import after removing vavr
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Timer refreshTasksTimer;
