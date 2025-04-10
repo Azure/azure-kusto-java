@@ -3,12 +3,13 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
-import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableAsyncClient;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
 
 import java.io.Serializable;
 import java.lang.invoke.MethodHandles;
@@ -26,7 +27,7 @@ public class IngestionStatusInTableDescription implements Serializable {
     private String rowKey;
 
     @JsonIgnore
-    private transient TableClient tableClient;
+    private transient TableAsyncClient tableAsyncClient;
 
     public String getTableConnectionString() {
         return this.tableConnectionString;
@@ -52,20 +53,21 @@ public class IngestionStatusInTableDescription implements Serializable {
         this.rowKey = rowKey;
     }
 
-    public TableClient getTableClient() {
-        if (tableClient == null) {
+    @Nullable
+    public TableAsyncClient getTableAsyncClient() {
+        if (tableAsyncClient == null) {
             try {
-                tableClient = TableWithSas.TableClientFromUrl(getTableConnectionString(), null);
+                tableAsyncClient = TableWithSas.createTableClientFromUrl(getTableConnectionString(), null);
             } catch (URISyntaxException uriSyntaxException) {
                 log.error("TableConnectionString could not be parsed as URI reference.", uriSyntaxException);
                 return null;
             }
         }
 
-        return tableClient;
+        return tableAsyncClient;
     }
 
-    public void setTableClient(TableClient tableClient) {
-        this.tableClient = tableClient;
+    public void setAsyncTableClient(TableAsyncClient tableAsyncClient) {
+        this.tableAsyncClient = tableAsyncClient;
     }
 }

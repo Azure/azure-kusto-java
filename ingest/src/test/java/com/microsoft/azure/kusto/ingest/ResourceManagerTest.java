@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
@@ -21,12 +21,20 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -77,13 +85,16 @@ class ResourceManagerTest {
         ObjectMapper objectMapper = Utils.getObjectMapper();
         List<List<String>> valuesList = new ArrayList<>();
         for (int i = 0; i < STORAGES.size(); i++) {
-            valuesList.add(new ArrayList<>((Arrays.asList("TempStorage", STORAGES.get(i).getContainer().getBlobContainerUrl() + STORAGES.get(i).getSas()))));
             valuesList
-                    .add(new ArrayList<>((Arrays.asList("SecuredReadyForAggregationQueue", QUEUES.get(i).getQueue().getQueueUrl() + QUEUES.get(i).getSas()))));
+                    .add(new ArrayList<>((Arrays.asList("TempStorage", STORAGES.get(i).getAsyncContainer().getBlobContainerUrl() + STORAGES.get(i).getSas()))));
+            valuesList
+                    .add(new ArrayList<>(
+                            (Arrays.asList("SecuredReadyForAggregationQueue", QUEUES.get(i).getAsyncQueue().getQueueUrl() + QUEUES.get(i).getSas()))));
         }
-        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE_RES.getQueue().getQueueUrl() + FAILED_QUEUE_RES.getSas()))));
-        valuesList.add(new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE_RES.getQueue().getQueueUrl() + SUCCESS_QUEUE_RES.getSas()))));
-        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE_RES.getTable().getTableEndpoint() + "?sas"))));
+        valuesList.add(new ArrayList<>((Arrays.asList("FailedIngestionsQueue", FAILED_QUEUE_RES.getAsyncQueue().getQueueUrl() + FAILED_QUEUE_RES.getSas()))));
+        valuesList.add(
+                new ArrayList<>((Arrays.asList("SuccessfulIngestionsQueue", SUCCESS_QUEUE_RES.getAsyncQueue().getQueueUrl() + SUCCESS_QUEUE_RES.getSas()))));
+        valuesList.add(new ArrayList<>((Arrays.asList("IngestionsStatusTable", STATUS_TABLE_RES.getTableAsyncClient().getTableEndpoint() + "?sas"))));
         String listAsJson = objectMapper.writeValueAsString(valuesList);
         String response = "{\"Tables\":[{\"TableName\":\"Table_0\",\"Columns\":[{\"ColumnName\":\"ResourceTypeName\"," +
                 "\"DataType\":\"String\",\"ColumnType\":\"string\"},{\"ColumnName\":\"StorageRoot\",\"DataType\":" +
@@ -211,8 +222,8 @@ class ResourceManagerTest {
     }
 
     void validateStorage(List<ContainerWithSas> storages) {
-        Map<String, List<BlobContainerClient>> storageByAccount = storages.stream().map(ContainerWithSas::getContainer)
-                .collect(Collectors.groupingBy(BlobContainerClient::getAccountName));
+        Map<String, List<BlobContainerAsyncClient>> storageByAccount = storages.stream().map(ContainerWithSas::getAsyncContainer)
+                .collect(Collectors.groupingBy(BlobContainerAsyncClient::getAccountName));
         assertEquals(ACCOUNTS_COUNT, storageByAccount.size());
     }
 
