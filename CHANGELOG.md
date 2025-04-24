@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.0.2] - 2025-24-04
 
 ### Fixed
-- Update deps
+- Update azure-bom to 12.2.8, to remove internal dependencies on jackson-xml.
 
 ## [6.0.1] - 2025-10-04
 
