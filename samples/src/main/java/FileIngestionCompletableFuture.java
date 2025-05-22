@@ -35,7 +35,7 @@ public class FileIngestionCompletableFuture {
                         System.getProperty("tableName"));
                 ingestionProperties.setIngestionMapping(System.getProperty("dataMappingName"), IngestionMapping.IngestionMappingKind.JSON);
 
-                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"), 0);
+                FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"));
 
                 // Ingest From File ASYNC returns a CompletableFuture:
                 cf = ingestFromFileAsync(client, fileSourceInfo, ingestionProperties);

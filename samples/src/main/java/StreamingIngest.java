@@ -88,14 +88,14 @@ public class StreamingIngest {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
         // Ingest CSV file
         String path = resourcesDirectory + "dataset.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.CSV);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         System.out.println(status.toString());
 
         // Ingest compressed JSON file
         path = resourcesDirectory + "dataset.jsonz.gz";
-        fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping(mapping, IngestionMapping.IngestionMappingKind.JSON);
         status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;

@@ -18,13 +18,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class ManagedStreamingTest {
@@ -108,58 +106,71 @@ public class ManagedStreamingTest {
                 throw new RuntimeException(e);
             }
         };
-
-        // if size was given - it should be used against MAX_STREAMING_RAW_SIZE_BYTES
-        streamSourceInfo.setRawSizeInBytes(ManagedStreamingQueuingPolicy.MAX_STREAMING_RAW_SIZE_BYTES + 1);
-        assertPolicyWorked.accept(true);
-
-        streamSourceInfo.setRawSizeInBytes(ManagedStreamingQueuingPolicy.MAX_STREAMING_RAW_SIZE_BYTES - 1);
-        assertPolicyWorked.accept(false);
     }
 
     @Test
     void shouldUseQueueingPredicate_DefaultBehavior() {
-        // Raw data size is set - choose queuing although data is small
-        assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(
-                1, ManagedStreamingQueuingPolicy.MAX_STREAMING_RAW_SIZE_BYTES + 1, false, IngestionProperties.DataFormat.CSV));
-
         // CSV uncompressed - allow big file
         int bigFile = 7 * 1024 * 1024;
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(bigFile,
-                0, false, IngestionProperties.DataFormat.CSV));
+                false, IngestionProperties.DataFormat.CSV));
 
         // CSV compressed - don't allow big files
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(bigFile,
-                0, true, IngestionProperties.DataFormat.CSV));
+                true, IngestionProperties.DataFormat.CSV));
         int mediumSizeCompressed = 3 * 1024 * 1024;
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(mediumSizeCompressed,
-                0, true, IngestionProperties.DataFormat.CSV));
+                true, IngestionProperties.DataFormat.CSV));
 
         int smallCompressed = 2 * 1024 * 1024;
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(smallCompressed,
-                0, true, IngestionProperties.DataFormat.CSV));
+                true, IngestionProperties.DataFormat.CSV));
 
         // JSON uncompress- allow big file
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(bigFile,
-                0, false, IngestionProperties.DataFormat.JSON));
+                false, IngestionProperties.DataFormat.JSON));
 
         // JSON compressed
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(mediumSizeCompressed,
-                0, true, IngestionProperties.DataFormat.JSON));
+                true, IngestionProperties.DataFormat.JSON));
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(smallCompressed,
-                0, true, IngestionProperties.DataFormat.JSON));
+                true, IngestionProperties.DataFormat.JSON));
 
         // AVRO - either compressed or not do not allow medium
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(mediumSizeCompressed,
-                0, true, IngestionProperties.DataFormat.AVRO));
+                true, IngestionProperties.DataFormat.AVRO));
         assertTrue(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(mediumSizeCompressed,
-                0, false, IngestionProperties.DataFormat.AVRO));
+                false, IngestionProperties.DataFormat.AVRO));
 
         // AVRO - either compressed or not allow small
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(smallCompressed,
-                0, true, IngestionProperties.DataFormat.AVRO));
+                true, IngestionProperties.DataFormat.AVRO));
         assertFalse(ManagedStreamingQueuingPolicy.Default.shouldUseQueuedIngestion(smallCompressed,
-                0, false, IngestionProperties.DataFormat.AVRO));
+                false, IngestionProperties.DataFormat.AVRO));
+    }
+
+    @Test
+    void shouldUseQueueingPredicate_WithSmallFactor() {
+        // CSV uncompressed
+        // By default this big csv file will be allowed, set a factor of 0.5 to constrain harder
+        double factor = 0.5d;
+        int bigFile = 7 * 1024 * 1024;
+
+        assertTrue(new ManagedStreamingQueuingPolicy(factor).shouldUseQueuedIngestion(bigFile,
+                false, IngestionProperties.DataFormat.CSV));
+
+        // Make sure medium size is still allowed
+        int mediumSizeFile = 3 * 1024 * 1024;
+        assertTrue(new ManagedStreamingQueuingPolicy(factor).shouldUseQueuedIngestion(bigFile,
+                false, IngestionProperties.DataFormat.CSV));
+
+        // By default this big file will not be allowed, set a factor of 2.0 to allow bigger files to stream
+        // 10 / 2 >? 2 * 4 -> false
+        int reallyBigFile = 10 * 1024 * 1024;
+
+        factor = 2d;
+        assertFalse(new ManagedStreamingQueuingPolicy(factor).shouldUseQueuedIngestion(reallyBigFile,
+                false, IngestionProperties.DataFormat.CSV));
     }
 
     @Test

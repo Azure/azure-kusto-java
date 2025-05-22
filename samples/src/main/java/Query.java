@@ -23,7 +23,6 @@ public class Query {
 
             HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
-                    .maxKeepAliveTime(120)
                     .maxConnectionsTotal(40)
                     .build();
 

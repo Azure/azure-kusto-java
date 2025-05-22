@@ -156,6 +156,7 @@
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-data</artifactId>
             <version>${project.parent.version}</version>
+            <scope>compile</scope>
         </dependency>
         <!-- Azure bom libraries -->
         <dependency>

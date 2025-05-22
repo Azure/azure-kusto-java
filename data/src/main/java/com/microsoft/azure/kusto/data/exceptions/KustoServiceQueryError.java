@@ -7,30 +7,61 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.azure.core.exception.AzureException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /*
   This class represents an error that returned from the query result
  */
 public class KustoServiceQueryError extends AzureException {
+    static final String EXCEPTIONS_MESSAGE = "Query execution failed with multiple inner exceptions:\n";
+
     private final List<RuntimeException> exceptions;
 
-    public KustoServiceQueryError(ArrayNode jsonExceptions, boolean isOneApi, String message) {
+    public KustoServiceQueryError(String message, List<RuntimeException> exceptions) {
         super(message);
-        this.exceptions = new ArrayList<>();
-        for (int j = 0; jsonExceptions != null && j < jsonExceptions.size(); j++) {
-            if (isOneApi) {
-                this.exceptions.add(new DataWebException(jsonExceptions.get(j).toString()));
-            } else {
-                this.exceptions.add(new RuntimeException(jsonExceptions.get(j).toString()));
-            }
-        }
+        this.exceptions = exceptions;
     }
 
     public KustoServiceQueryError(String message) {
         super(message);
         this.exceptions = new ArrayList<>();
         this.exceptions.add(new RuntimeException(message));
+    }
+
+    public static KustoServiceQueryError fromOneApiErrorArray(ArrayNode jsonExceptions, boolean isOneApi) {
+        List<RuntimeException> exceptions = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+
+        if (jsonExceptions == null || jsonExceptions.isEmpty()) {
+            return new KustoServiceQueryError("No exceptions were returned from the service.");
+        }
+
+        if (jsonExceptions.size() > 1) {
+            sb.append(EXCEPTIONS_MESSAGE);
+        }
+
+        for (int i = 0; i < jsonExceptions.size(); i++) {
+            JsonNode jsonNode = jsonExceptions.get(i);
+            String value = jsonNode.isTextual() ? jsonNode.asText() : jsonNode.toString();
+            String message = value;
+            RuntimeException exception;
+            if (isOneApi) {
+                DataWebException ex = new DataWebException(value);
+                OneApiError apiError = ex.getApiError();
+                if (apiError != null) {
+                    message = apiError.getCode() + ": " + apiError.getMessage();
+                }
+                exception = ex;
+            } else {
+                exception = new RuntimeException(value);
+            }
+            exceptions.add(exception);
+            sb.append(message);
+            sb.append("\n");
+        }
+
+        return new KustoServiceQueryError(sb.toString(), exceptions);
     }
 
     public List<RuntimeException> getExceptions() {
@@ -43,7 +74,7 @@ public class KustoServiceQueryError extends AzureException {
     }
 
     public boolean isPermanent() {
-        if (exceptions.size() > 0 && exceptions.get(0) instanceof DataWebException) {
+        if (!exceptions.isEmpty() && exceptions.get(0) instanceof DataWebException) {
             return ((DataWebException) exceptions.get(0)).getApiError().isPermanent();
         }
 

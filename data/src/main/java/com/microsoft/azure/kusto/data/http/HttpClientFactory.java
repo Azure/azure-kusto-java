@@ -41,6 +41,7 @@ public class HttpClientFactory {
 
         options.setMaximumConnectionPoolSize(properties.maxConnectionTotal());
         options.setConnectionIdleTimeout(Duration.ofSeconds(properties.maxIdleTime()));
+        options.readTimeout(Duration.ofSeconds(properties.readTimeout()));
         options.setHttpClientProvider(properties.provider());
 
         // Set Keep-Alive headers if they were requested.
@@ -48,11 +49,9 @@ public class HttpClientFactory {
         if (properties.isKeepAlive()) {
             Header keepAlive = new Header(HttpHeaderName.CONNECTION.getCaseSensitiveName(), "Keep-Alive");
             // Keep-Alive is Non-standard from the client so core does not have an enum for it
-            Header keepAliveTimeout = new Header("Keep-Alive", "timeout=" + properties.maxKeepAliveTime());
 
             List<Header> headers = new ArrayList<>();
             headers.add(keepAlive);
-            headers.add(keepAliveTimeout);
 
             options.setHeaders(headers);
         }

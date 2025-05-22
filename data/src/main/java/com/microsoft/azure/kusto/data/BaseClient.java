@@ -42,7 +42,7 @@ public abstract class BaseClient implements Client, StreamingClient {
     // Make logger available to implementations
     protected static final Logger LOGGER = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private final HttpClient httpClient;
+    protected HttpClient httpClient;
 
     public BaseClient(HttpClient httpClient) {
         this.httpClient = httpClient;
@@ -157,6 +157,9 @@ public abstract class BaseClient implements Client, StreamingClient {
                 LOGGER.debug("json processing error happened while parsing errorFromResponse {}", e.getMessage(), e);
             }
         } else {
+            if (httpResponse.getStatusCode() == HttpStatus.FORBIDDEN || httpResponse.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                isPermanent = true;
+            }
             message = String.format("Http StatusCode='%s'", httpResponse.getStatusCode());
         }
 

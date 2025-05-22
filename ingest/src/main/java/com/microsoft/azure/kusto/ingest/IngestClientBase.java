@@ -1,19 +1,18 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.azure.core.util.CoreUtils;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
-import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import org.apache.http.conn.util.InetAddressUtils;
-
-import java.io.IOException;
-import java.net.URI;
+import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.source.*;
+import org.apache.http.conn.util.InetAddressUtils;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,17 +45,17 @@ public abstract class IngestClientBase implements IngestClient {
         }
 
         String authority = uri.getAuthority().toLowerCase();
-        boolean isIPFlag;
+        boolean isIpAddress;
         if (authority.startsWith("[") && authority.endsWith("]")) {
-            authority = authority.substring(1, authority.length() - 1);
-            isIPFlag = true;
+            isIpAddress = true;
         } else {
-            isIPFlag = InetAddressUtils.isIPv4Address(authority);
+            isIpAddress = InetAddressUtils.isIPv4Address(authority);
         }
 
-        boolean isLocalFlag = authority.contains("localhost");
+        boolean isLocalhost = authority.contains("localhost");
+        String host = CoreUtils.isNullOrEmpty(uri.getHost()) ? "" : uri.getHost();
 
-        return isLocalFlag || isIPFlag || authority.equalsIgnoreCase("onebox.dev.kusto.windows.net");
+        return isLocalhost || isIpAddress || host.equalsIgnoreCase("onebox.dev.kusto.windows.net");
     }
 
     protected abstract IngestionResult ingestFromFileImpl(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)

@@ -295,7 +295,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_Csv() throws Exception {
         String path = resourcesDirectory + "testdata.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
@@ -305,7 +305,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_Json() throws Exception {
         String path = resourcesDirectory + "testdata.json";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
 
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
@@ -321,7 +321,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_CompressedJson() throws Exception {
         String path = resourcesDirectory + "testdata.json.gz";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
@@ -341,7 +341,7 @@ class StreamingIngestClientTest {
 
     @Test
     void ingestFromFile_FileSourceInfoWithNullFilePath_IllegalArgumentException() {
-        FileSourceInfo fileSourceInfo1 = new FileSourceInfo(null, 0);
+        FileSourceInfo fileSourceInfo1 = new FileSourceInfo(null);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo1, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
@@ -349,7 +349,7 @@ class StreamingIngestClientTest {
 
     @Test
     void ingestFromFile_FileSourceInfoWithBlankFilePath_IllegalArgumentException() {
-        FileSourceInfo fileSourceInfo2 = new FileSourceInfo("", 0);
+        FileSourceInfo fileSourceInfo2 = new FileSourceInfo("");
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo2, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
@@ -358,7 +358,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_NullIngestionProperties_IllegalArgumentException() {
         String path = resourcesDirectory + "testdata.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, null),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
@@ -368,7 +368,7 @@ class StreamingIngestClientTest {
     @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
     void ingestFromFile_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         String path = resourcesDirectory + "testdata.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties = new IngestionProperties(databaseName, tableName);
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
@@ -379,7 +379,7 @@ class StreamingIngestClientTest {
     void ingestFromFile_JsonNoMappingReference_IngestionSuccess()
             throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
@@ -390,7 +390,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_JsonWrongMappingKind_IngestionClientException() {
         String path = resourcesDirectory + "testdata.json";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
@@ -402,7 +402,7 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_JsonNoMappingKind_IngestionSuccess() throws IngestionClientException, IngestionServiceException, URISyntaxException {
         String path = resourcesDirectory + "testdata.json";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
         assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
         assertEquals(1, ingestionResult.getIngestionStatusesLength());
@@ -411,11 +411,11 @@ class StreamingIngestClientTest {
     @Test
     void ingestFromFile_EmptyFile_IngestionClientException() {
         String path = resourcesDirectory + "empty.csv";
-        FileSourceInfo fileSourceInfo = new FileSourceInfo(path, new File(path).length());
+        FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
                 () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
                 "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty file."));
+        assertTrue(ingestionClientException.getMessage().contains("Empty file:"));
     }
 
     @Test
@@ -432,7 +432,7 @@ class StreamingIngestClientTest {
         when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
         when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
 
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob, null).getIngestionStatusCollection()
+        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, null).getIngestionStatusCollection()
                 .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
@@ -480,45 +480,6 @@ class StreamingIngestClientTest {
         assertThrows(IllegalArgumentException.class,
                 () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
                 "Expected IllegalArgumentException to be thrown, but it didn't");
-    }
-
-    @Test
-    void ingestFromBlob_InvalidBlobPath_IngestionClientException() {
-        String path = "wrongURI";
-        BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(path);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo1, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-
-        assertTrue(ingestionClientException.getMessage().contains("Unexpected error when ingesting a blob - Invalid blob path."));
-    }
-
-    @Test
-    void ingestFromBlob_BlobNotFound_IngestionClientException() {
-        String path = "https://kustotest.blob.core.windows.net/container/blob.csv";
-        BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo(path);
-
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Exception trying to read blob metadata"));
-    }
-
-    @Test
-    void ingestFromBlob_EmptyBlob_IngestClientException() {
-        BlobClient cloudBlockBlob = mock(BlobClient.class);
-        String blobPath = "https://kustotest.blob.core.windows.net/container/blob.csv";
-        BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
-
-        BlobProperties blobProperties = mock(BlobProperties.class);
-        when(blobProperties.getBlobSize()).thenReturn((long) 0);
-
-        when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
-
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, cloudBlockBlob, null),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty blob."));
     }
 
     @Test

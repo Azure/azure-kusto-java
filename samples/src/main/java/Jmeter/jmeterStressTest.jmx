@@ -86,7 +86,6 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
 
 HttpClientProperties properties = HttpClientProperties.builder()
            .keepAlive(true)
-           .maxKeepAliveTime(120)
            .maxConnectionsTotal(40)
            .build();
 
@@ -368,7 +367,6 @@ ConnectionStringBuilder dmCsb = ConnectionStringBuilder.createWithAadApplication
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 HttpClientProperties properties = HttpClientProperties.builder()
       .keepAlive(true)
-      .maxKeepAliveTime(120)
       .maxConnectionsTotal(40)
       .build();
 
