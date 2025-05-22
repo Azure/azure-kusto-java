@@ -7,6 +7,9 @@ import com.azure.core.util.tracing.ProcessKind;
 import java.util.Map;
 
 public class Tracer {
+    /**
+     * Private constructor to prevent instantiation as this class provides only static utility methods.
+     */
     private Tracer() {
     }
     private static final boolean IS_TRACING_DISABLED = Configuration.getGlobalConfiguration().get(Configuration.PROPERTY_AZURE_TRACING_DISABLED, false);

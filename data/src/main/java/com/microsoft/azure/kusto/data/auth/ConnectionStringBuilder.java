@@ -6,8 +6,8 @@ package com.microsoft.azure.kusto.data.auth;
 import com.azure.core.credential.TokenCredential;
 
 import com.microsoft.azure.kusto.data.ClientDetails;
+import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.Utils;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
@@ -24,8 +24,6 @@ public class ConnectionStringBuilder {
     public static final String DEFAULT_DATABASE_NAME = "NetDefaultDb";
 
     private static final String DEFAULT_DEVICE_AUTH_TENANT = "organizations";
-    private static final String CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY = "clusterUrl cannot be null or empty";
-    public static final String APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY = "applicationClientId cannot be null or empty";
 
     private String clusterUrl;
     private String usernameHint;
@@ -210,9 +208,7 @@ public class ConnectionStringBuilder {
      * @throws IllegalArgumentException If the connection string is invalid.
      */
     public ConnectionStringBuilder(String connectionString) {
-        if (Utils.isNullOrEmpty(connectionString)) {
-            throw new IllegalArgumentException("connectionString cannot be null or empty");
-        }
+        Ensure.stringIsNotEmpty(connectionString, "connectionString");
 
         String[] connStrArr = connectionString.split(";");
         if (!connStrArr[0].contains("=")) {
@@ -393,15 +389,9 @@ public class ConnectionStringBuilder {
             String applicationClientId,
             String applicationKey,
             String authorityId) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (Utils.isNullOrEmpty(applicationClientId)) {
-            throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (Utils.isNullOrEmpty(applicationKey)) {
-            throw new IllegalArgumentException("applicationKey cannot be null or empty");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.stringIsNotEmpty(applicationClientId, "applicationClientId");
+        Ensure.stringIsNotEmpty(applicationKey, "applicationKey");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -421,9 +411,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithUserPrompt(String clusterUrl, String authorityId, String usernameHint) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -439,9 +427,8 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithDeviceCode(String clusterUrl, String authorityId) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
         csb.clusterUrl = clusterUrl;
@@ -462,18 +449,10 @@ public class ConnectionStringBuilder {
             X509Certificate x509Certificate,
             PrivateKey privateKey,
             String authorityId) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (Utils.isNullOrEmpty(applicationClientId)) {
-            throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (x509Certificate == null) {
-            throw new IllegalArgumentException("certificate cannot be null");
-        }
-        if (privateKey == null) {
-            throw new IllegalArgumentException("privateKey cannot be null");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.stringIsNotEmpty(applicationClientId, "applicationClientId");
+        Ensure.argIsNotNull(x509Certificate, "x509Certificate");
+        Ensure.argIsNotNull(privateKey, "privateKey");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -499,18 +478,11 @@ public class ConnectionStringBuilder {
             List<X509Certificate> x509CertificateChain,
             PrivateKey privateKey,
             String authorityId) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (Utils.isNullOrEmpty(applicationClientId)) {
-            throw new IllegalArgumentException(APPLICATION_CLIENT_ID_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (x509CertificateChain == null || x509CertificateChain.isEmpty()) {
-            throw new IllegalArgumentException("public certificate chain cannot be null or empty");
-        }
-        if (privateKey == null) {
-            throw new IllegalArgumentException("privateKey cannot be null");
-        }
+
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.stringIsNotEmpty(applicationClientId, "applicationClientId");
+        Ensure.argIsNotNull(x509CertificateChain, "x509CertificateChain");
+        Ensure.argIsNotNull(privateKey, "privateKey");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -525,12 +497,8 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadAccessTokenAuthentication(String clusterUrl, String token) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
-        if (Utils.isNullOrEmpty(token)) {
-            throw new IllegalArgumentException("token cannot be null or empty");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.stringIsNotEmpty(token, "token");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -540,13 +508,9 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadTokenProviderAuthentication(String clusterUrl, Callable<String> tokenProviderCallable) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
 
-        if (tokenProviderCallable == null) {
-            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.argIsNotNull(tokenProviderCallable, "tokenProviderCallback");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -556,13 +520,9 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadAsyncTokenProviderAuthentication(String clusterUrl, Mono<String> tokenProviderCallable) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
 
-        if (tokenProviderCallable == null) {
-            throw new IllegalArgumentException("tokenProviderCallback cannot be null");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.argIsNotNull(tokenProviderCallable, "tokenProviderCallback");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -576,9 +536,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAadManagedIdentity(String clusterUrl, String managedIdentityClientId) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -589,9 +547,7 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithAzureCli(String clusterUrl) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;
@@ -601,13 +557,8 @@ public class ConnectionStringBuilder {
     }
 
     public static ConnectionStringBuilder createWithTokenCredential(@NotNull String clusterUrl, @Nullable TokenCredential tokenCredential) {
-        if (Utils.isNullOrEmpty(clusterUrl)) {
-            throw new IllegalArgumentException(CLUSTER_URL_CANNOT_BE_NULL_OR_EMPTY);
-        }
-
-        if (tokenCredential == null) {
-            throw new IllegalArgumentException("tokenCredential cannot be null");
-        }
+        Ensure.stringIsNotEmpty(clusterUrl, "clusterUrl");
+        Ensure.argIsNotNull(tokenCredential, "tokenCredential");
 
         ConnectionStringBuilder csb = new ConnectionStringBuilder();
         csb.aadFederatedSecurity = true;

@@ -49,8 +49,9 @@ internally and block for results.
 ### Added
 - Remove dependency on commons lang.
 - [BREAKING] setConnectorDetails method in ConnectionStringBuilder accepts a Map instead of varargs of Pairs.
+- [BREAKING] Field visibility changes in CslStringFormat from public to private.
 ### Fixed
-- Some better error messages
+- Improved error messages and code quality
 
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
