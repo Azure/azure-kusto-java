@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.Utils;
-import org.apache.commons.text.StringEscapeUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -74,7 +73,7 @@ public class CslStringFormat extends CslFormat {
                 if (escapedString.length() >= escapeSequenceLength && escapedString.endsWith(escapeSequence)) {
                     String unescapedString = escapedString.substring(escapeSequence.length(), escapedString.length() - escapeSequence.length());
                     if ("\\\"".equals(escapeSequence) || "'".equals(escapeSequence)) {
-                        return StringEscapeUtils.unescapeJava(unescapedString);
+                        return Utils.unescapeJava(unescapedString);
                     } else if (escapeSequence.startsWith("@")) {
                         String quote = escapeSequence.substring(1);
                         return escapedString.replaceAll(quote + quote, quote);

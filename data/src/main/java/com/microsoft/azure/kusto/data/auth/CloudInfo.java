@@ -11,7 +11,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import com.azure.core.http.HttpClient;
@@ -237,7 +236,7 @@ public class CloudInfo implements TraceableAttributes, Serializable {
             resourceUrl = resourceUrl.replace(".kusto.", ".kustomfa.");
         }
 
-        resourceUrl = StringUtils.appendIfMissing(resourceUrl, "/");
+        resourceUrl = Utils.appendIfMissing(resourceUrl, "/");
         return resourceUrl + ".default";
     }
 

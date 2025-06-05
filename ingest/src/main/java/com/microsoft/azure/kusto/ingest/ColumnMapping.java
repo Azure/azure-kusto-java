@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import org.apache.commons.lang3.StringUtils;
+import com.microsoft.azure.kusto.data.Utils;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -59,7 +59,7 @@ public class ColumnMapping implements Serializable {
 
     public TransformationMethod getTransform() {
         String transform = properties.get(MappingConsts.TRANSFORMATION_METHOD.getName());
-        return StringUtils.isEmpty(transform) ? null : TransformationMethod.valueOf(transform);
+        return Utils.isEmpty(transform) ? null : TransformationMethod.valueOf(transform);
     }
 
     public void setOrdinal(Integer ordinal) {
@@ -68,7 +68,7 @@ public class ColumnMapping implements Serializable {
 
     Integer getOrdinal() {
         String ordinal = properties.get(MappingConsts.ORDINAL.getName());
-        return StringUtils.isEmpty(ordinal) ? null : Integer.valueOf(ordinal);
+        return Utils.isEmpty(ordinal) ? null : Integer.valueOf(ordinal);
     }
 
     public void setConstantValue(String constValue) {
@@ -107,19 +107,19 @@ public class ColumnMapping implements Serializable {
         switch (mappingKind) {
             case CSV:
             case SSTREAM:
-                return !StringUtils.isEmpty(this.columnName);
+                return !Utils.isEmpty(this.columnName);
             case JSON:
             case PARQUET:
             case ORC:
             case W3CLOGFILE:
                 TransformationMethod transformationMethod = getTransform();
-                return !StringUtils.isEmpty(this.columnName) && (!StringUtils.isEmpty(getPath())
+                return !Utils.isEmpty(this.columnName) && (!Utils.isEmpty(getPath())
                         || transformationMethod == TransformationMethod.SourceLineNumber
                         || transformationMethod == TransformationMethod.SourceLocation);
             case AVRO:
             case APACHEAVRO:
-                return !StringUtils.isEmpty(this.columnName) &&
-                        !StringUtils.isEmpty(getColumns());
+                return !Utils.isEmpty(this.columnName) &&
+                        !Utils.isEmpty(getColumns());
             default:
                 return false;
         }

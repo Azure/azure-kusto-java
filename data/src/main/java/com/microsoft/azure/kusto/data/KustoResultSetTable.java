@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -21,6 +19,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -336,7 +335,10 @@ public class KustoResultSetTable {
                 if (get(columnIndex) == null) {
                     return null;
                 }
-                return Timestamp.valueOf(StringUtils.chop(getString(columnIndex)).replace("T", " "));
+                String timestampStr = getString(columnIndex);
+                // Remove the last character using Utils.chop
+                timestampStr = Utils.chop(timestampStr);
+                return Timestamp.valueOf(timestampStr.replace("T", " "));
             case "long":
             case "int":
                 Long l = getLongObject(columnIndex);
@@ -570,13 +572,16 @@ public class KustoResultSetTable {
                         return null;
                     }
                     String dateString = getString(columnIndex);
-                    FastDateFormat dateFormat;
+                    DateTimeFormatter formatter;
                     if (dateString.length() < 21) {
-                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
+                        formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+                                .withZone(calendar.getTimeZone().toZoneId());
                     } else {
-                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
+                        formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
+                                .withZone(calendar.getTimeZone().toZoneId());
                     }
-                    return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
+                    Instant instant = formatter.parse(dateString.substring(0, Math.min(dateString.length(), 23)), Instant::from);
+                    return new java.sql.Date(Date.from(instant).getTime());
                 } catch (Exception e) {
                     throw new SQLException("Error parsing Date", e);
                 }
