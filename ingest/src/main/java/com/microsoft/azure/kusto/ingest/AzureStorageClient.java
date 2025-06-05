@@ -87,11 +87,11 @@ public class AzureStorageClient {
                                      String blobName,
                                      BlobContainerAsyncClient asyncContainer,
                                      boolean shouldCompress) {
-        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, asyncContainer.getBlobContainerUrl());
-
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.stringIsNotBlank(blobName, "blobName");
         Ensure.argIsNotNull(asyncContainer, "asyncContainer");
+
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, asyncContainer.getBlobContainerUrl());
 
         BlobAsyncClient blobAsyncClient = asyncContainer.getBlobAsyncClient(blobName);
         if (shouldCompress) {

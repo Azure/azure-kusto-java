@@ -305,7 +305,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         }
         BlobAsyncClient blobAsyncClient = blobClientBuilder.buildAsyncClient();
 
-        return (blobSourceInfo.getBlobExactSize() > 0
+        return (blobSourceInfo.getBlobExactSize() != null
                 ? Mono.just(blobSourceInfo.getBlobExactSize())
                 : blobAsyncClient.getProperties().map(BlobProperties::getBlobSize))
                 .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException(
@@ -328,7 +328,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
 
         // If an error occurs, each time the retryWhen subscribes to executeStream create a new instance
         // instead of using the same executeStream Mono for all retries
-        return executeStream(blobSourceInfo, ingestionProperties, blobAsyncClient, i.increment())
+        return Mono.defer(()->executeStream(blobSourceInfo, ingestionProperties, blobAsyncClient, i.increment()))
                 .retryWhen(streamingRetry)
                 .onErrorResume(e -> {
                     if (streamingIngestionErrorPredicate(e)) {
@@ -381,7 +381,7 @@ public class ManagedStreamingIngestClient extends IngestClientBase implements Qu
         Ensure.argIsNotNull(ingestionProperties, "ingestionProperties");
         resultSetSourceInfo.validate();
         ingestionProperties.validateResultSetProperties();
-        return Mono.fromCallable(() -> IngestionUtils.resultSetToStream(resultSetSourceInfo))// TODO: ?
+        return Mono.fromCallable(() -> IngestionUtils.resultSetToStream(resultSetSourceInfo))
                 .subscribeOn(Schedulers.boundedElastic())
                 .onErrorMap(IOException.class, e -> {
                     String msg = "Failed to read from ResultSet.";

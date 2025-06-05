@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
   internally and block for results.
 - [BREAKING] Streaming client no longer check for blob size and if it exists.
+- [BREAKING] Exceptions thrown the ingest API are now RuntimeExceptions: IngestionServiceException, IngestionClientException. 
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
     enabling non-blocking operations.

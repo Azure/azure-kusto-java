@@ -441,7 +441,7 @@ class StreamingIngestClientTest {
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         StepVerifier.create(streamingIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties))
-                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty file."))
+                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty file:"))
                 .verify();
     }
 

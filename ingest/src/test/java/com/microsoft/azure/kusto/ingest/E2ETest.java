@@ -783,9 +783,9 @@ class E2ETest {
                 String blobPath = container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
 
                 azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
-                        container.getAsyncContainer(), !item.file.getName().endsWith(".gz"));
+                        container.getAsyncContainer(), !item.file.getName().endsWith(".gz")).block();
                 try {
-                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                    managedStreamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
