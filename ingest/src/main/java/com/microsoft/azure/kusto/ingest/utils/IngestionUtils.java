@@ -65,7 +65,7 @@ public class IngestionUtils {
     public static StreamSourceInfo resultSetToStream(ResultSetSourceInfo resultSetSourceInfo) throws IOException, IngestionClientException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         new CsvRoutines().write(resultSetSourceInfo.getResultSet(), byteArrayOutputStream);
-        byteArrayOutputStream.flush(); // TODO: make this async?
+        byteArrayOutputStream.flush();
         if (byteArrayOutputStream.size() <= 0) {
             String message = "Empty ResultSet.";
             log.error(message);
@@ -100,46 +100,6 @@ public class IngestionUtils {
         }
 
         return null;
-    }
-
-    // TODO: why does async blob client ingests 0 items using this way of compression?
-    public static Mono<byte[]> compressStream1(InputStream uncompressedStream, boolean leaveOpen) {
-        log.debug("Compressing the stream.");
-        EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
-        Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
-
-        return byteBuffers
-                .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
-                .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
-                    encoder.writeOutbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for compression
-
-                    ByteBuf compressedByteBuf = encoder.readOutbound();
-                    if (compressedByteBuf == null) {
-                        return byteBufferCollector;
-                    }
-
-                    if (!encoder.outboundMessages().isEmpty()) { // TODO: remove this when we are sure that only one message exists in the channel
-                        throw new IllegalStateException("Expected exactly one message in the channel.");
-                    }
-
-                    byteBufferCollector.write(compressedByteBuf.nioBuffer());
-                    compressedByteBuf.release();
-
-                    return byteBufferCollector;
-                })
-                .map(ByteBufferCollector::toByteArray)
-                .doFinally(ignore -> {
-                    encoder.finishAndReleaseAll();
-                    if (!leaveOpen) {
-                        try {
-                            uncompressedStream.close();
-                        } catch (IOException e) {
-                            String msg = ExceptionUtils.getMessageEx(e);
-                            log.error(msg, e);
-                            throw new IngestionClientException(msg, e);
-                        }
-                    }
-                });
     }
 
     public static Mono<byte[]> toCompressedByteArray(InputStream uncompressedStream, boolean leaveOpen) {

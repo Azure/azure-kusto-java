@@ -30,19 +30,13 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
+
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
@@ -51,8 +45,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
@@ -84,11 +76,13 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private IngestionResourceSet ingestionResourceSet;
     protected RefreshIngestionAuthTokenTask refreshIngestionAuthTokenTask;
     protected RefreshIngestionResourcesTask refreshIngestionResourcesTask;
-    private final Scheduler taskScheduler = Schedulers.newSingle("resource-manager-scheduler");
-    private final AtomicReference<Disposable> refreshIngestionResourcesTaskRef = new AtomicReference<>();
-    private final AtomicReference<Disposable> refreshIngestionAuthTokenTaskRef = new AtomicReference<>();
-    private final AtomicBoolean isRefreshInProgress = new AtomicBoolean(false);
 
+    /// <summary>
+    ///
+    /// Creates a new instance of the ResourceManager.
+    /// This class is not async at its nature therefore it was not implemented as one, a cache is only doing async work
+    /// once in a while and most requests should return immediately
+    /// </summary>
     public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
         this.client = client;
         // Using ctor with client so that the dependency is used
@@ -100,7 +94,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.refreshTasksTimer = new Timer(true);
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
-        this.taskRetryConfig = Utils.buildRetryConfig(ThrottleException.class); // TODO: remove this from Utils
+        this.taskRetryConfig = Utils.buildRetryConfig(ThrottleException.class);
         initRefreshTasks();
 
         this.storageAccountSet = new RankedStorageAccountSet();
@@ -115,32 +109,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         refreshTasksTimer.cancel();
         refreshTasksTimer.purge();
         refreshTasksTimer = null;
-    }
-
-    abstract static class RefreshResourceTask1 implements Runnable {
-        protected final Sinks.Many<Boolean> refreshedAtLeastOnce = Sinks.many().replay().limit(1);
-
-        public Mono<Boolean> refreshedAtLeastOnce() {
-            return refreshedAtLeastOnce.asFlux().next();
-        }
-
-        protected void signalRefreshed() {
-            refreshedAtLeastOnce.tryEmitNext(true); // TODO: .doOnSuccess(v -> signalRefreshed())
-        }
-    }
-
-    abstract static class RefreshResourceTask2 implements Runnable {
-        private final Sinks.Many<Boolean> refreshedAtLeastOnceSink = Sinks.many().replay().limit(1);
-
-        public Mono<Boolean> waitUntilRefreshedAtLeastOnce(long timeoutMillis) {
-            return refreshedAtLeastOnceSink.asFlux()
-                    .next()
-                    .timeout(Duration.ofMillis(timeoutMillis), Mono.empty());
-        }
-
-        protected void signalRefreshed(Boolean success) {
-            refreshedAtLeastOnceSink.tryEmitNext(success);
-        }
     }
 
     abstract static class RefreshResourceTask extends TimerTask {
@@ -166,50 +134,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
     }
 
-    private Mono<Void> scheduleRefreshIngestionResourcesTaskAsync(Duration delay) {
-        return Mono.defer(() -> {
-            Disposable previousTask = refreshIngestionResourcesTaskRef.getAndSet(
-                    taskScheduler.schedulePeriodically(
-                            this::executeRefreshIngestionResourcesTask,
-                            delay.toMillis(),
-                            defaultRefreshTime,
-                            TimeUnit.MILLISECONDS));
-
-            if (previousTask != null) {
-                previousTask.dispose(); // Cancel the previous task
-            }
-
-            return Mono.empty();
-        });
-    }
-
-    private Mono<Void> scheduleRefreshIngestionAuthTokenTaskAsync(Duration delay) {
-        return Mono.defer(() -> {
-            Disposable previousTask = refreshIngestionAuthTokenTaskRef.getAndSet(
-                    taskScheduler.schedulePeriodically(
-                            this::executeRefreshIngestionAuthTokenTask,
-                            delay.toMillis(),
-                            defaultRefreshTime,
-                            TimeUnit.MILLISECONDS));
-
-            if (previousTask != null) {
-                previousTask.dispose(); // Cancel the previous task
-            }
-
-            return Mono.empty();
-        });
-    }
-
-    private void executeRefreshIngestionResourcesTask() {
-        refreshIngestionResourcesTask.run();
-    }
-
-    private void executeRefreshIngestionAuthTokenTask() {
-        refreshIngestionAuthTokenTask.run();
-    }
-
     class RefreshIngestionResourcesTask extends RefreshResourceTask {
-        private AtomicBoolean isRefreshing = new AtomicBoolean(false);
 
         @Override
         public void run() {
@@ -226,19 +151,10 @@ class ResourceManager implements Closeable, IngestionResourceManager {
 
         private void refreshIngestionResources() throws IngestionClientException, IngestionServiceException {
             // Here we use tryLock(): If there is another instance doing the refresh, then just skip it.
-            if (ingestionResourcesLock.writeLock().tryLock()) { // TODO:
-                                                                // if (isRefreshing.compareAndSet(false, true)) {.doFinally(set(true))}
+            if (ingestionResourcesLock.writeLock().tryLock()) {
                 try {
                     log.info("Refreshing Ingestion Resources");
                     IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
-
-                    // client.executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND)
-                    // .retryWhen(RETRY_CONFIG)
-                    // .doOnSuccess(ingestionResourcesResults -> {
-                    //
-                    // })
-                    // .onErrorResume() //TODO: ?
-
                     Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
                     CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
                             () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
@@ -317,58 +233,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
     }
 
-    class RefreshIngestionAuthTokenTask2 extends RefreshResourceTask2 {
-        @Override
-        public void run() {
-            if (isRefreshInProgress.compareAndSet(false, true)) { // Only proceed if no refresh is currently active
-                refreshIngestionAuthTokenAsync()
-                        .doOnSuccess(unused -> {
-                            signalRefreshed(true);
-                            log.info("Refreshing Ingestion Auth Token Finished");
-                        })
-                        .doOnError(e -> {
-                            signalRefreshed(false);
-                            log.error("Error in refreshIngestionAuthToken: " + e.getMessage(), e);
-                            scheduleRefreshIngestionAuthTokenTask(refreshTimeOnFailure); // Reschedule on failure
-                        })
-                        .doFinally(signal -> isRefreshInProgress.set(false))
-                        .subscribe();
-            } else {
-                log.info("A refresh is already in progress. Skipping duplicate refresh request.");
-            }
-        }
-
-        private Mono<Void> refreshIngestionAuthTokenAsync() {
-            log.info("Refreshing Ingestion Auth Token");
-
-            return client.executeMgmtAsync(Commands.IDENTITY_GET_COMMAND)
-                    .retryWhen(RETRY_CONFIG)
-                    .flatMap(identityTokenResult -> {
-                        if (identityTokenResult != null &&
-                                identityTokenResult.hasNext() &&
-                                !identityTokenResult.getResultTables().isEmpty()) {
-
-                            KustoResultSetTable resultTable = identityTokenResult.next();
-                            if (resultTable.next()) {
-                                identityToken = resultTable.getString(0);
-                                return Mono.empty();
-                            }
-                        }
-                        return Mono.error(new IngestionServiceException("Failed to fetch identity token: No valid results."));
-                    })
-                    .onErrorMap(e -> {
-                        if (e instanceof DataServiceException) {
-                            return new IngestionServiceException(((DataServiceException) e).getIngestionSource(),
-                                    "Error refreshing IngestionAuthToken. " + e.getMessage(), (RuntimeException) e);
-                        } else if (e instanceof DataClientException) {
-                            return new IngestionClientException(((DataClientException) e).getIngestionSource(),
-                                    "Error refreshing IngestionAuthToken. " + e.getMessage(), (RuntimeException) e);
-                        }
-                        return new IngestionClientException(e.getMessage(), e);
-                    })
-                    .then();
-        }
-    }
 
     class RefreshIngestionAuthTokenTask extends RefreshResourceTask {
         @Override
@@ -413,11 +277,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 }
             }
         }
-    }
-
-    private void initRefreshTasks1() {
-        // scheduleRefreshIngestionResourcesTaskAsync(Duration.ZERO).subscribe();
-        // scheduleRefreshIngestionAuthTokenTaskAsync(Duration.ZERO).subscribe();
     }
 
     private void initRefreshTasks() {
@@ -470,38 +329,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     public QueueWithSas getSuccessfulQueue() throws IngestionServiceException {
         return getResource(() -> this.ingestionResourceSet.successfulIngestionsQueues);
     }
-
-    // public Mono<String> getIdentityToken1() {
-    // return Mono.defer(() -> {
-    // if (identityToken != null) {
-    // return Mono.just(identityToken);
-    // }
-    //
-    // return Mono.defer(() -> {
-    // if (isRefreshInProgress.compareAndSet(false, true)) {
-    // // Schedule the refresh task only if no refresh is currently in progress
-    // return scheduleRefreshIngestionAuthTokenTaskAsync(Duration.ZERO)
-    // .then(refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce(REFRESH_RESULT_POLL_TIMEOUT_MILLIS))
-    // .doFinally(signal -> isRefreshInProgress.set(false))
-    // .flatMap(refreshedOnce -> {
-    // if (identityToken == null) {
-    // return Mono.error(new IngestionServiceException("Unable to get Identity token"));
-    // }
-    // return Mono.just(identityToken);
-    // });
-    // } else {
-    // // If a refresh is already in progress, wait for its completion
-    // return refreshIngestionAuthTokenTask.waitUntilRefreshedAtLeastOnce(REFRESH_RESULT_POLL_TIMEOUT_MILLIS)
-    // .flatMap(refreshedOnce -> {
-    // if (identityToken == null) {
-    // return Mono.error(new IngestionServiceException("Unable to get Identity token"));
-    // }
-    // return Mono.just(identityToken);
-    // });
-    // }
-    // });
-    // });
-    // }
 
     public String getIdentityToken() throws IngestionServiceException {
         if (identityToken == null) {

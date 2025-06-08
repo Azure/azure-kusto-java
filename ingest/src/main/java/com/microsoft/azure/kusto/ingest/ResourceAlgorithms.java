@@ -6,11 +6,9 @@ import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.data.instrumentation.FunctionOneException;
 import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +17,6 @@ import reactor.core.publisher.Mono;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +26,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ResourceAlgorithms {
+class ResourceAlgorithms {
     private static final int RETRY_COUNT = 3;
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -105,7 +102,7 @@ public class ResourceAlgorithms {
 
         return resourceActionWithRetriesAsync(
                 resourceManager,
-                resourceManager.getShuffledQueues(), // TODO: revisit this impl if getShuffledContainers is async
+                resourceManager.getShuffledQueues(),
                 queue -> azureStorageClient.postMessageToQueue(queue.getAsyncQueue(), message),
                 "ResourceAlgorithms.postToQueueWithRetriesAsync",
                 Collections.singletonMap("blob", SecurityUtils.removeSecretsFromUrl(blob.getBlobPath())));
@@ -115,7 +112,7 @@ public class ResourceAlgorithms {
                                                                         String blobName, boolean shouldCompress) {
         return resourceActionWithRetriesAsync(
                 resourceManager,
-                resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
+                resourceManager.getShuffledContainers(),
                 container -> azureStorageClient.uploadStreamToBlob(stream, blobName, container.getAsyncContainer(), shouldCompress)
                         .map((size) -> {
                             UploadResult uploadResult = new UploadResult();
@@ -132,7 +129,7 @@ public class ResourceAlgorithms {
                                                                boolean shouldCompress) {
         return resourceActionWithRetriesAsync(
                 resourceManager,
-                resourceManager.getShuffledContainers(), // TODO: revisit this impl if getShuffledContainers is async
+                resourceManager.getShuffledContainers(),
                 container -> azureStorageClient.uploadLocalFileToBlob(file, blobName, container.getAsyncContainer(), shouldCompress)
                         .thenReturn(container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas()),
                 "ResourceAlgorithms.uploadLocalFileWithRetriesAsync",
