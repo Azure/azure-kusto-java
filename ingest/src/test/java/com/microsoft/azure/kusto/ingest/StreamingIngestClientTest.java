@@ -457,7 +457,7 @@ class StreamingIngestClientTest {
         BlobInputStream blobInputStream = mock(BlobInputStream.class);
         when(blobInputStream.read(any(byte[].class))).thenReturn(10).thenReturn(-1);
 
-//        when(cloudBlockBlob.getProperties()).thenReturn(Mono.just(blobProperties));
+        // when(cloudBlockBlob.getProperties()).thenReturn(Mono.just(blobProperties));
         // when(cloudBlockBlob.strea()).thenReturn(blobInputStream);
 
         OperationStatus status = streamingIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties, null).block()

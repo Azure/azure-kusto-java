@@ -244,7 +244,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                 clientRequestProperties,
                 dataFormat.getKustoValue(),
                 ingestionProperties.getIngestionMapping().getIngestionMappingReference())
-            .onErrorMap(DataClientException.class, e -> {
+                .onErrorMap(DataClientException.class, e -> {
                     log.error(e.getMessage(), e);
                     return new IngestionClientException(e.getMessage(), e);
                 })

@@ -47,12 +47,12 @@ public class ExponentialRetry {
      * @return A configured {@link Retry} instance
      */
     public Retry retry(@Nullable List<Class<? extends Throwable>> retriableErrorClasses,
-                       @Nullable Predicate<? super Throwable> filter) {
+            @Nullable Predicate<? super Throwable> filter) {
         if (retriableErrorClasses != null && filter != null) {
             throw new IllegalArgumentException("Cannot specify both retriableErrorClasses and filter");
         }
 
-        Predicate<? super Throwable> filterToUse  = filter == null ? throwable -> shouldRetry(throwable, retriableErrorClasses) : filter;
+        Predicate<? super Throwable> filterToUse = filter == null ? throwable -> shouldRetry(throwable, retriableErrorClasses) : filter;
         return Retry.backoff(maxAttempts, Duration.ofSeconds((long) sleepBaseSecs))
                 .maxBackoff(Duration.ofSeconds(30))
                 .jitter(maxJitterSecs)

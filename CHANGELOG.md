@@ -11,12 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
   internally and block for results.
 - [BREAKING] Streaming client no longer check for blob size and if it exists.
-- [BREAKING] Exceptions thrown the ingest API are now RuntimeExceptions: IngestionServiceException, IngestionClientException. 
+- [BREAKING] Exceptions thrown the ingest API are now RuntimeExceptions: IngestionServiceException, IngestionClientException.
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
-    enabling non-blocking operations.
- 
-## [6.0.1]
+  enabling non-blocking operations.
+
+## [6.0.2] - 2025-24-04
+
+### Fixed
+- Update azure-bom to 12.2.8, to remove internal dependencies on jackson-xml.
+
+## [6.0.1] - 2025-10-04
 
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all query, management, streaming query/ingestion (StreamingClient) endpoints,

@@ -233,7 +233,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         }
     }
 
-
     class RefreshIngestionAuthTokenTask extends RefreshResourceTask {
         @Override
         public void run() {
