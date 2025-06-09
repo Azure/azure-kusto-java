@@ -38,13 +38,13 @@ public class TableStatus {
                 FileSourceInfo fileSourceInfo = new FileSourceInfo(System.getProperty("filePath"));
                 ingestionResult = client.ingestFromFile(fileSourceInfo, ingestionProperties);
             }
-            List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollection().block(); // TODO: how to handle this
+            List<IngestionStatus> statuses = ingestionResult.getIngestionStatusCollectionAsync().block(); // TODO: how to handle this
 
             // step 3: poll on the result.
             while (statuses.get(0).status == OperationStatus.Pending && timeoutInSec > 0) {
                 Thread.sleep(1000);
                 timeoutInSec -= 1;
-                statuses = ingestionResult.getIngestionStatusCollection().block();
+                statuses = ingestionResult.getIngestionStatusCollectionAsync().block();
             }
 
             ObjectMapper objectMapper = Utils.getObjectMapper();

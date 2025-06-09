@@ -7,6 +7,7 @@ import com.azure.data.tables.TableAsyncClient;
 import com.azure.data.tables.implementation.models.TableServiceErrorException;
 import reactor.core.publisher.Mono;
 
+import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,7 +20,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public Mono<List<IngestionStatus>> getIngestionStatusCollection() throws TableServiceErrorException {
+    public Mono<List<IngestionStatus>> getIngestionStatusCollectionAsync() throws TableServiceErrorException {
         List<Mono<IngestionStatus>> ingestionStatusMonos = descriptors.stream()
                 .map(descriptor -> {
                     TableAsyncClient tableAsyncClient = descriptor.getTableAsyncClient();
@@ -42,7 +43,7 @@ public class TableReportIngestionResult implements IngestionResult {
     }
 
     @Override
-    public int getIngestionStatusesLength() {
-        return descriptors.size();
+    public List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException {
+        return getIngestionStatusCollectionAsync().block();
     }
 }

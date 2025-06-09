@@ -108,6 +108,7 @@ public class IngestionUtils {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
             byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
+            Thread.sleep(100000);
             int read = uncompressedStream.read(b);
             if (read == -1) {
                 String message = "Empty stream.";

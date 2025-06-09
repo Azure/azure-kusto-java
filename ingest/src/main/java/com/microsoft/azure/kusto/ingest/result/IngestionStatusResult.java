@@ -3,8 +3,10 @@
 
 package com.microsoft.azure.kusto.ingest.result;
 
+import com.azure.data.tables.implementation.models.TableServiceErrorException;
 import reactor.core.publisher.Mono;
 
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,17 +19,16 @@ public class IngestionStatusResult implements IngestionResult {
     }
 
     @Override
-    public Mono<List<IngestionStatus>> getIngestionStatusCollection() {
-        return Mono.defer(() -> {
-            if (ingestionStatus != null) {
-                return Mono.just(Collections.singletonList(ingestionStatus));
-            }
-            return Mono.empty();
-        });
+    public Mono<List<IngestionStatus>> getIngestionStatusCollectionAsync() {
+        if (ingestionStatus != null) {
+            return Mono.just(Collections.singletonList(ingestionStatus));
+        }
+
+        return Mono.empty();
     }
 
     @Override
-    public int getIngestionStatusesLength() {
-        return 1;
+    public List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException {
+        return getIngestionStatusCollectionAsync().block();
     }
 }

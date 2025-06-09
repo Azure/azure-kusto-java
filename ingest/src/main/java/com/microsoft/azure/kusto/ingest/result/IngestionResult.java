@@ -16,7 +16,11 @@ public interface IngestionResult extends Serializable {
      * Retrieves the detailed ingestion status of
      * all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
      */
-    Mono<List<IngestionStatus>> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException;
+    Mono<List<IngestionStatus>> getIngestionStatusCollectionAsync() throws URISyntaxException, TableServiceErrorException;
 
-    int getIngestionStatusesLength();
+    /**
+     * Blocking, retrieves the detailed ingestion status of
+     * all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
+     */
+    List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException;
 }

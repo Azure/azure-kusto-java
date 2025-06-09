@@ -99,7 +99,7 @@ public class ManagedStreamingTest {
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 
         // Expect to work and also choose no queuing
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection()
+        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync()
                 .block().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
 
@@ -107,7 +107,7 @@ public class ManagedStreamingTest {
             try {
                 inputStream.reset();
                 IngestionStatus ingestionStatus = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
-                        .getIngestionStatusCollection().block().get(0);
+                        .getIngestionStatusCollectionAsync().block().get(0);
                 if (wasExpectedToUseQueuing) {
                     assertEquals(OperationStatus.Queued, ingestionStatus.status);
                 } else {
