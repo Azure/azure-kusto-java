@@ -3,10 +3,11 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -15,7 +16,11 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.result.IngestionResult;
 import com.microsoft.azure.kusto.ingest.result.OperationStatus;
-import com.microsoft.azure.kusto.ingest.source.*;
+import com.microsoft.azure.kusto.ingest.source.BlobSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
+import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,10 +31,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -41,8 +47,15 @@ import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class StreamingIngestClientTest {
     private static StreamingIngestClient streamingIngestClient;
@@ -54,6 +67,8 @@ class StreamingIngestClientTest {
     @Captor
     private static ArgumentCaptor<InputStream> argumentCaptor;
 
+    private static KustoOperationResult kustoOperationResult;
+
     private final String resourcesDirectory = System.getProperty("user.dir") + "/src/test/resources/";
 
     @BeforeAll
@@ -61,16 +76,15 @@ class StreamingIngestClientTest {
         streamingClientMock = mock(StreamingClient.class);
         streamingIngestClient = new StreamingIngestClient(streamingClientMock);
         argumentCaptor = ArgumentCaptor.forClass((InputStream.class));
+        kustoOperationResult = mock(KustoOperationResult.class);
     }
 
     @BeforeEach
     void setUpEach() throws Exception {
         ingestionProperties = new IngestionProperties("dbName", "tableName");
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
-
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), isNull(), any(boolean.class))).thenReturn(null);
+        when(streamingClientMock.executeStreamingIngestAsync(any(), any(), any(), any(), any(), any(), any(boolean.class)))
+                .thenReturn(Mono.just(kustoOperationResult));
+        when(streamingClientMock.executeStreamingIngestFromBlobAsync(any(), any(), any(), any(), any(), any())).thenReturn(Mono.just(kustoOperationResult));
     }
 
     @Test
@@ -78,9 +92,10 @@ class StreamingIngestClientTest {
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
         /*
@@ -98,11 +113,15 @@ class StreamingIngestClientTest {
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         String clientRequestId = "clientRequestId";
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties, clientRequestId).getIngestionStatusCollection()
-                .get(0).status;
+
+        IngestionResult ingestionResult = streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties, clientRequestId).block();
+        assertNotNull(ingestionResult);
+
+        OperationStatus status = ingestionResult.getIngestionStatusCollectionAsync()
+                .block().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
         ArgumentCaptor<ClientRequestProperties> clientRequestPropertiesArgumentCaptor = ArgumentCaptor.forClass(ClientRequestProperties.class);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 clientRequestPropertiesArgumentCaptor.capture(), any(String.class), isNull(), any(boolean.class));
 
         /*
@@ -129,9 +148,10 @@ class StreamingIngestClientTest {
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         // When ingesting compressed data, we should set this property true to avoid double compression.
         streamSourceInfo.setCompressionType(CompressionType.gz);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
         InputStream stream = argumentCaptor.getValue();
@@ -145,9 +165,10 @@ class StreamingIngestClientTest {
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
         InputStream stream = argumentCaptor.getValue();
@@ -168,9 +189,10 @@ class StreamingIngestClientTest {
         streamSourceInfo.setCompressionType(CompressionType.gz);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
-        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
         InputStream stream = argumentCaptor.getValue();
@@ -215,21 +237,20 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
-        assertEquals(1, ingestionResult.getIngestionStatusesLength());
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollectionAsync().block().get(0).status.name());
     }
 
     @Test
-    void ingestFromStream_JsonWrongMappingKind_IngestionClientException() {
+    void ingestFromStreamAsync_JsonWrongMappingKind_IngestionClientException() {
         String data = "{\"Name\": \"name\", \"Age\": \"age\", \"Weight\": \"weight\", \"Height\": \"height\"}";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
+        StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
+                .verify();
     }
 
     @Test
@@ -240,65 +261,67 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
         ingestionProperties.setIngestionMapping("AvroMapping", IngestionMapping.IngestionMappingKind.AVRO);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);
-        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
-        assertEquals(1, ingestionResult.getIngestionStatusesLength());
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollectionAsync().block().get(0).status.name());
     }
 
     @Test
-    void ingestFromStream_AvroWrongMappingKind_IngestionClientException() {
+    void ingestFromStreamAsync_AvroWrongMappingKind_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[10]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.AVRO);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."));
+        StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'avro'; mapping kind should be 'Avro', but was 'Csv'."))
+                .verify();
     }
 
     @Test
-    void ingestFromStream_EmptyStream_IngestionClientException() {
+    void ingestFromStreamAsync_EmptyStream_IngestionClientException() {
         InputStream inputStream = new ByteArrayInputStream(new byte[0]);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty stream."));
+        StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty stream."))
+                .verify();
     }
 
     @Test
-    void ingestFromStream_CaughtDataClientException_IngestionClientException() throws Exception {
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), isNull(), any(boolean.class))).thenThrow(DataClientException.class);
+    void ingestFromStreamAsync_CaughtDataClientException_IngestionClientException() {
+        when(streamingClientMock.executeStreamingIngestAsync(any(String.class), any(String.class), any(InputStream.class),
+                isNull(), any(String.class), isNull(), any(boolean.class))).thenReturn(Mono.error(new DataClientException("DataClientException")));
 
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && "DataClientException".equals(e.getMessage()))
+                .verify();
     }
 
     @Test
-    void ingestFromStream_CaughtDataServiceException_IngestionServiceException() throws Exception {
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), isNull(), any(boolean.class))).thenThrow(DataServiceException.class);
+    void ingestFromStream_CaughtDataServiceException_IngestionServiceException() {
+        when(streamingClientMock.executeStreamingIngestAsync(any(String.class), any(String.class), any(InputStream.class),
+                isNull(), any(String.class), isNull(), any(boolean.class)))
+                        .thenReturn(Mono.error(new DataServiceException("ingestFromStream", "DataServiceException", true)));
 
         String data = "Name, Age, Weight, Height";
         InputStream inputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(data).array());
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
-        assertThrows(IngestionServiceException.class,
-                () -> streamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromStreamAsync(streamSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionServiceException
+                        && "DataServiceException".equals(e.getMessage()))
+                .verify();
     }
 
     @Test
     void ingestFromFile_Csv() throws Exception {
         String path = resourcesDirectory + "testdata.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
-        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), any(InputStream.class),
                 isNull(), any(String.class), isNull(), any(boolean.class));
     }
 
@@ -310,9 +333,10 @@ class StreamingIngestClientTest {
 
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
-        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
         verifyCompressedStreamContent(argumentCaptor.getValue(), contents);
@@ -324,9 +348,10 @@ class StreamingIngestClientTest {
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
-        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollection().get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync().block()
+                .get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), any(String.class), any(boolean.class));
 
         verifyCompressedStreamContent(argumentCaptor.getValue(), jsonDataUncompressed);
@@ -383,20 +408,19 @@ class StreamingIngestClientTest {
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
-        assertEquals(1, ingestionResult.getIngestionStatusesLength());
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollectionAsync().block().get(0).status.name());
     }
 
     @Test
-    void ingestFromFile_JsonWrongMappingKind_IngestionClientException() {
+    void ingestFromFileAsync_JsonWrongMappingKind_IngestionClientException() {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("CsvMapping", IngestionMapping.IngestionMappingKind.CSV);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."));
+        StepVerifier.create(streamingIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Wrong ingestion mapping for format 'json'; mapping kind should be 'Json', but was 'Csv'."))
+                .verify();
     }
 
     @Test
@@ -404,23 +428,22 @@ class StreamingIngestClientTest {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
         IngestionResult ingestionResult = streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties);
-        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollection().get(0).status.name());
-        assertEquals(1, ingestionResult.getIngestionStatusesLength());
+        assertEquals("Succeeded", ingestionResult.getIngestionStatusCollectionAsync().block().get(0).status.name());
     }
 
     @Test
-    void ingestFromFile_EmptyFile_IngestionClientException() {
+    void ingestFromFileAsync_EmptyFile_IngestionClientException() {
         String path = resourcesDirectory + "empty.csv";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromFile(fileSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty file:"));
+        StepVerifier.create(streamingIngestClient.ingestFromFileAsync(fileSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException && e.getMessage().contains("Empty file:"))
+                .verify();
     }
 
     @Test
     void ingestFromBlob() throws Exception {
-        BlobClient cloudBlockBlob = mock(BlobClient.class);
+        BlobAsyncClient cloudBlockBlob = mock(BlobAsyncClient.class);
+        // BlobClient cloudBlockBlob = mock(BlobAsyncClient.class);
         String blobPath = "https://kustotest.blob.core.windows.net/container/blob.csv";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(blobPath);
         BlobProperties blobProperties = mock(BlobProperties.class);
@@ -429,57 +452,58 @@ class StreamingIngestClientTest {
         BlobInputStream blobInputStream = mock(BlobInputStream.class);
         when(blobInputStream.read(any(byte[].class))).thenReturn(10).thenReturn(-1);
 
-        when(cloudBlockBlob.getProperties()).thenReturn(blobProperties);
-        when(cloudBlockBlob.openInputStream()).thenReturn(blobInputStream);
+        // when(cloudBlockBlob.getProperties()).thenReturn(Mono.just(blobProperties));
+        // when(cloudBlockBlob.strea()).thenReturn(blobInputStream);
 
-        OperationStatus status = streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties, null).getIngestionStatusCollection()
-                .get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties, null).block()
+                .getIngestionStatusCollectionAsync()
+                .block().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), isNull(), any(boolean.class));
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestFromBlobAsync(any(String.class), any(String.class), any(String.class),
+                isNull(), any(String.class), any());
     }
 
     @Test
-    void ingestFromBlob_NullBlobSourceInfo_IllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromBlob(null, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+    void ingestFromBlobAsync_NullBlobSourceInfo_IllegalArgumentException() {
+        StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(null, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
-    void ingestFromBlob_BlobSourceInfoWithNullBlobPath_IllegalArgumentException() {
+    void ingestFromBlobAsync_BlobSourceInfoWithNullBlobPath_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo1 = new BlobSourceInfo(null);
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo1, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo1, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
-    void ingestFromBlob_BlobSourceInfoWithBlankBlobPath_IllegalArgumentException() {
+    void ingestFromBlobAsync_BlobSourceInfoWithBlankBlobPath_IllegalArgumentException() {
         BlobSourceInfo blobSourceInfo2 = new BlobSourceInfo("");
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo2, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo2, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
-    void ingestFromBlob_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromBlobAsync_NullIngestionProperties_IllegalArgumentException() {
         String path = "blobPath";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, null),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo, null))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @ParameterizedTest
     @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
-    void ingestFromBlob_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
+    void ingestFromBlobAsync_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         String path = "blobPath";
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo(path);
         ingestionProperties = new IngestionProperties(databaseName, tableName);
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromBlobAsync(blobSourceInfo, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
@@ -498,10 +522,10 @@ class StreamingIngestClientTest {
         ArgumentCaptor<InputStream> argumentCaptor = ArgumentCaptor.forClass(InputStream.class);
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
-        OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollection()
-                .get(0).status;
+        OperationStatus status = streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync()
+                .block().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
-        verify(streamingClientMock, atLeastOnce()).executeStreamingIngest(any(String.class), any(String.class), argumentCaptor.capture(),
+        verify(streamingClientMock, atLeastOnce()).executeStreamingIngestAsync(any(String.class), any(String.class), argumentCaptor.capture(),
                 isNull(), any(String.class), isNull(), any(boolean.class));
 
         InputStream stream = argumentCaptor.getValue();
@@ -509,30 +533,30 @@ class StreamingIngestClientTest {
     }
 
     @Test
-    void ingestFromResultSet_NullResultSetSourceInfo_IllegalArgumentException() {
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromResultSet(null, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+    void ingestFromResultSetAsync_NullResultSetSourceInfo_IllegalArgumentException() {
+        StepVerifier.create(streamingIngestClient.ingestFromResultSetAsync(null, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
-    void ingestFromResultSet_NullIngestionProperties_IllegalArgumentException() {
+    void ingestFromResultSetAsync_NullIngestionProperties_IllegalArgumentException() {
         ResultSet resultSet = mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, null),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromResultSetAsync(resultSetSourceInfo, null))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @ParameterizedTest
     @CsvSource(value = {"null,table", "'',table", "database,null", "database,''"}, nullValues = {"null"})
-    void ingestFromResultSet_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
+    void ingestFromResultSetAsync_IngestionPropertiesWithIllegalDatabaseOrTableNames_IllegalArgumentException(String databaseName, String tableName) {
         ResultSet resultSet = mock(ResultSet.class);
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
         ingestionProperties = new IngestionProperties(databaseName, tableName);
-        assertThrows(IllegalArgumentException.class,
-                () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
-                "Expected IllegalArgumentException to be thrown, but it didn't");
+        StepVerifier.create(streamingIngestClient.ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties))
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
@@ -544,10 +568,10 @@ class StreamingIngestClientTest {
         when(resultSetMetaData.getColumnCount()).thenReturn(0);
 
         ResultSetSourceInfo resultSetSourceInfo = new ResultSetSourceInfo(resultSet);
-        IngestionClientException ingestionClientException = assertThrows(IngestionClientException.class,
-                () -> streamingIngestClient.ingestFromResultSet(resultSetSourceInfo, ingestionProperties),
-                "Expected IngestionClientException to be thrown, but it didn't");
-        assertTrue(ingestionClientException.getMessage().contains("Empty ResultSet."));
+        StepVerifier.create(streamingIngestClient.ingestFromResultSetAsync(resultSetSourceInfo, ingestionProperties))
+                .expectErrorMatches(e -> e instanceof IngestionClientException
+                        && e.getMessage().contains("Empty ResultSet."))
+                .verify();
     }
 
     private static Stream<Arguments> provideStringsForAutoCorrectEndpointTruePass() {

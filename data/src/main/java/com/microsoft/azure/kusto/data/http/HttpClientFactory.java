@@ -60,8 +60,6 @@ public class HttpClientFactory {
             options.setProxyOptions(properties.getProxy());
         }
 
-        // Todo: Is the per route connection maximum needed anymore?
-
         return HttpClient.createDefault(options);
     }
 }

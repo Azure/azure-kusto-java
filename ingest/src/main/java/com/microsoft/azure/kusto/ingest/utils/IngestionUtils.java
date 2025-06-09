@@ -1,5 +1,9 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
+import com.azure.core.implementation.ByteBufferCollector;
+import com.azure.core.util.FluxUtil;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
+import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -7,12 +11,28 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.univocity.parsers.csv.CsvRoutines;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.compression.ZlibCodecFactory;
+import io.netty.handler.codec.compression.ZlibWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
+import java.util.zip.GZIPOutputStream;
 
 public class IngestionUtils {
     private IngestionUtils() {
@@ -20,6 +40,7 @@ public class IngestionUtils {
     }
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     @NotNull
     public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable)
@@ -79,5 +100,76 @@ public class IngestionUtils {
         }
 
         return null;
+    }
+
+    public static Mono<byte[]> toCompressedByteArray(InputStream uncompressedStream, boolean leaveOpen) {
+        return Mono.fromCallable(() -> {
+            log.debug("Compressing the stream.");
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
+            byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
+            Thread.sleep(100000);
+            int read = uncompressedStream.read(b);
+            if (read == -1) {
+                String message = "Empty stream.";
+                log.error(message);
+                throw new IngestionClientException(message);
+            }
+            do {
+                gzipOutputStream.write(b, 0, read);
+            } while ((read = uncompressedStream.read(b)) != -1);
+            gzipOutputStream.flush();
+            gzipOutputStream.close();
+            byte[] content = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
+            if (!leaveOpen) {
+                uncompressedStream.close();
+            }
+            return content;
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public static Mono<InputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
+        return toCompressedByteArray(uncompressedStream, leaveOpen)
+                .map(ByteArrayInputStream::new);
+    }
+
+    public static Mono<byte[]> toByteArray(InputStream inputStream) {
+        return Mono.create(sink -> {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            try {
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    byteArrayOutputStream.write(buffer, 0, bytesRead);
+                }
+                sink.success(byteArrayOutputStream.toByteArray());
+            } catch (IOException e) {
+                sink.error(e);
+            } finally {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    sink.error(e);
+                }
+            }
+        });
+    }
+
+    public static class IntegerHolder {
+        int value;
+
+        public int increment() {
+            return value++;
+        }
+
+        public void add(int length) {
+            value += length;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 }

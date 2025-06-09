@@ -780,12 +780,12 @@ class E2ETest {
                         UUID.randomUUID(),
                         item.ingestionProperties.getDataFormat());
 
-                String blobPath = container.getContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
+                String blobPath = container.getAsyncContainer().getBlobContainerUrl() + "/" + blobName + container.getSas();
 
                 azureStorageClient.uploadLocalFileToBlob(item.file, blobName,
-                        container.getContainer(), !item.file.getName().endsWith(".gz"));
+                        container.getAsyncContainer(), !item.file.getName().endsWith(".gz")).block();
                 try {
-                    streamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
+                    managedStreamingIngestClient.ingestFromBlob(new BlobSourceInfo(blobPath), item.ingestionProperties);
                 } catch (Exception ex) {
                     Assertions.fail(ex);
                 }
