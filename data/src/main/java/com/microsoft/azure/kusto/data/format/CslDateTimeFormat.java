@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -55,7 +55,7 @@ public class CslDateTimeFormat extends CslFormat {
     }
 
     public CslDateTimeFormat(String localDateTimeString) {
-        if (Utils.isBlank(localDateTimeString)) {
+        if (StringUtils.isBlank(localDateTimeString)) {
             this.value = null;
         } else {
             localDateTimeString = parseValueFromValueWithType(localDateTimeString, getType()).trim();

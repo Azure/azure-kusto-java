@@ -2,7 +2,6 @@ package com.microsoft.azure.kusto.data.auth.endpoints;
 
 import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.StringUtils;
-import com.microsoft.azure.kusto.data.Utils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -82,7 +81,7 @@ public class FastSuffixMatcher {
         List<MatchRule> matchRules = rules.get(StringUtils.getStringTail(candidate, suffixLength));
         if (matchRules != null) {
             for (MatchRule rule : matchRules) {
-                if (Utils.endsWithIgnoreCase(candidate, rule.suffix)) {
+                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
                     if (candidate.length() == rule.suffix.length()
                             || !rule.exact) {
                         return new MatchResult(true, rule);

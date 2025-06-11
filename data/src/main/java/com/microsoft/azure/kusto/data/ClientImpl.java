@@ -333,18 +333,18 @@ class ClientImpl extends BaseClient {
     }
 
     private String buildClusterEndpoint(String database, String table, String format, String mappingName) {
-        if (Utils.isNullOrEmpty(database)) {
+        if (StringUtils.isBlank(database)) {
             throw new IllegalArgumentException("Parameter database is empty.");
         }
-        if (Utils.isNullOrEmpty(table)) {
+        if (StringUtils.isBlank(table)) {
             throw new IllegalArgumentException("Parameter table is empty.");
         }
-        if (Utils.isNullOrEmpty(format)) {
+        if (StringUtils.isBlank(format)) {
             throw new IllegalArgumentException("Parameter format is empty.");
         }
         String clusterEndpoint = String.format(CommandType.STREAMING_INGEST.getEndpoint(), clusterUrl, database, table, format);
 
-        if (!Utils.isNullOrEmpty(mappingName)) {
+        if (!StringUtils.isEmpty(mappingName)) {
             clusterEndpoint = clusterEndpoint.concat(String.format("&mappingName=%s", mappingName));
         }
         return clusterEndpoint;

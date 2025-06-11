@@ -3,8 +3,8 @@ package com.microsoft.azure.kusto.data.auth;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
 import com.microsoft.aad.msal4j.SilentParameters;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.data.UriUtils;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
@@ -41,7 +41,7 @@ public abstract class MsalTokenProviderBase extends CloudDependentTokenProviderB
         aadAuthorityUrl = determineAadAuthorityUrl(cloudInfo);
         firstPartyAuthorityUrl = cloudInfo.getFirstPartyAuthorityUrl();
         // Some apis (e.g. device authentication) require the url to always end in backslash.
-        firstPartyAuthorityUrl = Utils.appendIfMissing(firstPartyAuthorityUrl, "/");
+        firstPartyAuthorityUrl = StringUtils.appendIfMissing(firstPartyAuthorityUrl, "/");
     }
 
     private String determineAadAuthorityUrl(CloudInfo cloudInfo) {

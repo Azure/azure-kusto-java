@@ -2,14 +2,14 @@ package com.microsoft.azure.kusto.data;
 
 import reactor.util.annotation.Nullable;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ClientDetails {
 
     public static final String NONE = "[none]";
-
     private static final ConcurrentHashMap<DefaultValues, String> defaultValues = new ConcurrentHashMap<>();
 
     private final String applicationForTracing;
@@ -29,14 +29,14 @@ public class ClientDetails {
         } else if(DefaultValues.DEFAULT_USER == key) {
             return defaultValues.computeIfAbsent(key, k -> {
                 String user = System.getProperty("user.name");
-                if (Utils.isNullOrEmpty(user)) {
+                if (StringUtils.isBlank(user)) {
                     user = System.getenv("USERNAME");
                     String domain = System.getenv("USERDOMAIN");
-                    if (!Utils.isNullOrEmpty(domain) && !Utils.isNullOrEmpty(user)) {
+                    if (StringUtils.isNotBlank(domain) && StringUtils.isNotBlank(user)) {
                         user = domain + "\\" + user;
                     }
                 }
-                return !Utils.isNullOrEmpty(user) ? user : NONE;
+                return StringUtils.isNotBlank(user) ? user : NONE;
             });
         } else if(DefaultValues.DEFAULT_VERSION == key) {
             return defaultValues.computeIfAbsent(key, k -> {
@@ -58,8 +58,8 @@ public class ClientDetails {
      */
     private static String formatHeader(Map<String, String> args) {
         return args.entrySet().stream().
-                filter(arg -> !Utils.isNullOrEmpty(arg.getKey())
-                        && !Utils.isNullOrEmpty(arg.getValue()))
+                filter(arg -> StringUtils.isNotBlank(arg.getKey())
+                        && StringUtils.isNotBlank(arg.getValue()))
                 .map(arg -> String.format("%s:%s", arg.getKey(), escapeField(arg.getValue())))
                 .collect(Collectors.joining("|"));
     }
@@ -115,7 +115,7 @@ public class ClientDetails {
 
     private static String getJavaVersion() {
         String version = System.getProperty("java.version");
-        if (Utils.isNullOrEmpty(version)) {
+        if (StringUtils.isBlank(version)) {
             return "UnknownVersion";
         }
         return version;
@@ -123,15 +123,16 @@ public class ClientDetails {
 
     private static String getRuntime() {
         String runtime = System.getProperty("java.runtime.name");
-        if (Utils.isNullOrEmpty(runtime)) {
+        if (StringUtils.isBlank(runtime)) {
             runtime = System.getProperty("java.vm.name");
         }
-        if (Utils.isNullOrEmpty(runtime)) {
+        if (StringUtils.isBlank(runtime)) {
             runtime = System.getProperty("java.vendor");
         }
-        if (Utils.isNullOrEmpty(runtime)) {
+        if (StringUtils.isBlank(runtime)) {
             runtime = "UnknownRuntime";
         }
+
         return runtime;
     }
 

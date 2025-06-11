@@ -255,7 +255,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     }
 
     public static ClientRequestProperties fromString(String json) throws JsonProcessingException {
-        if (Utils.isNotBlank(json)) {
+        if (StringUtils.isNotBlank(json)) {
             ClientRequestProperties crp = new ClientRequestProperties();
             JsonNode jsonObj = Utils.getObjectMapper().readTree(json);
             Iterator<String> it = jsonObj.fieldNames();

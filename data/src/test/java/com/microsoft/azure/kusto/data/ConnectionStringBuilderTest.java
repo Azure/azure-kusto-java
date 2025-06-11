@@ -211,7 +211,7 @@ class ConnectionStringBuilderTest {
         ConnectionStringBuilder builder = new ConnectionStringBuilder(connectionString);
 
         // Assert that the fields have been set correctly
-        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=****;", builder.toString());
-        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=myappkey;", builder.toString(true));
+        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=****", builder.toString());
+        Assertions.assertEquals("Data Source=mycluster.kusto.windows.net;Application Client Id=myclientid;Application Key=myappkey", builder.toString(true));
     }
 }

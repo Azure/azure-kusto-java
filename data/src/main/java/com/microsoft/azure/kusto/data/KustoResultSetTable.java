@@ -3,7 +3,6 @@
 
 package com.microsoft.azure.kusto.data;
 
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
@@ -90,7 +89,7 @@ public class KustoResultSetTable {
         }
         tableId = jsonTable.has(TABLE_ID_PROPERTY_NAME) ? jsonTable.get(TABLE_ID_PROPERTY_NAME).asText() : EMPTY_STRING;
         String tableKindString = jsonTable.has(TABLE_KIND_PROPERTY_NAME) ? jsonTable.get(TABLE_KIND_PROPERTY_NAME).asText() : EMPTY_STRING;
-        tableKind = Utils.isNullOrEmpty(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
+        tableKind = StringUtils.isBlank(tableKindString) ? null : WellKnownDataSet.valueOf(tableKindString);
 
         if (jsonTable.has(COLUMNS_PROPERTY_NAME) && jsonTable.get(COLUMNS_PROPERTY_NAME).getNodeType() == JsonNodeType.ARRAY) {
             ArrayNode columnsJson = (ArrayNode) jsonTable.get(COLUMNS_PROPERTY_NAME);
@@ -335,10 +334,7 @@ public class KustoResultSetTable {
                 if (get(columnIndex) == null) {
                     return null;
                 }
-                String timestampStr = getString(columnIndex);
-                // Remove the last character using Utils.chop
-                timestampStr = Utils.chop(timestampStr);
-                return Timestamp.valueOf(timestampStr.replace("T", " "));
+                return Timestamp.valueOf(StringUtils.chop(getString(columnIndex)).replace("T", " "));
             case "long":
             case "int":
                 Long l = getLongObject(columnIndex);
@@ -572,16 +568,43 @@ public class KustoResultSetTable {
                         return null;
                     }
                     String dateString = getString(columnIndex);
-                    DateTimeFormatter formatter;
-                    if (dateString.length() < 21) {
-                        formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                                .withZone(calendar.getTimeZone().toZoneId());
-                    } else {
-                        formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
-                                .withZone(calendar.getTimeZone().toZoneId());
+                    
+                    // First try the original FastDateFormat approach with strict patterns
+                    try {
+                        DateTimeFormatter formatter;
+                        if (dateString.length() < 21) {
+                            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+                                    .withZone(calendar.getTimeZone().toZoneId());
+                        } else {
+                            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
+                                    .withZone(calendar.getTimeZone().toZoneId());
+                        }
+                        // Remove trailing 'Z' if present, similar to original FastDateFormat implementation
+                        String parsableString = dateString.substring(0, Math.min(dateString.length() - (dateString.endsWith("Z") ? 1 : 0), 23));
+                        Instant instant = formatter.parse(parsableString, Instant::from);
+                        return new java.sql.Date(Date.from(instant).getTime());
+                    } catch (Exception parseEx) {
+                        // If strict parsing fails, try ISO parsing for properly formatted ISO strings
+                        if (dateString.endsWith("Z")) {
+                            try {
+                                Instant instant = Instant.parse(dateString);
+                                return new java.sql.Date(instant.toEpochMilli());
+                            } catch (Exception isoEx) {
+                                // If both approaches fail, try normalizing the malformed string and parsing again
+                                try {
+                                    String normalizedString = normalizeMalformedDateTime(dateString);
+                                    Instant instant = Instant.parse(normalizedString);
+                                    return new java.sql.Date(instant.toEpochMilli());
+                                } catch (Exception normalizeEx) {
+                                    // If all approaches fail, fall back to the original exception
+                                    throw parseEx;
+                                }
+                            }
+                        } else {
+                            // If it doesn't end with Z, re-throw the original parsing exception
+                            throw parseEx;
+                        }
                     }
-                    Instant instant = formatter.parse(dateString.substring(0, Math.min(dateString.length(), 23)), Instant::from);
-                    return new java.sql.Date(Date.from(instant).getTime());
                 } catch (Exception e) {
                     throw new SQLException("Error parsing Date", e);
                 }
@@ -650,5 +673,57 @@ public class KustoResultSetTable {
 
     public boolean isNull(int columnIndex) {
         return get(columnIndex) == null;
+    }
+
+    /**
+     * Helper method to normalize malformed datetime strings to make them parseable by Instant.parse()
+     * This handles common malformations like single-digit seconds, missing digits, etc.
+     */
+    private String normalizeMalformedDateTime(String dateString) {
+        if (dateString == null || !dateString.endsWith("Z")) {
+            return dateString;
+        }
+        
+        // Remove the 'Z' to work with the datetime part
+        String datePart = dateString.substring(0, dateString.length() - 1);
+        
+        // Split into date and time parts
+        String[] parts = datePart.split("T");
+        if (parts.length != 2) {
+            return dateString; // Can't normalize if format is too different
+        }
+        
+        String datePortion = parts[0]; // yyyy-MM-dd
+        String timePortion = parts[1]; // HH:mm:ss or HH:mm:ss.SSS...
+        
+        // Split time into components
+        String[] timeComponents = timePortion.split(":");
+        if (timeComponents.length != 3) {
+            return dateString; // Can't normalize if time format is wrong
+        }
+        
+        String hours = timeComponents[0];
+        String minutes = timeComponents[1];
+        String secondsAndFractions = timeComponents[2];
+        
+        // Pad hours and minutes to 2 digits
+        hours = String.format("%02d", Integer.parseInt(hours));
+        minutes = String.format("%02d", Integer.parseInt(minutes));
+        
+        // Handle seconds and fractions
+        String[] secondsParts = secondsAndFractions.split("\\.");
+        String seconds = secondsParts[0];
+        
+        // Pad seconds to 2 digits
+        seconds = String.format("%02d", Integer.parseInt(seconds));
+        
+        // Reconstruct the normalized datetime string
+        String normalizedTime = hours + ":" + minutes + ":" + seconds;
+        if (secondsParts.length > 1) {
+            // Preserve fractional seconds
+            normalizedTime += "." + secondsParts[1];
+        }
+        
+        return datePortion + "T" + normalizedTime + "Z";
     }
 }

@@ -179,7 +179,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                         })
                         .flatMap(stream -> {
                             ClientRequestProperties clientRequestProperties = null;
-                            if (Utils.isNotBlank(clientRequestId)) {
+                            if (StringUtils.isNotBlank(clientRequestId)) {
                                 clientRequestProperties = new ClientRequestProperties();
                                 clientRequestProperties.setClientRequestId(clientRequestId);
                             }
@@ -230,7 +230,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         String blobPath = blobSourceInfo.getBlobPath();
         ClientRequestProperties clientRequestProperties = null;
-        if (Utils.isNotBlank(clientRequestId)) {
+        if (StringUtils.isNotBlank(clientRequestId)) {
             clientRequestProperties = new ClientRequestProperties();
             clientRequestProperties.setClientRequestId(clientRequestId);
         }

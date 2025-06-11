@@ -2,10 +2,9 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.http.*;
 import com.azure.core.util.Context;
-
+import com.azure.core.util.CoreUtils;
 import com.microsoft.aad.msal4j.IHttpClient;
 import com.microsoft.aad.msal4j.IHttpResponse;
-import com.microsoft.azure.kusto.data.Utils;
 
 import java.util.stream.Collectors;
 
@@ -37,7 +36,7 @@ public class HttpClientWrapper implements IHttpClient {
 
         // Generate an azure core HttpRequest from the existing msal4j HttpRequest
         HttpRequest request = new HttpRequest(method, httpRequest.url(), new HttpHeaders(httpRequest.headers()));
-        if (!Utils.isNullOrEmpty(httpRequest.body())) {
+        if (!CoreUtils.isNullOrEmpty(httpRequest.body())) {
             request.setBody(httpRequest.body());
         }
 
