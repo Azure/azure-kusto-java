@@ -25,27 +25,27 @@ class StringUtilsTest {
     @Test
     @DisplayName("isBlank should return true for null string")
     void isBlank_NullString_ReturnsTrue() {
-        assertTrue(Utils.isBlank(null));
+        assertTrue(StringUtils.isBlank(null));
     }
 
     @Test
     @DisplayName("isBlank should return true for empty string")
     void isBlank_EmptyString_ReturnsTrue() {
-        assertTrue(Utils.isBlank(""));
+        assertTrue(StringUtils.isBlank(""));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {" ", "  ", "\t", "\n", "\r", " \t\n\r "})
     @DisplayName("isBlank should return true for whitespace-only strings")
     void isBlank_WhitespaceOnlyStrings_ReturnsTrue(String input) {
-        assertTrue(Utils.isBlank(input));
+        assertTrue(StringUtils.isBlank(input));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"a", " a ", "hello", "  hello  ", "\tworld\n", "123", "!@#"})
     @DisplayName("isBlank should return false for strings with non-whitespace content")
     void isBlank_NonWhitespaceStrings_ReturnsFalse(String input) {
-        assertFalse(Utils.isBlank(input));
+        assertFalse(StringUtils.isBlank(input));
     }
 
     // ========== Tests for isNotBlank() ==========
@@ -53,27 +53,27 @@ class StringUtilsTest {
     @Test
     @DisplayName("isNotBlank should return false for null string")
     void isNotBlank_NullString_ReturnsFalse() {
-        assertFalse(Utils.isNotBlank(null));
+        assertFalse(StringUtils.isNotBlank(null));
     }
 
     @Test
     @DisplayName("isNotBlank should return false for empty string")
     void isNotBlank_EmptyString_ReturnsFalse() {
-        assertFalse(Utils.isNotBlank(""));
+        assertFalse(StringUtils.isNotBlank(""));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {" ", "  ", "\t", "\n", "\r", " \t\n\r "})
     @DisplayName("isNotBlank should return false for whitespace-only strings")
     void isNotBlank_WhitespaceOnlyStrings_ReturnsFalse(String input) {
-        assertFalse(Utils.isNotBlank(input));
+        assertFalse(StringUtils.isNotBlank(input));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"a", " a ", "hello", "  hello  ", "\tworld\n", "123", "!@#"})
     @DisplayName("isNotBlank should return true for strings with non-whitespace content")
     void isNotBlank_NonWhitespaceStrings_ReturnsTrue(String input) {
-        assertTrue(Utils.isNotBlank(input));
+        assertTrue(StringUtils.isNotBlank(input));
     }
 
     @Test
@@ -86,33 +86,33 @@ class StringUtilsTest {
         // StringUtils.isNotBlank("bob")     = true
         // StringUtils.isNotBlank("  bob  ") = true
         
-        assertFalse(Utils.isNotBlank(null), "isNotBlank(null) should return false");
-        assertFalse(Utils.isNotBlank(""), "isNotBlank(\"\") should return false");
-        assertFalse(Utils.isNotBlank(" "), "isNotBlank(\" \") should return false");
-        assertTrue(Utils.isNotBlank("bob"), "isNotBlank(\"bob\") should return true");
-        assertTrue(Utils.isNotBlank("  bob  "), "isNotBlank(\"  bob  \") should return true");
+        assertFalse(StringUtils.isNotBlank(null), "isNotBlank(null) should return false");
+        assertFalse(StringUtils.isNotBlank(""), "isNotBlank(\"\") should return false");
+        assertFalse(StringUtils.isNotBlank(" "), "isNotBlank(\" \") should return false");
+        assertTrue(StringUtils.isNotBlank("bob"), "isNotBlank(\"bob\") should return true");
+        assertTrue(StringUtils.isNotBlank("  bob  "), "isNotBlank(\"  bob  \") should return true");
     }
 
     @Test
     @DisplayName("isNotBlank should work with different CharSequence types")
     void isNotBlank_DifferentCharSequenceTypes() {
         // Test with String
-        assertTrue(Utils.isNotBlank("hello"));
-        assertFalse(Utils.isNotBlank("   "));
+        assertTrue(StringUtils.isNotBlank("hello"));
+        assertFalse(StringUtils.isNotBlank("   "));
         
         // Test with StringBuilder
         StringBuilder sb = new StringBuilder("world");
-        assertTrue(Utils.isNotBlank(sb));
+        assertTrue(StringUtils.isNotBlank(sb));
         
         StringBuilder emptySb = new StringBuilder("   ");
-        assertFalse(Utils.isNotBlank(emptySb));
+        assertFalse(StringUtils.isNotBlank(emptySb));
         
         // Test with StringBuffer
         StringBuffer sbuf = new StringBuffer("test");
-        assertTrue(Utils.isNotBlank(sbuf));
+        assertTrue(StringUtils.isNotBlank(sbuf));
         
         StringBuffer emptyBuf = new StringBuffer("");
-        assertFalse(Utils.isNotBlank(emptyBuf));
+        assertFalse(StringUtils.isNotBlank(emptyBuf));
     }
 
     // ========== Tests for isEmpty() ==========
@@ -120,91 +120,99 @@ class StringUtilsTest {
     @Test
     @DisplayName("isEmpty should return true for null string")
     void isEmpty_NullString_ReturnsTrue() {
-        assertTrue(Utils.isEmpty(null));
+        assertTrue(StringUtils.isEmpty(null));
     }
 
     @Test
     @DisplayName("isEmpty should return true for empty string")
     void isEmpty_EmptyString_ReturnsTrue() {
-        assertTrue(Utils.isEmpty(""));
+        assertTrue(StringUtils.isEmpty(""));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {" ", "a", "hello", "\t", "\n"})
     @DisplayName("isEmpty should return false for non-empty strings")
     void isEmpty_NonEmptyStrings_ReturnsFalse(String input) {
-        assertFalse(Utils.isEmpty(input));
+        assertFalse(StringUtils.isEmpty(input));
     }
 
-    // ========== Tests for chop() ==========
+    // ========== Tests for chop() (basic character removal) ==========
 
     @Test
     @DisplayName("chop should return null for null string")
     void chop_NullString_ReturnsNull() {
-        assertNull(Utils.chop(null));
+        assertNull(StringUtils.chop(null));
     }
 
     @ParameterizedTest
     @MethodSource("chopBasicTestCases")
     @DisplayName("chop should handle basic cases correctly")
     void chop_BasicCases_WorksCorrectly(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
+        assertEquals(expected, StringUtils.chop(input));
     }
 
     @ParameterizedTest
     @MethodSource("chopSingleCharTestCases")
     @DisplayName("chop should return empty string for single character strings")
     void chop_SingleCharStrings_ReturnsEmpty(String input) {
-        assertEquals("", Utils.chop(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopCRLFTestCases")
-    @DisplayName("chop should handle CRLF line endings specially")
-    void chop_CRLFLineEndings_RemovesBothChars(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopSingleLFTestCases")
-    @DisplayName("chop should handle single LF normally")
-    void chop_SingleLF_RemovesOnlyLF(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopSingleCRTestCases")
-    @DisplayName("chop should handle single CR normally")
-    void chop_SingleCR_RemovesOnlyCR(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopLFCRTestCases")
-    @DisplayName("chop should handle LF followed by CR normally (not CRLF)")
-    void chop_LFCRNotCRLF_RemovesOnlyLastChar(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopMultipleCRLFTestCases")
-    @DisplayName("chop should handle multiple CRLF patterns")
-    void chop_MultipleCRLF_OnlyAffectsLast(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
+        assertEquals("", StringUtils.chop(input));
     }
 
     @ParameterizedTest
     @MethodSource("chopSpecialCharTestCases")
     @DisplayName("chop should handle special characters correctly")
     void chop_SpecialChars_RemovesLastChar(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
+        assertEquals(expected, StringUtils.chop(input));
     }
 
     @ParameterizedTest
     @MethodSource("chopUnicodeTestCases")
     @DisplayName("chop should handle unicode characters correctly")
     void chop_UnicodeChars_RemovesLastChar(String input, String expected) {
-        assertEquals(expected, Utils.chop(input));
+        assertEquals(expected, StringUtils.chop(input));
+    }
+
+    // ========== Tests for chopNewLine() (line ending aware removal) ==========
+
+    @Test
+    @DisplayName("chopNewLine should return null for null string")
+    void chopNewLine_NullString_ReturnsNull() {
+        assertNull(StringUtils.chopNewLine(null));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chopCRLFTestCases")
+    @DisplayName("chopNewLine should handle CRLF line endings specially")
+    void chopNewLine_CRLFLineEndings_RemovesBothChars(String input, String expected) {
+        assertEquals(expected, StringUtils.chopNewLine(input));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chopSingleLFTestCases")
+    @DisplayName("chopNewLine should handle single LF normally")
+    void chopNewLine_SingleLF_RemovesOnlyLF(String input, String expected) {
+        assertEquals(expected, StringUtils.chopNewLine(input));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chopSingleCRTestCases")
+    @DisplayName("chopNewLine should handle single CR normally")
+    void chopNewLine_SingleCR_RemovesOnlyCR(String input, String expected) {
+        assertEquals(expected, StringUtils.chopNewLine(input));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chopLFCRTestCases")
+    @DisplayName("chopNewLine should handle LF followed by CR normally (not CRLF)")
+    void chopNewLine_LFCRNotCRLF_RemovesOnlyLastChar(String input, String expected) {
+        assertEquals(expected, StringUtils.chopNewLine(input));
+    }
+
+    @ParameterizedTest
+    @MethodSource("chopMultipleCRLFTestCases")
+    @DisplayName("chopNewLine should handle multiple CRLF patterns")
+    void chopNewLine_MultipleCRLF_OnlyAffectsLast(String input, String expected) {
+        assertEquals(expected, StringUtils.chopNewLine(input));
     }
 
     static Stream<Arguments> chopBasicTestCases() {
@@ -218,7 +226,11 @@ class StringUtilsTest {
             Arguments.of("123456", "12345"),
             Arguments.of("abc", "ab"),
             Arguments.of("test string", "test strin"),
-            Arguments.of("This is a longer test string", "This is a longer test strin")
+            Arguments.of("This is a longer test string", "This is a longer test strin"),
+            // Basic line ending handling (chop just removes last char)
+            Arguments.of("hello\n", "hello"),
+            Arguments.of("test\r", "test"),
+            Arguments.of("hello\r\n", "hello\r") // chop removes only the last char
         );
     }
 
@@ -232,7 +244,7 @@ class StringUtilsTest {
             Arguments.of("hello\r\n", "hello"),
             Arguments.of("test\r\n", "test"),
             Arguments.of("multiline\r\n", "multiline"),
-            Arguments.of("a\r\n", "")
+            Arguments.of("a\r\n", "") // Special case: single char + CRLF
         );
     }
 
@@ -240,7 +252,7 @@ class StringUtilsTest {
         return Stream.of(
             Arguments.of("hello\n", "hello"),
             Arguments.of("test\n", "test"),
-            Arguments.of("a\n", ""),
+            Arguments.of("a\n", ""), // Two-char string with LF
             Arguments.of("text\n", "text")
         );
     }
@@ -249,7 +261,7 @@ class StringUtilsTest {
         return Stream.of(
             Arguments.of("hello\r", "hello"),
             Arguments.of("test\r", "test"),
-            Arguments.of("a\r", ""),
+            Arguments.of("a\r", ""), // Two-char string with CR
             Arguments.of("text\r", "text")
         );
     }
@@ -304,20 +316,20 @@ class StringUtilsTest {
     @Test
     @DisplayName("removeEnd should return null for null string")
     void removeEnd_NullString_ReturnsNull() {
-        assertNull(Utils.removeEnd(null, "suffix"));
+        assertNull(StringUtils.removeEnd(null, "suffix"));
     }
 
     @Test
     @DisplayName("removeEnd should return original string when suffix is null")
     void removeEnd_NullSuffix_ReturnsOriginal() {
-        assertEquals("hello", Utils.removeEnd("hello", null));
+        assertEquals("hello", StringUtils.removeEnd("hello", null));
     }
 
     @ParameterizedTest
     @MethodSource("removeEndTestCases")
     @DisplayName("removeEnd should remove suffix when present (case sensitive)")
     void removeEnd_VariousCases_RemovesSuffixCorrectly(String input, String suffix, String expected) {
-        assertEquals(expected, Utils.removeEnd(input, suffix));
+        assertEquals(expected, StringUtils.removeEnd(input, suffix));
     }
 
     static Stream<Arguments> removeEndTestCases() {
@@ -342,20 +354,20 @@ class StringUtilsTest {
     @Test
     @DisplayName("removeEndIgnoreCase should return null for null string")
     void removeEndIgnoreCase_NullString_ReturnsNull() {
-        assertNull(Utils.removeEndIgnoreCase(null, "suffix"));
+        assertNull(StringUtils.removeEndIgnoreCase(null, "suffix"));
     }
 
     @Test
     @DisplayName("removeEndIgnoreCase should return original string when suffix is null")
     void removeEndIgnoreCase_NullSuffix_ReturnsOriginal() {
-        assertEquals("hello", Utils.removeEndIgnoreCase("hello", null));
+        assertEquals("hello", StringUtils.removeEndIgnoreCase("hello", null));
     }
 
     @ParameterizedTest
     @MethodSource("removeEndIgnoreCaseTestCases")
     @DisplayName("removeEndIgnoreCase should remove suffix when present (case insensitive)")
     void removeEndIgnoreCase_VariousCases_RemovesSuffixCorrectly(String input, String suffix, String expected) {
-        assertEquals(expected, Utils.removeEndIgnoreCase(input, suffix));
+        assertEquals(expected, StringUtils.removeEndIgnoreCase(input, suffix));
     }
 
     static Stream<Arguments> removeEndIgnoreCaseTestCases() {
@@ -380,20 +392,20 @@ class StringUtilsTest {
     @Test
     @DisplayName("prependIfMissing should return null for null string")
     void prependIfMissing_NullString_ReturnsNull() {
-        assertNull(Utils.prependIfMissing(null, "prefix"));
+        assertNull(StringUtils.prependIfMissing(null, "prefix"));
     }
 
     @Test
     @DisplayName("prependIfMissing should return original string when prefix is null")
     void prependIfMissing_NullPrefix_ReturnsOriginal() {
-        assertEquals("hello", Utils.prependIfMissing("hello", null));
+        assertEquals("hello", StringUtils.prependIfMissing("hello", null));
     }
 
     @ParameterizedTest
     @MethodSource("prependIfMissingTestCases")
     @DisplayName("prependIfMissing should prepend prefix when missing")
     void prependIfMissing_VariousCases_PrependsCorrectly(String input, String prefix, String expected) {
-        assertEquals(expected, Utils.prependIfMissing(input, prefix));
+        assertEquals(expected, StringUtils.prependIfMissing(input, prefix));
     }
 
     static Stream<Arguments> prependIfMissingTestCases() {
@@ -416,13 +428,13 @@ class StringUtilsTest {
     @Test
     @DisplayName("appendIfMissing should return null for null string")
     void appendIfMissing_NullString_ReturnsNull() {
-        assertNull(Utils.appendIfMissing(null, "suffix"));
+        assertNull(StringUtils.appendIfMissing(null, "suffix"));
     }
 
     @Test
     @DisplayName("appendIfMissing should return original string when suffix is null")
     void appendIfMissing_NullSuffix_ReturnsOriginal() {
-        assertEquals("hello", Utils.appendIfMissing("hello", null));
+        assertEquals("hello", StringUtils.appendIfMissing("hello", null));
     }
 
     @Test
@@ -436,12 +448,12 @@ class StringUtilsTest {
         // StringUtils.appendIfMissing("abcxyz", "xyz") = "abcxyz"
         // StringUtils.appendIfMissing("abcXYZ", "xyz") = "abcXYZxyz"
         
-        assertNull(Utils.appendIfMissing(null, null), "appendIfMissing(null, null) should return null");
-        assertEquals("abc", Utils.appendIfMissing("abc", null), "appendIfMissing(\"abc\", null) should return \"abc\"");
-        assertEquals("xyz", Utils.appendIfMissing("", "xyz"), "appendIfMissing(\"\", \"xyz\") should return \"xyz\"");
-        assertEquals("abcxyz", Utils.appendIfMissing("abc", "xyz"), "appendIfMissing(\"abc\", \"xyz\") should return \"abcxyz\"");
-        assertEquals("abcxyz", Utils.appendIfMissing("abcxyz", "xyz"), "appendIfMissing(\"abcxyz\", \"xyz\") should return \"abcxyz\"");
-        assertEquals("abcXYZxyz", Utils.appendIfMissing("abcXYZ", "xyz"), "appendIfMissing(\"abcXYZ\", \"xyz\") should return \"abcXYZxyz\"");
+        assertNull(StringUtils.appendIfMissing(null, null), "appendIfMissing(null, null) should return null");
+        assertEquals("abc", StringUtils.appendIfMissing("abc", null), "appendIfMissing(\"abc\", null) should return \"abc\"");
+        assertEquals("xyz", StringUtils.appendIfMissing("", "xyz"), "appendIfMissing(\"\", \"xyz\") should return \"xyz\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz"), "appendIfMissing(\"abc\", \"xyz\") should return \"abcxyz\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", "xyz"), "appendIfMissing(\"abcxyz\", \"xyz\") should return \"abcxyz\"");
+        assertEquals("abcXYZxyz", StringUtils.appendIfMissing("abcXYZ", "xyz"), "appendIfMissing(\"abcXYZ\", \"xyz\") should return \"abcXYZxyz\"");
     }
 
     @Test
@@ -459,23 +471,23 @@ class StringUtilsTest {
         // StringUtils.appendIfMissing("abcXYZ", "xyz", "mno") = "abcXYZxyz"
         // StringUtils.appendIfMissing("abcMNO", "xyz", "mno") = "abcMNOxyz"
         
-        assertNull(Utils.appendIfMissing(null, null, (CharSequence) null), "appendIfMissing(null, null, null) should return null");
-        assertEquals("abc", Utils.appendIfMissing("abc", null, (CharSequence) null), "appendIfMissing(\"abc\", null, null) should return \"abc\"");
-        assertEquals("xyz", Utils.appendIfMissing("", "xyz", (CharSequence) null), "appendIfMissing(\"\", \"xyz\", null) should return \"xyz\"");
-        assertEquals("abcxyz", Utils.appendIfMissing("abc", "xyz", (CharSequence) null), "appendIfMissing(\"abc\", \"xyz\", null) should return \"abcxyz\"");
-        assertEquals("abc", Utils.appendIfMissing("abc", "xyz", ""), "appendIfMissing(\"abc\", \"xyz\", \"\") should return \"abc\"");
-        assertEquals("abcxyz", Utils.appendIfMissing("abc", "xyz", "mno"), "appendIfMissing(\"abc\", \"xyz\", \"mno\") should return \"abcxyz\"");
-        assertEquals("abcxyz", Utils.appendIfMissing("abcxyz", "xyz", "mno"), "appendIfMissing(\"abcxyz\", \"xyz\", \"mno\") should return \"abcxyz\"");
-        assertEquals("abcmno", Utils.appendIfMissing("abcmno", "xyz", "mno"), "appendIfMissing(\"abcmno\", \"xyz\", \"mno\") should return \"abcmno\"");
-        assertEquals("abcXYZxyz", Utils.appendIfMissing("abcXYZ", "xyz", "mno"), "appendIfMissing(\"abcXYZ\", \"xyz\", \"mno\") should return \"abcXYZxyz\"");
-        assertEquals("abcMNOxyz", Utils.appendIfMissing("abcMNO", "xyz", "mno"), "appendIfMissing(\"abcMNO\", \"xyz\", \"mno\") should return \"abcMNOxyz\"");
+        assertNull(StringUtils.appendIfMissing(null, null, (CharSequence) null), "appendIfMissing(null, null, null) should return null");
+        assertEquals("abc", StringUtils.appendIfMissing("abc", null, (CharSequence) null), "appendIfMissing(\"abc\", null, null) should return \"abc\"");
+        assertEquals("xyz", StringUtils.appendIfMissing("", "xyz", (CharSequence) null), "appendIfMissing(\"\", \"xyz\", null) should return \"xyz\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz", (CharSequence) null), "appendIfMissing(\"abc\", \"xyz\", null) should return \"abcxyz\"");
+        assertEquals("abc", StringUtils.appendIfMissing("abc", "xyz", ""), "appendIfMissing(\"abc\", \"xyz\", \"\") should return \"abc\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz", "mno"), "appendIfMissing(\"abc\", \"xyz\", \"mno\") should return \"abcxyz\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", "xyz", "mno"), "appendIfMissing(\"abcxyz\", \"xyz\", \"mno\") should return \"abcxyz\"");
+        assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", "xyz", "mno"), "appendIfMissing(\"abcmno\", \"xyz\", \"mno\") should return \"abcmno\"");
+        assertEquals("abcXYZxyz", StringUtils.appendIfMissing("abcXYZ", "xyz", "mno"), "appendIfMissing(\"abcXYZ\", \"xyz\", \"mno\") should return \"abcXYZxyz\"");
+        assertEquals("abcMNOxyz", StringUtils.appendIfMissing("abcMNO", "xyz", "mno"), "appendIfMissing(\"abcMNO\", \"xyz\", \"mno\") should return \"abcMNOxyz\"");
     }
 
     @ParameterizedTest
     @MethodSource("appendIfMissingTestCases")
     @DisplayName("appendIfMissing should append suffix when missing")
     void appendIfMissing_VariousCases_AppendsCorrectly(String input, String suffix, String expected) {
-        assertEquals(expected, Utils.appendIfMissing(input, suffix));
+        assertEquals(expected, StringUtils.appendIfMissing(input, suffix));
     }
 
     static Stream<Arguments> appendIfMissingTestCases() {
@@ -498,18 +510,18 @@ class StringUtilsTest {
     void appendIfMissing_DifferentCharSequenceTypes() {
         // Test with StringBuilder as suffix
         StringBuilder sb = new StringBuilder("xyz");
-        assertEquals("abcxyz", Utils.appendIfMissing("abc", sb));
-        assertEquals("abcxyz", Utils.appendIfMissing("abcxyz", sb));
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", sb));
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", sb));
         
         // Test with StringBuffer as suffix
         StringBuffer sbuf = new StringBuffer("mno");
-        assertEquals("abcmno", Utils.appendIfMissing("abc", sbuf));
-        assertEquals("abcmno", Utils.appendIfMissing("abcmno", sbuf));
+        assertEquals("abcmno", StringUtils.appendIfMissing("abc", sbuf));
+        assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", sbuf));
         
         // Test with multiple CharSequence types as additional suffixes
-        assertEquals("abcxyz", Utils.appendIfMissing("abcxyz", "abc", sb, sbuf));
-        assertEquals("abcmno", Utils.appendIfMissing("abcmno", "abc", sb, sbuf));
-        assertEquals("abcpqr", Utils.appendIfMissing("abc", "pqr", sb, sbuf));
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", "abc", sb, sbuf));
+        assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", "abc", sb, sbuf));
+        assertEquals("abcpqr", StringUtils.appendIfMissing("abc", "pqr", sb, sbuf));
     }
 
     // ========== Tests for endsWithIgnoreCase() ==========
@@ -517,26 +529,26 @@ class StringUtilsTest {
     @Test
     @DisplayName("endsWithIgnoreCase should return true when both string and suffix are null")
     void endsWithIgnoreCase_BothNull_ReturnsTrue() {
-        assertTrue(Utils.endsWithIgnoreCase(null, null));
+        assertTrue(StringUtils.endsWithIgnoreCase(null, null));
     }
 
     @Test
     @DisplayName("endsWithIgnoreCase should return false for null string with non-null suffix")
     void endsWithIgnoreCase_NullString_ReturnsFalse() {
-        assertFalse(Utils.endsWithIgnoreCase(null, "suffix"));
+        assertFalse(StringUtils.endsWithIgnoreCase(null, "suffix"));
     }
 
     @Test
     @DisplayName("endsWithIgnoreCase should return false when suffix is null but string is not")
     void endsWithIgnoreCase_NullSuffix_ReturnsFalse() {
-        assertFalse(Utils.endsWithIgnoreCase("hello", null));
+        assertFalse(StringUtils.endsWithIgnoreCase("hello", null));
     }
 
     @ParameterizedTest
     @MethodSource("endsWithIgnoreCaseTestCases")
     @DisplayName("endsWithIgnoreCase should check suffix presence (case insensitive)")
     void endsWithIgnoreCase_VariousCases_ChecksCorrectly(String input, String suffix, boolean expected) {
-        assertEquals(expected, Utils.endsWithIgnoreCase(input, suffix));
+        assertEquals(expected, StringUtils.endsWithIgnoreCase(input, suffix));
     }
 
     @Test
@@ -550,35 +562,35 @@ class StringUtilsTest {
         // StringUtils.endsWithIgnoreCase("ABCDEF", "def") = true
         // StringUtils.endsWithIgnoreCase("ABCDEF", "cde") = false
         
-        assertTrue(Utils.endsWithIgnoreCase(null, null), "endsWithIgnoreCase(null, null) should return true");
-        assertFalse(Utils.endsWithIgnoreCase(null, "def"), "endsWithIgnoreCase(null, \"def\") should return false");
-        assertFalse(Utils.endsWithIgnoreCase("abcdef", null), "endsWithIgnoreCase(\"abcdef\", null) should return false");
-        assertTrue(Utils.endsWithIgnoreCase("abcdef", "def"), "endsWithIgnoreCase(\"abcdef\", \"def\") should return true");
-        assertTrue(Utils.endsWithIgnoreCase("ABCDEF", "def"), "endsWithIgnoreCase(\"ABCDEF\", \"def\") should return true");
-        assertFalse(Utils.endsWithIgnoreCase("ABCDEF", "cde"), "endsWithIgnoreCase(\"ABCDEF\", \"cde\") should return false");
+        assertTrue(StringUtils.endsWithIgnoreCase(null, null), "endsWithIgnoreCase(null, null) should return true");
+        assertFalse(StringUtils.endsWithIgnoreCase(null, "def"), "endsWithIgnoreCase(null, \"def\") should return false");
+        assertFalse(StringUtils.endsWithIgnoreCase("abcdef", null), "endsWithIgnoreCase(\"abcdef\", null) should return false");
+        assertTrue(StringUtils.endsWithIgnoreCase("abcdef", "def"), "endsWithIgnoreCase(\"abcdef\", \"def\") should return true");
+        assertTrue(StringUtils.endsWithIgnoreCase("ABCDEF", "def"), "endsWithIgnoreCase(\"ABCDEF\", \"def\") should return true");
+        assertFalse(StringUtils.endsWithIgnoreCase("ABCDEF", "cde"), "endsWithIgnoreCase(\"ABCDEF\", \"cde\") should return false");
     }
 
     @Test
     @DisplayName("endsWithIgnoreCase should work with different CharSequence types")
     void endsWithIgnoreCase_DifferentCharSequenceTypes() {
         // Test with String
-        assertTrue(Utils.endsWithIgnoreCase("hello.TXT", ".txt"));
+        assertTrue(StringUtils.endsWithIgnoreCase("hello.TXT", ".txt"));
         
         // Test with StringBuilder
         StringBuilder sb = new StringBuilder("document.PDF");
-        assertTrue(Utils.endsWithIgnoreCase(sb, ".pdf"));
+        assertTrue(StringUtils.endsWithIgnoreCase(sb, ".pdf"));
         
         StringBuilder suffix = new StringBuilder(".HTML");
-        assertTrue(Utils.endsWithIgnoreCase("index.html", suffix));
+        assertTrue(StringUtils.endsWithIgnoreCase("index.html", suffix));
         
         // Test with StringBuffer
         StringBuffer sbuf = new StringBuffer("file.XML");
-        assertTrue(Utils.endsWithIgnoreCase(sbuf, ".xml"));
+        assertTrue(StringUtils.endsWithIgnoreCase(sbuf, ".xml"));
         
         // Test with mixed types
         StringBuffer str = new StringBuffer("test.JSON");
         StringBuilder suf = new StringBuilder(".json");
-        assertTrue(Utils.endsWithIgnoreCase(str, suf));
+        assertTrue(StringUtils.endsWithIgnoreCase(str, suf));
     }
 
     static Stream<Arguments> endsWithIgnoreCaseTestCases() {
@@ -612,8 +624,8 @@ class StringUtilsTest {
         
         // Test chaining: trim -> removeEndIgnoreCase -> prependIfMissing
         String trimmed = input.trim();
-        String withoutExt = Utils.removeEndIgnoreCase(trimmed, ".txt");
-        String withPrefix = Utils.prependIfMissing(withoutExt, "greeting_");
+        String withoutExt = StringUtils.removeEndIgnoreCase(trimmed, ".txt");
+        String withPrefix = StringUtils.prependIfMissing(withoutExt, "greeting_");
         
         assertEquals("greeting_hello", withPrefix);
     }
@@ -624,10 +636,10 @@ class StringUtilsTest {
         // Scenario: Processing file paths
         String filepath = "/home/user/document.PDF";
         
-        assertTrue(Utils.endsWithIgnoreCase(filepath, ".pdf"));
-        assertEquals("/home/user/document", Utils.removeEndIgnoreCase(filepath, ".PDF"));
+        assertTrue(StringUtils.endsWithIgnoreCase(filepath, ".pdf"));
+        assertEquals("/home/user/document", StringUtils.removeEndIgnoreCase(filepath, ".PDF"));
         
-        String newPath = Utils.appendIfMissing(Utils.removeEndIgnoreCase(filepath, ".pdf"), ".txt");
+        String newPath = StringUtils.appendIfMissing(StringUtils.removeEndIgnoreCase(filepath, ".pdf"), ".txt");
         assertEquals("/home/user/document.txt", newPath);
     }
 
@@ -637,14 +649,14 @@ class StringUtilsTest {
         // Scenario: Processing URLs
         String url = "example.com/api/data";
         
-        String httpsUrl = Utils.prependIfMissing(url, "https://");
+        String httpsUrl = StringUtils.prependIfMissing(url, "https://");
         assertEquals("https://example.com/api/data", httpsUrl);
         
-        String urlWithSlash = Utils.appendIfMissing(httpsUrl, "/");
+        String urlWithSlash = StringUtils.appendIfMissing(httpsUrl, "/");
         assertEquals("https://example.com/api/data/", urlWithSlash);
         
-        assertFalse(Utils.isBlank(urlWithSlash));
-        assertTrue(Utils.isNotBlank(urlWithSlash));
+        assertFalse(StringUtils.isBlank(urlWithSlash));
+        assertTrue(StringUtils.isNotBlank(urlWithSlash));
     }
 
     @Test
@@ -652,14 +664,14 @@ class StringUtilsTest {
     void edgeCases_BoundaryConditions_HandledCorrectly() {
         // Test with special characters
         String specialChars = "!@#$%^&*()";
-        assertFalse(Utils.isBlank(specialChars));
-        assertTrue(Utils.isNotBlank(specialChars));
-        assertFalse(Utils.isEmpty(specialChars));
+        assertFalse(StringUtils.isBlank(specialChars));
+        assertTrue(StringUtils.isNotBlank(specialChars));
+        assertFalse(StringUtils.isEmpty(specialChars));
         
         // Test with unicode characters
         String unicode = "Hello 世界 🌍";
-        assertEquals("Hello 世界 🌍.txt", Utils.appendIfMissing(unicode, ".txt"));
-        assertEquals("prefix_Hello 世界 🌍", Utils.prependIfMissing(unicode, "prefix_"));
+        assertEquals("Hello 世界 🌍.txt", StringUtils.appendIfMissing(unicode, ".txt"));
+        assertEquals("prefix_Hello 世界 🌍", StringUtils.prependIfMissing(unicode, "prefix_"));
         
         // Test very long strings
         StringBuilder sb = new StringBuilder();
@@ -667,142 +679,44 @@ class StringUtilsTest {
             sb.append("a");
         }
         String longString = sb.toString();
-        assertEquals(999, Utils.chop(longString).length());
-        assertTrue(Utils.endsWithIgnoreCase(longString, "A"));
+        assertEquals(999, StringUtils.chop(longString).length());
+        assertTrue(StringUtils.endsWithIgnoreCase(longString, "A"));
     }
 
-    // ========== Tests for MessageBuilder ==========
 
-    @Test
-    @DisplayName("MessageBuilder should start empty")
-    void messageBuilder_NewInstance_IsEmpty() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        assertTrue(builder.isEmpty());
-        assertEquals("", builder.build());
-        assertEquals("", builder.toString());
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle single message")
-    void messageBuilder_SingleMessage_AppendsCorrectly() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("Simple message");
-        
-        assertFalse(builder.isEmpty());
-        String result = builder.build();
-        assertTrue(result.startsWith("Simple message"));
-        assertTrue(result.endsWith(System.lineSeparator()));
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle formatted messages")
-    void messageBuilder_FormattedMessage_AppendsCorrectly() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("Error %d: %s", 404, "Not Found");
-        
-        String result = builder.build();
-        assertTrue(result.contains("Error 404: Not Found"));
-        assertTrue(result.endsWith(System.lineSeparator()));
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle multiple messages")
-    void messageBuilder_MultipleMessages_AppendsCorrectly() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("First message");
-        builder.appendln("Second message");
-        builder.appendln("Third message");
-        
-        assertFalse(builder.isEmpty());
-        String result = builder.build();
-        
-        // Should contain all messages
-        assertTrue(result.contains("First message"));
-        assertTrue(result.contains("Second message"));
-        assertTrue(result.contains("Third message"));
-        
-        // Should have proper line separators
-        String[] lines = result.split(System.lineSeparator());
-        assertEquals(3, lines.length); // 3 messages
-        assertEquals("First message", lines[0]);
-        assertEquals("Second message", lines[1]);
-        assertEquals("Third message", lines[2]);
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle null format string")
-    void messageBuilder_NullFormat_HandlesGracefully() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln(null);
-        
-        assertTrue(builder.isEmpty());
-        assertEquals("", builder.build());
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle empty format string")
-    void messageBuilder_EmptyFormat_AppendsLineBreak() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("");
-        
-        assertFalse(builder.isEmpty());
-        assertEquals(System.lineSeparator(), builder.build());
-    }
-
-    @Test
-    @DisplayName("MessageBuilder should handle complex formatting")
-    void messageBuilder_ComplexFormatting_WorksCorrectly() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("Column mapping '%s' is invalid.", "testColumn");
-        builder.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
-                "JSON", "Json", "CSV");
-        
-        String result = builder.build();
-        assertTrue(result.contains("Column mapping 'testColumn' is invalid."));
-        assertTrue(result.contains("Wrong ingestion mapping for format 'JSON'; mapping kind should be 'Json', but was 'CSV'."));
-    }
-
-    @Test
-    @DisplayName("MessageBuilder toString should match build")
-    void messageBuilder_ToString_MatchesBuild() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        builder.appendln("Test message");
-        
-        assertEquals(builder.build(), builder.toString());
-    }
 
     // ========== Tests for unescapeJava ==========
 
     @Test
     @DisplayName("unescapeJava should handle null input")
     void unescapeJava_NullInput_ReturnsNull() {
-        assertNull(Utils.unescapeJava(null));
+        assertNull(StringUtils.unescapeJava(null));
     }
 
     @Test
     @DisplayName("unescapeJava should handle empty string")
     void unescapeJava_EmptyString_ReturnsEmpty() {
-        assertEquals("", Utils.unescapeJava(""));
+        assertEquals("", StringUtils.unescapeJava(""));
     }
 
     @Test
     @DisplayName("unescapeJava should handle string without escapes")
     void unescapeJava_NoEscapes_ReturnsOriginal() {
         String input = "Hello World 123";
-        assertEquals(input, Utils.unescapeJava(input));
+        assertEquals(input, StringUtils.unescapeJava(input));
     }
 
     @Test
     @DisplayName("unescapeJava should handle basic escape sequences")
     void unescapeJava_BasicEscapes_UnescapesCorrectly() {
-        assertEquals("\\", Utils.unescapeJava("\\\\"));
-        assertEquals("\"", Utils.unescapeJava("\\\""));
-        assertEquals("'", Utils.unescapeJava("\\'"));
-        assertEquals("\n", Utils.unescapeJava("\\n"));
-        assertEquals("\r", Utils.unescapeJava("\\r"));
-        assertEquals("\t", Utils.unescapeJava("\\t"));
-        assertEquals("\b", Utils.unescapeJava("\\b"));
-        assertEquals("\f", Utils.unescapeJava("\\f"));
+        assertEquals("\\", StringUtils.unescapeJava("\\\\"));
+        assertEquals("\"", StringUtils.unescapeJava("\\\""));
+        assertEquals("'", StringUtils.unescapeJava("\\'"));
+        assertEquals("\n", StringUtils.unescapeJava("\\n"));
+        assertEquals("\r", StringUtils.unescapeJava("\\r"));
+        assertEquals("\t", StringUtils.unescapeJava("\\t"));
+        assertEquals("\b", StringUtils.unescapeJava("\\b"));
+        assertEquals("\f", StringUtils.unescapeJava("\\f"));
     }
 
     @Test
@@ -810,54 +724,54 @@ class StringUtilsTest {
     void unescapeJava_MultipleEscapes_UnescapesCorrectly() {
         String input = "Line1\\nLine2\\tTabbed\\r\\nWindows line end\\\\Backslash\\\"Quote";
         String expected = "Line1\nLine2\tTabbed\r\nWindows line end\\Backslash\"Quote";
-        assertEquals(expected, Utils.unescapeJava(input));
+        assertEquals(expected, StringUtils.unescapeJava(input));
     }
 
     @Test
     @DisplayName("unescapeJava should handle Unicode escape sequences")
     void unescapeJava_UnicodeEscapes_UnescapesCorrectly() {
-        assertEquals("A", Utils.unescapeJava("\\u0041")); // 'A'
-        assertEquals("€", Utils.unescapeJava("\\u20AC")); // Euro symbol
-        assertEquals("😀", Utils.unescapeJava("\\uD83D\\uDE00")); // Emoji (surrogate pair)
-        assertEquals("Hello © World", Utils.unescapeJava("Hello \\u00A9 World")); // Copyright symbol
+        assertEquals("A", StringUtils.unescapeJava("\\u0041")); // 'A'
+        assertEquals("€", StringUtils.unescapeJava("\\u20AC")); // Euro symbol
+        assertEquals("😀", StringUtils.unescapeJava("\\uD83D\\uDE00")); // Emoji (surrogate pair)
+        assertEquals("Hello © World", StringUtils.unescapeJava("Hello \\u00A9 World")); // Copyright symbol
     }
 
     @Test
     @DisplayName("unescapeJava should handle octal escape sequences")
     void unescapeJava_OctalEscapes_UnescapesCorrectly() {
-        assertEquals("A", Utils.unescapeJava("\\101")); // Octal 101 = decimal 65 = 'A'
-        assertEquals("@", Utils.unescapeJava("\\100")); // Octal 100 = decimal 64 = '@'
-        assertEquals("\0", Utils.unescapeJava("\\0")); // Null character
-        assertEquals("7", Utils.unescapeJava("\\67")); // Octal 67 = decimal 55 = '7'
+        assertEquals("A", StringUtils.unescapeJava("\\101")); // Octal 101 = decimal 65 = 'A'
+        assertEquals("@", StringUtils.unescapeJava("\\100")); // Octal 100 = decimal 64 = '@'
+        assertEquals("\0", StringUtils.unescapeJava("\\0")); // Null character
+        assertEquals("7", StringUtils.unescapeJava("\\67")); // Octal 67 = decimal 55 = '7'
     }
 
     @Test
     @DisplayName("unescapeJava should handle invalid escape sequences")
     void unescapeJava_InvalidEscapes_TreatsAsLiteral() {
-        assertEquals("\\x", Utils.unescapeJava("\\x")); // Invalid escape
-        assertEquals("\\z", Utils.unescapeJava("\\z")); // Invalid escape
-        assertEquals("\\", Utils.unescapeJava("\\")); // Trailing backslash
-        assertEquals("\\uXXXX", Utils.unescapeJava("\\uXXXX")); // Invalid unicode
-        assertEquals("\\u12", Utils.unescapeJava("\\u12")); // Incomplete unicode
+        assertEquals("\\x", StringUtils.unescapeJava("\\x")); // Invalid escape
+        assertEquals("\\z", StringUtils.unescapeJava("\\z")); // Invalid escape
+        assertEquals("\\", StringUtils.unescapeJava("\\")); // Trailing backslash
+        assertEquals("\\uXXXX", StringUtils.unescapeJava("\\uXXXX")); // Invalid unicode
+        assertEquals("\\u12", StringUtils.unescapeJava("\\u12")); // Incomplete unicode
     }
 
     @Test
     @DisplayName("unescapeJava should handle edge cases")
     void unescapeJava_EdgeCases_HandlesCorrectly() {
         // Multiple backslashes
-        assertEquals("\\\\", Utils.unescapeJava("\\\\\\\\"));
+        assertEquals("\\\\", StringUtils.unescapeJava("\\\\\\\\"));
         
         // Mixed valid and invalid escapes
-        assertEquals("\\x\n\\y", Utils.unescapeJava("\\x\\n\\y"));
+        assertEquals("\\x\n\\y", StringUtils.unescapeJava("\\x\\n\\y"));
         
         // Octal with maximum 3 digits
-        assertEquals("A4", Utils.unescapeJava("\\1014")); // Should parse \\101 and leave '4'
+        assertEquals("A4", StringUtils.unescapeJava("\\1014")); // Should parse \\101 and leave '4'
         
         // Unicode at end of string
-        assertEquals("A", Utils.unescapeJava("\\u0041"));
+        assertEquals("A", StringUtils.unescapeJava("\\u0041"));
         
         // Invalid octal values
-        assertEquals("\\999", Utils.unescapeJava("\\999")); // 999 > 255, should be treated as literal
+        assertEquals("\\999", StringUtils.unescapeJava("\\999")); // 999 > 255, should be treated as literal
     }
 
     @Test
@@ -865,42 +779,28 @@ class StringUtilsTest {
     void unescapeJava_JsonLikeStrings_UnescapesCorrectly() {
         String jsonString = "{\\\"name\\\":\\\"John\\\",\\\"age\\\":30,\\\"city\\\":\\\"New York\\\"}";
         String expected = "{\"name\":\"John\",\"age\":30,\"city\":\"New York\"}";
-        assertEquals(expected, Utils.unescapeJava(jsonString));
+        assertEquals(expected, StringUtils.unescapeJava(jsonString));
     }
 
     @Test
     @DisplayName("unescapeJava should match Apache Commons Lang3 behavior")
     void unescapeJava_ApacheCommonsLang3Compatibility_BehavesCorrectly() {
         // Test cases based on Apache Commons Lang3 StringEscapeUtils.unescapeJava() specification
-        assertEquals("\"", Utils.unescapeJava("\\\""));
-        assertEquals("\\", Utils.unescapeJava("\\\\"));
-        assertEquals("\n", Utils.unescapeJava("\\n"));
-        assertEquals("\t", Utils.unescapeJava("\\t"));
-        assertEquals("\r", Utils.unescapeJava("\\r"));
-        assertEquals("\b", Utils.unescapeJava("\\b"));
-        assertEquals("\f", Utils.unescapeJava("\\f"));
-        assertEquals("'", Utils.unescapeJava("\\'"));
-        assertEquals("/", Utils.unescapeJava("\\/")); // Should treat as literal
+        assertEquals("\"", StringUtils.unescapeJava("\\\""));
+        assertEquals("\\", StringUtils.unescapeJava("\\\\"));
+        assertEquals("\n", StringUtils.unescapeJava("\\n"));
+        assertEquals("\t", StringUtils.unescapeJava("\\t"));
+        assertEquals("\r", StringUtils.unescapeJava("\\r"));
+        assertEquals("\b", StringUtils.unescapeJava("\\b"));
+        assertEquals("\f", StringUtils.unescapeJava("\\f"));
+        assertEquals("'", StringUtils.unescapeJava("\\'"));
+        assertEquals("/", StringUtils.unescapeJava("\\/")); // Should treat as literal
         
         // Complex test case
         String complex = "He didn't say, \\\"Stop!\\\"";
         String expectedComplex = "He didn't say, \"Stop!\"";
-        assertEquals(expectedComplex, Utils.unescapeJava(complex));
+        assertEquals(expectedComplex, StringUtils.unescapeJava(complex));
     }
 
-    // ========== Integration tests for both MessageBuilder and unescapeJava ==========
 
-    @Test
-    @DisplayName("Integration test: MessageBuilder with unescaped strings")
-    void integration_MessageBuilderWithUnescapedStrings_WorksCorrectly() {
-        Utils.MessageBuilder builder = new Utils.MessageBuilder();
-        
-        String escapedString = "Error: \\\"Invalid input\\\" on line %d";
-        String unescapedFormat = Utils.unescapeJava(escapedString);
-        
-        builder.appendln(unescapedFormat, 42);
-        
-        String result = builder.build();
-        assertTrue(result.contains("Error: \"Invalid input\" on line 42"));
-    }
 }

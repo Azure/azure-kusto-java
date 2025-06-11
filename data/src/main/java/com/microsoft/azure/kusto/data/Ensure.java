@@ -9,8 +9,9 @@ import java.io.FileNotFoundException;
 
 
 public class Ensure {
+
     public static void stringIsNotBlank(String str, String varName) {
-        if (Utils.isNullOrEmpty(str)) {
+        if (StringUtils.isBlank(str)) {
             throw new IllegalArgumentException(varName + " is blank.");
         }
     }
@@ -49,7 +50,7 @@ public class Ensure {
     }
 
     public static void stringIsNotEmpty(String str, String varName) {
-        if (Utils.isNullOrEmpty(str)) {
+        if (StringUtils.isEmpty(str)) {
             throw new IllegalArgumentException(varName + " is empty.");
         }
     }

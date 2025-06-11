@@ -1,8 +1,7 @@
 package com.microsoft.azure.kusto.data.format;
 
-
 import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.Utils;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -44,7 +43,7 @@ public class CslStringFormat extends CslFormat {
         }
 
         String multilineString = parseMultilineString(result);
-        if (!Utils.isNullOrEmpty(multilineString)) {
+        if (StringUtils.isNotBlank(multilineString)) {
             return multilineString;
         }
 
@@ -73,7 +72,7 @@ public class CslStringFormat extends CslFormat {
                 if (escapedString.length() >= escapeSequenceLength && escapedString.endsWith(escapeSequence)) {
                     String unescapedString = escapedString.substring(escapeSequence.length(), escapedString.length() - escapeSequence.length());
                     if ("\\\"".equals(escapeSequence) || "'".equals(escapeSequence)) {
-                        return Utils.unescapeJava(unescapedString);
+                        return StringUtils.unescapeJava(unescapedString);
                     } else if (escapeSequence.startsWith("@")) {
                         String quote = escapeSequence.substring(1);
                         return escapedString.replaceAll(quote + quote, quote);

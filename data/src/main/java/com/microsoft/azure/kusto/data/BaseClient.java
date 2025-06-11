@@ -140,7 +140,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         String message = errorFromResponse;
         WebException formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
         boolean isPermanent = false;
-        if (Utils.isNotBlank(errorFromResponse)) {
+        if (!StringUtils.isBlank(errorFromResponse)) {
             try {
                 JsonNode jsonObject = Utils.getObjectMapper().readTree(errorFromResponse);
                 if (jsonObject.has("error")) {

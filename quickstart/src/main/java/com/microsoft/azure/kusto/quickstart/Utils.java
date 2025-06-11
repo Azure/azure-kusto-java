@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import com.microsoft.azure.kusto.data.Client;

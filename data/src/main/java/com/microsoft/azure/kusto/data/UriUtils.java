@@ -20,13 +20,13 @@ public class UriUtils {
         Objects.requireNonNull(clusterUrlForParsing.getAuthority(), "clusterUri must have uri authority component");
         String auth = clusterUrlForParsing.getAuthority().toLowerCase();
         if (host == null) {
-            host = Utils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
+            host = StringUtils.removeEndIgnoreCase(auth, FEDERATED_SECURITY_SUFFIX);
         }
 
         String path = clusterUrlForParsing.getPath();
         if (path != null && !path.isEmpty()) {
-            path = Utils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
-            path = Utils.removeEndIgnoreCase(path, "/");
+            path = StringUtils.removeEndIgnoreCase(path, FEDERATED_SECURITY_SUFFIX);
+            path = StringUtils.removeEndIgnoreCase(path, "/");
         }
 
         String clusterUri = String.format("%s://%s%s%s",
@@ -38,7 +38,7 @@ public class UriUtils {
     }
 
     public static String setPathForUri(String uri, String path, boolean ensureTrailingSlash) throws URISyntaxException {
-        path = Utils.prependIfMissing(path, "/");
+        path = StringUtils.prependIfMissing(path, "/");
 
         URI baseUri = new URI(uri);
 
@@ -50,7 +50,7 @@ public class UriUtils {
                 baseUri.getFragment());
         String pathString = newUri.toString();
         if (ensureTrailingSlash) {
-            pathString = Utils.appendIfMissing(pathString, "/");
+            pathString = StringUtils.appendIfMissing(pathString, "/");
         }
 
         return pathString;
@@ -62,7 +62,7 @@ public class UriUtils {
 
     public static String appendPathToUri(String uri, String path) throws URISyntaxException {
         String existing = new URI(uri).getPath();
-        return setPathForUri(uri, Utils.appendIfMissing(existing == null ? "" : existing, "/") + path);
+        return setPathForUri(uri, StringUtils.appendIfMissing(existing == null ? "" : existing, "/") + path);
     }
 
     public static boolean isLocalAddress(String host) {
