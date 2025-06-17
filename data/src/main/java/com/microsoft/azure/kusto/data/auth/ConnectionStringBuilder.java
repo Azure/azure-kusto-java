@@ -158,10 +158,9 @@ public class ConnectionStringBuilder {
             entries.put(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing);
         }
         StringBuilder sb = new StringBuilder();
-        entries.entrySet().stream()
-                .forEach(entry -> sb.append(entry.getKey().getCanonicalName())
+        entries.forEach((key,value) -> sb.append(key.getCanonicalName())
                         .append("=")
-                        .append((!showSecrets && entry.getKey().isSecret()) ? SECRET_REPLACEMENT : entry.getValue())
+                        .append((!showSecrets && key.isSecret()) ? SECRET_REPLACEMENT : value)
                         .append(";"));
 
         // Remove trailing semicolon if present
