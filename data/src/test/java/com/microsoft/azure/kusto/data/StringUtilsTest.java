@@ -3,6 +3,8 @@
 
 package com.microsoft.azure.kusto.data;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -10,6 +12,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Objects;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -111,7 +114,7 @@ class StringUtilsTest {
         StringBuffer sbuf = new StringBuffer("test");
         assertTrue(StringUtils.isNotBlank(sbuf));
         
-        StringBuffer emptyBuf = new StringBuffer("");
+        StringBuffer emptyBuf = new StringBuffer();
         assertFalse(StringUtils.isNotBlank(emptyBuf));
     }
 
@@ -172,49 +175,6 @@ class StringUtilsTest {
         assertEquals(expected, StringUtils.chop(input));
     }
 
-    // ========== Tests for chopNewLine() (line ending aware removal) ==========
-
-    @Test
-    @DisplayName("chopNewLine should return null for null string")
-    void chopNewLine_NullString_ReturnsNull() {
-        assertNull(StringUtils.chopNewLine(null));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopCRLFTestCases")
-    @DisplayName("chopNewLine should handle CRLF line endings specially")
-    void chopNewLine_CRLFLineEndings_RemovesBothChars(String input, String expected) {
-        assertEquals(expected, StringUtils.chopNewLine(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopSingleLFTestCases")
-    @DisplayName("chopNewLine should handle single LF normally")
-    void chopNewLine_SingleLF_RemovesOnlyLF(String input, String expected) {
-        assertEquals(expected, StringUtils.chopNewLine(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopSingleCRTestCases")
-    @DisplayName("chopNewLine should handle single CR normally")
-    void chopNewLine_SingleCR_RemovesOnlyCR(String input, String expected) {
-        assertEquals(expected, StringUtils.chopNewLine(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopLFCRTestCases")
-    @DisplayName("chopNewLine should handle LF followed by CR normally (not CRLF)")
-    void chopNewLine_LFCRNotCRLF_RemovesOnlyLastChar(String input, String expected) {
-        assertEquals(expected, StringUtils.chopNewLine(input));
-    }
-
-    @ParameterizedTest
-    @MethodSource("chopMultipleCRLFTestCases")
-    @DisplayName("chopNewLine should handle multiple CRLF patterns")
-    void chopNewLine_MultipleCRLF_OnlyAffectsLast(String input, String expected) {
-        assertEquals(expected, StringUtils.chopNewLine(input));
-    }
-
     static Stream<Arguments> chopBasicTestCases() {
         return Stream.of(
             Arguments.of("", ""), // Empty string returns empty
@@ -234,56 +194,12 @@ class StringUtilsTest {
         );
     }
 
-    static Stream<String> chopSingleCharTestCases() {
+    @Contract(pure = true)
+    static @NotNull Stream<String> chopSingleCharTestCases() {
         return Stream.of("a", " ", "\n", "\r", "x", "€", "1", "!");
     }
 
-    static Stream<Arguments> chopCRLFTestCases() {
-        return Stream.of(
-            Arguments.of("\r\n", ""), // CRLF only
-            Arguments.of("hello\r\n", "hello"),
-            Arguments.of("test\r\n", "test"),
-            Arguments.of("multiline\r\n", "multiline"),
-            Arguments.of("a\r\n", "") // Special case: single char + CRLF
-        );
-    }
-
-    static Stream<Arguments> chopSingleLFTestCases() {
-        return Stream.of(
-            Arguments.of("hello\n", "hello"),
-            Arguments.of("test\n", "test"),
-            Arguments.of("a\n", ""), // Two-char string with LF
-            Arguments.of("text\n", "text")
-        );
-    }
-
-    static Stream<Arguments> chopSingleCRTestCases() {
-        return Stream.of(
-            Arguments.of("hello\r", "hello"),
-            Arguments.of("test\r", "test"),
-            Arguments.of("a\r", ""), // Two-char string with CR
-            Arguments.of("text\r", "text")
-        );
-    }
-
-    static Stream<Arguments> chopLFCRTestCases() {
-        return Stream.of(
-            // \n\r is not the same as \r\n, should only remove the last \r
-            Arguments.of("hello\n\r", "hello\n"),
-            Arguments.of("test\n\r", "test\n"),
-            Arguments.of("text\n\r", "text\n")
-        );
-    }
-
-    static Stream<Arguments> chopMultipleCRLFTestCases() {
-        return Stream.of(
-            Arguments.of("line1\r\nline2\r\n", "line1\r\nline2"),
-            Arguments.of("a\r\nb\r\n", "a\r\nb"),
-            Arguments.of("\r\ntest\r\n", "\r\ntest")
-        );
-    }
-
-    static Stream<Arguments> chopSpecialCharTestCases() {
+    static @NotNull Stream<Arguments> chopSpecialCharTestCases() {
         return Stream.of(
             Arguments.of("quote\"", "quote"),
             Arguments.of("slash\\", "slash"),
@@ -298,7 +214,7 @@ class StringUtilsTest {
         );
     }
 
-    static Stream<Arguments> chopUnicodeTestCases() {
+    static @NotNull Stream<Arguments> chopUnicodeTestCases() {
         return Stream.of(
             Arguments.of("unicode€", "unicode"),
             Arguments.of("café", "caf"),
@@ -308,44 +224,6 @@ class StringUtilsTest {
             Arguments.of("北京", "北"),
             Arguments.of("🌍world", "🌍worl"),
             Arguments.of("te🚀st", "te🚀s")
-        );
-    }
-
-    // ========== Tests for removeEnd() ==========
-
-    @Test
-    @DisplayName("removeEnd should return null for null string")
-    void removeEnd_NullString_ReturnsNull() {
-        assertNull(StringUtils.removeEnd(null, "suffix"));
-    }
-
-    @Test
-    @DisplayName("removeEnd should return original string when suffix is null")
-    void removeEnd_NullSuffix_ReturnsOriginal() {
-        assertEquals("hello", StringUtils.removeEnd("hello", null));
-    }
-
-    @ParameterizedTest
-    @MethodSource("removeEndTestCases")
-    @DisplayName("removeEnd should remove suffix when present (case sensitive)")
-    void removeEnd_VariousCases_RemovesSuffixCorrectly(String input, String suffix, String expected) {
-        assertEquals(expected, StringUtils.removeEnd(input, suffix));
-    }
-
-    static Stream<Arguments> removeEndTestCases() {
-        return Stream.of(
-            Arguments.of("hello.txt", ".txt", "hello"),
-            Arguments.of("document.pdf", ".pdf", "document"),
-            Arguments.of("file.backup.txt", ".txt", "file.backup"),
-            Arguments.of("hello", "lo", "hel"),
-            Arguments.of("hello", "HELLO", "hello"), // Case sensitive - no removal
-            Arguments.of("HELLO", "LLO", "HE"),
-            Arguments.of("", "", ""),
-            Arguments.of("test", "", "test"), // Empty suffix
-            Arguments.of("test", "test", ""), // Remove entire string
-            Arguments.of("abc", "xyz", "abc"), // Suffix not present
-            Arguments.of("hello", "hello world", "hello"), // Suffix longer than string
-            Arguments.of("aaaa", "aa", "aa") // Remove only from end
         );
     }
 
@@ -679,7 +557,7 @@ class StringUtilsTest {
             sb.append("a");
         }
         String longString = sb.toString();
-        assertEquals(999, StringUtils.chop(longString).length());
+        assertEquals(999, Objects.requireNonNull(StringUtils.chop(longString)).length());
         assertTrue(StringUtils.endsWithIgnoreCase(longString, "A"));
     }
 

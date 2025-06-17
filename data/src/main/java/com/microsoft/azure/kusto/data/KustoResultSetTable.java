@@ -21,6 +21,7 @@ import java.sql.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
@@ -42,6 +43,15 @@ public class KustoResultSetTable {
     private static final String EMPTY_STRING = "";
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
+
+    private static final DateTimeFormatterBuilder  parseFormatterBuilder = new DateTimeFormatterBuilder()
+            .appendPattern("yyyy-MM-dd")
+            .optionalStart().appendLiteral('T').optionalEnd() // Optional 'T' between date and time
+            .appendPattern("HH:mm:ss") // Required time part
+            .optionalStart().appendPattern(".SSS").optionalEnd() // Optional milliseconds
+            .optionalStart().appendLiteral('Z').optionalEnd() // Optional 'Z' at the end for UTC time
+            .parseCaseInsensitive() // Ensure case-insensitive parsing for 'Z'
+            .parseLenient(); // Allow lenient parsing to handle malformed strings (worst case fallback)
 
     private final List<List<Object>> rows;
     private String tableName;
@@ -568,20 +578,14 @@ public class KustoResultSetTable {
                         return null;
                     }
                     String dateString = getString(columnIndex);
-                    
                     // First try the original FastDateFormat approach with strict patterns
                     try {
-                        DateTimeFormatter formatter;
-                        if (dateString.length() < 21) {
-                            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                                    .withZone(calendar.getTimeZone().toZoneId());
-                        } else {
-                            formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS")
-                                    .withZone(calendar.getTimeZone().toZoneId());
-                        }
+                         ZoneId zoneId = calendar.getTimeZone().toZoneId();
+                        DateTimeFormatter formatter = (zoneId != null)
+                                ? parseFormatterBuilder.toFormatter().withZone(zoneId)
+                                : parseFormatterBuilder.toFormatter();
                         // Remove trailing 'Z' if present, similar to original FastDateFormat implementation
-                        String parsableString = dateString.substring(0, Math.min(dateString.length() - (dateString.endsWith("Z") ? 1 : 0), 23));
-                        Instant instant = formatter.parse(parsableString, Instant::from);
+                        Instant instant = formatter.parse(dateString, Instant::from);
                         return new java.sql.Date(Date.from(instant).getTime());
                     } catch (Exception parseEx) {
                         // If strict parsing fails, try ISO parsing for properly formatted ISO strings
@@ -669,10 +673,6 @@ public class KustoResultSetTable {
 
     public int count() {
         return rows.size();
-    }
-
-    public boolean isNull(int columnIndex) {
-        return get(columnIndex) == null;
     }
 
     /**
