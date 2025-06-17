@@ -24,6 +24,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
 import java.util.*;
 
 import static com.microsoft.azure.kusto.data.KustoOperationResult.ONE_API_ERRORS_PROPERTY_NAME;
@@ -47,9 +49,14 @@ public class KustoResultSetTable {
     private static final DateTimeFormatterBuilder  parseFormatterBuilder = new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd")
             .optionalStart().appendLiteral('T').optionalEnd() // Optional 'T' between date and time
-            .appendPattern("HH:mm:ss") // Required time part
-            .optionalStart().appendPattern(".SSS").optionalEnd() // Optional milliseconds
-            .optionalStart().appendLiteral('Z').optionalEnd() // Optional 'Z' at the end for UTC time
+            .appendPattern("HH:mm:") // Required time part
+            .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+            .optionalStart()
+            .appendFraction(ChronoField.MILLI_OF_SECOND, 0, 9, true)
+            .optionalEnd() // Optional milliseconds
+            .optionalStart()
+            .appendLiteral('Z')
+            .optionalEnd() // Optional 'Z' at the end for UTC time
             .parseCaseInsensitive() // Ensure case-insensitive parsing for 'Z'
             .parseLenient(); // Allow lenient parsing to handle malformed strings (worst case fallback)
 
@@ -579,36 +586,13 @@ public class KustoResultSetTable {
                     }
                     String dateString = getString(columnIndex);
                     // First try the original FastDateFormat approach with strict patterns
-                    try {
-                         ZoneId zoneId = calendar.getTimeZone().toZoneId();
-                        DateTimeFormatter formatter = (zoneId != null)
-                                ? parseFormatterBuilder.toFormatter().withZone(zoneId)
-                                : parseFormatterBuilder.toFormatter();
-                        // Remove trailing 'Z' if present, similar to original FastDateFormat implementation
-                        Instant instant = formatter.parse(dateString, Instant::from);
-                        return new java.sql.Date(Date.from(instant).getTime());
-                    } catch (Exception parseEx) {
-                        // If strict parsing fails, try ISO parsing for properly formatted ISO strings
-                        if (dateString.endsWith("Z")) {
-                            try {
-                                Instant instant = Instant.parse(dateString);
-                                return new java.sql.Date(instant.toEpochMilli());
-                            } catch (Exception isoEx) {
-                                // If both approaches fail, try normalizing the malformed string and parsing again
-                                try {
-                                    String normalizedString = normalizeMalformedDateTime(dateString);
-                                    Instant instant = Instant.parse(normalizedString);
-                                    return new java.sql.Date(instant.toEpochMilli());
-                                } catch (Exception normalizeEx) {
-                                    // If all approaches fail, fall back to the original exception
-                                    throw parseEx;
-                                }
-                            }
-                        } else {
-                            // If it doesn't end with Z, re-throw the original parsing exception
-                            throw parseEx;
-                        }
-                    }
+                    ZoneId zoneId = calendar.getTimeZone().toZoneId();
+                    DateTimeFormatter formatter = (zoneId != null)
+                            ? parseFormatterBuilder.toFormatter().withZone(zoneId)
+                            : parseFormatterBuilder.toFormatter();
+                    // Remove trailing 'Z' if present, similar to original FastDateFormat implementation
+                    Instant instant = formatter.parse(dateString, Instant::from);
+                    return new Date(Date.from(instant).getTime());
                 } catch (Exception e) {
                     throw new SQLException("Error parsing Date", e);
                 }
