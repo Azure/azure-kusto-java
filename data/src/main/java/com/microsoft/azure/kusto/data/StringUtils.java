@@ -1,17 +1,18 @@
 package com.microsoft.azure.kusto.data;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 public class StringUtils {
 
     // Character constants for line endings (similar to Apache Commons Lang3 CharUtils)
-    private static final char LF = '\n';
-    private static final char CR = '\r';
     private static final String EMPTY = "";
 
     private StringUtils() {
         // Hide constructor for static class
     }
 
-    public static String getStringTail(String val, int minRuleLength) {
+    public static @NotNull String getStringTail(String val, int minRuleLength) {
         if (minRuleLength <= 0) {
             return "";
         }
@@ -35,13 +36,22 @@ public class StringUtils {
         }
     }
 
+    /**
+     * Checks if a CharSequence is empty (""), null or not.
+     * @param cs The CharSequence to check, may be null
+     * @return true if the CharSequence is empty or null
+     */
+
     public static boolean isEmpty(CharSequence cs) {
-        return cs == null || cs.length() == 0;
+        return isNull(cs) || cs.length() == 0;
+    }
+
+    private static boolean isNull(CharSequence cs) {
+        return cs == null;
     }
 
     /**
      * Checks if a CharSequence is empty (""), null or whitespace only.
-     *
      * Whitespace is defined by {@link Character#isWhitespace(char)}.
      *
      * @param cs the CharSequence to check, may be null
@@ -51,8 +61,7 @@ public class StringUtils {
         if (isEmpty(cs)) {
             return true;
         }
-        int strLen = cs.length();
-        for (int i = 0; i < strLen; i++) {
+        for (int i = 0; i < cs.length(); i++) {
             if (!Character.isWhitespace(cs.charAt(i))) {
                 return false;
             }
@@ -62,7 +71,6 @@ public class StringUtils {
 
     /**
      * Checks if a CharSequence is not empty (""), not null and not whitespace only.
-     *
      * Whitespace is defined by {@link Character#isWhitespace(char)}.
      *
      * @param cs the CharSequence to check, may be null
@@ -78,8 +86,8 @@ public class StringUtils {
      * @param str the string to chop
      * @return the string with the last character removed, or null if null string input
      */
-    public static String chop(final String str) {
-        if (str == null) {
+    public static @Nullable String chop(final String str) {
+        if (isNull(str)) {
             return null;
         }
         final int strLen = str.length();
@@ -92,63 +100,6 @@ public class StringUtils {
     }
 
     /**
-     * Removes the last character from a string, with special handling for line endings.
-     * If the string ends in {@code \r\n}, then remove both of them.
-     *
-     * @param str the string to chop
-     * @return the string with the last character removed, or null if null string input
-     */
-    public static String chopNewLine(final String str) {
-        if (str == null) {
-            return null;
-        }
-        final int strLen = str.length();
-        if (strLen == 0) {
-            return EMPTY;
-        }
-
-        // Special case: if string ends with \r\n, remove both characters
-        if (strLen >= 2 && str.charAt(strLen - 1) == LF && str.charAt(strLen - 2) == CR) {
-            if (strLen == 2) {
-                return EMPTY;
-            }
-            if (strLen == 3) {
-                // "a\r\n" -> "" (special case from test)
-                return EMPTY;
-            }
-            return str.substring(0, strLen - 2);
-        }
-
-        // For 2-character strings ending with \r or \n, return empty
-        if (strLen == 2) {
-            char last = str.charAt(1);
-            if (last == LF || last == CR) {
-                return EMPTY;
-            }
-        }
-
-        // Otherwise, delegate to basic chop method for standard single character removal
-        return chop(str);
-    }
-
-    /**
-     * Removes a substring from the end of a string (case sensitive).
-     *
-     * @param str    the string to process
-     * @param remove the substring to remove from the end
-     * @return the string with the suffix removed
-     */
-    public static String removeEnd(String str, String remove) {
-        if (str == null || isEmpty(remove)) {
-            return str;
-        }
-        if (str.endsWith(remove)) {
-            return str.substring(0, str.length() - remove.length());
-        }
-        return str;
-    }
-
-    /**
      * Removes a substring from the end of a string (case insensitive).
      *
      * @param str    the string to process
@@ -156,7 +107,7 @@ public class StringUtils {
      * @return the string with the suffix removed
      */
     public static String removeEndIgnoreCase(String str, String remove) {
-        if (str == null || isEmpty(remove)) {
+        if (isEmpty(str) || isEmpty(remove)) {
             return str;
         }
         if (endsWithIgnoreCase(str, remove)) {
@@ -173,7 +124,7 @@ public class StringUtils {
      * @return the string with the prefix prepended if it wasn't already there
      */
     public static String prependIfMissing(String str, String prefix) {
-        if (str == null || isEmpty(prefix)) {
+        if (isNull(str) || isNull(prefix)) {
             return str;
         }
         if (!str.startsWith(prefix)) {
@@ -190,8 +141,8 @@ public class StringUtils {
      * @param suffixes additional suffixes that are valid terminators
      * @return a new String if suffix was appended, the same string otherwise
      */
-    public static String appendIfMissing(String str, CharSequence suffix, CharSequence... suffixes) {
-        if (str == null || suffix == null) {
+    public static @Nullable String appendIfMissing(String str, CharSequence suffix, CharSequence... suffixes) {
+        if (isNull(str) || isNull(suffix)) {
             return str;
         }
 
@@ -199,7 +150,6 @@ public class StringUtils {
         if (str.endsWith(suffix.toString())) {
             return str;
         }
-
         // Check if string ends with any of the additional suffixes
         if (suffixes != null) {
             for (CharSequence s : suffixes) {
@@ -208,34 +158,25 @@ public class StringUtils {
                 }
             }
         }
-
         // String doesn't end with any of the suffixes, append the main suffix
-        return str + suffix.toString();
+        return str + suffix;
     }
 
     /**
-     * Checks if a string is empty (null or zero length).
      *
-     * @param str the string to check
-     * @return true if the string is null or has zero length
-     */
-    public static boolean isEmpty(String str) {
-        return str == null || str.isEmpty();
-    }
-
-    /**
      * Case-insensitive check if a CharSequence ends with a specified suffix.
-     *
      * nulls are handled without exceptions. Two null references are considered to be equal.
-     * The comparison is case insensitive.
+     * The comparison is case-insensitive.
      *
      * @param str the CharSequence to check, may be null
      * @param suffix the suffix to find, may be null
      * @return true if the CharSequence ends with the suffix, case-insensitive, or both null
      */
     public static boolean endsWithIgnoreCase(CharSequence str, CharSequence suffix) {
-        if (str == null || suffix == null) {
-            return str == null && suffix == null;
+        boolean areBothNull = isNull(str) && isNull(suffix);
+        boolean isEitherNull = isNull(str) || isNull(suffix);
+        if (isEitherNull) {
+            return areBothNull;
         }
         if (suffix.length() > str.length()) {
             return false;
@@ -249,7 +190,6 @@ public class StringUtils {
      * Unescapes Java string escape sequences in the input string.
      * This method provides custom implementation to replace Apache Commons Text
      * StringEscapeUtils.unescapeJava() method with exactly the same behavior.
-     *
      * Supported escape sequences:
      * <ul>
      * <li>\\ -&gt; \</li>
@@ -267,11 +207,8 @@ public class StringUtils {
      * @param str the string to unescape, may be null
      * @return the unescaped string, or null if input was null
      */
-    public static String unescapeJava(String str) {
-        if (str == null) {
-            return null;
-        }
-        if (str.length() == 0) {
+    public static @Nullable String unescapeJava(String str) {
+        if (isEmpty(str) || str.isEmpty()) {
             return str;
         }
 
@@ -381,7 +318,6 @@ public class StringUtils {
                     break;
             }
         }
-
         return result.toString();
     }
 }
