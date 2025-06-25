@@ -1,8 +1,7 @@
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,9 +9,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CslStringFormat extends CslFormat {
-    public static final Set<String> KUSTO_LITERAL_PREFIX = Stream.of("H", "h").collect(Collectors.toCollection(HashSet::new));
-    public static final Set<String> KUSTO_MULTILINE_QUOTE_DELIMITERS = Stream.of("```", "~~~").collect(Collectors.toCollection(HashSet::new));
-    public static final Set<String> KUSTO_ESCAPE_SEQUENCES = Stream.of("\\\"", "'", "@\\\"", "@'").collect(Collectors.toCollection(HashSet::new));
+    private static final Set<String> KUSTO_LITERAL_PREFIX = Stream.of("H", "h").collect(Collectors.toCollection(HashSet::new));
+    private static final Set<String> KUSTO_MULTILINE_QUOTE_DELIMITERS = Stream.of("```", "~~~").collect(Collectors.toCollection(HashSet::new));
+    private static final Set<String> KUSTO_ESCAPE_SEQUENCES = Stream.of("\\\"", "'", "@\\\"", "@'").collect(Collectors.toCollection(HashSet::new));
 
     private final String value;
 
@@ -73,7 +72,7 @@ public class CslStringFormat extends CslFormat {
                 if (escapedString.length() >= escapeSequenceLength && escapedString.endsWith(escapeSequence)) {
                     String unescapedString = escapedString.substring(escapeSequence.length(), escapedString.length() - escapeSequence.length());
                     if ("\\\"".equals(escapeSequence) || "'".equals(escapeSequence)) {
-                        return StringEscapeUtils.unescapeJava(unescapedString);
+                        return StringUtils.unescapeJava(unescapedString);
                     } else if (escapeSequence.startsWith("@")) {
                         String quote = escapeSequence.substring(1);
                         return escapedString.replaceAll(quote + quote, quote);

@@ -1,7 +1,5 @@
 package com.microsoft.azure.kusto.data;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -34,7 +32,7 @@ public class UriUtils {
         String clusterUri = String.format("%s://%s%s%s",
                 clusterUrlForParsing.getScheme(),
                 host,
-                clusterUrlForParsing.getPort() != -1 ? ":" + clusterUrlForParsing.getPort() : StringUtils.EMPTY,
+                clusterUrlForParsing.getPort() != -1 ? ":" + clusterUrlForParsing.getPort() : "",
                 path);
         return new URI(clusterUri).toString();
     }

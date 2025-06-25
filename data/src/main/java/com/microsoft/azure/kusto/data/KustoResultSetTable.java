@@ -8,8 +8,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.microsoft.azure.kusto.data.exceptions.JsonPropertyMissingException;
 import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -20,10 +18,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
 import java.sql.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.SignStyle;
+import java.time.temporal.ChronoField;
 import java.util.*;
 
 import static com.microsoft.azure.kusto.data.KustoOperationResult.ONE_API_ERRORS_PROPERTY_NAME;
@@ -43,6 +45,20 @@ public class KustoResultSetTable {
     private static final String EMPTY_STRING = "";
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
+
+    private static final DateTimeFormatterBuilder  parseFormatterBuilder = new DateTimeFormatterBuilder()
+            .appendPattern("yyyy-MM-dd")
+            .optionalStart().appendLiteral('T').optionalEnd() // Optional 'T' between date and time
+            .appendPattern("HH:mm:") // Required time part
+            .appendValue(ChronoField.SECOND_OF_MINUTE, 1, 2, SignStyle.NOT_NEGATIVE)
+            .optionalStart()
+            .appendFraction(ChronoField.MILLI_OF_SECOND, 0, 9, true)
+            .optionalEnd() // Optional milliseconds
+            .optionalStart()
+            .appendLiteral('Z')
+            .optionalEnd() // Optional 'Z' at the end for UTC time
+            .parseCaseInsensitive() // Ensure case-insensitive parsing for 'Z'
+            .parseLenient(); // Allow lenient parsing to handle malformed strings (worst case fallback)
 
     private final List<List<Object>> rows;
     private String tableName;
@@ -569,13 +585,14 @@ public class KustoResultSetTable {
                         return null;
                     }
                     String dateString = getString(columnIndex);
-                    FastDateFormat dateFormat;
-                    if (dateString.length() < 21) {
-                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss", calendar.getTimeZone());
-                    } else {
-                        dateFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS", calendar.getTimeZone());
-                    }
-                    return new java.sql.Date(dateFormat.parse(dateString.substring(0, Math.min(dateString.length() - 1, 23))).getTime());
+                    // First try the original FastDateFormat approach with strict patterns
+                    ZoneId zoneId = calendar.getTimeZone().toZoneId();
+                    DateTimeFormatter formatter = (zoneId != null)
+                            ? parseFormatterBuilder.toFormatter().withZone(zoneId)
+                            : parseFormatterBuilder.toFormatter();
+                    // Remove trailing 'Z' if present, similar to original FastDateFormat implementation
+                    Instant instant = formatter.parse(dateString, Instant::from);
+                    return new Date(Date.from(instant).getTime());
                 } catch (Exception e) {
                     throw new SQLException("Error parsing Date", e);
                 }
@@ -642,7 +659,4 @@ public class KustoResultSetTable {
         return rows.size();
     }
 
-    public boolean isNull(int columnIndex) {
-        return get(columnIndex) == null;
-    }
 }

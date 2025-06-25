@@ -5,8 +5,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.azure.core.credential.TokenCredential;
 import com.microsoft.azure.kusto.data.ClientDetails;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
+import com.microsoft.azure.kusto.data.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
@@ -125,54 +124,51 @@ public class ConnectionStringBuilder {
     }
 
     public String toString(boolean showSecrets) {
-        ArrayList<Pair<KnownKeywords, String>> entries = new ArrayList<>();
+        Map<KnownKeywords, String> entries = new LinkedHashMap<>();
 
         if (!StringUtils.isBlank(clusterUrl)) {
-            entries.add(Pair.of(KnownKeywords.DATA_SOURCE, clusterUrl));
+            entries.put(KnownKeywords.DATA_SOURCE, clusterUrl);
         }
 
         if (!StringUtils.isBlank(usernameHint)) {
-            entries.add(Pair.of(KnownKeywords.USER_ID, usernameHint));
+            entries.put(KnownKeywords.USER_ID, usernameHint);
         }
 
         if (!StringUtils.isBlank(applicationClientId)) {
-            entries.add(Pair.of(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId));
+            entries.put(KnownKeywords.APPLICATION_CLIENT_ID, applicationClientId);
         }
 
         if (!StringUtils.isBlank(applicationKey)) {
-            entries.add(Pair.of(KnownKeywords.APPLICATION_KEY, applicationKey));
+            entries.put(KnownKeywords.APPLICATION_KEY, applicationKey);
         }
 
         if (!StringUtils.isBlank(aadAuthorityId)) {
-            entries.add(Pair.of(KnownKeywords.AUTHORITY_ID, aadAuthorityId));
+            entries.put(KnownKeywords.AUTHORITY_ID, aadAuthorityId);
         }
 
         if (!StringUtils.isBlank(accessToken)) {
-            entries.add(Pair.of(KnownKeywords.USER_TOKEN, accessToken));
+            entries.put(KnownKeywords.USER_TOKEN, accessToken);
         }
 
         if (!StringUtils.isBlank(applicationNameForTracing)) {
-            entries.add(Pair.of(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing));
+            entries.put(KnownKeywords.APPLICATION_NAME_FOR_TRACING, applicationNameForTracing);
         }
 
         if (!StringUtils.isBlank(userNameForTracing)) {
-            entries.add(Pair.of(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing));
+            entries.put(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing);
         }
-
         StringBuilder sb = new StringBuilder();
+        entries.forEach((key,value) -> sb.append(key.getCanonicalName())
+                        .append("=")
+                        .append((!showSecrets && key.isSecret()) ? SECRET_REPLACEMENT : value)
+                        .append(";"));
 
-        for (int i = 0; i < entries.size(); i++) {
-            Pair<KnownKeywords, String> entry = entries.get(i);
-            sb.append(entry.getLeft().getCanonicalName())
-                    .append("=")
-                    .append((!showSecrets && entry.getLeft().isSecret()) ? SECRET_REPLACEMENT : entry.getRight());
-
-            if (i < entries.size() - 1) {
-                sb.append(";");
-            }
+        // Remove trailing semicolon if present
+        String result = sb.toString();
+        if (result.endsWith(";")) {
+            result = result.substring(0, result.length() - 1);
         }
-
-        return sb.toString();
+        return result;
     }
 
     @Override
@@ -364,6 +360,7 @@ public class ConnectionStringBuilder {
      * Sets the client version for tracing.
      * This appends the given version to the Kusto Java SDK version.
      */
+    @Deprecated
     public void setClientVersionForTracing(String clientVersionForTracing) {
         this.appendedClientVersionForTracing = clientVersionForTracing;
     }
@@ -629,12 +626,12 @@ public class ConnectionStringBuilder {
      * @param appName          The app hosting the connector, or null to use the current process name.
      * @param appVersion       The version of the app hosting the connector, or null to use "[none]".
      * @param sendUser         True if the user should be sent to Kusto, otherwise "[none]" will be sent.
-     * @param overrideUser     The user to send to Kusto, or null zvto use the current user.
+     * @param overrideUser     The user to send to Kusto, or null to use the current user.
      * @param additionalFields Additional fields to trace.
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
     public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser,
-            @Nullable String overrideUser, Pair<String, String>... additionalFields) {
+                                    @Nullable String overrideUser, Map<String, String> additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();

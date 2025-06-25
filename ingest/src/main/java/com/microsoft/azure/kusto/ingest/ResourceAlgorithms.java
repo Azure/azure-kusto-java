@@ -12,7 +12,6 @@ import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
 import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
