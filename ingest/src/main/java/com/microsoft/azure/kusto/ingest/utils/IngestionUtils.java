@@ -3,7 +3,6 @@ package com.microsoft.azure.kusto.ingest.utils;
 import com.azure.core.implementation.ByteBufferCollector;
 import com.azure.core.util.FluxUtil;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
-import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -102,13 +101,51 @@ public class IngestionUtils {
         return null;
     }
 
+    public static Mono<ByteArrayInputStream> compressStream1(InputStream uncompressedStream, boolean leaveOpen) {
+        log.debug("Compressing the stream.");
+        EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
+        Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
+
+        return byteBuffers
+                .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
+                .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
+                    encoder.writeOutbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for compression
+
+                    ByteBuf compressedByteBuf = encoder.readOutbound();
+                    if (compressedByteBuf == null) {
+                        return byteBufferCollector;
+                    }
+
+                    if (!encoder.outboundMessages().isEmpty()) { // TODO: remove this when we are sure that only one message exists in the channel
+                        throw new IllegalStateException("Expected exactly one message in the channel.");
+                    }
+
+                    byteBufferCollector.write(compressedByteBuf.nioBuffer());
+                    compressedByteBuf.release();
+
+                    return byteBufferCollector;
+                })
+                .map(ByteBufferCollector::toByteArray)
+                .doFinally(ignore -> {
+                    encoder.finishAndReleaseAll();
+                    if (!leaveOpen) {
+                        try {
+                            uncompressedStream.close();
+                        } catch (IOException e) {
+                            String msg = ExceptionUtils.getMessageEx(e);
+                            log.error(msg, e);
+                            throw new IngestionClientException(msg, e);
+                        }
+                    }
+                }).map(ByteArrayInputStream::new);
+    }
+
     public static Mono<byte[]> toCompressedByteArray(InputStream uncompressedStream, boolean leaveOpen) {
         return Mono.fromCallable(() -> {
             log.debug("Compressing the stream.");
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
             byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
-            Thread.sleep(100000);
             int read = uncompressedStream.read(b);
             if (read == -1) {
                 String message = "Empty stream.";

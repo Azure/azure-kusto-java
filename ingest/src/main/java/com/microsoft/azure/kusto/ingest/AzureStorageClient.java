@@ -67,9 +67,9 @@ public class AzureStorageClient {
         return Mono.defer(() -> {
             try {
                 InputStream inputStream = Files.newInputStream(sourceFile.toPath());
-                return IngestionUtils.toCompressedByteArray(inputStream, false)
+                return IngestionUtils.compressStream1(inputStream, false)
                         .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient()
-                                .upload(BinaryData.fromBytes(bytes), true));
+                                .upload(BinaryData.fromStream(bytes, (long) bytes.available()), true));
             } catch (IOException e) {
                 throw Exceptions.propagate(e);
             }
@@ -113,7 +113,7 @@ public class AzureStorageClient {
                     size.add(bytes.length);
                     return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true);
                 })
-                .map(x -> size.getValue());
+                .thenReturn(size.getValue());
     }
 
     // Returns original stream size
