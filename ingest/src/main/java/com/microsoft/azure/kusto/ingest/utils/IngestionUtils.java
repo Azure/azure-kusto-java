@@ -105,24 +105,25 @@ public class IngestionUtils {
         log.debug("Compressing the stream.");
         EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
         Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
-
+    
         return byteBuffers
                 .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
                 .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
-                    encoder.writeOutbound(Unpooled.wrappedBuffer(byteBuffer)); // Write chunk to channel for compression
-
-                    ByteBuf compressedByteBuf = encoder.readOutbound();
-                    if (compressedByteBuf == null) {
-                        return byteBufferCollector;
+                    encoder.writeAndFlush(Unpooled.wrappedBuffer(byteBuffer));
+                    ByteBuf compressedByteBuf;
+                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
+                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
+                        compressedByteBuf.release();
                     }
-
-                    if (!encoder.outboundMessages().isEmpty()) { // TODO: remove this when we are sure that only one message exists in the channel
-                        throw new IllegalStateException("Expected exactly one message in the channel.");
+                    return byteBufferCollector;
+                })
+                .map(byteBufferCollector -> {
+                    encoder.finish();
+                    ByteBuf compressedByteBuf;
+                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
+                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
+                        compressedByteBuf.release();
                     }
-
-                    byteBufferCollector.write(compressedByteBuf.nioBuffer());
-                    compressedByteBuf.release();
-
                     return byteBufferCollector;
                 })
                 .map(ByteBufferCollector::toByteArray)
