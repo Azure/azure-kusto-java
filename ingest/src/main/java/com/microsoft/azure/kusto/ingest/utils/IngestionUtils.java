@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.nio.ByteBuffer;
-import java.util.zip.GZIPOutputStream;
 
 public class IngestionUtils {
     private IngestionUtils() {
@@ -39,7 +37,6 @@ public class IngestionUtils {
     }
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
 
     @NotNull
     public static StreamSourceInfo fileToStream(FileSourceInfo fileSourceInfo, boolean resettable)

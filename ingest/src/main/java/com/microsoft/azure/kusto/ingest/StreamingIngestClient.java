@@ -43,7 +43,6 @@ import java.util.Objects;
 public class StreamingIngestClient extends IngestClientBase implements IngestClient {
 
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int STREAM_COMPRESS_BUFFER_SIZE = 16 * 1024;
     private static final String CLASS_NAME = StreamingIngestClient.class.getSimpleName();
     private final StreamingClient streamingClient;
     String connectionDataSource;
@@ -108,7 +107,6 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         blobSourceInfo.validate();
         ingestionProperties.validate();
 
-        BlobAsyncClient blobAsyncClient;
         try {
             return ingestFromBlobAsync(blobSourceInfo, ingestionProperties, null)
                     .onErrorMap(BlobStorageException.class, e -> {
