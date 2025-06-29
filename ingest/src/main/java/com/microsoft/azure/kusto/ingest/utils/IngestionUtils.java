@@ -1,6 +1,7 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
 import com.azure.core.implementation.ByteBufferCollector;
+import com.azure.core.util.BinaryData;
 import com.azure.core.util.FluxUtil;
 import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
@@ -101,32 +102,43 @@ public class IngestionUtils {
         return null;
     }
 
-    public static Mono<ByteArrayInputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
+    public static Mono<InputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
+        Flux<ByteBuffer> compressedFlux = compressStreamToFlux(uncompressedStream, leaveOpen);
+
+        return BinaryData.fromFlux(compressedFlux).map(BinaryData::toStream);
+    }
+
+    public static @NotNull Flux<ByteBuffer> compressStreamToFlux(InputStream uncompressedStream, boolean leaveOpen) {
         EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
         Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
 
-        return byteBuffers
+        Flux<ByteBuffer> compressedFlux = byteBuffers
                 .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
-                .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
+                .flatMap(byteBuffer -> {
                     encoder.writeAndFlush(Unpooled.wrappedBuffer(byteBuffer));
-                    ByteBuf compressedByteBuf;
-                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
-                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
-                        compressedByteBuf.release();
-                    }
-                    return byteBufferCollector;
+                    return Flux.<ByteBuffer>generate(sink -> {
+                        ByteBuf buf = encoder.readOutbound();
+                        if (buf != null) {
+                            sink.next(buf.nioBuffer());
+                            buf.release();
+                        } else {
+                            sink.complete();
+                        }
+                    });
                 })
-                .map(byteBufferCollector -> {
+                .concatWith(Flux.defer(() -> {
                     encoder.finish();
-                    ByteBuf compressedByteBuf;
-                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
-                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
-                        compressedByteBuf.release();
-                    }
-                    return byteBufferCollector;
-                })
-                .map(ByteBufferCollector::toByteArray)
-                .doFinally(ignore -> {
+                    return Flux.generate(sink -> {
+                        ByteBuf buf = encoder.readOutbound();
+                        if (buf != null) {
+                            sink.next(buf.nioBuffer());
+                            buf.release();
+                        } else {
+                            sink.complete();
+                        }
+                    });
+                }))
+                .doFinally(signalType -> {
                     encoder.finishAndReleaseAll();
                     if (!leaveOpen) {
                         try {
@@ -137,15 +149,17 @@ public class IngestionUtils {
                             throw new IngestionClientException(msg, e);
                         }
                     }
-                }).map(ByteArrayInputStream::new);
+                });
+        return compressedFlux;
     }
 
+
     /**
-     * Converts an InputStream to a Mono of byte array.
-     *
-     * @param inputStream the InputStream to convert
-     * @return a Mono containing the byte array read from the InputStream
-     */
+         * Converts an InputStream to a Mono of byte array.
+         *
+         * @param inputStream the InputStream to convert
+         * @return a Mono containing the byte array read from the InputStream
+         */
     public static Mono<byte[]> toByteArray(InputStream inputStream) {
         return Mono.create(sink -> {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
