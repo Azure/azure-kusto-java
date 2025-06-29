@@ -35,6 +35,8 @@ public interface StreamingClient {
     Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat,
             String mappingName, boolean leaveOpen);
+    
+    // TODO - this is ugly, just for ease of testing
     public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, BinaryData data, boolean isStreamSource, ClientRequestProperties properties,
                                                                   String streamFormat, String mappingName, boolean leaveOpen);
     /**

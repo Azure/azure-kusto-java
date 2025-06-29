@@ -123,7 +123,8 @@ public class AzureStorageClient {
         IngestionUtils.IntegerHolder size = new IngestionUtils.IntegerHolder();
         return BinaryData.fromFlux(IngestionUtils.compressStreamToFlux(inputStream, false))
                 .flatMap(bytes -> {
-                    size.add(Math.toIntExact(bytes.getLength()));
+                    // TODO - we can't get the size easily, since it's chunked. 
+                    size.add(1);
                     return blobAsyncClient.getBlockBlobAsyncClient().upload(bytes, true);
                 })
                 .map(x -> size.getValue());
