@@ -251,6 +251,15 @@ class ClientImpl extends BaseClient {
     }
 
     @Override
+    public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, BinaryData data, boolean isStreamSource, ClientRequestProperties properties,
+                                                                  String streamFormat, String mappingName, boolean leaveOpen) {
+        return Mono.defer(() -> {
+            String clusterEndpoint = buildClusterEndpoint(database, table, streamFormat, mappingName);
+            return executeStreamingIngest(clusterEndpoint, data, isStreamSource, properties, leaveOpen);
+        });
+    }
+
+    @Override
     public KustoOperationResult executeStreamingIngestFromBlob(String database, String table, String blobUrl, ClientRequestProperties properties,
             String dataFormat, String mappingName) {
         return executeStreamingIngestFromBlobAsync(database, table, blobUrl, properties, dataFormat, mappingName).block();
@@ -274,8 +283,21 @@ class ClientImpl extends BaseClient {
     }
 
     private Mono<KustoOperationResult> executeStreamingIngest(String clusterEndpoint, InputStream stream, String blobUrl,
-            ClientRequestProperties properties, boolean leaveOpen) {
+                                                              ClientRequestProperties properties, boolean leaveOpen) {
+        BinaryData data;
         boolean isStreamSource = stream != null;
+        if (isStreamSource) {
+            // We use UncloseableStream to prevent HttpClient from closing the stream
+            data = BinaryData.fromStream(new UncloseableStream(stream));
+        } else {
+            data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
+        }
+        
+        return executeStreamingIngest(clusterEndpoint, data, isStreamSource, properties, leaveOpen);
+    }
+
+    private Mono<KustoOperationResult> executeStreamingIngest(String clusterEndpoint, BinaryData data, boolean isStreamSource,
+                                                              ClientRequestProperties properties, boolean leaveOpen) {
         Map<String, String> headers = new HashMap<>();
         String contentEncoding = isStreamSource ? "gzip" : null;
         String contentType = isStreamSource ? "application/octet-stream" : "application/json";
@@ -289,14 +311,6 @@ class ClientImpl extends BaseClient {
         while (iterator.hasNext()) {
             Map.Entry<String, Object> pair = iterator.next();
             headers.put(pair.getKey(), pair.getValue().toString());
-        }
-
-        BinaryData data;
-        if (isStreamSource) {
-            // We use UncloseableStream to prevent HttpClient from closing the stream
-            data = BinaryData.fromStream(new UncloseableStream(stream));
-        } else {
-            data = BinaryData.fromString(new IngestionSourceStorage(blobUrl).toString());
         }
 
         HttpTracing tracing = HttpTracing
@@ -324,7 +338,7 @@ class ClientImpl extends BaseClient {
                         .doFinally(signalType -> {
                             if (isStreamSource && !leaveOpen) {
                                 try {
-                                    stream.close();
+                                    data.toStream().close();
                                 } catch (IOException e) {
                                     LOGGER.debug("executeStreamingIngest: Error while closing the stream.", e);
                                 }

@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.microsoft.azure.kusto.data.ClientFactory;
@@ -35,6 +36,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -170,9 +172,11 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
 
-        return (IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)
-                ? IngestionUtils.compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
-                : Mono.just(streamSourceInfo.getStream()))
+        Mono<BinaryData> data = IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)
+                ? BinaryData.fromFlux(IngestionUtils.compressStreamToFlux(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen()))
+                : Mono.just(BinaryData.fromStream(streamSourceInfo.getStream()));
+        
+        return data
                         .subscribeOn(Schedulers.boundedElastic())
                         .onErrorMap(IOException.class, e -> {
                             String msg = ExceptionUtils.getMessageEx(e);
@@ -191,6 +195,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                                     ingestionProperties.getDatabaseName(),
                                     ingestionProperties.getTableName(),
                                     stream,
+                                    true,
                                     clientRequestProperties,
                                     dataFormat.getKustoValue(),
                                     ingestionProperties.getIngestionMapping().getIngestionMappingReference(),

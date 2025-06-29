@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.data;
 
 import java.io.InputStream;
 
+import com.azure.core.util.BinaryData;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 
@@ -34,7 +35,8 @@ public interface StreamingClient {
     Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, InputStream stream, ClientRequestProperties properties,
             String streamFormat,
             String mappingName, boolean leaveOpen);
-
+    public Mono<KustoOperationResult> executeStreamingIngestAsync(String database, String table, BinaryData data, boolean isStreamSource, ClientRequestProperties properties,
+                                                                  String streamFormat, String mappingName, boolean leaveOpen);
     /**
      * <p>Query directly from Kusto database using streaming output.</p>
      * This method queries the Kusto database into a stream, using streaming query endpoint,
