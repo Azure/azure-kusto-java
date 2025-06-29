@@ -101,11 +101,10 @@ public class IngestionUtils {
         return null;
     }
 
-    public static Mono<ByteArrayInputStream> compressStream1(InputStream uncompressedStream, boolean leaveOpen) {
-        log.debug("Compressing the stream.");
+    public static Mono<ByteArrayInputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
         EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
         Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
-    
+
         return byteBuffers
                 .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
                 .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
@@ -141,37 +140,12 @@ public class IngestionUtils {
                 }).map(ByteArrayInputStream::new);
     }
 
-    public static Mono<byte[]> toCompressedByteArray(InputStream uncompressedStream, boolean leaveOpen) {
-        return Mono.fromCallable(() -> {
-            log.debug("Compressing the stream.");
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-            byte[] b = new byte[STREAM_COMPRESS_BUFFER_SIZE];
-            int read = uncompressedStream.read(b);
-            if (read == -1) {
-                String message = "Empty stream.";
-                log.error(message);
-                throw new IngestionClientException(message);
-            }
-            do {
-                gzipOutputStream.write(b, 0, read);
-            } while ((read = uncompressedStream.read(b)) != -1);
-            gzipOutputStream.flush();
-            gzipOutputStream.close();
-            byte[] content = byteArrayOutputStream.toByteArray();
-            byteArrayOutputStream.close();
-            if (!leaveOpen) {
-                uncompressedStream.close();
-            }
-            return content;
-        }).subscribeOn(Schedulers.boundedElastic());
-    }
-
-    public static Mono<InputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
-        return toCompressedByteArray(uncompressedStream, leaveOpen)
-                .map(ByteArrayInputStream::new);
-    }
-
+    /**
+     * Converts an InputStream to a Mono of byte array.
+     *
+     * @param inputStream the InputStream to convert
+     * @return a Mono containing the byte array read from the InputStream
+     */
     public static Mono<byte[]> toByteArray(InputStream inputStream) {
         return Mono.create(sink -> {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();

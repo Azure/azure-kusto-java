@@ -76,33 +76,33 @@ class ClientImpl extends BaseClient {
     }
 
     @Override
-    public KustoOperationResult executeQuery(String command) {
-        return executeQuery(defaultDatabaseName, command);
+    public KustoOperationResult executeQuery(String query) {
+        return executeQuery(defaultDatabaseName, query);
     }
 
     @Override
-    public KustoOperationResult executeQuery(String database, String command) {
-        return executeQuery(database, command, null);
+    public KustoOperationResult executeQuery(String database, String query) {
+        return executeQuery(database, query, null);
     }
 
     @Override
-    public KustoOperationResult executeQuery(String database, String command, ClientRequestProperties properties) {
-        return executeQueryAsync(database, command, properties).block();
+    public KustoOperationResult executeQuery(String database, String query, ClientRequestProperties properties) {
+        return executeQueryAsync(database, query, properties).block();
     }
 
     @Override
-    public Mono<KustoOperationResult> executeQueryAsync(String command) {
-        return executeQueryAsync(defaultDatabaseName, command);
+    public Mono<KustoOperationResult> executeQueryAsync(String query) {
+        return executeQueryAsync(defaultDatabaseName, query);
     }
 
     @Override
-    public Mono<KustoOperationResult> executeQueryAsync(String database, String command) {
-        return executeQueryAsync(database, command, null);
+    public Mono<KustoOperationResult> executeQueryAsync(String database, String query) {
+        return executeQueryAsync(database, query, null);
     }
 
     @Override
-    public Mono<KustoOperationResult> executeQueryAsync(String database, String command, ClientRequestProperties properties) {
-        return executeAsync(database, command, properties, CommandType.QUERY);
+    public Mono<KustoOperationResult> executeQueryAsync(String database, String query, ClientRequestProperties properties) {
+        return executeAsync(database, query, properties, CommandType.QUERY);
     }
 
     @Override

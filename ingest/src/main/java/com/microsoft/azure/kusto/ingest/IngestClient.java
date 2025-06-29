@@ -17,8 +17,8 @@ import java.io.Closeable;
 public interface IngestClient extends Closeable {
 
     /**
-     * <p>Ingest data from a file into Kusto database.</p>
-     * This method ingests the data from a given file, described in {@code fileSourceInfo}, into Kusto database,
+     * <p>Ingest data from a file into Kusto table.</p>
+     * This method ingests the data from a given file, described in {@code fileSourceInfo}, into Kusto table,
      * according to the properties mentioned in {@code ingestionProperties}
      *
      * @param fileSourceInfo      The specific SourceInfo to be ingested
@@ -32,11 +32,24 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromFile(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    /**
+     * <p>Ingest data from a file into Kusto table.</p>
+     * This method ingests the data from a given file, described in {@code fileSourceInfo}, into Kusto table,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param fileSourceInfo      The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see FileSourceInfo
+     * @see IngestionProperties
+     */
     Mono<IngestionResult> ingestFromFileAsync(FileSourceInfo fileSourceInfo, IngestionProperties ingestionProperties);
 
     /**
-     * <p>Ingest data from a blob storage into Kusto database.</p>
-     * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto database,
+     * <p>Ingest data from a blob storage into Kusto table.</p>
+     * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto table,
      * according to the properties mentioned in {@code ingestionProperties}
      *
      * @param blobSourceInfo      The specific SourceInfo to be ingested
@@ -50,11 +63,24 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromBlob(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    /**
+     * <p>Ingest data from a blob storage into Kusto table.</p>
+     * This method ingests the data from a given blob, described in {@code blobSourceInfo}, into Kusto table,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param blobSourceInfo      The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see BlobSourceInfo
+     * @see IngestionProperties
+     */
     Mono<IngestionResult> ingestFromBlobAsync(BlobSourceInfo blobSourceInfo, IngestionProperties ingestionProperties);
 
     /**
-     * <p>Ingest data from a Result Set into Kusto database.</p>
-     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto database,
+     * <p>Ingest data from a Result Set into Kusto table.</p>
+     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto table,
      * according to the properties mentioned in {@code ingestionProperties}
      * <p>
      * Ingesting from ResultSet is equivalent to ingesting from a csv stream.
@@ -71,11 +97,27 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromResultSet(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    /**
+     * <p>Ingest data from a Result Set into Kusto table.</p>
+     * This method ingests the data from a given Result Set, described in {@code resultSetSourceInfo}, into Kusto table,
+     * according to the properties mentioned in {@code ingestionProperties}
+     * <p>
+     * Ingesting from ResultSet is equivalent to ingesting from a csv stream.
+     * The DataFormat should be empty or set to "csv", and the mapping, should it be provided, should be csv mapping.
+     *
+     * @param resultSetSourceInfo The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see ResultSetSourceInfo
+     * @see IngestionProperties
+     */
     Mono<IngestionResult> ingestFromResultSetAsync(ResultSetSourceInfo resultSetSourceInfo, IngestionProperties ingestionProperties);
 
     /**
-     * <p>Ingest data from an input stream, into Kusto database.</p>
-     * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto database,
+     * <p>Ingest data from an input stream, into Kusto table.</p>
+     * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto table,
      * according to the properties mentioned in {@code ingestionProperties}
      *
      * @param streamSourceInfo    The specific SourceInfo to be ingested
@@ -89,5 +131,18 @@ public interface IngestClient extends Closeable {
     IngestionResult ingestFromStream(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties)
             throws IngestionClientException, IngestionServiceException;
 
+    /**
+     * <p>Ingest data from an input stream, into Kusto table.</p>
+     * This method ingests the data from a given input stream, described in {@code streamSourceInfo}, into Kusto table,
+     * according to the properties mentioned in {@code ingestionProperties}
+     *
+     * @param streamSourceInfo    The specific SourceInfo to be ingested
+     * @param ingestionProperties Settings used to customize the ingestion operation
+     * @return {@link IngestionResult} object including the ingestion result
+     * @throws IngestionClientException  An exception originating from a client activity
+     * @throws IngestionServiceException An exception returned from the service
+     * @see StreamSourceInfo
+     * @see IngestionProperties
+     */
     Mono<IngestionResult> ingestFromStreamAsync(StreamSourceInfo streamSourceInfo, IngestionProperties ingestionProperties);
 }

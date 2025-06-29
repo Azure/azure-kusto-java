@@ -171,7 +171,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
         IngestionProperties.DataFormat dataFormat = ingestionProperties.getDataFormat();
 
         return (IngestClientBase.shouldCompress(streamSourceInfo.getCompressionType(), dataFormat)
-                ? IngestionUtils.compressStream1(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
+                ? IngestionUtils.compressStream(streamSourceInfo.getStream(), streamSourceInfo.isLeaveOpen())
                 : Mono.just(streamSourceInfo.getStream()))
                         .subscribeOn(Schedulers.boundedElastic())
                         .onErrorMap(IOException.class, e -> {
