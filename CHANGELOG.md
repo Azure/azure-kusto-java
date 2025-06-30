@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
   enabling non-blocking operations.
 
+
+## [6.0.3] - 2025-25-06
+### Fixed
+- Fixed `ManagedIdentityTokenProvider`
+
+
 ## [6.0.2] - 2025-24-04
 
 ### Fixed

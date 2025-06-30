@@ -32,7 +32,7 @@
     </developers>
 
     <properties>
-        <revision>6.0.2</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>6.0.3</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <azure-bom-version>1.2.28</azure-bom-version>
