@@ -1,17 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.2">
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.tearDown_on_shutdown">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
-      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java-funk-client\ingest\target\kusto-ingest-6.0.1-jar-with-dependencies.jar</stringProp>
+      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java\ingest\target\kusto-ingest-async-6.0.2-jar-with-dependencies.jar</stringProp>
     </TestPlan>
     <hashTree>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments">
           <elementProp name="appKey" elementType="Argument">
             <stringProp name="Argument.name">appKey</stringProp>
@@ -52,22 +49,19 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Query" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Query">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQuery,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQuery,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQuery,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQuery,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query">
           <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
@@ -100,14 +94,12 @@ ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
 clientRequestProperties.setClientRequestId(cid);
 
 try {
-	results = client.execute(databaseName, query, clientRequestProperties);
+	results = client.executeQuery(databaseName, query, clientRequestProperties);
 } catch (Throwable e){
 	stopWatch.stop();
 	long timeConvertedToJavaObj = stopWatch.getTime();
      log.error(&quot;Failed &quot; + testName + &quot; cid: &quot; + cid + &quot;. after: &quot; + timeConvertedToJavaObj + &quot; ms ,error: &quot; + e.getMessage(), e);
   	throw new RuntimeException(e);
-}finally{
-	client.close();
 }
 
 
@@ -158,18 +150,15 @@ log.warn(&quot;Finished simple query successfully after: &quot; + timeConvertedT
         <hashTree/>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming-Query" enabled="false">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQueryStreaming,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQueryStreaming,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQueryStreaming,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQueryStreaming,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query - streaming" enabled="true">
@@ -315,21 +304,18 @@ try{
         <hashTree/>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Upload test" enabled="false">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Ingest-test-upload" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Ingest-test-upload" enabled="false">
           <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
@@ -396,7 +382,7 @@ String tableName = &quot;UploadTest&quot; + new SimpleDateFormat(&quot;yyyy_MM_d
 StopWatch stopWatch = null;
 try {
   String tableColumns = &quot;(colA: string, colB: string)&quot;;
-  cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
+  cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
 
   stopWatch = new StopWatch();
   stopWatch.start();
@@ -417,7 +403,7 @@ try {
   log.warn(&quot;Finished queuing upload ingest successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot;);
 
   try{
-  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
   } catch (Exception e) {
   }
 } catch (Throwable e) {
@@ -430,16 +416,15 @@ try {
 	}
 
 	try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
 	  } catch (Exception e) {
-
+		log.error(&quot;failed to drop table: &quot; + tableName, e);
 	  }
 	ResponseMessage =&quot;Failed dropping table&quot;;
 	ResponseCode = 500;
 	IsSuccess = false;
 }</stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
           <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
@@ -482,21 +467,18 @@ try {
         </hashTree>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Queue test - Table report " enabled="false">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(queueThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(queueRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(queueThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(queueRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test ingest with table report" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test ingest with table report" enabled="false">
           <stringProp name="TestPlan.comments">Testing the table report part - so using a small blob for that</stringProp>
           <stringProp name="BeanShellSampler.query">import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -544,7 +526,7 @@ int size = 16;
 try{
 try {
 	String tableColumns = &quot;(colA: string)&quot;;
-	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
+	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
 	QueuedIngestClient client = IngestClientFactory.createClient(dmCsb, null);
 	stopWatch = new StopWatch();
      stopWatch.start();
@@ -587,7 +569,7 @@ try {
 //	}
 //	log.info(&quot;Successful ingstion&quot; + testName + &quot;\n Status:&quot;+resultAsJson);
 //	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
 //	  } catch (Exception e) {
 //
 //	  }
@@ -601,7 +583,7 @@ try {
 	}
 
 	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
       }
 	log.info(&quot;table : &quot; + tableName +&quot; dropped&quot;);
@@ -615,10 +597,9 @@ try {
 }
 </stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree/>
-        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+        <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>
@@ -658,21 +639,18 @@ try {
         <hashTree/>
       </hashTree>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming ingestion" enabled="false">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
-        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test streaming ingestion" enabled="true">
+        <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test streaming ingestion">
           <stringProp name="TestPlan.comments">Testing the table report part - so using a small blob for that</stringProp>
           <stringProp name="BeanShellSampler.query">
 
@@ -731,8 +709,8 @@ String tableName = &quot;StreamingIngest&quot; + new SimpleDateFormat(&quot;yyyy
 StopWatch stopWatch = null;
 try {
 	String tableColumns = &quot;(colA: string, colB: string)&quot;;
-	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
-     cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;);
+	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
+     cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;, null);
 
 	 stopWatch = new StopWatch();
      stopWatch.start();
@@ -760,7 +738,7 @@ try {
 	log.warn(&quot;Finished streaming ingest successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot; + &quot;\n Status:&quot;+resultAsJson);
 
 	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
       }
 } catch (Throwable e) {
@@ -774,8 +752,10 @@ try {
 
 
  	try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
+      		log.error(&quot;failed to drop table: &quot; + tableName, e);	
+      
       }
 	ResponseMessage =&quot;Failed dropping table&quot;;
 	ResponseCode = 500;
@@ -784,7 +764,6 @@ try {
 
 </stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
           <ResultCollector guiclass="TableVisualizer" testclass="ResultCollector" testname="View Results in Table" enabled="true">
