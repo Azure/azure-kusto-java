@@ -113,7 +113,7 @@ public class AzureStorageClient {
                     size.add(bytes.length);
                     return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true);
                 })
-                .thenReturn(size.getValue());
+                .map(x -> size.getValue());
     }
 
     // Returns original stream size

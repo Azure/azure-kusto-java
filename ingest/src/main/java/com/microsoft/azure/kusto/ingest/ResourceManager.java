@@ -144,7 +144,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                     return null;
                 }, "ResourceManager.refreshIngestionResource");
             } catch (Exception e) {
-                log.error("Error in refreshIngestionResources: " + e.getMessage(), e); // onerrorresume
+                log.error("Error in refreshIngestionResources: " + e.getMessage(), e);
                 scheduleRefreshIngestionResourcesTask(refreshTimeOnFailure);
             }
         }
