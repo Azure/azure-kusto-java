@@ -207,7 +207,7 @@ Runnable runnable = new Runnable() {
            InputStream is = null;
            BufferedReader br = null;
 
-           String cid = &quot;KJC.executeStreamingTest;&quot;;
+           String cid = &quot;KJC.executeStreamingTest;&quot; + UUID.randomUUID();
            ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
            clientRequestProperties.setClientRequestId(cid);
 
@@ -349,6 +349,11 @@ import java.time.Instant;
 import java.util.Calendar;
 import java.util.UUID;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+
+
 String testName = &quot;Upload ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 String databaseName = bsh.args[5];
@@ -396,6 +401,12 @@ StopWatch stopWatch = null;
 try {
   String tableColumns = &quot;(colA: string, colB: string)&quot;;
   cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
+
+  LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of(&quot;UTC&quot;)).plusDays(1);
+         String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+         String autoDeletePolicy = &quot;@&apos;{ \&quot;ExpiryDate\&quot; : \&quot;&quot; + expiryDate + &quot;\&quot;, \&quot;DeleteIfNotEmpty\&quot;: true }&apos;&quot;;
+         cslClient.executeToJsonResult(databaseName, String.format(&quot;.alter table %s policy auto_delete %s&quot; ,new String[]{tableName, autoDeletePolicy}), null);
+
   stopWatch = new StopWatch();
   stopWatch.start();
   QueuedIngestClient client = IngestClientFactory.createClient(dmCsb, properties);
@@ -695,18 +706,23 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.List;
-import org.apache.commons.lang3.time.StopWatch;
 import java.util.UUID;
+
+import org.apache.commons.lang3.time.StopWatch;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 
 String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 
 String databaseName = bsh.args[4];
 
-ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(
-      bsh.args[2],
-      &quot;eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Il9qTndqZVNudlRUSzhYRWRyNVFVUGtCUkxMbyIsImtpZCI6Il9qTndqZVNudlRUSzhYRWRyNVFVUGtCUkxMbyJ9.eyJhdWQiOiJodHRwczovL2t1c3RvLmt1c3RvLndpbmRvd3MubmV0IiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTc1MTI4NjQ5MCwibmJmIjoxNzUxMjg2NDkwLCJleHAiOjE3NTEyOTA4NjYsImFjciI6IjEiLCJhaW8iOiJBY1FBTy84WkFBQUFDZEZEajdRMlMxZ1dKK3JzUzYwOU1KMVZHODg2YittOTh2NXlGSmFGSHVLSlkxOWhoOXdIbUdWYTFoUTBHcnJESERmV2pUTWk2SVdOMFBhcVNZRWh6S0NBVzZ1MGF5R0tzTHBTZ3RkbDJWbU1ja2EyRGxpell3a2FQY1BqTU9FL013eDMxVXB3SFVDYWY0R2FjdHNNZXU1TXVxUkx0ZCt6aWlHNUJFK3RPTEFuTTBqQ2JWQUlhR2lLdlZnSlVPNXVnYWhycS9yNm8yc1o2aEFpY1Bmem1GZ3Vkc1RMc0tWMDlBWEdYK1lGcElRTXNUUlduS3dNN3M4MUFMeHozZmNqIiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImRldmljZWlkIjoiZjIzYjMwODUtMTIzOC00MTAyLWFmMWEtYTQwMjZkZDY2ODc5IiwiZmFtaWx5X25hbWUiOiJCaXR0b24iLCJnaXZlbl9uYW1lIjoiT2hhZCIsImlkdHlwIjoidXNlciIsImlwYWRkciI6IjE2Ny4yMjAuMjA1LjE0IiwibmFtZSI6Ik9oYWQgQml0dG9uIiwib2lkIjoiNzM0MzFmOGMtODQyZi00ODYyLTkyNmItYjFhZGNjZjA2OTA2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTcyMDUxNjA3LTE3NDU3NjAwMzYtMTA5MTg3OTU2LTI2OTM2OSIsInB1aWQiOiIxMDAzM0ZGRkE3MThFMzdCIiwicHdkX3VybCI6Imh0dHBzOi8vcG9ydGFsLm1pY3Jvc29mdG9ubGluZS5jb20vQ2hhbmdlUGFzc3dvcmQuYXNweCIsInJoIjoiMS5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSM2ZxUmljQ1IwVkxnTW84bC1hQTZMY2FBQmthQUEuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic2lkIjoiMDA0ZmZjYTktZTk0Yy03YTJiLWZlYmEtZDM0MjI4Mjc0ZTEyIiwic3ViIjoiTmJFRnlEMWt0SWszWUpaRUFud2JjcU02V1BWemt1Z0p0N1d5MUx4clNHcyIsInRlbmFudF9jdHJ5IjoiVVMiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiV1ciLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6Im9oYml0dG9uQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJvaGJpdHRvbkBtaWNyb3NvZnQuY29tIiwidXRpIjoiT0lQZTk5NUlaMGlTMXZmVVhiQ2VBQSIsInZlciI6IjEuMCIsInhtc19mdGQiOiJ6eXNfU2s0TEVURTVjaDF4SjR1RTJJam5WTHpfR3dmY1ZCcWJyZ3JSa2tZQlpYVnliM0JsZDJWemRDMWtjMjF6IiwieG1zX2lkcmVsIjoiMzIgMSIsInhtc19wZGwiOiJFVVIifQ.ZeatxgST6VKXYZESNUvKZLK28u8EipY6_pbQRgkOLe1bmIr_SGMpC2prSmPDbi8rcu3yEBpbH521lsUeKRSjHKGmQ90o2QV4zgMRUl0-L_phl2Ee7_GQ6ezgi2sgZiGJgaTINM0vk-osD0FmLenkkibZqf-H4PJgvGHPdjroXEesdsIq6ELNCf0uZazPPBbMfmGpexUFKiOZSh0l9hv3_TQUWEgHOScrDJ3kilade7Hh1N3FHMUWyKb692ky0bhtzGC6NmSdQUXpN6pNH_zyU-bVHDBngX3UOJ16j58ZN6Z7MkmcDZatUAgm1DA_F_lOEBMe3n86Sj7GNt1NfUllqA&quot;);
-
+ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
+	 bsh.args[2],
+      bsh.args[1],
+    	 bsh.args[0],
+      bsh.args[3]);
 
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 
@@ -736,7 +752,17 @@ try {
 	String tableColumns = &quot;(colA: string, colB: string)&quot;;
 	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
      cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;, null);
+LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of(&quot;UTC&quot;)).plusDays(1);
 
+       String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+
+       String autoDeletePolicy = &quot;@&apos;{ \&quot;ExpiryDate\&quot; : \&quot;&quot; + expiryDate + &quot;\&quot;, \&quot;DeleteIfNotEmpty\&quot;: true }&apos;&quot;;
+
+       cslClient.executeToJsonResult(databaseName, String.format(&quot;.alter table %s policy auto_delete %s&quot; ,new String[]{tableName, autoDeletePolicy}), null);
+
+
+
+cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;, null);
 	 stopWatch = new StopWatch();
      stopWatch.start();
      StreamingIngestClient streamingIngestClient = IngestClientFactory.createStreamingIngestClient(engineCsb);
