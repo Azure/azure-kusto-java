@@ -45,6 +45,14 @@ internally and block for results.
 - Fixed edge cases in query timeouts.
 - Long Queries would time out after 2 minutes. Remove keep alive timeout to fix.
 
+## [7.0.0-ALPHA-01] - 2025-02-05
+### Added
+- Remove dependency on commons lang.
+- [BREAKING] setConnectorDetails method in ConnectionStringBuilder accepts a Map instead of varargs of Pairs.
+- [BREAKING] Field visibility changes in CslStringFormat from public to private.
+### Fixed
+- Improved error messages and code quality
+
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added

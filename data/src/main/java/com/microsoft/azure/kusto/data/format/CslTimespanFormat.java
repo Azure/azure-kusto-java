@@ -6,10 +6,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.data.exceptions.ParseException;
 
 public class CslTimespanFormat extends CslFormat {

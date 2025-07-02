@@ -32,17 +32,15 @@
     </developers>
 
     <properties>
-        <revision>6.0.3</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>7.0.0-ALPHA-01</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <azure-bom-version>1.2.28</azure-bom-version>
-
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
         <!-- Ideally, versions below should align with latest databricks runtime dependency versions -->
         <!-- Compile dependencies -->
         <slf4j.version>1.7.36</slf4j.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
-        <commons-text.version>1.11.0</commons-text.version>
         <commons-codec.version>1.17.0</commons-codec.version>
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
         <reactor-test.version>3.6.11</reactor-test.version>

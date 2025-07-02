@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.StringUtils;
+
 import org.jetbrains.annotations.NotNull;
 
 import com.azure.core.http.HttpClient;

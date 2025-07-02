@@ -35,7 +35,6 @@ import com.microsoft.azure.kusto.ingest.utils.SecurityUtils;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
 import com.univocity.parsers.csv.CsvRoutines;
 import org.jetbrains.annotations.Nullable;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;

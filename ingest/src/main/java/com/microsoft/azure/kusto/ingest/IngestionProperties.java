@@ -7,11 +7,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.TextStringBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -341,36 +340,36 @@ public class IngestionProperties implements TraceableAttributes {
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        TextStringBuilder message = new TextStringBuilder();
+        StringBuilder message = new StringBuilder();
 
         if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
             if (ingestionMappingKind != null) {
-                message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
+                message.append(String.format("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.%n", ingestionMappingKind));
             }
         } else { // a mapping was provided
             if (dataFormat.getIngestionMappingKind() != null && !dataFormat.getIngestionMappingKind().equals(ingestionMappingKind)) {
-                message.appendln("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.",
+                message.append(String.format("Wrong ingestion mapping for format '%s'; mapping kind should be '%s', but was '%s'.%n",
                         dataFormat.getKustoValue(), dataFormat.getIngestionMappingKind().getKustoValue(),
-                        ingestionMappingKind != null ? ingestionMappingKind.getKustoValue() : "null");
+                        ingestionMappingKind != null ? ingestionMappingKind.getKustoValue() : "null"));
             }
 
             if (ingestionMapping.getColumnMappings() != null) {
                 if (StringUtils.isNotBlank(mappingReference)) {
-                    message.appendln("Both mapping reference '%s' and column mappings were defined.", mappingReference);
+                    message.append(String.format("Both mapping reference '%s' and column mappings were defined.%n", mappingReference));
                 }
 
                 if (ingestionMappingKind != null) {
                     for (ColumnMapping column : ingestionMapping.getColumnMappings()) {
                         if (!column.isValid(ingestionMappingKind)) {
-                            message.appendln("Column mapping '%s' is invalid.", column.getColumnName());
+                            message.append(String.format("Column mapping '%s' is invalid.%n", column.getColumnName()));
                         }
                     }
                 }
             }
         }
 
-        if (!message.isEmpty()) {
-            String messageStr = message.build();
+        if (message.length() > 0) {
+            String messageStr = message.toString();
             log.error(messageStr);
             throw new IngestionClientException(messageStr);
         }

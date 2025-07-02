@@ -1,7 +1,7 @@
 package com.microsoft.azure.kusto.data.format;
 
 import com.microsoft.azure.kusto.data.Ensure;
-import org.apache.commons.lang3.StringUtils;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

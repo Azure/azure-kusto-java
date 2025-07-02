@@ -81,7 +81,7 @@ public class FastSuffixMatcher {
         List<MatchRule> matchRules = rules.get(StringUtils.getStringTail(candidate, suffixLength));
         if (matchRules != null) {
             for (MatchRule rule : matchRules) {
-                if (org.apache.commons.lang3.StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
+                if (StringUtils.endsWithIgnoreCase(candidate, rule.suffix)) {
                     if (candidate.length() == rule.suffix.length()
                             || !rule.exact) {
                         return new MatchResult(true, rule);

@@ -3,7 +3,7 @@
 
 package com.microsoft.azure.kusto.ingest;
 
-import org.apache.commons.lang3.StringUtils;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.io.Serializable;
 import java.util.HashMap;

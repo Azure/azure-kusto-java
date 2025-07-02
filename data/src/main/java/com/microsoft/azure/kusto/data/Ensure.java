@@ -6,7 +6,7 @@ package com.microsoft.azure.kusto.data;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import org.apache.commons.lang3.StringUtils;
+
 
 public class Ensure {
 

@@ -5,16 +5,16 @@ import com.azure.core.http.HttpRequest;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.http.HttpRequestBuilder;
 import com.microsoft.azure.kusto.data.http.HttpTracing;
 import com.microsoft.azure.kusto.data.req.KustoRequest;
-import org.apache.commons.lang3.tuple.Pair;
+import com.microsoft.azure.kusto.data.req.KustoRequestContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -117,7 +117,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNameAndVersion() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", null, null, false, null);
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, false, null, null);
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -147,7 +147,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorNoAppVersion() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", null, null, true, "myApp");
+        csb.setConnectorDetails("myConnector", "myVersion", null, null, true, "myApp", null);
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -168,7 +168,7 @@ public class HeaderTest {
 
         Map<String, String> headers = extractHeadersFromAzureRequest(request);
 
-        Assertions.assertTrue(headers.get("x-ms-user").length() > 0);
+        Assertions.assertFalse(headers.get("x-ms-user").isEmpty());
         Assertions.assertTrue(headers.get("x-ms-client-version").startsWith("Kusto.Java.Client:"));
 
         Assertions.assertTrue(headers.get("x-ms-app").startsWith("Kusto.myConnector:{myVersion}"));
@@ -177,7 +177,7 @@ public class HeaderTest {
     @Test
     public void testSetConnectorFull() throws URISyntaxException, DataClientException {
         ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadManagedIdentity("https://testcluster.kusto.windows.net");
-        csb.setConnectorDetails("myConnector", "myVersion", "myApp", "myAppVersion", true, "myUser", Pair.of("myField", "myValue"));
+        csb.setConnectorDetails("myConnector", "myVersion", "myApp", "myAppVersion", true, "myUser", Collections.singletonMap("myField", "myValue"));
 
         ClientImpl client = (ClientImpl) ClientFactory.createClient(csb);
 
@@ -209,7 +209,8 @@ public class HeaderTest {
         CloudInfo.manuallyAddToCache("http://help.kusto.windows.net", Mono.just(CloudInfo.DEFAULT_CLOUD));
 
         ClientImpl noAuthClient = (ClientImpl) ClientFactory.createClient(new ConnectionStringBuilder("http://help.kusto.windows.net"));
-        noAuthClient.prepareRequestAsync(new KustoRequest("test")).block();
+        KustoRequestContext krc = noAuthClient.prepareRequestAsync(new KustoRequest("test")).block();
+        Assertions.assertNotNull(krc);
     }
 
     @Test

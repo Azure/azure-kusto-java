@@ -4,12 +4,8 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.http.HttpClient;
-import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.microsoft.azure.kusto.data.ClientFactory;
-import com.microsoft.azure.kusto.data.ClientRequestProperties;
-import com.microsoft.azure.kusto.data.Ensure;
-import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.*;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -27,7 +23,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.apache.commons.lang3.StringUtils;
+
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
