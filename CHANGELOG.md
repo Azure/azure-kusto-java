@@ -4,9 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [UNRELEASED]
+
+### Changed
+
+- [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
+  internally and block for results.
+- [BREAKING] Streaming client no longer check for blob size and if it exists.
+- [BREAKING] Exceptions thrown the ingest API are now RuntimeExceptions: IngestionServiceException, IngestionClientException.
+### Added
+- The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
+  enabling non-blocking operations.
+
+
 ## [6.0.3] - 2025-25-06
 ### Fixed
 - Fixed `ManagedIdentityTokenProvider`
+
 
 ## [6.0.2] - 2025-24-04
 
@@ -19,15 +33,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The SDK now provides Reactor Core-based asynchronous APIs for all query, management, streaming query/ingestion (StreamingClient) endpoints,
 enabling non-blocking operations. You can read more about Reactor Core and [Mono type here](https://projectreactor.io/docs/core/release/api/).
 - `ConnectionStringBuilder` now supports keywords without regards to spaces or case. It now supports `toString()` that prints a canonical connection string, with censored secrets by default.
+
 ### Changed
 - [BREAKING] All synchronous query/management, streaming query/ingestion (StreamingClient) APIs now delegate to their asynchronous counterparts
 internally and block for results.
-- [BREAKING] * Make ManagedStreamingQueuingPolicy internal, expose just a factor
-* Dont allow users to pass raw data size, provide it only if we have it
+- [BREAKING] Make ManagedStreamingQueuingPolicy internal, expose just a factor
+- [BREAKING] Don't allow users to pass raw data size, provide it only if we have it
+
 - [BREAKING] Removing max keep alive from HttpClientPropertiesBuilder.
 ### Fixed
 - Fixed edge cases in query timeouts.
 - Long Queries would time out after 2 minutes. Remove keep alive timeout to fix.
+
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
 ### Added

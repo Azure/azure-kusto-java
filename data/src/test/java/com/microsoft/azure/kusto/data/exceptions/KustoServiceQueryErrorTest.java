@@ -56,7 +56,6 @@ class KustoServiceQueryErrorTest {
         ObjectMapper objectMapper = new ObjectMapper();
         ArrayNode jsonExceptions = (ArrayNode) objectMapper.readTree(json).get("OneApiErrors");
 
-
         KustoServiceQueryError error = KustoServiceQueryError.fromOneApiErrorArray(jsonExceptions, true);
 
         assertEquals("Query execution failed with multiple inner exceptions:\n" +

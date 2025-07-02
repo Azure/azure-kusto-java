@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.2">
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
-    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
-      <boolProp name="TestPlan.functional_mode">false</boolProp>
-      <boolProp name="TestPlan.tearDown_on_shutdown">false</boolProp>
-      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
-      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
-      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java-funk-client\ingest\target\kusto-ingest-6.0.1-jar-with-dependencies.jar</stringProp>
+      <stringProp name="TestPlan.user_define_classpath">C:\Users\ohbitton\IdeaProjects\azure-kusto-java\ingest\target\kusto-ingest-async-6.0.2-jar-with-dependencies.jar</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments">
           <elementProp name="appKey" elementType="Argument">
             <stringProp name="Argument.name">appKey</stringProp>
@@ -53,18 +52,15 @@
       </Arguments>
       <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Query" enabled="true">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQuery,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQuery,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQuery,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQuery,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query" enabled="true">
@@ -100,14 +96,12 @@ ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
 clientRequestProperties.setClientRequestId(cid);
 
 try {
-	results = client.execute(databaseName, query, clientRequestProperties);
+	results = client.executeQuery(databaseName, query, clientRequestProperties);
 } catch (Throwable e){
 	stopWatch.stop();
 	long timeConvertedToJavaObj = stopWatch.getTime();
      log.error(&quot;Failed &quot; + testName + &quot; cid: &quot; + cid + &quot;. after: &quot; + timeConvertedToJavaObj + &quot; ms ,error: &quot; + e.getMessage(), e);
   	throw new RuntimeException(e);
-}finally{
-	client.close();
 }
 
 
@@ -157,24 +151,24 @@ log.warn(&quot;Finished simple query successfully after: &quot; + timeConvertedT
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming-Query" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming-Query" enabled="true">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQueryStreaming,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQueryStreaming,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(rampUpSecondsQueryStreaming,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(threadCountQueryStreaming,1)}</stringProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Query - streaming" enabled="true">
-          <stringProp name="BeanShellSampler.query">import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.*;
+          <stringProp name="BeanShellSampler.query">
+import com.microsoft.azure.kusto.data.StreamingClient;
+import com.microsoft.azure.kusto.data.ClientRequestProperties;
+import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import java.io.*;
@@ -183,14 +177,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import com.microsoft.azure.kusto.data.http.HttpClientProperties;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Calendar;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-String databaseName = &quot;ohtst&quot;;
+String databaseName = bsh.args[5];
 String testName = &quot;Streaming query test &quot;+ ${__threadNum};
 ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
        bsh.args[2],
@@ -200,11 +195,10 @@ ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCr
            
 HttpClientProperties properties = HttpClientProperties.builder()
            .keepAlive(true)
-           .maxKeepAliveTime(120)
            .maxConnectionsTotal(40)
            .build();
 log.info(&quot;Start &quot; + testName);
-StreamingClient streamingClient = ClientFactory.createStreamingClient(csb, properties);
+final StreamingClient streamingClient = ClientFactory.createStreamingClient(csb, properties);
 
 Runnable runnable = new Runnable() {
       public void run() {
@@ -213,7 +207,7 @@ Runnable runnable = new Runnable() {
            InputStream is = null;
            BufferedReader br = null;
 
-           String cid = &quot;KJC.executeStreamingTest;&quot; + UUID.randomUUID();
+           String cid = &quot;KJC.executeStreamingTest;&quot;;
            ClientRequestProperties clientRequestProperties = new ClientRequestProperties();
            clientRequestProperties.setClientRequestId(cid);
 
@@ -257,20 +251,27 @@ Runnable runnable = new Runnable() {
            log.warn(&quot;Finished streaming query successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot;);
        }
 };
-
 // Using Executor just to make try to invoke the TLS bug
 ExecutorService executorService = Executors.newCachedThreadPool();
-CompletableFuture[] futures;
+int size = 2;
+CompletableFuture[] futures = new CompletableFuture[size];
+
 try{
-	int size = 2;
-	futures = new CompletableFuture[size];
+
 	for (int i = 0; i &lt; size; i++) {
 	  futures[i] = (CompletableFuture.runAsync(runnable, executorService));
 	}
 } finally{
-	CompletableFuture.allOf(futures).join();
+	 try {
+
+			CompletableFuture.allOf(futures).join();
+       } catch (Throwable e) {
+       	log.error(&quot;failed run&quot;,e);
+           throw new RuntimeException(e);
+       }
 	executorService.shutdown();
-}</stringProp>
+}
+</stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${queryTable} ${database}</stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">true</boolProp>
         </BeanShellSampler>
@@ -314,19 +315,16 @@ try{
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Upload test" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Upload test" enabled="true">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="Ingest-test-upload" enabled="true">
@@ -349,6 +347,7 @@ import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Calendar;
+import java.util.UUID;
 
 String testName = &quot;Upload ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
@@ -396,8 +395,7 @@ String tableName = &quot;UploadTest&quot; + new SimpleDateFormat(&quot;yyyy_MM_d
 StopWatch stopWatch = null;
 try {
   String tableColumns = &quot;(colA: string, colB: string)&quot;;
-  cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
-
+  cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
   stopWatch = new StopWatch();
   stopWatch.start();
   QueuedIngestClient client = IngestClientFactory.createClient(dmCsb, properties);
@@ -407,7 +405,7 @@ try {
   } finally {
       client.close();
   }
-  IngestionStatus ingestionStatus = ingestionResult.getIngestionStatusCollection().get(0);
+  IngestionStatus ingestionStatus = ingestionResult.getIngestionStatusCollection().get(0);  //TODO: block here?
   if (ingestionStatus.status != OperationStatus.Queued){
       throw new Exception(&quot;Failed upload&quot; + ingestionStatus.errorCodeString);
   }
@@ -417,7 +415,7 @@ try {
   log.warn(&quot;Finished queuing upload ingest successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot;);
 
   try{
-  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
   } catch (Exception e) {
   }
 } catch (Throwable e) {
@@ -430,16 +428,15 @@ try {
 	}
 
 	try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
 	  } catch (Exception e) {
-
+		log.error(&quot;failed to drop table: &quot; + tableName, e);
 	  }
 	ResponseMessage =&quot;Failed dropping table&quot;;
 	ResponseCode = 500;
 	IsSuccess = false;
 }</stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
           <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="false">
@@ -481,19 +478,16 @@ try {
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Queue test - Table report " enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Queue test - Table report " enabled="true">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(queueThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(queueRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(queueThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(queueRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test ingest with table report" enabled="true">
@@ -516,6 +510,11 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.List;
+import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+import java.time.Instant;
 
 String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
@@ -544,22 +543,29 @@ int size = 16;
 try{
 try {
 	String tableColumns = &quot;(colA: string)&quot;;
-	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
+	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
+	LocalDateTime time = LocalDateTime.ofInstant(Instant.now(), ZoneId.of(&quot;UTC&quot;)).plusDays(1);
+       String expiryDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(time);
+       String autoDeletePolicy = &quot;@&apos;{ \&quot;ExpiryDate\&quot; : \&quot;&quot; + expiryDate + &quot;\&quot;, \&quot;DeleteIfNotEmpty\&quot;: true }&apos;&quot;;
+       cslClient.executeToJsonResult(databaseName, String.format(&quot;.alter table %s policy auto_delete %s&quot; ,new String[]{tableName, autoDeletePolicy}), null);
+
+	
 	QueuedIngestClient client = IngestClientFactory.createClient(dmCsb, null);
 	stopWatch = new StopWatch();
      stopWatch.start();
 	try {
 		// Expect to fail on the ingest itself on the unknown blobs - do we fetch size ?
-		 IngestionProperties ingestionProperties = new IngestionProperties(&quot;databaseName&quot;, tableName);
+		 IngestionProperties ingestionProperties = new IngestionProperties(databaseName, tableName);
 		 ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 		 ingestionProperties.setReportLevel(IngestionProperties.IngestionReportLevel.FAILURES_AND_SUCCESSES);
           for (int i = 0; i &lt; size; i++) {
-			 ingestionResult = client.ingestFromBlob(new BlobSourceInfo(&quot;https://sparkwesteu.blob.core.windows.net/exter/FileName2.csv;managed_identity=system&quot;), ingestionProperties);
+			 ingestionResult = client.ingestFromBlob(new BlobSourceInfo(&quot;https://sparkwesteu.blob.core.windows.net/exter/ohad_1_ce43edbeea174c5eaf06bb9315def4b6.csv.gz?sv=2023-01-03&amp;st=2025-06-30T11%3A59%3A36Z&amp;se=2026-07-01T11%3A59%3A00Z&amp;sr=b&amp;sp=r&amp;sig=7k9c19TRbRAgFCO5lK7cm1Pf0KGVp%2BuGbPb1V3GL%2Fso%3D&quot;), ingestionProperties);
 		       // Instead of checking the result - just see the perf of get status collection
-			if (ingestionResult.getIngestionStatusCollection().get(0).status != OperationStatus.Pending){
-				throw new Exception(&quot;Test Failed to update table status as pending&quot;);
+		       OperationStatus status = ingestionResult.getIngestionStatusCollection().get(0).status;
+			if (status != OperationStatus.Pending){
+				throw new Exception(&quot;Test Failed to ingest blob, ingestion status is:&quot; + status);
 			}
-
+			log.info(&quot;successfully queued &quot; +  ingestionResult.getIngestionStatusCollection().get(0).ingestionSourceId);
 			// Just add some calls for testing
 			ingestionResult.getIngestionStatusCollection().get(0).status;
 	}
@@ -587,7 +593,7 @@ try {
 //	}
 //	log.info(&quot;Successful ingstion&quot; + testName + &quot;\n Status:&quot;+resultAsJson);
 //	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
 //	  } catch (Exception e) {
 //
 //	  }
@@ -601,7 +607,7 @@ try {
 	}
 
 	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
       }
 	log.info(&quot;table : &quot; + tableName +&quot; dropped&quot;);
@@ -615,7 +621,6 @@ try {
 }
 </stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${ingestCluster} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree/>
         <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
@@ -657,19 +662,16 @@ try {
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming ingestion" enabled="false">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Streaming ingestion" enabled="true">
+        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">1</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">${__P(ingestThreadCount,1)}</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">${__P(ingestRampUpSeconds,1)}</stringProp>
-        <boolProp name="ThreadGroup.delayedStart">true</boolProp>
-        <boolProp name="ThreadGroup.scheduler">false</boolProp>
-        <stringProp name="ThreadGroup.duration"></stringProp>
-        <stringProp name="ThreadGroup.delay"></stringProp>
-        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="test streaming ingestion" enabled="true">
@@ -694,17 +696,17 @@ import java.time.Instant;
 import java.util.Calendar;
 import java.util.List;
 import org.apache.commons.lang3.time.StopWatch;
+import java.util.UUID;
 
 String testName = &quot;TableReport ingest test, thread:&quot;+ ${__threadNum};
 log.info(&quot;Start &quot; + testName);
 
 String databaseName = bsh.args[4];
 
-ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-	 bsh.args[2],
-      bsh.args[1],
-    	 bsh.args[0],
-      bsh.args[3]);
+ConnectionStringBuilder engineCsb = ConnectionStringBuilder.createWithAadAccessTokenAuthentication(
+      bsh.args[2],
+      &quot;eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Il9qTndqZVNudlRUSzhYRWRyNVFVUGtCUkxMbyIsImtpZCI6Il9qTndqZVNudlRUSzhYRWRyNVFVUGtCUkxMbyJ9.eyJhdWQiOiJodHRwczovL2t1c3RvLmt1c3RvLndpbmRvd3MubmV0IiwiaXNzIjoiaHR0cHM6Ly9zdHMud2luZG93cy5uZXQvNzJmOTg4YmYtODZmMS00MWFmLTkxYWItMmQ3Y2QwMTFkYjQ3LyIsImlhdCI6MTc1MTI4NjQ5MCwibmJmIjoxNzUxMjg2NDkwLCJleHAiOjE3NTEyOTA4NjYsImFjciI6IjEiLCJhaW8iOiJBY1FBTy84WkFBQUFDZEZEajdRMlMxZ1dKK3JzUzYwOU1KMVZHODg2YittOTh2NXlGSmFGSHVLSlkxOWhoOXdIbUdWYTFoUTBHcnJESERmV2pUTWk2SVdOMFBhcVNZRWh6S0NBVzZ1MGF5R0tzTHBTZ3RkbDJWbU1ja2EyRGxpell3a2FQY1BqTU9FL013eDMxVXB3SFVDYWY0R2FjdHNNZXU1TXVxUkx0ZCt6aWlHNUJFK3RPTEFuTTBqQ2JWQUlhR2lLdlZnSlVPNXVnYWhycS9yNm8yc1o2aEFpY1Bmem1GZ3Vkc1RMc0tWMDlBWEdYK1lGcElRTXNUUlduS3dNN3M4MUFMeHozZmNqIiwiYW1yIjpbInJzYSIsIm1mYSJdLCJhcHBpZCI6IjA0YjA3Nzk1LThkZGItNDYxYS1iYmVlLTAyZjllMWJmN2I0NiIsImFwcGlkYWNyIjoiMCIsImRldmljZWlkIjoiZjIzYjMwODUtMTIzOC00MTAyLWFmMWEtYTQwMjZkZDY2ODc5IiwiZmFtaWx5X25hbWUiOiJCaXR0b24iLCJnaXZlbl9uYW1lIjoiT2hhZCIsImlkdHlwIjoidXNlciIsImlwYWRkciI6IjE2Ny4yMjAuMjA1LjE0IiwibmFtZSI6Ik9oYWQgQml0dG9uIiwib2lkIjoiNzM0MzFmOGMtODQyZi00ODYyLTkyNmItYjFhZGNjZjA2OTA2Iiwib25wcmVtX3NpZCI6IlMtMS01LTIxLTcyMDUxNjA3LTE3NDU3NjAwMzYtMTA5MTg3OTU2LTI2OTM2OSIsInB1aWQiOiIxMDAzM0ZGRkE3MThFMzdCIiwicHdkX3VybCI6Imh0dHBzOi8vcG9ydGFsLm1pY3Jvc29mdG9ubGluZS5jb20vQ2hhbmdlUGFzc3dvcmQuYXNweCIsInJoIjoiMS5BUm9BdjRqNWN2R0dyMEdScXkxODBCSGJSM2ZxUmljQ1IwVkxnTW84bC1hQTZMY2FBQmthQUEuIiwic2NwIjoidXNlcl9pbXBlcnNvbmF0aW9uIiwic2lkIjoiMDA0ZmZjYTktZTk0Yy03YTJiLWZlYmEtZDM0MjI4Mjc0ZTEyIiwic3ViIjoiTmJFRnlEMWt0SWszWUpaRUFud2JjcU02V1BWemt1Z0p0N1d5MUx4clNHcyIsInRlbmFudF9jdHJ5IjoiVVMiLCJ0ZW5hbnRfcmVnaW9uX3Njb3BlIjoiV1ciLCJ0aWQiOiI3MmY5ODhiZi04NmYxLTQxYWYtOTFhYi0yZDdjZDAxMWRiNDciLCJ1bmlxdWVfbmFtZSI6Im9oYml0dG9uQG1pY3Jvc29mdC5jb20iLCJ1cG4iOiJvaGJpdHRvbkBtaWNyb3NvZnQuY29tIiwidXRpIjoiT0lQZTk5NUlaMGlTMXZmVVhiQ2VBQSIsInZlciI6IjEuMCIsInhtc19mdGQiOiJ6eXNfU2s0TEVURTVjaDF4SjR1RTJJam5WTHpfR3dmY1ZCcWJyZ3JSa2tZQlpYVnliM0JsZDJWemRDMWtjMjF6IiwieG1zX2lkcmVsIjoiMzIgMSIsInhtc19wZGwiOiJFVVIifQ.ZeatxgST6VKXYZESNUvKZLK28u8EipY6_pbQRgkOLe1bmIr_SGMpC2prSmPDbi8rcu3yEBpbH521lsUeKRSjHKGmQ90o2QV4zgMRUl0-L_phl2Ee7_GQ6ezgi2sgZiGJgaTINM0vk-osD0FmLenkkibZqf-H4PJgvGHPdjroXEesdsIq6ELNCf0uZazPPBbMfmGpexUFKiOZSh0l9hv3_TQUWEgHOScrDJ3kilade7Hh1N3FHMUWyKb692ky0bhtzGC6NmSdQUXpN6pNH_zyU-bVHDBngX3UOJ16j58ZN6Z7MkmcDZatUAgm1DA_F_lOEBMe3n86Sj7GNt1NfUllqA&quot;);
+
 
 Client cslClient = ClientFactory.createClient(engineCsb, (HttpClientProperties) null);
 
@@ -724,6 +726,7 @@ for (int i = 0; i &lt; rows; i++) {
  } else {
      outputStream.write(byteData);
  }
+}
 
 outputStream.close();
 ByteArrayInputStream input = new ByteArrayInputStream(outputStream.toByteArray());
@@ -731,8 +734,8 @@ String tableName = &quot;StreamingIngest&quot; + new SimpleDateFormat(&quot;yyyy
 StopWatch stopWatch = null;
 try {
 	String tableColumns = &quot;(colA: string, colB: string)&quot;;
-	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns);
-     cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;);
+	cslClient.executeToJsonResult(databaseName, &quot;.create table &quot; + tableName + &quot; &quot; + tableColumns, null);
+     cslClient.executeToJsonResult(databaseName, &quot;.clear database cache streamingingestion schema&quot;, null);
 
 	 stopWatch = new StopWatch();
      stopWatch.start();
@@ -760,7 +763,7 @@ try {
 	log.warn(&quot;Finished streaming ingest successfully after: &quot; + timeConvertedToJavaObj + &quot; ms&quot; + &quot;\n Status:&quot;+resultAsJson);
 
 	 try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
       }
 } catch (Throwable e) {
@@ -774,8 +777,10 @@ try {
 
 
  	try{
-	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;);
+	  	cslClient.executeToJsonResult(databaseName, &quot;.drop table &quot; + tableName + &quot; ifexists&quot;, null);
       } catch (Exception e) {
+      		log.error(&quot;failed to drop table: &quot; + tableName, e);	
+      
       }
 	ResponseMessage =&quot;Failed dropping table&quot;;
 	ResponseCode = 500;
@@ -784,7 +789,6 @@ try {
 
 </stringProp>
           <stringProp name="BeanShellSampler.parameters">${appKey} ${appId} ${cluster} ${tenant} ${database}</stringProp>
-          <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
         <hashTree>
           <ResultCollector guiclass="TableVisualizer" testclass="ResultCollector" testname="View Results in Table" enabled="true">

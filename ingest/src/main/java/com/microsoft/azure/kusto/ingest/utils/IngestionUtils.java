@@ -1,5 +1,8 @@
 package com.microsoft.azure.kusto.ingest.utils;
 
+import com.azure.core.implementation.ByteBufferCollector;
+import com.azure.core.util.FluxUtil;
+import com.microsoft.azure.kusto.data.exceptions.ExceptionUtils;
 import com.microsoft.azure.kusto.ingest.ResettableFileInputStream;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.source.CompressionType;
@@ -7,12 +10,26 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.univocity.parsers.csv.CsvRoutines;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.compression.ZlibCodecFactory;
+import io.netty.handler.codec.compression.ZlibWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.nio.ByteBuffer;
 
 public class IngestionUtils {
     private IngestionUtils() {
@@ -79,5 +96,89 @@ public class IngestionUtils {
         }
 
         return null;
+    }
+
+    public static Mono<ByteArrayInputStream> compressStream(InputStream uncompressedStream, boolean leaveOpen) {
+        EmbeddedChannel encoder = new EmbeddedChannel(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
+        Flux<ByteBuffer> byteBuffers = FluxUtil.toFluxByteBuffer(uncompressedStream);
+
+        return byteBuffers
+                .switchIfEmpty(Mono.error(new IngestionClientException("Empty stream.")))
+                .reduce(new ByteBufferCollector(), (byteBufferCollector, byteBuffer) -> {
+                    encoder.writeAndFlush(Unpooled.wrappedBuffer(byteBuffer));
+                    ByteBuf compressedByteBuf;
+                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
+                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
+                        compressedByteBuf.release();
+                    }
+                    return byteBufferCollector;
+                })
+                .map(byteBufferCollector -> {
+                    encoder.finish();
+                    ByteBuf compressedByteBuf;
+                    while ((compressedByteBuf = encoder.readOutbound()) != null) {
+                        byteBufferCollector.write(compressedByteBuf.nioBuffer());
+                        compressedByteBuf.release();
+                    }
+                    return byteBufferCollector;
+                })
+                .map(ByteBufferCollector::toByteArray)
+                .doFinally(ignore -> {
+                    encoder.finishAndReleaseAll();
+                    if (!leaveOpen) {
+                        try {
+                            uncompressedStream.close();
+                        } catch (IOException e) {
+                            String msg = ExceptionUtils.getMessageEx(e);
+                            log.error(msg, e);
+                            throw new IngestionClientException(msg, e);
+                        }
+                    }
+                }).map(ByteArrayInputStream::new);
+    }
+
+    /**
+     * Converts an InputStream to a Mono of byte array.
+     *
+     * @param inputStream the InputStream to convert
+     * @return a Mono containing the byte array read from the InputStream
+     */
+    public static Mono<byte[]> toByteArray(InputStream inputStream) {
+        return Mono.create(sink -> {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            try {
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    byteArrayOutputStream.write(buffer, 0, bytesRead);
+                }
+                sink.success(byteArrayOutputStream.toByteArray());
+            } catch (IOException e) {
+                sink.error(e);
+            } finally {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    sink.error(e);
+                }
+            }
+        });
+    }
+
+    public static class IntegerHolder {
+        int value;
+
+        public int increment() {
+            return value++;
+        }
+
+        public void add(int length) {
+            value += length;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 }

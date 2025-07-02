@@ -6,6 +6,7 @@ package com.microsoft.azure.kusto.ingest;
 import com.azure.core.http.HttpClient;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
 import com.microsoft.azure.kusto.data.Utils;
@@ -29,13 +30,14 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import reactor.util.annotation.Nullable;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
 import java.net.URISyntaxException;
-import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,9 +50,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Stream;
 
 class ResourceManager implements Closeable, IngestionResourceManager {
+
+    private static final int MAX_RETRY_ATTEMPTS = 4;
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(1);
     private static final long REFRESH_RESULT_POLL_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(15);
+    private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
+    private static final double JITTER_FACTOR = 0.5;
+    private static final reactor.util.retry.Retry RETRY_CONFIG = new ExponentialRetry(MAX_RETRY_ATTEMPTS, BASE_INTERVAL, JITTER_FACTOR)
+            .retry(Collections.singletonList(ThrottleException.class), null); // TODO: fix import after removing vavr
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Timer refreshTasksTimer;
@@ -69,6 +77,12 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     protected RefreshIngestionAuthTokenTask refreshIngestionAuthTokenTask;
     protected RefreshIngestionResourcesTask refreshIngestionResourcesTask;
 
+    /// <summary>
+    ///
+    /// Creates a new instance of the ResourceManager.
+    /// This class is not async at its nature therefore it was not implemented as one, a cache is only doing async work
+    /// once in a while and most requests should return immediately
+    /// </summary>
     public ResourceManager(Client client, long defaultRefreshTime, long refreshTimeOnFailure, @Nullable HttpClient httpClient) {
         this.client = client;
         // Using ctor with client so that the dependency is used
@@ -121,6 +135,7 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     }
 
     class RefreshIngestionResourcesTask extends RefreshResourceTask {
+
         @Override
         public void run() {
             try {

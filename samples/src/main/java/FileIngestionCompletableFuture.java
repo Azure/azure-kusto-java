@@ -27,7 +27,7 @@ public class FileIngestionCompletableFuture {
                     System.getProperty("appKey"),
                     System.getProperty("appTenant"));
 
-            CompletableFuture<IngestionResult> cf;
+            CompletableFuture<IngestionResult> cf; // TODO: adjust this to use the async API instead of using CompletableFuture or not?
             try (IngestClient client = IngestClientFactory.createClient(csb)) {
                 // Creating the ingestion properties:
                 IngestionProperties ingestionProperties = new IngestionProperties(

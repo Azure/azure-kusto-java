@@ -3,9 +3,6 @@
 
 package com.microsoft.azure.kusto.ingest.source;
 
-import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
-import org.jetbrains.annotations.NotNull;
-
 import java.sql.ResultSet;
 import java.util.Map;
 import java.util.Objects;

@@ -4,17 +4,23 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.implementation.models.TableServiceErrorException;
+import reactor.core.publisher.Mono;
 
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.List;
 
 public interface IngestionResult extends Serializable {
-    /// <summary>
-    /// Retrieves the detailed ingestion status of
-    /// all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
-    /// </summary>
-    List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException;
 
-    int getIngestionStatusesLength();
+    /**
+     * Retrieves the detailed ingestion status of
+     * all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
+     */
+    Mono<List<IngestionStatus>> getIngestionStatusCollectionAsync() throws URISyntaxException, TableServiceErrorException;
+
+    /**
+     * Blocking, retrieves the detailed ingestion status of
+     * all data ingestion operations into Kusto associated with this com.microsoft.azure.kusto.ingest.IKustoIngestionResult instance.
+     */
+    List<IngestionStatus> getIngestionStatusCollection() throws URISyntaxException, TableServiceErrorException;
 }

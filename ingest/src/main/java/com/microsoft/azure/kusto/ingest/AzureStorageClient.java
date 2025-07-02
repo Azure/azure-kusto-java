@@ -4,138 +4,130 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.core.util.BinaryData;
-import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableAsyncClient;
 import com.azure.data.tables.implementation.models.TableServiceErrorException;
 import com.azure.data.tables.models.TableEntity;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.queue.QueueClient;
-import com.azure.storage.queue.models.QueueStorageException;
+import com.azure.storage.blob.BlobAsyncClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.queue.QueueAsyncClient;
 import com.microsoft.azure.kusto.data.Ensure;
-
+import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.invoke.MethodHandles;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.util.zip.GZIPOutputStream;
 
 public class AzureStorageClient {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private static final int GZIP_BUFFER_SIZE = 16384;
-    private static final int STREAM_BUFFER_SIZE = 16384;
 
     public AzureStorageClient() {
     }
 
-    void postMessageToQueue(QueueClient queueClient, String content) throws QueueStorageException {
-        // Ensure
-        Ensure.argIsNotNull(queueClient, "queueClient");
+    Mono<Void> postMessageToQueue(QueueAsyncClient queueAsyncClient, String content) {
+        Ensure.argIsNotNull(queueAsyncClient, "queueAsyncClient");
         Ensure.stringIsNotBlank(content, "content");
 
         byte[] bytesEncoded = Base64.encodeBase64(content.getBytes());
-        queueClient.sendMessage(BinaryData.fromBytes(bytesEncoded));
+        return queueAsyncClient.sendMessage(BinaryData.fromBytes(bytesEncoded)).then();
     }
 
-    public void azureTableInsertEntity(TableClient tableClient, TableEntity tableEntity) throws URISyntaxException, TableServiceErrorException {
-        Ensure.argIsNotNull(tableClient, "tableClient");
+    public Mono<Void> azureTableInsertEntity(TableAsyncClient tableAsyncClient, TableEntity tableEntity) throws TableServiceErrorException {
+        Ensure.argIsNotNull(tableAsyncClient, "tableAsyncClient");
         Ensure.argIsNotNull(tableEntity, "tableEntity");
 
-        tableClient.createEntity(tableEntity);
+        return tableAsyncClient.createEntity(tableEntity);
     }
 
-    void uploadLocalFileToBlob(File file, String blobName, BlobContainerClient container, boolean shouldCompress)
-            throws IOException, BlobStorageException {
-        log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, container.getBlobContainerUrl());
+    Mono<Void> uploadLocalFileToBlob(File file, String blobName, BlobContainerAsyncClient asyncContainer, boolean shouldCompress) throws IOException {
+        log.debug("uploadLocalFileToBlob: filePath: {}, blobName: {}, storageUri: {}", file.getPath(), blobName, asyncContainer.getBlobContainerUrl());
 
-        // Ensure
         Ensure.fileExists(file, "sourceFile");
         Ensure.stringIsNotBlank(blobName, "blobName");
-        Ensure.argIsNotNull(container, "container");
+        Ensure.argIsNotNull(asyncContainer, "asyncContainer");
 
-        BlobClient blobClient = container.getBlobClient(blobName);
+        BlobAsyncClient blobAsyncClient = asyncContainer.getBlobAsyncClient(blobName);
         if (shouldCompress) {
-            compressAndUploadFileToBlob(file, blobClient);
+            return compressAndUploadFileToBlob(file, blobAsyncClient);
         } else {
-            uploadFileToBlob(file, blobClient);
+            return uploadFileToBlob(file, blobAsyncClient);
         }
     }
 
-    void compressAndUploadFileToBlob(File sourceFile, BlobClient blob) throws IOException, BlobStorageException {
+    Mono<Void> compressAndUploadFileToBlob(File sourceFile, BlobAsyncClient blobAsyncClient) throws IOException {
         Ensure.fileExists(sourceFile, "sourceFile");
-        Ensure.argIsNotNull(blob, "blob");
+        Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
-        try (InputStream fin = Files.newInputStream(sourceFile.toPath());
-                GZIPOutputStream gzOut = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
-            copyStream(fin, gzOut, GZIP_BUFFER_SIZE);
-        }
+        return Mono.defer(() -> {
+            try {
+                InputStream inputStream = Files.newInputStream(sourceFile.toPath());
+                return IngestionUtils.compressStream(inputStream, false)
+                        .flatMap(bytes -> blobAsyncClient.getBlockBlobAsyncClient()
+                                .upload(BinaryData.fromStream(bytes, (long) bytes.available()), true));
+            } catch (IOException e) {
+                throw Exceptions.propagate(e);
+            }
+        }).then();
     }
 
-    void uploadFileToBlob(File sourceFile, BlobClient blobClient) throws IOException, BlobStorageException {
-        // Ensure
-        Ensure.argIsNotNull(blobClient, "blob");
+    Mono<Void> uploadFileToBlob(File sourceFile, BlobAsyncClient blobAsyncClient) throws IOException {
+        Ensure.argIsNotNull(blobAsyncClient, "blob");
         Ensure.fileExists(sourceFile, "sourceFile");
 
-        blobClient.uploadFromFile(sourceFile.getPath());
+        return blobAsyncClient.uploadFromFile(sourceFile.getPath());
     }
 
-    int uploadStreamToBlob(InputStream inputStream, String blobName, BlobContainerClient container, boolean shouldCompress)
-            throws IOException, BlobStorageException {
-        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, container);
-
-        // Ensure
+    Mono<Integer> uploadStreamToBlob(InputStream inputStream,
+            String blobName,
+            BlobContainerAsyncClient asyncContainer,
+            boolean shouldCompress) {
         Ensure.argIsNotNull(inputStream, "inputStream");
         Ensure.stringIsNotBlank(blobName, "blobName");
-        Ensure.argIsNotNull(container, "container");
+        Ensure.argIsNotNull(asyncContainer, "asyncContainer");
 
-        BlobClient blobClient = container.getBlobClient(blobName);
+        log.debug("uploadStreamToBlob: blobName: {}, storageUri: {}", blobName, asyncContainer.getBlobContainerUrl());
+
+        BlobAsyncClient blobAsyncClient = asyncContainer.getBlobAsyncClient(blobName);
         if (shouldCompress) {
-            return compressAndUploadStream(inputStream, blobClient);
+            return compressAndUploadStream(inputStream, blobAsyncClient);
         } else {
-            return uploadStream(inputStream, blobClient);
+            return uploadStream(inputStream, blobAsyncClient);
         }
     }
 
     // Returns original stream size
-    int uploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
-        // Ensure
+    Mono<Integer> uploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
         Ensure.argIsNotNull(inputStream, "inputStream");
-        Ensure.argIsNotNull(blob, "blob");
+        Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
-        OutputStream blobOutputStream = blob.getBlockBlobClient().getBlobOutputStream(true);
-        int originalSize = copyStream(inputStream, blobOutputStream, STREAM_BUFFER_SIZE);
-        blobOutputStream.close();
-        return originalSize;
+        IngestionUtils.IntegerHolder size = new IngestionUtils.IntegerHolder();
+
+        return IngestionUtils.toByteArray(inputStream)
+                .flatMap(bytes -> {
+                    size.add(bytes.length);
+                    return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromBytes(bytes), true);
+                })
+                .map(x -> size.getValue());
     }
 
     // Returns original stream size
-    int compressAndUploadStream(InputStream inputStream, BlobClient blob) throws IOException, BlobStorageException {
-        // Ensure
+    Mono<Integer> compressAndUploadStream(InputStream inputStream, BlobAsyncClient blobAsyncClient) {
         Ensure.argIsNotNull(inputStream, "inputStream");
-        Ensure.argIsNotNull(blob, "blob");
+        Ensure.argIsNotNull(blobAsyncClient, "blobAsyncClient");
 
-        try (GZIPOutputStream gzout = new GZIPOutputStream(blob.getBlockBlobClient().getBlobOutputStream(true))) {
-            return copyStream(inputStream, gzout, GZIP_BUFFER_SIZE);
-        }
+        IngestionUtils.IntegerHolder size = new IngestionUtils.IntegerHolder();
+        return IngestionUtils.compressStream(inputStream, false)
+                .flatMap(bytes -> {
+                    size.add(bytes.available());
+                    return blobAsyncClient.getBlockBlobAsyncClient().upload(BinaryData.fromStream(bytes, (long) bytes.available()), true);
+                })
+                .map(x -> size.getValue());
     }
 
-    // Returns original stream size
-    private int copyStream(InputStream inputStream, OutputStream outputStream, int bufferSize) throws IOException {
-        byte[] buffer = new byte[bufferSize];
-        int length;
-        int size = 0;
-        while ((length = inputStream.read(buffer)) > 0) {
-            size += length;
-            outputStream.write(buffer, 0, length);
-        }
-
-        return size;
-    }
 }

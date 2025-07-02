@@ -2,6 +2,7 @@ package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
 import com.microsoft.azure.kusto.data.ExponentialRetry;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -21,9 +23,16 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ManagedStreamingTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
@@ -32,11 +41,13 @@ public class ManagedStreamingTest {
     private static QueuedIngestClient queuedIngestClientMock;
     private static IngestionProperties ingestionProperties;
     private static StreamingClient streamingClientMock;
+    private static KustoOperationResult kustoOperationResultMock;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
     private static ManagedStreamingIngestClient managedStreamingIngestClientSpy;
 
     @BeforeAll
-    static void setUp() throws Exception {
+    static void setUp() {
+        kustoOperationResultMock = mock(KustoOperationResult.class);
         when(resourceManagerMock.getShuffledContainers())
                 .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
@@ -47,12 +58,13 @@ public class ManagedStreamingTest {
 
         when(resourceManagerMock.getIdentityToken()).thenReturn("identityToken");
 
-        doNothing().when(azureStorageClientMock).azureTableInsertEntity(any(), any(TableEntity.class));
+        when(azureStorageClientMock.azureTableInsertEntity(any(), any(TableEntity.class))).thenReturn(Mono.empty());
 
-        doNothing().when(azureStorageClientMock).postMessageToQueue(any(), anyString());
+        when(azureStorageClientMock.postMessageToQueue(any(), anyString())).thenReturn(Mono.empty());
+        when(azureStorageClientMock.uploadStreamToBlob(any(), any(), any(), anyBoolean())).thenReturn(Mono.empty());
         streamingClientMock = mock(StreamingClient.class);
-        when(streamingClientMock.executeStreamingIngest(any(String.class), any(String.class), any(InputStream.class),
-                isNull(), any(String.class), any(String.class), any(boolean.class))).thenReturn(null);
+        when(streamingClientMock.executeStreamingIngestAsync(any(), any(), any(),
+                any(), any(), any(), any(boolean.class))).thenReturn(Mono.just(kustoOperationResultMock));
 
         ingestionProperties = new IngestionProperties("dbName", "tableName");
         managedStreamingIngestClient = new ManagedStreamingIngestClient(resourceManagerMock, azureStorageClientMock,
@@ -81,21 +93,21 @@ public class ManagedStreamingTest {
     }
 
     @Test
-    void IngestFromStream_CsvStream() throws Exception {
+    void ingestFromStream_CsvStream() throws Exception {
 
         InputStream inputStream = createStreamOfSize(1);
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
 
         // Expect to work and also choose no queuing
-        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollection()
-                .get(0).status;
+        OperationStatus status = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties).getIngestionStatusCollectionAsync()
+                .block().get(0).status;
         assertEquals(OperationStatus.Succeeded, status);
 
         BooleanConsumer assertPolicyWorked = (boolean wasExpectedToUseQueuing) -> {
             try {
                 inputStream.reset();
                 IngestionStatus ingestionStatus = managedStreamingIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties)
-                        .getIngestionStatusCollection().get(0);
+                        .getIngestionStatusCollectionAsync().block().get(0);
                 if (wasExpectedToUseQueuing) {
                     assertEquals(OperationStatus.Queued, ingestionStatus.status);
                 } else {
@@ -180,9 +192,9 @@ public class ManagedStreamingTest {
         int size = inputStream.bb.available();
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(inputStream);
         ArgumentCaptor<StreamSourceInfo> streamSourceInfoCaptor = ArgumentCaptor.forClass(StreamSourceInfo.class);
-
+        when(queuedIngestClientMock.ingestFromStreamAsync(any(), any())).thenReturn(Mono.empty());
         managedStreamingIngestClientSpy.ingestFromStream(streamSourceInfo, ingestionProperties);
-        verify(queuedIngestClientMock, times(1)).ingestFromStream(streamSourceInfoCaptor.capture(), any());
+        verify(queuedIngestClientMock).ingestFromStreamAsync(streamSourceInfoCaptor.capture(), any());
 
         StreamSourceInfo value = streamSourceInfoCaptor.getValue();
         int queuedStreamSize = getStreamSize(value.getStream());
