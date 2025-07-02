@@ -525,12 +525,12 @@ public class SampleApp {
      */
     private static void createIngestionMappings(boolean useExistingMapping, Client kustoClient, String databaseName, String tableName, String mappingName,
             String mappingValue, IngestionProperties.DataFormat dataFormat) {
-        if (useExistingMapping || Utils.isNullOrEmpty(mappingValue)) {
+        if (useExistingMapping || com.microsoft.azure.kusto.data.Utils.isNullOrEmpty(mappingValue)) {
             return;
         }
         IngestionMapping.IngestionMappingKind ingestionMappingKind = dataFormat.getIngestionMappingKind();
         waitForUserToProceed(String.format("Create a '%s' mapping reference named '%s'", ingestionMappingKind.getKustoValue(), mappingName));
-        mappingName = !Utils.isNullOrEmpty(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
+        mappingName = !com.microsoft.azure.kusto.data.Utils.isNullOrEmpty(mappingName) ? mappingName : "DefaultQuickstartMapping" + UUID.randomUUID().toString().substring(0, 5);
 
         String mappingCommand = String.format(".create-or-alter table %s ingestion %s mapping '%s' '%s'", StringUtils.normalizeEntityName(tableName),
                 ingestionMappingKind.getKustoValue().toLowerCase(), mappingName, mappingValue);

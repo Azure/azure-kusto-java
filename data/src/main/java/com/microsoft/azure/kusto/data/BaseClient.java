@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.EofSensorInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,7 +140,7 @@ public abstract class BaseClient implements Client, StreamingClient {
         String message = errorFromResponse;
         WebException formattedException = new WebException(errorFromResponse, httpResponse, thrownException);
         boolean isPermanent = false;
-        if (!StringUtils.isBlank(errorFromResponse)) {
+        if (Utils.isNotBlank(errorFromResponse)) {
             try {
                 JsonNode jsonObject = Utils.getObjectMapper().readTree(errorFromResponse);
                 if (jsonObject.has("error")) {

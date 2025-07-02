@@ -10,8 +10,6 @@ import com.microsoft.azure.kusto.data.Ensure;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.instrumentation.TraceableAttributes;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.TextStringBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,7 +243,7 @@ public class IngestionProperties implements TraceableAttributes {
         fullAdditionalProperties.put("ignoreFirstRecord", Boolean.toString(ignoreFirstRecord));
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
-        if (StringUtils.isNotBlank(mappingReference)) {
+        if (Utils.isNotBlank(mappingReference)) {
             fullAdditionalProperties.put("ingestionMappingReference", mappingReference);
             fullAdditionalProperties.put("ingestionMappingType", ingestionMapping.getIngestionMappingKind().getKustoValue());
         } else if (ingestionMapping.getColumnMappings() != null) {
@@ -341,9 +339,9 @@ public class IngestionProperties implements TraceableAttributes {
 
         String mappingReference = ingestionMapping.getIngestionMappingReference();
         IngestionMapping.IngestionMappingKind ingestionMappingKind = ingestionMapping.getIngestionMappingKind();
-        TextStringBuilder message = new TextStringBuilder();
+        Utils.MessageBuilder message = new Utils.MessageBuilder();
 
-        if ((ingestionMapping.getColumnMappings() == null) && StringUtils.isBlank(mappingReference)) {
+        if ((ingestionMapping.getColumnMappings() == null) && Utils.isBlank(mappingReference)) {
             if (ingestionMappingKind != null) {
                 message.appendln("IngestionMappingKind was defined ('%s'), so a mapping must be defined as well.", ingestionMappingKind);
             }
@@ -355,7 +353,7 @@ public class IngestionProperties implements TraceableAttributes {
             }
 
             if (ingestionMapping.getColumnMappings() != null) {
-                if (StringUtils.isNotBlank(mappingReference)) {
+                if (Utils.isNotBlank(mappingReference)) {
                     message.appendln("Both mapping reference '%s' and column mappings were defined.", mappingReference);
                 }
 

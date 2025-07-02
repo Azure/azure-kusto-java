@@ -6,10 +6,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.microsoft.azure.kusto.data.ClientRequestProperties;
 import com.microsoft.azure.kusto.data.Ensure;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.ParseException;
 
 public class CslTimespanFormat extends CslFormat {
@@ -23,7 +22,7 @@ public class CslTimespanFormat extends CslFormat {
     }
 
     public CslTimespanFormat(String value) {
-        if (StringUtils.isBlank(value)) {
+        if (Utils.isBlank(value)) {
             this.value = null;
         } else {
             Matcher matcher = ClientRequestProperties.KUSTO_TIMESPAN_REGEX.matcher(value);

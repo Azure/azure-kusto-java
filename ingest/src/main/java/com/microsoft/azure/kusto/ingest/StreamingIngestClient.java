@@ -27,7 +27,7 @@ import com.microsoft.azure.kusto.ingest.source.FileSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.ResultSetSourceInfo;
 import com.microsoft.azure.kusto.ingest.source.StreamSourceInfo;
 import com.microsoft.azure.kusto.ingest.utils.IngestionUtils;
-import org.apache.commons.lang3.StringUtils;
+
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,7 +179,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
                         })
                         .flatMap(stream -> {
                             ClientRequestProperties clientRequestProperties = null;
-                            if (StringUtils.isNotBlank(clientRequestId)) {
+                            if (Utils.isNotBlank(clientRequestId)) {
                                 clientRequestProperties = new ClientRequestProperties();
                                 clientRequestProperties.setClientRequestId(clientRequestId);
                             }
@@ -230,7 +230,7 @@ public class StreamingIngestClient extends IngestClientBase implements IngestCli
 
         String blobPath = blobSourceInfo.getBlobPath();
         ClientRequestProperties clientRequestProperties = null;
-        if (StringUtils.isNotBlank(clientRequestId)) {
+        if (Utils.isNotBlank(clientRequestId)) {
             clientRequestProperties = new ClientRequestProperties();
             clientRequestProperties.setClientRequestId(clientRequestId);
         }

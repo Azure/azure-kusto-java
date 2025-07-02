@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.data.auth;
 
 import com.microsoft.aad.msal4j.ClientCredentialFactory;
 import com.microsoft.aad.msal4j.IClientCertificate;
-import org.apache.commons.lang3.StringUtils;
+import com.microsoft.azure.kusto.data.Utils;
 import com.azure.core.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,8 +23,8 @@ public class TokenProviderFactory {
         String authorityId = csb.getAuthorityId();
         Mono<String> asyncTokenProvider = csb.getAsyncTokenProvider();
 
-        if (StringUtils.isNotBlank(csb.getApplicationClientId())) {
-            if (StringUtils.isNotBlank(csb.getApplicationKey())) {
+        if (Utils.isNotBlank(csb.getApplicationClientId())) {
+            if (Utils.isNotBlank(csb.getApplicationKey())) {
                 return new ApplicationKeyTokenProvider(clusterUrl, csb.getApplicationClientId(), csb.getApplicationKey(), authorityId, httpClient);
             } else if (csb.isUseCertificateAuth()) {
                 if (csb.shouldSendX509()) {
@@ -41,7 +41,7 @@ public class TokenProviderFactory {
             } else {
                 throw new IllegalArgumentException("No token provider exists for the provided ConnectionStringBuilder");
             }
-        } else if (StringUtils.isNotBlank(csb.getAccessToken())) {
+        } else if (Utils.isNotBlank(csb.getAccessToken())) {
             String accessToken = csb.getAccessToken();
             return new AccessTokenTokenProvider(clusterUrl, accessToken);
         } else if (csb.getTokenProvider() != null) {
@@ -57,7 +57,7 @@ public class TokenProviderFactory {
         } else if (csb.isUseAzureCli()) {
             return new AzureCliTokenProvider(clusterUrl, httpClient);
         } else if (csb.isUseUserPromptAuth() || csb.isAadFederatedSecurity()) { // If Fed=true, and no other auth method is specified, we assume user prompt
-            if (StringUtils.isNotBlank(csb.getUserUsernameHint())) {
+            if (Utils.isNotBlank(csb.getUserUsernameHint())) {
                 String usernameHint = csb.getUserUsernameHint();
                 return new UserPromptTokenProvider(clusterUrl, usernameHint, authorityId, httpClient);
             }
