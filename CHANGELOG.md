@@ -7,15 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [7.0.0] - 2025-07-13
 
 ### Changed
-
+- Remove dependency on commons lang.
+- [BREAKING] setConnectorDetails method in ConnectionStringBuilder accepts a Map instead of varargs of Pairs.
+- [BREAKING] Field visibility changes in CslStringFormat from public to private.
 - [BREAKING] All synchronous queued and streaming ingestion APIs now delegate to their asynchronous counterparts
   internally and block for results.
 - [BREAKING] Streaming client no longer check for blob size and if it exists.
 - [BREAKING] Exceptions thrown the ingest API are now RuntimeExceptions: IngestionServiceException, IngestionClientException.
+
 ### Added
 - The SDK now provides Reactor Core-based asynchronous APIs for all queued and streaming ingestion endpoints,
   enabling non-blocking operations.
 
+### Fixed
+- Improved error messages and code quality
 
 ## [6.0.3] - 2025-25-06
 ### Fixed
@@ -44,14 +49,6 @@ internally and block for results.
 ### Fixed
 - Fixed edge cases in query timeouts.
 - Long Queries would time out after 2 minutes. Remove keep alive timeout to fix.
-
-## [7.0.0-ALPHA-01] - 2025-02-05
-### Added
-- Remove dependency on commons lang.
-- [BREAKING] setConnectorDetails method in ConnectionStringBuilder accepts a Map instead of varargs of Pairs.
-- [BREAKING] Field visibility changes in CslStringFormat from public to private.
-### Fixed
-- Improved error messages and code quality
 
 
 ## [6.0.0-ALPHA-01] - 2024-11-27
