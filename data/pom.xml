@@ -116,6 +116,9 @@
                         <dependency>io.netty:netty-transport:jar</dependency>
                         <dependency>io.netty:netty-common:jar</dependency>
                     </ignoredUsedUndeclaredDependencies>
+                    <ignoredNonTestScopedDependencies>
+                        <dependency>org.reactivestreams:reactive-streams:jar</dependency>
+                    </ignoredNonTestScopedDependencies>
                     <ignoreNonCompile>true</ignoreNonCompile>
                 </configuration>
                 <executions>
@@ -259,6 +262,12 @@
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-core</artifactId>
             <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <version>${reactor-test.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

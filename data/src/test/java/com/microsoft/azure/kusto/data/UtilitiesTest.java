@@ -3,20 +3,33 @@ package com.microsoft.azure.kusto.data;
 import com.azure.core.http.HttpResponse;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.DataWebException;
-
 import com.microsoft.azure.kusto.data.http.HttpStatus;
 import com.microsoft.azure.kusto.data.http.TestHttpResponse;
-
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
+import java.util.zip.GZIPOutputStream;
+
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class UtilitiesTest {
     @Test
@@ -158,5 +171,77 @@ class UtilitiesTest {
                 .withStatusCode(statusCode)
                 .addHeader("x-ms-activity-id", "1234")
                 .build();
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource("getTestParameters")
+    void shouldCorrectlyDecodeGzippedResponse(@NotNull String originalString, int chunkSize) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        if (!originalString.isEmpty()) {
+            try (GZIPOutputStream gzipOut = new GZIPOutputStream(byteArrayOutputStream)) {
+                gzipOut.write(originalString.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+        byte[] compressedBytes = byteArrayOutputStream.toByteArray();
+
+        // Split the compressed data into chunks
+        List<ByteBuffer> chunks = new ArrayList<>();
+        if (compressedBytes.length > 0) {
+            for (int i = 0; i < compressedBytes.length; i += chunkSize) {
+                int end = Math.min(compressedBytes.length, i + chunkSize);
+                chunks.add(ByteBuffer.wrap(compressedBytes, i, end - i));
+            }
+        }
+        Flux<ByteBuffer> chunkedGzipStream = Flux.fromIterable(chunks);
+
+        Mono<String> decodedString = Utils.processGzipBody(chunkedGzipStream);
+
+        StepVerifier.create(decodedString)
+                .expectNext(originalString)
+                .verifyComplete();
+    }
+
+    @Test
+    void shouldReturnEmptyStringForEmptyFlux() {
+        Mono<String> resultMono = Utils.processGzipBody(Flux.empty());
+
+        StepVerifier.create(resultMono)
+                .expectNext(StringUtils.EMPTY)
+                .verifyComplete();
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @MethodSource("getTestParameters")
+    void shouldCorrectlyDecodeNonGzippedStream(@NotNull String originalString, int chunkSize) {
+        byte[] originalBytes = originalString.getBytes(StandardCharsets.UTF_8);
+
+        // Split the raw bytes into chunks to simulate a network stream.
+        List<ByteBuffer> chunks = new ArrayList<>();
+        if (originalBytes.length > 0) {
+            for (int i = 0; i < originalBytes.length; i += chunkSize) {
+                int end = Math.min(originalBytes.length, i + chunkSize);
+                chunks.add(ByteBuffer.wrap(originalBytes, i, end - i));
+            }
+        }
+        Flux<ByteBuffer> chunkedStream = Flux.fromIterable(chunks);
+
+        Mono<String> result = Utils.processNonGzipBody(chunkedStream);
+
+        StepVerifier.create(result)
+                .expectNext(originalString)
+                .verifyComplete();
+    }
+
+    private static Stream<Arguments> getTestParameters() {
+        final String testString = "Start -> äÄöÖüÜß€@'()<>!§$%&/{[]}?=´`+*~#-'_.:,; " +
+                "<- Middle -> Zurich, Zürich, Straße, ÆØÅ æøå <- End.";
+
+        return Stream.of(
+                arguments(testString, 1),
+                arguments(testString, 5),
+                arguments(testString, 1024),
+                arguments("", 5),
+                arguments("Hello world, this is a simple test.", 5)
+        );
     }
 }

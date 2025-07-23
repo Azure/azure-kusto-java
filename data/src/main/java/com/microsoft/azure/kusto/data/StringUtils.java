@@ -5,8 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class StringUtils {
 
-    // Character constants for line endings (similar to Apache Commons Lang3 CharUtils)
-    private static final String EMPTY = "";
+    public static final String EMPTY = "";
 
     private StringUtils() {
         // Hide constructor for static class
@@ -14,7 +13,7 @@ public class StringUtils {
 
     public static @NotNull String getStringTail(String val, int minRuleLength) {
         if (minRuleLength <= 0) {
-            return "";
+            return EMPTY;
         }
 
         if (minRuleLength >= val.length()) {
