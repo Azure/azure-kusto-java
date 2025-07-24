@@ -32,6 +32,9 @@ import java.util.zip.GZIPOutputStream;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class UtilitiesTest {
+    private static final String TEST_STRING_WITH_MULTI_BYTE_CHARS = "Start -> äÄöÖüÜß€@'()<>!§$%&/{[]}?=´`+*~#-'_.:,; " +
+            "<- Middle -> Zurich, Zürich, Straße, ÆØÅ æøå <- End.";
+
     @Test
     @DisplayName("Test exception creation when the web response is null")
     void createExceptionFromResponseNoResponse() {
@@ -233,13 +236,10 @@ class UtilitiesTest {
     }
 
     private static Stream<Arguments> getTestParameters() {
-        final String testString = "Start -> äÄöÖüÜß€@'()<>!§$%&/{[]}?=´`+*~#-'_.:,; " +
-                "<- Middle -> Zurich, Zürich, Straße, ÆØÅ æøå <- End.";
-
         return Stream.of(
-                arguments(testString, 1),
-                arguments(testString, 5),
-                arguments(testString, 1024),
+                arguments(TEST_STRING_WITH_MULTI_BYTE_CHARS, 1),
+                arguments(TEST_STRING_WITH_MULTI_BYTE_CHARS, 5),
+                arguments(TEST_STRING_WITH_MULTI_BYTE_CHARS, 1024),
                 arguments("", 5),
                 arguments("Hello world, this is a simple test.", 5)
         );

@@ -197,17 +197,14 @@ public class Utils {
     }
 
     public static Mono<String> processNonGzipBody(Flux<ByteBuffer> body) {
+        final CompositeByteBuf composite = Unpooled.compositeBuffer();
+
         return body
-                .reduce(Unpooled.compositeBuffer(), (composite, byteBuffer) ->
-                        composite.addComponent(true, Unpooled.wrappedBuffer(byteBuffer))
-                )
-                .map(composite -> {
-                    try {
-                        return composite.toString(StandardCharsets.UTF_8);
-                    } finally {
-                        composite.release();
-                    }
+                .doOnNext(byteBuffer -> {
+                    composite.addComponent(true, Unpooled.wrappedBuffer(byteBuffer));
                 })
+                .then(Mono.fromCallable(() -> composite.toString(StandardCharsets.UTF_8)))
+                .doFinally(ignore -> composite.release())
                 .switchIfEmpty(Mono.just(StringUtils.EMPTY));
     }
 
