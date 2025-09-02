@@ -1,0 +1,258 @@
+openapi: 3.0.0
+info:
+  title: Kusto Ingest REST API
+  version: 0.0.1
+  description: API for ingesting data into Kusto (excluding streaming ingest)
+servers:
+  - description: A kusto cluster ingest endpoint
+    url: https://ingest-{clusterName}.kusto.windows.net
+    variables:
+      clusterName:
+        default: "mycluster.swedencentral"
+        description: The name of the Kusto cluster, including the region, e.g., "mycluster.swedencentral".
+paths:
+  /queued:
+    post:
+      summary: Submit an ingest request
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+      responses:
+        '200':
+          description: Ingest operation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+  /configuration:
+    post:
+      summary: Get ingest configuration
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Configuration response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigurationResponse'
+  /status:
+    post:
+      summary: Get status of an ingest operation
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusRequest'
+      responses:
+        '200':
+          description: Status response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    IngestRequest:
+      type: object
+      properties:
+        Timestamp:
+          type: string
+          format: date-time
+        Blobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Blob'
+        Properties:
+          type: object
+          description: Ingestion options for the request
+          properties:
+            format:
+              type: string
+              description: Data format (e.g., csv, tsv, scsv, sohsv, psv, txt, raw, tsve, json, singlejson, multijson, avro, parquet, sstream, orc, apacheavro, w3clogfile, azmonstream)
+              enum:
+                - csv
+                - tsv
+                - scsv
+                - sohsv
+                - psv
+                - txt
+                - raw
+                - tsve
+                - json
+                - singlejson
+                - multijson
+                - avro
+                - parquet
+                - sstream
+                - orc
+                - apacheavro
+                - w3clogfile
+                - azmonstream
+              minLength: 1
+            enableTracking:
+              type: boolean
+              description: Enable tracking for the ingest operation
+              nullable: true
+            tags:
+              type: array
+              items:
+                type: string
+              description: List of tags for the ingest operation
+              nullable: true
+            ingestIfNotExists:
+              type: array
+              items:
+                type: string
+              description: Tags for ingest-if-not-exists
+              nullable: true
+            skipBatching:
+              type: boolean
+              description: Skip batching during ingestion
+              nullable: true
+            deleteAfterDownload:
+              type: boolean
+              description: Delete blob after download
+              nullable: true
+            mappingReference:
+              type: string
+              description: Reference to a named mapping policy
+              nullable: true
+            mapping:
+              type: string
+              description: Ingestion mapping object
+              nullable: true
+            validationPolicy:
+              type: string
+              description: Validation policy for ingestion
+              nullable: true
+            ignoreSizeLimit:
+              type: boolean
+              description: Ignore size limit during ingestion
+              nullable: true
+            ignoreFirstRecord:
+              type: boolean
+              description: Skip the first record (e.g., header)
+              nullable: true
+            ignoreLastRecordIfInvalid:
+              type: boolean
+              description: Ignore last record if invalid
+              nullable: true
+            creationTime:
+              type: string
+              format: date-time
+              description: Creation time for ingested data extents
+              nullable: true
+            zipPattern:
+              type: string
+              description: Regex pattern for selecting files in ZIP archive
+              nullable: true
+            extend_schema:
+              type: boolean
+              description: Extend table schema if needed
+              nullable: true
+            recreate_schema:
+              type: boolean
+              description: Recreate table schema if needed
+              nullable: true
+          required:
+            - format
+          additionalProperties: true
+    Blob:
+      type: object
+      properties:
+        Url:
+          type: string
+        SourceId:
+          type: string
+        RawSize:
+          type: integer
+          nullable: true
+    IngestResponse:
+      type: object
+      properties:
+        IngestionOperationId:
+          type: string
+    ConfigurationResponse:
+      type: object
+      properties:
+        ContainerSettings:
+          $ref: '#/components/schemas/ContainerSettings'
+        IngestionSettings:
+          $ref: '#/components/schemas/IngestionSettings'
+    ContainerSettings:
+      type: object
+      properties:
+        Containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerInfo'
+        LakeFolders:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContainerInfo'
+        RefreshInterval:
+          type: string
+        PreferredUploadMethod:
+          type: string
+          nullable: true
+    IngestionSettings:
+      type: object
+      properties:
+        MaxBlobsPerBatch:
+          type: integer
+        MaxDataSize:
+          type: integer
+        PreferredIngestionMethod:
+          type: string
+          nullable: true
+    ContainerInfo:
+      type: object
+      properties:
+        Path:
+          type: string
+    StatusRequest:
+      type: object
+      properties:
+        Table:
+          type: string
+        Database:
+          type: string
+        OperationId:
+          type: string
+        Details:
+          type: boolean
+    StatusResponse:
+      type: object
+      properties:
+        StartTime:
+          type: string
+          format: date-time
+        LastUpdated:
+          type: string
+          format: date-time
+        Status:
+          $ref: '#/components/schemas/Status'
+        Details:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlobStatus'
+    Status:
+      type: object
+      # Define properties as needed
+    BlobStatus:
+      type: object
+      # Define properties as needed
