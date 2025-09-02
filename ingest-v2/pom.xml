@@ -2,14 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>ingest-v2</artifactId>
-    <version>0.0.1</version>
+    <version>${revision}</version>
     <name>ingest-v2</name>
     <description>ingest-v2</description>
     <properties>
         <kotlin.code.style>official</kotlin.code.style>
-        <kotlin_version>2.1.10</kotlin_version>
+        <kotlin_version>2.1.21</kotlin_version>
         <ktor_version>3.2.3</ktor_version>
         <ktor_async_api_version>3.1.1</ktor_async_api_version>
         <logback_version>1.4.14</logback_version>
@@ -18,8 +17,12 @@
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <main.class>io.ktor.server.netty.EngineMain</main.class>
     </properties>
-    <repositories>
-    </repositories>
+    <parent>
+        <artifactId>kusto-client</artifactId>
+        <groupId>com.microsoft.azure.kusto</groupId>
+        <!--suppress MavenPropertyInParent -->
+        <version>${revision}</version>
+    </parent>
     <dependencies>
         <dependency>
             <groupId>io.ktor</groupId>
@@ -61,6 +64,31 @@
             <artifactId>ktor-server-config-yaml-jvm</artifactId>
             <version>${ktor_version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.jaxrs</groupId>
+            <artifactId>jackson-jaxrs-base</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>jackson-databind-nullable</artifactId>
+            <version>0.2.7</version>
+        </dependency>        
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-test-host-jvm</artifactId>
@@ -179,6 +207,40 @@
                         <version>${kotlin_version}</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <!-- activate the plugin -->
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <!-- RELEASE_VERSION -->
+                <version>7.15.0</version>
+                <!-- /RELEASE_VERSION -->
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <!-- specify the swagger yaml -->
+                            <inputSpec>${project.basedir}/src/main/resources/openapi.yaml</inputSpec>
+                            <cleanupOutput>true</cleanupOutput>
+                            <!-- target to generate kotlin client code -->
+                            <generatorName>kotlin</generatorName>
+                            <!-- pass any necessary config options -->
+                            <configOptions>
+                                <serializableModel>true</serializableModel>
+                                <library>jvm-ktor</library>
+<!--                                <groupId>com.microsoft.azure.kusto.gen</groupId>-->
+<!--                                <artifactId>kusto-ingest-v2</artifactId>-->
+                                <packageName>com.microsoft.azure.kusto.ingest.v2</packageName>
+                                <idea>true</idea>
+                                <dateLibrary>java8</dateLibrary>
+                            </configOptions>
+                            <library>jvm-ktor</library>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
