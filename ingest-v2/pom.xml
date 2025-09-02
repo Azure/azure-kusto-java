@@ -229,13 +229,14 @@
                             <generatorName>kotlin</generatorName>
                             <!-- pass any necessary config options -->
                             <configOptions>
-                                <serializableModel>true</serializableModel>
                                 <library>jvm-ktor</library>
 <!--                                <groupId>com.microsoft.azure.kusto.gen</groupId>-->
 <!--                                <artifactId>kusto-ingest-v2</artifactId>-->
                                 <packageName>com.microsoft.azure.kusto.ingest.v2</packageName>
                                 <idea>true</idea>
                                 <dateLibrary>java8</dateLibrary>
+                                <serializableModel>true</serializableModel>
+                                <serializationLibrary>jackson</serializationLibrary>
                             </configOptions>
                             <library>jvm-ktor</library>
                         </configuration>
