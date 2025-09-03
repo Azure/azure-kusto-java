@@ -26,12 +26,12 @@
     <dependencies>
         <dependency>
             <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-content-negotiation-jvm</artifactId>
+            <artifactId>ktor-client-auth-jvm</artifactId>
             <version>${ktor_version}</version>
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-core-jvm</artifactId>
+            <artifactId>ktor-client-content-negotiation-jvm</artifactId>
             <version>${ktor_version}</version>
         </dependency>
         <dependency>
@@ -40,29 +40,9 @@
             <version>${ktor_version}</version>
         </dependency>
         <dependency>
-            <groupId>org.openfolder</groupId>
-            <artifactId>kotlin-asyncapi-ktor</artifactId>
-            <version>${ktor_async_api_version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-netty-jvm</artifactId>
-            <version>${ktor_version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback_version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <artifactId>slf4j-simple</artifactId>
             <version>${slf4j_version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-config-yaml-jvm</artifactId>
-            <version>${ktor_version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
