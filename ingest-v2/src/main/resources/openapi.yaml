@@ -11,11 +11,22 @@ servers:
         default: "mycluster.swedencentral"
         description: The name of the Kusto cluster, including the region, e.g., "mycluster.swedencentral".
 paths:
-  /queued:
+  /v1/rest/ingestion/queued/{database}/{table}:
     post:
       summary: Submit an ingest request
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
+      parameters:
+        - name: database
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -29,11 +40,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IngestResponse'
-  /configuration:
-    post:
+  /v1/rest/ingestion/configuration:
+    get:
       summary: Get ingest configuration
       security:
-        - BearerAuth: []
+        - BearerAuth: [ ]
       responses:
         '200':
           description: Configuration response
@@ -41,17 +52,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConfigurationResponse'
-  /status:
-    post:
+  /v1/rest/ingestion/queued/{database}/{table}/{operationId}:
+    get:
       summary: Get status of an ingest operation
+      parameters:
+        - name: database
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: details
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
       security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StatusRequest'
+        - BearerAuth: [ ]
       responses:
         '200':
           description: Status response
@@ -59,6 +86,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StatusResponse'
+  /v1/rest/ingest/{database}/{table}:
+    servers:
+      - url: https://{clusterName}.kusto.windows.net
+        variables:
+          clusterName:
+            default: "mycluster.swedencentral"
+            description: The name of the Kusto cluster, including the region, e.g., "mycluster.swedencentral".
+    post:
+      summary: Streaming Ingest
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - name: database
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: streamFormat
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Format'
+        - name: mappingName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sourceKind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - uri
+      responses:
+        '200':
+          description: Ingestion mappings response
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              format: binary
 components:
   securitySchemes:
     BearerAuth:
@@ -66,43 +141,44 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    Format:
+      type: string
+      description: Data format (e.g., csv, tsv, scsv, sohsv, psv, txt, raw, tsve, json, singlejson, multijson, avro, parquet, sstream, orc, apacheavro, w3clogfile, azmonstream)
+      enum:
+        - csv
+        - tsv
+        - scsv
+        - sohsv
+        - psv
+        - txt
+        - raw
+        - tsve
+        - json
+        - singlejson
+        - multijson
+        - avro
+        - parquet
+        - sstream
+        - orc
+        - apacheavro
+        - w3clogfile
+        - azmonstream
     IngestRequest:
       type: object
       properties:
-        Timestamp:
+        timestamp:
           type: string
           format: date-time
-        Blobs:
+        blobs:
           type: array
           items:
             $ref: '#/components/schemas/Blob'
-        Properties:
+        properties:
           type: object
           description: Ingestion options for the request
           properties:
             format:
-              type: string
-              description: Data format (e.g., csv, tsv, scsv, sohsv, psv, txt, raw, tsve, json, singlejson, multijson, avro, parquet, sstream, orc, apacheavro, w3clogfile, azmonstream)
-              enum:
-                - csv
-                - tsv
-                - scsv
-                - sohsv
-                - psv
-                - txt
-                - raw
-                - tsve
-                - json
-                - singlejson
-                - multijson
-                - avro
-                - parquet
-                - sstream
-                - orc
-                - apacheavro
-                - w3clogfile
-                - azmonstream
-              minLength: 1
+              $ref: '#/components/schemas/Format'
             enableTracking:
               type: boolean
               description: Enable tracking for the ingest operation
@@ -174,85 +250,113 @@ components:
     Blob:
       type: object
       properties:
-        Url:
+        url:
           type: string
-        SourceId:
+        sourceId:
           type: string
-        RawSize:
+        rawSize:
           type: integer
           nullable: true
     IngestResponse:
       type: object
       properties:
-        IngestionOperationId:
+        ingestionOperationId:
           type: string
     ConfigurationResponse:
       type: object
       properties:
-        ContainerSettings:
+        containerSettings:
           $ref: '#/components/schemas/ContainerSettings'
-        IngestionSettings:
+        ingestionSettings:
           $ref: '#/components/schemas/IngestionSettings'
     ContainerSettings:
       type: object
       properties:
-        Containers:
+        containers:
           type: array
           items:
             $ref: '#/components/schemas/ContainerInfo'
-        LakeFolders:
+        lakeFolders:
           type: array
           items:
             $ref: '#/components/schemas/ContainerInfo'
-        RefreshInterval:
+        refreshInterval:
           type: string
-        PreferredUploadMethod:
+        preferredUploadMethod:
           type: string
           nullable: true
     IngestionSettings:
       type: object
       properties:
-        MaxBlobsPerBatch:
+        maxBlobsPerBatch:
           type: integer
-        MaxDataSize:
+        maxDataSize:
           type: integer
-        PreferredIngestionMethod:
+        preferredIngestionMethod:
           type: string
           nullable: true
     ContainerInfo:
       type: object
       properties:
-        Path:
+        path:
           type: string
-    StatusRequest:
-      type: object
-      properties:
-        Table:
-          type: string
-        Database:
-          type: string
-        OperationId:
-          type: string
-        Details:
-          type: boolean
     StatusResponse:
       type: object
       properties:
-        StartTime:
+        startTime:
           type: string
           format: date-time
-        LastUpdated:
+        lastUpdated:
           type: string
           format: date-time
-        Status:
-          $ref: '#/components/schemas/Status'
-        Details:
+        status:
+          $ref: "#/components/schemas/Status"
+        details:
           type: array
           items:
             $ref: '#/components/schemas/BlobStatus'
     Status:
       type: object
-      # Define properties as needed
+      properties:
+        succeeded:
+          type: integer
+        failed:
+          type: integer
+        inProgress:
+          type: integer
+        canceled:
+          type: integer
+
     BlobStatus:
       type: object
-      # Define properties as needed
+      properties:
+        sourceId:
+          type: string
+        status:
+          type: string
+          enum:
+            - Queued
+            - InProgress
+            - Succeeded
+            - Failed
+            - Canceled
+        startedAt:
+          type: string
+          format: date-time
+        lastUpdateTime:
+          type: string
+          format: date-time
+        errorCode:
+          type: string
+          nullable: true
+        failureStatus:
+          type: string
+          enum:
+            - Unknown
+            - Permanent
+            - Transient
+            - Exhausted
+          nullable: true
+        details:
+          type: string
+          nullable: true
