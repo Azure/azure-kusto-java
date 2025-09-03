@@ -65,24 +65,16 @@
             <version>${ktor_version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.jaxrs</groupId>
-            <artifactId>jackson-jaxrs-base</artifactId>
-            <version>${fasterxml.jackson.core.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${fasterxml.jackson.core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${fasterxml.jackson.core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${fasterxml.jackson.core.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openapitools</groupId>
@@ -116,32 +108,7 @@
                 <directory>${project.basedir}/src/main/resources</directory>
             </resource>
         </resources>
-
         <plugins>
-            <plugin>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <version>${kotlin_version}</version>
-                <configuration>
-                    <jvmTarget>1.8</jvmTarget>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -234,9 +201,12 @@
 <!--                                <artifactId>kusto-ingest-v2</artifactId>-->
                                 <packageName>com.microsoft.azure.kusto.ingest.v2</packageName>
                                 <idea>true</idea>
+                                <!-- Use the Java 8 date library -->
                                 <dateLibrary>java8</dateLibrary>
+                                <!-- Use the Jackson for serialization and implements serializable -->
                                 <serializableModel>true</serializableModel>
                                 <serializationLibrary>jackson</serializationLibrary>
+                                <generateTests>true</generateTests>
                             </configOptions>
                             <library>jvm-ktor</library>
                         </configuration>

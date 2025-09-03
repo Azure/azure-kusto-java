@@ -44,7 +44,7 @@
         <commons-codec.version>1.17.0</commons-codec.version>
         <apache.httpclient.version>4.5.14</apache.httpclient.version>
         <reactor-test.version>3.6.11</reactor-test.version>
-        <fasterxml.jackson.core.version>2.16.0</fasterxml.jackson.core.version>
+        <fasterxml.jackson.core.version>2.19.2</fasterxml.jackson.core.version>
         <univocity-parsers.version>2.9.1</univocity-parsers.version>
         <resilience4j.version>1.7.1</resilience4j.version>
         <io.vavr.version>0.10.4</io.vavr.version>
@@ -113,4 +113,22 @@
             </plugin>
         </plugins>
     </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>${azure-bom-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${fasterxml.jackson.core.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
