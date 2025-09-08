@@ -9,7 +9,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 
 class ConfigurationApiWrapper(
     override val clusterUrl: String,
-    val tokenCredentialsProvider: TokenCredentialsProvider,
+    override val tokenCredentialsProvider: TokenCredentialsProvider,
     override val skipSecurityChecks: Boolean = false,
     // Allow injection for testing
     private val configurationApi: DefaultApi? = null,

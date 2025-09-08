@@ -10,7 +10,7 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import java.net.URI
+import java.net.URL
 
 open class KustoBaseApiClient(
     open val clusterUrl: String,
@@ -18,12 +18,13 @@ open class KustoBaseApiClient(
     open val skipSecurityChecks: Boolean = false,
 ) {
     init {
-        if (!skipSecurityChecks) {
-            val uri = URI(clusterUrl)
-            val scheme = uri.scheme?.lowercase()
-            if (scheme != "https") {
-                throw IllegalArgumentException("The provided endpoint is not a valid endpoint")
-            }
+        val uri = try {
+            URL(clusterUrl)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Invalid cluster URL: $clusterUrl", e)
+        }
+        if (uri.protocol != "https" && !skipSecurityChecks) {
+            throw IllegalArgumentException("Cluster URL must use HTTPS: $clusterUrl")
         }
     }
 
