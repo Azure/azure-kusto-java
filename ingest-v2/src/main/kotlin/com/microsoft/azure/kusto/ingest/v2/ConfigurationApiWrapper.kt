@@ -4,6 +4,7 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.common.auth.TokenCredentialsProvider
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
@@ -31,6 +32,7 @@ class ConfigurationApiWrapper(
                 "Configuration details: {}",
                 configurationHttpResponse.body(),
             )
+            logger.debug("Configuration details: {}", configurationHttpResponse.body())
             return configurationHttpResponse.body()
         } else {
             logger.error(
