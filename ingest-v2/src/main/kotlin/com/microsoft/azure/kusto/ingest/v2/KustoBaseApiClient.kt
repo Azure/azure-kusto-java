@@ -28,7 +28,16 @@ open class KustoBaseApiClient(
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
 ) {
-    private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
+    init {
+        if (!skipSecurityChecks) {
+            val uri = URI(clusterUrl)
+            val scheme = uri.scheme?.lowercase()
+            if (scheme != "https") {
+                throw IllegalArgumentException("The provided endpoint is not a valid endpoint")
+            }
+        }
+    }
+
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
     }

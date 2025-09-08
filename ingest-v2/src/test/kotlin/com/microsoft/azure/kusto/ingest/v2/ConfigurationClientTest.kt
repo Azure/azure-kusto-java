@@ -4,6 +4,11 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
+import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
@@ -16,9 +21,15 @@ import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Execution(ExecutionMode.CONCURRENT)
-class ConfigurationClientTest :
-    IngestV2TestBase(ConfigurationClientTest::class.java) {
+class ConfigurationApiWrapperTest {
+    private lateinit var defaultApi: DefaultApi
+    private lateinit var wrapper: ConfigurationApiWrapper
+    private val clusterUrl = "https://testcluster.kusto.windows.net"
+    private val tokenProvider = mockk<TokenCredentialsProvider>(relaxed = true)
+
+    private val logger =
+        LoggerFactory.getLogger(ConfigurationApiWrapperTest::class.java)
+
     private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
             Arguments.of(
