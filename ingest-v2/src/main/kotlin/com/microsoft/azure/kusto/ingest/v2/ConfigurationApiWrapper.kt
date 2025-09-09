@@ -12,22 +12,12 @@ class ConfigurationApiWrapper(
     override val dmUrl: String,
     override val tokenCredentialsProvider: TokenCredentialsProvider,
     override val skipSecurityChecks: Boolean = false,
-) :
-    KustoBaseApiClient(
-        dmUrl,
-        tokenCredentialsProvider,
-        skipSecurityChecks,
-    ) {
+) : KustoBaseApiClient(dmUrl, tokenCredentialsProvider, skipSecurityChecks) {
     private val logger =
-        LoggerFactory.getLogger(
-            ConfigurationApiWrapper::class.java,
-        )
+        LoggerFactory.getLogger(ConfigurationApiWrapper::class.java)
     private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
     private val api: DefaultApi =
-        DefaultApi(
-            baseUrl = dmUrl,
-            httpClientConfig = setupConfig,
-        )
+        DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
 
     suspend fun getConfigurationDetails(): ConfigurationResponse {
         val configurationHttpResponse: HttpResponse<ConfigurationResponse> =
