@@ -22,7 +22,7 @@ class ConfigurationApiWrapperTest {
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
         try {
             val config = actualWrapper.getConfigurationDetails()
-            logger.debug("E2E Test Success: Retrieved configuration: $config")
+            logger.debug("E2E Test Success: Retrieved configuration: {}", config)
             assertNotNull(config, "Configuration should not be null")
             assertNotNull(
                 config.containerSettings,
@@ -41,7 +41,7 @@ class ConfigurationApiWrapperTest {
                 }
             }
         } catch (ex: Exception) {
-            println("E2E Test Failed: ${ex.message}")
+            logger.error("E2E Test Failed", ex)
             throw ex
         }
     }
