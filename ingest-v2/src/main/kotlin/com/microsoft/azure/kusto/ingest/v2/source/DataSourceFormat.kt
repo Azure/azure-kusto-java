@@ -32,7 +32,11 @@ enum class DataFormat(
     }
 
     fun isBinaryFormat(): Boolean {
-        return this == AVRO || this == APACHEAVRO || this == PARQUET || this == SSTREAM || this == ORC
+        return this == AVRO ||
+            this == APACHEAVRO ||
+            this == PARQUET ||
+            this == SSTREAM ||
+            this == ORC
     }
 
     fun isJsonFormat(): Boolean {

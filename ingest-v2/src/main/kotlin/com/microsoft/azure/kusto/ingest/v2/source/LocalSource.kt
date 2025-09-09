@@ -17,7 +17,9 @@ abstract class LocalSource(
     // val leaveOpen: Boolean // Already a constructor property
 
     internal val shouldCompress: Boolean
-        get() = (compressionType == CompressionType.NONE) && !format.isBinaryFormat()
+        get() =
+            (compressionType == CompressionType.NONE) &&
+                !format.isBinaryFormat()
 
     abstract fun data(): InputStream
 
