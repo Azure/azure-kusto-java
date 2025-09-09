@@ -14,8 +14,11 @@ abstract class IngestionSource(
         private set
 
     fun initName(baseName: String? = null) {
-        val type = this::class.simpleName?.lowercase()?.removeSuffix("source") ?: "unknown"
-        name = "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format.toKustoValue()}$compressionType"
+        val type =
+            this::class.simpleName?.lowercase()?.removeSuffix("source")
+                ?: "unknown"
+        name =
+            "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format.toKustoValue()}$compressionType"
     }
 }
 

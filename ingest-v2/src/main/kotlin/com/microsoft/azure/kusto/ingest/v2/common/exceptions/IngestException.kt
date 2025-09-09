@@ -12,7 +12,9 @@ open class IngestException(
     open val creationMessage: String? = message
 
     override val message: String
-        get() = creationMessage ?: "Something went wrong calling into a Kusto client library (fallback message)."
+        get() =
+            creationMessage
+                ?: "Something went wrong calling into a Kusto client library (fallback message)."
 
     override fun toString(): String = message
 }
@@ -67,7 +69,9 @@ open class IngestClientException(
     cause: Throwable? = null,
 ) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
     override val message: String
-        get() = creationMessage ?: "An error occurred for source: '${ingestionSource ?: ""}'. Error: '${error ?: ""}'"
+        get() =
+            creationMessage
+                ?: "An error occurred for source: '${ingestionSource ?: ""}'. Error: '${error ?: ""}'"
 }
 
 class IngestSizeLimitExceededException(
@@ -119,7 +123,9 @@ class InvalidIngestionMappingException(
         cause,
     ) {
     override val message: String
-        get() = creationMessage ?: "Ingestion mapping is invalid: ${super.message ?: ""}"
+        get() =
+            creationMessage
+                ?: "Ingestion mapping is invalid: ${super.message ?: ""}"
 }
 
 class MultipleIngestionMappingPropertiesException(
@@ -158,7 +164,9 @@ open class UploadFailedException(
     cause: Throwable? = null,
 ) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
     override val message: String
-        get() = creationMessage ?: "An error occurred while attempting to upload file `$fileName` to blob `$blobName`."
+        get() =
+            creationMessage
+                ?: "An error occurred while attempting to upload file `$fileName` to blob `$blobName`."
 }
 
 class NoAvailableIngestContainersException(
@@ -169,7 +177,16 @@ class NoAvailableIngestContainersException(
     isPermanent: Boolean? = false,
     message: String? = null,
     cause: Throwable? = null,
-) : UploadFailedException(fileName, blobName, failureCode, failureSubCode, isPermanent, message, cause) {
+) :
+    UploadFailedException(
+        fileName,
+        blobName,
+        failureCode,
+        failureSubCode,
+        isPermanent,
+        message,
+        cause,
+    ) {
     override val message: String
         get() = creationMessage ?: "No available containers for upload."
 }
@@ -182,9 +199,20 @@ class InvalidUploadStreamException(
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
-) : UploadFailedException(fileName, blobName, failureCode, failureSubCode, isPermanent, message, cause) {
+) :
+    UploadFailedException(
+        fileName,
+        blobName,
+        failureCode,
+        failureSubCode,
+        isPermanent,
+        message,
+        cause,
+    ) {
     override val message: String
-        get() = creationMessage ?: "The stream provided for upload is invalid - $failureSubCode."
+        get() =
+            creationMessage
+                ?: "The stream provided for upload is invalid - $failureSubCode."
 }
 
 class UploadSizeLimitExceededException(
@@ -197,7 +225,16 @@ class UploadSizeLimitExceededException(
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
-) : UploadFailedException(fileName, blobName, failureCode, failureSubCode, isPermanent, message, cause) {
+) :
+    UploadFailedException(
+        fileName,
+        blobName,
+        failureCode,
+        failureSubCode,
+        isPermanent,
+        message,
+        cause,
+    ) {
     override val message: String
         get() =
             creationMessage
