@@ -1,6 +1,7 @@
 /* (C)2025 */
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.auth.AzCliTokenCredentialsProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
@@ -10,9 +11,8 @@ import org.slf4j.LoggerFactory
 class ConfigurationApiWrapperTest {
 
     private val logger =
-        LoggerFactory.getLogger(
-            ConfigurationApiWrapperTest::class.java,
-        )
+        LoggerFactory.getLogger(ConfigurationApiWrapperTest::class.java)
+
     @Test
     fun `run e2e test with an actual cluster`(): Unit = runBlocking {
         val actualTokenProvider =
@@ -21,9 +21,25 @@ class ConfigurationApiWrapperTest {
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
         try {
-            val config = actualWrapper.getConfigurationDetails()
-            logger.debug("E2E Test Success: Retrieved configuration: {}", config)
-            assertNotNull(config, "Configuration should not be null")
+            val defaultCachedConfig =
+                DefaultConfigurationCache(
+                    configurationProvider = {
+                        actualWrapper.getConfigurationDetails()
+                    },
+                )
+            logger.debug(
+                "E2E Test Success: Retrieved configuration: {}",
+                defaultCachedConfig,
+            )
+            assertNotNull(
+                defaultCachedConfig,
+                "DefaultConfiguration should not be null",
+            )
+            val config = defaultCachedConfig.getConfiguration()
+            assertNotNull(
+                defaultCachedConfig,
+                "Configuration should not be null",
+            )
             assertNotNull(
                 config.containerSettings,
                 "ContainerSettings should not be null",
