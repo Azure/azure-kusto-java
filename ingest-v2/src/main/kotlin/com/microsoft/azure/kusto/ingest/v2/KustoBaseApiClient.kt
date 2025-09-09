@@ -1,4 +1,5 @@
-/* (C)2025 */
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.auth.TokenCredentialsProvider
@@ -10,6 +11,7 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 
 open class KustoBaseApiClient(
     open val dmUrl: String,
@@ -53,6 +55,16 @@ open class KustoBaseApiClient(
                 }
             }
         }
-        config.install(ContentNegotiation) { json() }
+        config.install(ContentNegotiation) {
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                    // Optionally add other settings if needed:
+                    // isLenient = true
+                    // allowSpecialFloatingPointValues = true
+                    // useArrayPolymorphism = true
+                },
+            )
+        }
     }
 }

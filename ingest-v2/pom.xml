@@ -56,7 +56,7 @@
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit</artifactId>
+            <artifactId>kotlin-test-junit5</artifactId>
             <version>${kotlin_version}</version>
             <scope>test</scope>
         </dependency>
@@ -70,6 +70,12 @@
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -155,7 +161,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-            <!-- activate the plugin -->
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -177,13 +182,10 @@
                             <!-- pass any necessary config options -->
                             <configOptions>
                                 <library>jvm-ktor</library>
-<!--                                <groupId>com.microsoft.azure.kusto.gen</groupId>-->
-<!--                                <artifactId>kusto-ingest-v2</artifactId>-->
                                 <packageName>com.microsoft.azure.kusto.ingest.v2</packageName>
                                 <idea>true</idea>
                                 <!-- Use the Java 8 date library -->
                                 <dateLibrary>java8</dateLibrary>
-                                <!-- Use the Jackson for serialization and implements serializable -->
                                 <serializableModel>true</serializableModel>
                                 <serializationLibrary>kotlinx_serialization</serializationLibrary>
                                 <generateTests>true</generateTests>
@@ -227,7 +229,10 @@
                             </customRuleSets>
                         </ktlint>
                         <licenseHeader>
-                            <content>/* (C)$YEAR */</content>  <!-- or <file>${project.basedir}/license-header</file> -->
+                            <content>
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+                            </content>  <!-- or <file>${project.basedir}/license-header</file> -->
                         </licenseHeader>
                     </kotlin>
                 </configuration>

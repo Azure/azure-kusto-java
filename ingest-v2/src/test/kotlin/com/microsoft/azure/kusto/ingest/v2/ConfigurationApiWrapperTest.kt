@@ -1,23 +1,40 @@
-/* (C)2025 */
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.auth.AzCliTokenCredentialsProvider
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertNotNull
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.slf4j.LoggerFactory
+import java.util.stream.Stream
+import kotlin.test.assertNotNull
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ConfigurationApiWrapperTest {
 
     private val logger =
         LoggerFactory.getLogger(ConfigurationApiWrapperTest::class.java)
 
-    @Test
-    fun `run e2e test with an actual cluster`(): Unit = runBlocking {
+    private fun endpointAndExceptionClause(): Stream<Arguments?> {
+        return Stream.of(
+            Arguments.of(System.getenv("DM_CONNECTION_STRING"), false),
+            Arguments.of("https://help.kusto.windows.net", true),
+        )
+    }
+
+    @ParameterizedTest
+    @MethodSource("endpointAndExceptionClause")
+    fun `run e2e test with an actual cluster`(
+        cluster: String,
+        isException: Boolean,
+    ): Unit = runBlocking {
         val actualTokenProvider =
             AzCliTokenCredentialsProvider() // Replace with a real token provider
-        val cluster = System.getenv("DM_CONNECTION_STRING")
+        // val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
         try {
