@@ -10,41 +10,46 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import java.net.URL
 
 open class KustoBaseApiClient(
     open val clusterUrl: String,
     open val tokenCredentialsProvider: TokenCredentialsProvider,
     open val skipSecurityChecks: Boolean = false,
 ) {
-    init {
-        val uri = try {
-            URL(clusterUrl)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid cluster URL: $clusterUrl", e)
-        }
-        if (uri.protocol != "https" && !skipSecurityChecks) {
-            throw IllegalArgumentException("Cluster URL must use HTTPS: $clusterUrl")
-        }
+
+    protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
+        getClientConfig(config)
     }
 
-    protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config -> getClientConfig(config) }
-
     private fun getClientConfig(config: HttpClientConfig<*>) {
-        config.install(DefaultRequest) { header("Content-Type", "application/json") }
+        config.install(DefaultRequest) {
+            header("Content-Type", "application/json")
+        }
         config.install(Auth) {
             bearer {
                 loadTokens {
                     // Always null so refreshTokens is always called
-                    tokenCredentialsProvider.getCredentialsAsync(clusterUrl).tokenValue?.let {
-                        BearerTokens(accessToken = it, refreshToken = null)
-                    }
+                    tokenCredentialsProvider
+                        .getCredentialsAsync(clusterUrl)
+                        .tokenValue
+                        ?.let {
+                            BearerTokens(
+                                accessToken = it,
+                                refreshToken = null,
+                            )
+                        }
                 }
                 refreshTokens {
                     // Always null so refreshTokens is always called
-                    tokenCredentialsProvider.getCredentialsAsync(clusterUrl).tokenValue?.let {
-                        BearerTokens(accessToken = it, refreshToken = null)
-                    }
+                    tokenCredentialsProvider
+                        .getCredentialsAsync(clusterUrl)
+                        .tokenValue
+                        ?.let {
+                            BearerTokens(
+                                accessToken = it,
+                                refreshToken = null,
+                            )
+                        }
                 }
             }
         }

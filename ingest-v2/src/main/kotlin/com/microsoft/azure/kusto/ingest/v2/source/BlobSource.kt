@@ -10,7 +10,12 @@ class BlobSource : IngestionSource {
         format: DataFormat,
         compression: CompressionType? = null,
         sourceId: String? = null,
-    ) : super(format, compression ?: ExtendedDataSourceCompressionType.detectFromUri(url), url, sourceId) {
+    ) : super(
+        format,
+        compression ?: ExtendedDataSourceCompressionType.detectFromUri(url),
+        url,
+        sourceId,
+    ) {
         this.url = url
         this.exactSize = null
     }
@@ -19,7 +24,12 @@ class BlobSource : IngestionSource {
         url: String,
         localSource: LocalSource,
         exactSize: Int? = null,
-    ) : super(localSource.format, localSource.compressionType, url, localSource.sourceId) {
+    ) : super(
+        localSource.format,
+        localSource.compressionType,
+        url,
+        localSource.sourceId,
+    ) {
         this.url = url
         this.exactSize = exactSize
     }

@@ -31,7 +31,11 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
             onError?.invoke(attempt, ex, isPermanent)
             val decision =
                 shouldRetry?.invoke(attempt, ex, isPermanent)
-                    ?: if (isPermanent) RetryDecision.Throw else RetryDecision.Continue
+                    ?: if (isPermanent) {
+                        RetryDecision.Throw
+                    } else {
+                        RetryDecision.Continue
+                    }
 
             when (decision) {
                 RetryDecision.Throw -> {
@@ -42,7 +46,9 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
                 }
 
                 RetryDecision.Break -> {
-                    tracer?.invoke("Breaking out of retry loop early, on attempt $attempt. Exception: ${ex.message}")
+                    tracer?.invoke(
+                        "Breaking out of retry loop early, on attempt $attempt. Exception: ${ex.message}",
+                    )
                     return null
                 }
 
@@ -55,11 +61,15 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
                         if (throwOnExhaustedRetries) throw ex
                         return null
                     }
-                    tracer?.invoke("Transient error occurred: ${ex.message}. Retrying attempt $attempt.")
+                    tracer?.invoke(
+                        "Transient error occurred: ${ex.message}. Retrying attempt $attempt.",
+                    )
                     if (decision != RetryDecision.ContinueWithoutDelay) {
                         if (delayDuration.toMillis() > 0) {
                             if (cancellationChecker?.invoke() == true) {
-                                throw CancellationException("Cancelled during retry delay")
+                                throw CancellationException(
+                                    "Cancelled during retry delay",
+                                )
                             }
                             delay(delayDuration.toMillis())
                         }

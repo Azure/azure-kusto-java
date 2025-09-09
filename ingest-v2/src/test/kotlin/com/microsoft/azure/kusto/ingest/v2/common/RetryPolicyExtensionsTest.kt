@@ -6,7 +6,9 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 class TestIngestRetryPolicy : IngestRetryPolicy {
-    override fun moveNext(retryNumber: UInt): Pair<Boolean, java.time.Duration> {
+    override fun moveNext(
+        retryNumber: UInt,
+    ): Pair<Boolean, java.time.Duration> {
         // Allow up to 3 attempts, 100ms delay
         return Pair(retryNumber < 3u, java.time.Duration.ofMillis(100))
     }

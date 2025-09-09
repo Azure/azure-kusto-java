@@ -23,13 +23,20 @@ class DefaultConfigurationCache(
 
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
-        val needsRefresh = cachedConfiguration == null || (currentTime - lastRefreshTime) >= refreshInterval.toMillis()
+        val needsRefresh =
+            cachedConfiguration == null ||
+                (currentTime - lastRefreshTime) >=
+                refreshInterval.toMillis()
         if (needsRefresh) {
-            val newConfig = runCatching { configurationProvider() }.getOrElse { cachedConfiguration ?: throw it }
+            val newConfig =
+                runCatching { configurationProvider() }
+                    .getOrElse { cachedConfiguration ?: throw it }
             synchronized(this) {
                 // Double-check in case another thread refreshed while we were waiting
                 val stillNeedsRefresh =
-                    cachedConfiguration == null || (currentTime - lastRefreshTime) >= refreshInterval.toMillis()
+                    cachedConfiguration == null ||
+                        (currentTime - lastRefreshTime) >=
+                        refreshInterval.toMillis()
                 if (stillNeedsRefresh) {
                     cachedConfiguration = newConfig
                     lastRefreshTime = currentTime
