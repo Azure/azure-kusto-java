@@ -291,7 +291,7 @@ components:
         maxBlobsPerBatch:
           type: integer
         maxDataSize:
-          type: integer
+          type: long
         preferredIngestionMethod:
           type: string
           nullable: true

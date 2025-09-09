@@ -12,7 +12,7 @@ import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
 
 open class KustoBaseApiClient(
-    open val clusterUrl: String,
+    open val dmUrl: String,
     open val tokenCredentialsProvider: TokenCredentialsProvider,
     open val skipSecurityChecks: Boolean = false,
 ) {
@@ -30,7 +30,7 @@ open class KustoBaseApiClient(
                 loadTokens {
                     // Always null so refreshTokens is always called
                     tokenCredentialsProvider
-                        .getCredentialsAsync(clusterUrl)
+                        .getCredentialsAsync(dmUrl)
                         .tokenValue
                         ?.let {
                             BearerTokens(
@@ -42,7 +42,7 @@ open class KustoBaseApiClient(
                 refreshTokens {
                     // Always null so refreshTokens is always called
                     tokenCredentialsProvider
-                        .getCredentialsAsync(clusterUrl)
+                        .getCredentialsAsync(dmUrl)
                         .tokenValue
                         ?.let {
                             BearerTokens(

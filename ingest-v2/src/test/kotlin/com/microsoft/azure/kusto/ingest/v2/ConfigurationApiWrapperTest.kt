@@ -5,19 +5,24 @@ import com.microsoft.azure.kusto.ingest.v2.common.auth.AzCliTokenCredentialsProv
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
+import org.slf4j.LoggerFactory
 
 class ConfigurationApiWrapperTest {
 
+    private val logger =
+        LoggerFactory.getLogger(
+            ConfigurationApiWrapperTest::class.java,
+        )
     @Test
     fun `run e2e test with an actual cluster`(): Unit = runBlocking {
         val actualTokenProvider =
             AzCliTokenCredentialsProvider() // Replace with a real token provider
-        val cluster = System.getenv("ENGINE_CONNECTION_STRING")
+        val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
         try {
             val config = actualWrapper.getConfigurationDetails()
-            println("E2E Test Success: Retrieved configuration: $config")
+            logger.debug("E2E Test Success: Retrieved configuration: $config")
             assertNotNull(config, "Configuration should not be null")
             assertNotNull(
                 config.containerSettings,
