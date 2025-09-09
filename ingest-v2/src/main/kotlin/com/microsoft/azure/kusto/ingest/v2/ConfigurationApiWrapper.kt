@@ -6,24 +6,26 @@ import com.microsoft.azure.kusto.ingest.v2.common.auth.TokenCredentialsProvider
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
+import org.slf4j.LoggerFactory
 
 class ConfigurationApiWrapper(
-    override val clusterUrl: String,
+    override val dmUrl: String,
     override val tokenCredentialsProvider: TokenCredentialsProvider,
     override val skipSecurityChecks: Boolean = false,
 ) :
     KustoBaseApiClient(
-        clusterUrl,
+        dmUrl,
         tokenCredentialsProvider,
         skipSecurityChecks,
     ) {
     private val logger =
-        org.slf4j.LoggerFactory.getLogger(
+        LoggerFactory.getLogger(
             ConfigurationApiWrapper::class.java,
         )
+    private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
     private val api: DefaultApi =
         DefaultApi(
-            baseUrl = "$clusterUrl/v1/rest/ingest",
+            baseUrl = dmUrl,
             httpClientConfig = setupConfig,
         )
 
@@ -32,7 +34,7 @@ class ConfigurationApiWrapper(
             api.v1RestIngestionConfigurationGet()
         if (configurationHttpResponse.success) {
             logger.info(
-                "Successfully retrieved configuration details from $clusterUrl with status: ${configurationHttpResponse.status}",
+                "Successfully retrieved configuration details from $dmUrl with status: ${configurationHttpResponse.status}",
             )
             logger.debug(
                 "Configuration details: {}",
@@ -41,11 +43,11 @@ class ConfigurationApiWrapper(
             return configurationHttpResponse.body()
         } else {
             logger.error(
-                "Failed to retrieve configuration details from $clusterUrl. Status: ${configurationHttpResponse.status}, " +
+                "Failed to retrieve configuration details from $baseUrl. Status: ${configurationHttpResponse.status}, " +
                     "Body: ${configurationHttpResponse.body()}",
             )
             throw IngestException(
-                "Failed to retrieve configuration details from $clusterUrl. Status: ${configurationHttpResponse.status}, " +
+                "Failed to retrieve configuration details from $baseUrl. Status: ${configurationHttpResponse.status}, " +
                     "Body: ${configurationHttpResponse.body()}",
             )
         }
