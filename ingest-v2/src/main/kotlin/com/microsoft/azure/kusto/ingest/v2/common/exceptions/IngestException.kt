@@ -1,4 +1,5 @@
-/* (C)2025 */
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.exceptions
 
 open class IngestException(
