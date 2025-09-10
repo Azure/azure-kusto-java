@@ -4,8 +4,10 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.auth.AzCliTokenCredentialsProvider
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
@@ -37,7 +39,17 @@ class ConfigurationApiWrapperTest {
         // val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
-        try {
+        if (isException) {
+            // assert the call to DefaultConfigurationCache throws
+            assertThrows<IngestException> {
+                DefaultConfigurationCache(
+                    configurationProvider = {
+                        actualWrapper.getConfigurationDetails()
+                    },
+                )
+                    .getConfiguration()
+            }
+        } else {
             val defaultCachedConfig =
                 DefaultConfigurationCache(
                     configurationProvider = {
@@ -53,10 +65,7 @@ class ConfigurationApiWrapperTest {
                 "DefaultConfiguration should not be null",
             )
             val config = defaultCachedConfig.getConfiguration()
-            assertNotNull(
-                defaultCachedConfig,
-                "Configuration should not be null",
-            )
+            assertNotNull(config, "Configuration should not be null")
             assertNotNull(
                 config.containerSettings,
                 "ContainerSettings should not be null",
@@ -73,9 +82,6 @@ class ConfigurationApiWrapperTest {
                     )
                 }
             }
-        } catch (ex: Exception) {
-            logger.error("E2E Test Failed", ex)
-            throw ex
         }
     }
 }
