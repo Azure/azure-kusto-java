@@ -6,7 +6,6 @@ package com.microsoft.azure.kusto.ingest.v2.client
 import com.microsoft.azure.kusto.ingest.v2.source.DataFormat
 import kotlinx.serialization.Serializable
 import java.time.Instant
-import java.util.*
 
 /**
  * Validation policy options for ingestion.
@@ -341,31 +340,6 @@ inline fun ingestProperties(configure: IngestProperties.Builder.() -> Unit): Ing
     return IngestProperties.builder().apply(configure).build()
 }
 
-/**
- * Modifies existing IngestProperties with DSL-style configuration.
- */
-fun IngestProperties.modify(configure: IngestProperties.Builder.() -> Unit): IngestProperties {
-    return IngestProperties.builder().apply {
-        enableTracking(this@modify.enableTracking)
-        skipBatching(this@modify.skipBatching)
-        deleteAfterDownload(this@modify.deleteAfterDownload)
-        mapping(this@modify.mapping)
-        validationPolicy(this@modify.validationPolicy)
-        ignoreSizeLimit(this@modify.ignoreSizeLimit)
-        ignoreFirstRecord(this@modify.ignoreFirstRecord)
-        ignoreLastRecordIfInvalid(this@modify.ignoreLastRecordIfInvalid)
-        creationTime(this@modify.creationTime)
-        this@modify.zipPattern?.let { zipPattern(it.regex) }
-        extendSchema(this@modify.extendSchema)
-        recreateSchema(this@modify.recreateSchema)
-        
-        // Copy tags
-        this@modify.tags.ingestByTags.forEach { addIngestByTag(it) }
-        this@modify.tags.dropByTags.forEach { addDropByTag(it) }
-        this@modify.tags.ingestIfNotExistsTags.forEach { addIngestIfNotExistsTag(it) }
-        this@modify.tags.additionalTags.forEach { addAdditionalTag(it) }
-    }.apply(configure).build()
-}
 
 /**
  * Converts IngestProperties to API IngestRequestProperties format.
