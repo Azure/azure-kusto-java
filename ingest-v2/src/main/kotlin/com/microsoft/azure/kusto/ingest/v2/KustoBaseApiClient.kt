@@ -101,10 +101,7 @@ open class KustoBaseApiClient(
                 Json {
                     ignoreUnknownKeys = true
                     serializersModule = SerializersModule {
-                        contextual(
-                            OffsetDateTime::class,
-                            OffsetDateTimeSerializer,
-                        )
+                        contextual(OffsetDateTime::class, OffsetDateTimeSerializer)
                     }
                     // Optionally add other settings if needed:
                     isLenient = true

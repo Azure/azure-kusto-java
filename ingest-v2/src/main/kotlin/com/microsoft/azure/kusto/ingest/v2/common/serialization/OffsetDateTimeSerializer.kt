@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 package com.microsoft.azure.kusto.ingest.v2.common.serialization
 
 import kotlinx.serialization.KSerializer
@@ -12,23 +13,16 @@ import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Custom serializer for OffsetDateTime to handle JSON
- * serialization/deserialization.
+ * Custom serializer for OffsetDateTime to handle JSON serialization/deserialization.
  */
 object OffsetDateTimeSerializer : KSerializer<OffsetDateTime> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("OffsetDateTime", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: OffsetDateTime) {
-        encoder.encodeString(
-            value.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
-        )
+        encoder.encodeString(value.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
     }
 
     override fun deserialize(decoder: Decoder): OffsetDateTime {
-        return OffsetDateTime.parse(
-            decoder.decodeString(),
-            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
-        )
+        return OffsetDateTime.parse(decoder.decodeString(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     }
 }
