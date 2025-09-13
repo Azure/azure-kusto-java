@@ -12,7 +12,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.contextual
 import java.time.OffsetDateTime
 import java.util.*
 
@@ -143,7 +142,7 @@ data class IngestionOperation(
                 ingestionMethod = ingestionMethod,
                 database = database,
                 table = table,
-                startTime = statusResponse.startTime ?: java.time.OffsetDateTime.now(),
+                startTime = statusResponse.startTime ?: OffsetDateTime.now(),
                 storedResults = statusResponse.details ?: emptyList(),
                 statusCounts = statusResponse.status,
                 isDataManagementOperationId = true
