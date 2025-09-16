@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -210,8 +211,8 @@ public class IngestionStatus {
         return ingestionInfo;
     }
 
-    private UUID fromId(Object id) {
-        if (id instanceof String && StringUtils.isNotEmpty((String) id)) {
+    private static UUID fromId(Object id) {
+        if (id instanceof String && StringUtils.isNotBlank((String) id)) {
             return UUID.fromString((String) id);
         } else if (id instanceof UUID) {
             return (UUID) id;
@@ -238,7 +239,7 @@ public class IngestionStatus {
         }
 
         Object activityId = tableEntity.getProperty("ActivityId");
-        ingestionStatus.setActivityId(ingestionSourceId == null ? null : (UUID) activityId);
+        ingestionStatus.setActivityId(ingestionSourceId == null ? null : fromId(activityId));
 
         ingestionStatus.setFailureStatus((String) tableEntity.getProperty("FailureStatus"));
 
