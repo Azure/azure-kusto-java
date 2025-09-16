@@ -1,7 +1,11 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.models.TableEntity;
-import com.microsoft.azure.kusto.data.StringUtils;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class IngestionStatusTest {
     static Stream<Object[]> fromIdTestCases() {
