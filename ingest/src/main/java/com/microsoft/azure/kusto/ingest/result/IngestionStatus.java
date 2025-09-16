@@ -220,7 +220,7 @@ public class IngestionStatus {
         return ingestionInfo;
     }
 
-    private static UUID fromId(Object id) {
+    static UUID fromId(Object id) {
         if (id instanceof String && StringUtils.isNotBlank((String) id)) {
             try {
                 return UUID.fromString((String) id);
