@@ -4,12 +4,21 @@
 package com.microsoft.azure.kusto.ingest.result;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.StringUtils;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
+
+import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.net.URISyntaxException;
 
 /// <summary>
 /// This class represents an ingestion status.
@@ -23,6 +32,7 @@ public class IngestionStatus {
     /// during the ingestion's process
     /// and will be updated as soon as the ingestion completes.
     /// </summary>
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public OperationStatus status;
     private Map<String, Object> ingestionInfo = new HashMap<>();
 
@@ -210,16 +220,30 @@ public class IngestionStatus {
         return ingestionInfo;
     }
 
+    static UUID fromId(Object id) {
+        if (id instanceof String && StringUtils.isNotBlank((String) id)) {
+            try {
+                return UUID.fromString((String) id);
+            } catch (IllegalArgumentException e) {
+                log.warn("Failed to parse id [{}] to UUID,set to id set to null", id);
+                return null;
+            }
+        } else if (id instanceof UUID) {
+            return (UUID) id;
+        }
+        return null;
+    }
+
     public static IngestionStatus fromEntity(TableEntity tableEntity) {
         IngestionStatus ingestionStatus = new IngestionStatus();
         Object ingestionSourceId = tableEntity.getProperty("IngestionSourceId");
-        ingestionStatus.setIngestionSourceId(ingestionSourceId == null ? null : (UUID) ingestionSourceId);
+        ingestionStatus.setIngestionSourceId(fromId(ingestionSourceId));
 
         ingestionStatus.setDatabase((String) tableEntity.getProperty("Database"));
         ingestionStatus.setTable((String) tableEntity.getProperty("Table"));
 
         Object operationId = tableEntity.getProperty("OperationId");
-        ingestionStatus.setOperationId(ingestionSourceId == null ? null : (UUID) operationId);
+        ingestionStatus.setOperationId(operationId == null ? null : fromId(operationId));
 
         Object status = tableEntity.getProperty("Status");
         if (status instanceof String) {
@@ -229,7 +253,7 @@ public class IngestionStatus {
         }
 
         Object activityId = tableEntity.getProperty("ActivityId");
-        ingestionStatus.setActivityId(ingestionSourceId == null ? null : (UUID) activityId);
+        ingestionStatus.setActivityId(ingestionSourceId == null ? null : fromId(activityId));
 
         ingestionStatus.setFailureStatus((String) tableEntity.getProperty("FailureStatus"));
 
