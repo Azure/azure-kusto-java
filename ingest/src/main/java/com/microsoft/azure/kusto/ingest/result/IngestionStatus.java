@@ -210,16 +210,25 @@ public class IngestionStatus {
         return ingestionInfo;
     }
 
+    private UUID fromId(Object id) {
+        if (id instanceof String && StringUtils.isNotEmpty((String) id)) {
+            return UUID.fromString((String) id);
+        } else if (id instanceof UUID) {
+            return (UUID) id;
+        }
+        return null;
+    }
+
     public static IngestionStatus fromEntity(TableEntity tableEntity) {
         IngestionStatus ingestionStatus = new IngestionStatus();
         Object ingestionSourceId = tableEntity.getProperty("IngestionSourceId");
-        ingestionStatus.setIngestionSourceId(ingestionSourceId == null ? null : (UUID) ingestionSourceId);
+        ingestionStatus.setIngestionSourceId(fromId(ingestionSourceId));
 
         ingestionStatus.setDatabase((String) tableEntity.getProperty("Database"));
         ingestionStatus.setTable((String) tableEntity.getProperty("Table"));
 
         Object operationId = tableEntity.getProperty("OperationId");
-        ingestionStatus.setOperationId(ingestionSourceId == null ? null : (UUID) operationId);
+        ingestionStatus.setOperationId(ingestionSourceId == null ? null : fromId(operationId));
 
         Object status = tableEntity.getProperty("Status");
         if (status instanceof String) {
