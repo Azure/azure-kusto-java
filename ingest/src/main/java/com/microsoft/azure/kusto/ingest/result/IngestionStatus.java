@@ -12,6 +12,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
+
+import java.io.Serializable;
+import java.lang.invoke.MethodHandles;
+import java.net.URISyntaxException;
+
 /// <summary>
 /// This class represents an ingestion status.
 /// </summary>
@@ -24,6 +32,7 @@ public class IngestionStatus {
     /// during the ingestion's process
     /// and will be updated as soon as the ingestion completes.
     /// </summary>
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     public OperationStatus status;
     private Map<String, Object> ingestionInfo = new HashMap<>();
 
@@ -213,7 +222,12 @@ public class IngestionStatus {
 
     private static UUID fromId(Object id) {
         if (id instanceof String && StringUtils.isNotBlank((String) id)) {
-            return UUID.fromString((String) id);
+            try {
+                return UUID.fromString((String) id);
+            } catch (IllegalArgumentException e) {
+                log.warn("Failed to parse id [{}] to UUID,set to id set to null", id);
+                return null;
+            }
         } else if (id instanceof UUID) {
             return (UUID) id;
         }
@@ -229,7 +243,7 @@ public class IngestionStatus {
         ingestionStatus.setTable((String) tableEntity.getProperty("Table"));
 
         Object operationId = tableEntity.getProperty("OperationId");
-        ingestionStatus.setOperationId(ingestionSourceId == null ? null : fromId(operationId));
+        ingestionStatus.setOperationId(operationId == null ? null : fromId(operationId));
 
         Object status = tableEntity.getProperty("Status");
         if (status instanceof String) {
