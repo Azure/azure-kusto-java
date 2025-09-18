@@ -8,15 +8,17 @@
     <description>ingest-v2</description>
     <properties>
         <kotlin.code.style>official</kotlin.code.style>
-        <kotlin_version>2.1.21</kotlin_version>
-        <ktor_version>3.2.3</ktor_version>
-        <ktor_async_api_version>3.1.1</ktor_async_api_version>
-        <logback_version>1.4.14</logback_version>
-        <slf4j_version>2.0.9</slf4j_version>
+        <kotlin.version>2.2.20</kotlin.version>
+        <ktor.version>3.3.0</ktor.version>
+        <ktor.async.api.version>3.1.1</ktor.async.api.version>
+        <kotlinx.coroutines.debug.version>1.10.2</kotlinx.coroutines.debug.version>
+        <logback.version>1.4.14</logback.version>
+        <junit.version>5.10.0</junit.version>
+        <openapi.generator.version>7.15.0</openapi.generator.version>
+        <slf4j.version>2.0.9</slf4j.version>
         <spotless.version>2.46.1</spotless.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
-        <main.class>io.ktor.server.netty.EngineMain</main.class>
     </properties>
     <parent>
         <artifactId>kusto-client</artifactId>
@@ -28,27 +30,27 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-auth-jvm</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-content-negotiation-jvm</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-java-jvm</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j_version}</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
@@ -57,13 +59,13 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test-junit5</artifactId>
-            <version>${kotlin_version}</version>
+            <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-debug</artifactId>
-            <version>1.6.4</version>
+            <version>${kotlinx.coroutines.debug.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -89,49 +91,9 @@
         </resources>
         <plugins>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.2.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <mainClass>${main.class}</mainClass>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <mainClass>${main.class}</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>assemble-all</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin_version}</version>
+                <version>${kotlin.version}</version>
                 <executions>
                     <execution>
                         <id>compile</id>
@@ -152,23 +114,19 @@
                         <goals>
                             <goal>test-compile</goal>
                         </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
-                            </sourceDirs>
-                        </configuration>
                     </execution>
                 </executions>
                 <configuration>
                     <compilerPlugins>
                         <plugin>kotlinx-serialization</plugin>
                     </compilerPlugins>
+                    <jvmTarget>1.8</jvmTarget>
                 </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-maven-serialization</artifactId>
-                        <version>${kotlin_version}</version>
+                        <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -176,7 +134,7 @@
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
                 <!-- RELEASE_VERSION -->
-                <version>7.15.0</version>
+                <version>${openapi.generator.version}</version>
                 <!-- /RELEASE_VERSION -->
                 <executions>
                     <execution>
@@ -185,7 +143,10 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <!-- specify the swagger yaml -->
+                            <typeMappings>integer=java.lang.Long,int=java.lang.Long</typeMappings>
+                            <globalProperties>
+                                <authMethods>bearer</authMethods>
+                            </globalProperties>
                             <inputSpec>${project.basedir}/src/main/resources/openapi.yaml</inputSpec>
                             <cleanupOutput>true</cleanupOutput>
                             <!-- target to generate kotlin client code -->
@@ -249,25 +210,6 @@
                     </kotlin>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.mojo</groupId>-->
-<!--                <artifactId>build-helper-maven-plugin</artifactId>-->
-<!--                <version>3.6.1</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>add-openapi-generated-sources</id>-->
-<!--                        <phase>generate-sources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>add-source</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <sources>-->
-<!--                                <source>${project.build.directory}/generated-sources/openapi/src/main/kotlin</source>-->
-<!--                            </sources>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 </project>
