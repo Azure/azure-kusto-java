@@ -22,7 +22,7 @@ class ConfigurationApiWrapper(
 
     suspend fun getConfigurationDetails(): ConfigurationResponse {
         val configurationHttpResponse: HttpResponse<ConfigurationResponse> =
-            api.v1RestIngestionConfigurationGet()
+            api.getIngestConfiguration()
         if (configurationHttpResponse.success) {
             logger.info(
                 "Successfully retrieved configuration details from $dmUrl with status: ${configurationHttpResponse.status}",

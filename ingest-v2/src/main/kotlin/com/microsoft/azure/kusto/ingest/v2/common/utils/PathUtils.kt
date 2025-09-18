@@ -7,7 +7,7 @@ import java.util.*
 import java.util.regex.Pattern
 
 object PathUtils {
-    private const val PREFIX = "Ingest.V2.Dotnet"
+    private const val PREFIX = "Ingest.V2.Java"
     private const val FILE_NAME_SEGMENT_MAX_LENGTH = 120
     private const val TOTAL_TWO_SEGMENT_MAX_LENGTH = 160
     private const val TRUNCATION_SUFFIX = "__trunc"
