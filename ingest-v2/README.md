@@ -13,7 +13,7 @@ Here are some useful links to get you started:
 Here's a list of features included in this project:
 
 | Name                                                                   | Description                                                                        |
-| ------------------------------------------------------------------------|------------------------------------------------------------------------------------ |
+|------------------------------------------------------------------------|------------------------------------------------------------------------------------|
 | [Content Negotiation](https://start.ktor.io/p/content-negotiation)     | Provides automatic content conversion according to Content-Type and Accept headers |
 | [Routing](https://start.ktor.io/p/routing)                             | Provides a structured routing DSL                                                  |
 | [kotlinx.serialization](https://start.ktor.io/p/kotlinx-serialization) | Handles JSON serialization using kotlinx.serialization library                     |
@@ -24,7 +24,7 @@ Here's a list of features included in this project:
 To build or run the project, use one of the following tasks:
 
 | Task                                                         | Description       |
-| --------------------------------------------------------------|------------------- |
+|--------------------------------------------------------------|-------------------|
 | `mvn test`                                                   | Run the tests     |
 | `mvn package`                                                | Build the project |
 | `java -jar target/ingest-v2-0.0.1-jar-with-dependencies.jar` | Run the server    |

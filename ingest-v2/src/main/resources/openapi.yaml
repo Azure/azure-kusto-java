@@ -8,12 +8,13 @@ servers:
     url: https://ingest-{clusterName}.kusto.windows.net
     variables:
       clusterName:
-        default: "mycluster.swedencentral"
+        default: "ingest-mycluster.swedencentral"
         description: The name of the Kusto cluster, including the region, e.g., "mycluster.swedencentral".
 paths:
   /v1/rest/ingestion/queued/{database}/{table}:
     post:
       summary: Submit an ingest request
+      operationId: postQueuedIngest
       security:
         - BearerAuth: [ ]
       parameters:
@@ -43,6 +44,7 @@ paths:
   /v1/rest/ingestion/configuration:
     get:
       summary: Get ingest configuration
+      operationId: getIngestConfiguration
       security:
         - BearerAuth: [ ]
       responses:
@@ -55,6 +57,7 @@ paths:
   /v1/rest/ingestion/queued/{database}/{table}/{operationId}:
     get:
       summary: Get status of an ingest operation
+      operationId: getIngestStatus
       parameters:
         - name: database
           in: path
@@ -88,13 +91,14 @@ paths:
                 $ref: '#/components/schemas/StatusResponse'
   /v1/rest/ingest/{database}/{table}:
     servers:
-      - url: https://{clusterName}.kusto.windows.net
+      - url: https://ingest-{clusterName}.kusto.windows.net
         variables:
           clusterName:
-            default: "mycluster.swedencentral"
+            default: "ingest-mycluster.swedencentral"
             description: The name of the Kusto cluster, including the region, e.g., "mycluster.swedencentral".
     post:
       summary: Streaming Ingest
+      operationId: postStreamingIngest
       security:
         - BearerAuth: [ ]
       parameters:
@@ -291,7 +295,7 @@ components:
         maxBlobsPerBatch:
           type: integer
         maxDataSize:
-          type: long
+          type: integer
         preferredIngestionMethod:
           type: string
           nullable: true
