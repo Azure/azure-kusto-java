@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
-import com.microsoft.azure.kusto.ingest.v2.common.auth.AzCliTokenCredentialsProvider
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
@@ -35,7 +35,7 @@ class ConfigurationApiWrapperTest {
         isException: Boolean,
     ): Unit = runBlocking {
         val actualTokenProvider =
-            AzCliTokenCredentialsProvider() // Replace with a real token provider
+            AzureCliCredentialBuilder().build() // Replace with a real token provider
         // val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)
