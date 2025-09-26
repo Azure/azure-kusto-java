@@ -40,7 +40,7 @@ class BlobSource : IngestionSource {
         return "$url SourceId: $sourceId"
     }
 
+    // No resources to close; method intentionally left empty.
     override fun close() {
-        TODO("Not yet implemented")
     }
 }

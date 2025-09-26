@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
-import com.microsoft.azure.kusto.ingest.v2.common.auth.TokenCredentialsProvider
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory
 
 class ConfigurationApiWrapper(
     override val dmUrl: String,
-    override val tokenCredentialsProvider: TokenCredentialsProvider,
+    override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
-) : KustoBaseApiClient(dmUrl, tokenCredentialsProvider, skipSecurityChecks) {
+) : KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks) {
     private val logger =
         LoggerFactory.getLogger(ConfigurationApiWrapper::class.java)
     private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
