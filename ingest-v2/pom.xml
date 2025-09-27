@@ -2,7 +2,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>ingest-v2</artifactId>
     <version>${revision}</version>
     <name>ingest-v2</name>
@@ -53,7 +52,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-jackson</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -77,12 +76,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.mockk</groupId>
-            <artifactId>mockk-jvm</artifactId>
-            <version>1.14.5</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
@@ -92,6 +85,12 @@
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -108,7 +107,6 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
                 <executions>
                     <execution>
@@ -132,6 +130,18 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <compilerPlugins>
+                        <plugin>kotlinx-serialization</plugin>
+                    </compilerPlugins>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -144,12 +154,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <compilerPlugins>
-                        <plugin>kotlinx-serialization</plugin>
-                    </compilerPlugins>
-                    <jvmTarget>1.8</jvmTarget>
-                </configuration>
                 <dependencies>
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
@@ -195,45 +199,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
-                <configuration>
-                    <kotlin>
-                        <!-- These are the defaults, you can override if you want -->
-                        <includes>
-                            <include>src/main/kotlin/**/*.kt</include>
-                            <include>src/test/kotlin/**/*.kt</include>
-                        </includes>
-
-                        <ktfmt>
-                            <version>0.51</version> <!-- optional -->
-                            <style>KOTLINLANG</style> <!-- optional, options are META (default), GOOGLE and KOTLINLANG -->
-                            <maxWidth>120</maxWidth> <!-- optional -->
-                            <blockIndent>4</blockIndent> <!-- optional -->
-                            <continuationIndent>8</continuationIndent> <!-- optional -->
-                            <removeUnusedImports>false</removeUnusedImports> <!-- optional -->
-                            <manageTrailingCommas>true</manageTrailingCommas> <!-- optional -->
-                        </ktfmt>
-                        <ktlint>
-                            <version>1.0.0</version> <!-- optional -->
-                            <editorConfigOverride> <!-- optional -->
-                                <ij_kotlin_allow_trailing_comma>true</ij_kotlin_allow_trailing_comma>
-                                <ij_kotlin_allow_trailing_comma_on_call_site>true</ij_kotlin_allow_trailing_comma_on_call_site>
-                                <!-- intellij_idea is the default style we preset in Spotless, you can override it referring to https://pinterest.github.io/ktlint/latest/rules/code-styles. -->
-                                <ktlint_code_style>intellij_idea</ktlint_code_style>
-                            </editorConfigOverride>
-                            <customRuleSets> <!-- optional -->
-                                <value>io.nlopez.compose.rules:ktlint:0.4.25</value>
-                            </customRuleSets>
-                        </ktlint>
-                        <licenseHeader>
-                            <content>/* (C)$YEAR */</content>  <!-- or <file>${project.basedir}/license-header</file> -->
-                        </licenseHeader>
-                    </kotlin>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -299,7 +264,7 @@
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-maven-serialization</artifactId>
-                        <version>${kotlin_version}</version>
+                        <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
