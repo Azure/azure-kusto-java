@@ -8,7 +8,7 @@
     <description>ingest-v2</description>
     <properties>
         <kotlin.code.style>official</kotlin.code.style>
-        <kotlin.version>2.2.20</kotlin.version>
+        <kotlin.version>2.2.10</kotlin.version>
         <ktor.version>3.3.0</ktor.version>
         <ktor.async.api.version>3.1.1</ktor.async.api.version>
         <kotlinx.coroutines.debug.version>1.10.2</kotlinx.coroutines.debug.version>
