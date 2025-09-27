@@ -150,15 +150,27 @@ class QueuedIngestionApiWrapper(
                 )
 
             if (response.success) {
+                val ingestStatusResponse = response.body()
                 logger.debug(
-                    "Successfully retrieved summary for operation: $operationId",
+                    "Successfully retrieved summary for operation: {} and details: {}",
+                    operationId,
+                    ingestStatusResponse,
                 )
-                logger.debug("Summary response: {}", response.body())
-                return response.body()
+                return ingestStatusResponse
             } else {
+                val ingestStatusFailure: StatusResponse = response.body()
+                // check if it is a permanent failure from status
+                // TODO : get permanent failures from details if available
+                ingestStatusFailure.details?.let {
+                    if (IngestionResultUtils.hasFailedResults(it)) {
+                        logger.error(
+                            "Ingestion operation $operationId has permanent failures: $ingestStatusFailure",
+                        )
+                    }
+                }
                 val errorMessage =
                     "Failed to get ingestion summary for operation $operationId. " +
-                        "Status: ${response.status}, Body: ${response.body()}"
+                        "Status: ${response.status}, Body: $ingestStatusFailure"
                 logger.error(errorMessage)
                 throw IngestException(errorMessage)
             }
