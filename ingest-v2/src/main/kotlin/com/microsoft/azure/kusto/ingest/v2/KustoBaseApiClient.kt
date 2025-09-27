@@ -18,7 +18,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
-import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -28,15 +27,6 @@ open class KustoBaseApiClient(
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
 ) {
-    init {
-        if (!skipSecurityChecks) {
-            val uri = URI(clusterUrl)
-            val scheme = uri.scheme?.lowercase()
-            if (scheme != "https") {
-                throw IllegalArgumentException("The provided endpoint is not a valid endpoint")
-            }
-        }
-    }
 
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
@@ -101,7 +91,10 @@ open class KustoBaseApiClient(
                 Json {
                     ignoreUnknownKeys = true
                     serializersModule = SerializersModule {
-                        contextual(OffsetDateTime::class, OffsetDateTimeSerializer)
+                        contextual(
+                            OffsetDateTime::class,
+                            OffsetDateTimeSerializer,
+                        )
                     }
                     // Optionally add other settings if needed:
                     isLenient = true

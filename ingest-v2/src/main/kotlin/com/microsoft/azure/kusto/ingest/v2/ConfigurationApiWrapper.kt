@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
-import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
@@ -17,8 +16,6 @@ class ConfigurationApiWrapper(
     private val logger =
         LoggerFactory.getLogger(ConfigurationApiWrapper::class.java)
     private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
-    private val api: DefaultApi =
-        DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
 
     suspend fun getConfigurationDetails(): ConfigurationResponse {
         val configurationHttpResponse: HttpResponse<ConfigurationResponse> =

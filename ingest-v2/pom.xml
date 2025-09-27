@@ -2,7 +2,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.microsoft.azure.kusto</groupId>
     <artifactId>ingest-v2</artifactId>
     <version>${revision}</version>
     <name>ingest-v2</name>
@@ -58,7 +57,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-jackson</artifactId>
-            <version>${ktor_version}</version>
+            <version>${ktor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -88,12 +87,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.mockk</groupId>
-            <artifactId>mockk-jvm</artifactId>
-            <version>1.14.5</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>kusto-data</artifactId>
             <version>${project.parent.version}</version>
@@ -103,6 +96,12 @@
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -139,18 +138,6 @@
                         <phase>test-compile</phase>
                         <goals>
                             <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.2.1</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>java</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -223,64 +210,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.6.1</version>
-                <executions>
-                    <execution>
-                        <id>add-openapi-generated-sources</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.build.directory}/generated-sources/openapi/src/main/kotlin</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
-                <configuration>
-                    <kotlin>
-                        <!-- These are the defaults, you can override if you want -->
-                        <includes>
-                            <include>src/main/kotlin/**/*.kt</include>
-                            <include>src/test/kotlin/**/*.kt</include>
-                        </includes>
-
-                        <ktfmt>
-                            <version>0.51</version> <!-- optional -->
-                            <style>KOTLINLANG</style> <!-- optional, options are META (default), GOOGLE and KOTLINLANG -->
-                            <maxWidth>120</maxWidth> <!-- optional -->
-                            <blockIndent>4</blockIndent> <!-- optional -->
-                            <continuationIndent>8</continuationIndent> <!-- optional -->
-                            <removeUnusedImports>false</removeUnusedImports> <!-- optional -->
-                            <manageTrailingCommas>true</manageTrailingCommas> <!-- optional -->
-                        </ktfmt>
-                        <ktlint>
-                            <version>1.0.0</version> <!-- optional -->
-                            <editorConfigOverride> <!-- optional -->
-                                <ij_kotlin_allow_trailing_comma>true</ij_kotlin_allow_trailing_comma>
-                                <ij_kotlin_allow_trailing_comma_on_call_site>true</ij_kotlin_allow_trailing_comma_on_call_site>
-                                <!-- intellij_idea is the default style we preset in Spotless, you can override it referring to https://pinterest.github.io/ktlint/latest/rules/code-styles. -->
-                                <ktlint_code_style>intellij_idea</ktlint_code_style>
-                            </editorConfigOverride>
-                            <customRuleSets> <!-- optional -->
-                                <value>io.nlopez.compose.rules:ktlint:0.4.25</value>
-                            </customRuleSets>
-                        </ktlint>
-                        <licenseHeader>
-                            <content>/* (C)$YEAR */</content>  <!-- or <file>${project.basedir}/license-header</file> -->
-                        </licenseHeader>
-                    </kotlin>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
