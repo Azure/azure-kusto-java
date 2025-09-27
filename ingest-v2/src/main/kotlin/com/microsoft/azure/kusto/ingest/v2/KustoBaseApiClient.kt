@@ -4,6 +4,8 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
+import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.auth.Auth
@@ -12,8 +14,10 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import java.time.OffsetDateTime
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -22,18 +26,13 @@ open class KustoBaseApiClient(
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
 ) {
-    init {
-        if (!skipSecurityChecks) {
-            val uri = URI(clusterUrl)
-            val scheme = uri.scheme?.lowercase()
-            if (scheme != "https") {
-                throw IllegalArgumentException("The provided endpoint is not a valid endpoint")
-            }
-        }
-    }
 
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
+    }
+
+    protected val api: DefaultApi by lazy {
+        DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }
 
     private fun getClientConfig(config: HttpClientConfig<*>) {
@@ -55,15 +54,24 @@ open class KustoBaseApiClient(
                                 .getToken(trc)
                                 .subscribe(
                                     { accessToken ->
-                                        val bearerTokens = BearerTokens(
-                                            accessToken = accessToken.token,
-                                            refreshToken = null,
+                                        val bearerTokens =
+                                            BearerTokens(
+                                                accessToken =
+                                                accessToken
+                                                    .token,
+                                                refreshToken =
+                                                null,
+                                            )
+                                        continuation.resume(
+                                            bearerTokens,
                                         )
-                                        continuation.resume(bearerTokens)
                                     },
                                     { error ->
-                                        continuation.resumeWithException(error)
-                                    }
+                                        continuation
+                                            .resumeWithException(
+                                                error,
+                                            )
+                                    },
                                 )
                         }
                     } catch (e: Exception) {
@@ -78,10 +86,13 @@ open class KustoBaseApiClient(
                 Json {
                     ignoreUnknownKeys = true
                     serializersModule = SerializersModule {
-                        contextual(OffsetDateTime::class, OffsetDateTimeSerializer)
+                        contextual(
+                            OffsetDateTime::class,
+                            OffsetDateTimeSerializer,
+                        )
                     }
                     // Optionally add other settings if needed:
-                    // isLenient = true
+                    isLenient = true
                     // allowSpecialFloatingPointValues = true
                     // useArrayPolymorphism = true
                 },
