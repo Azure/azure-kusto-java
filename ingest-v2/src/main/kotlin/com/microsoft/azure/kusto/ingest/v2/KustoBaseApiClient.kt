@@ -17,6 +17,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -26,7 +27,7 @@ open class KustoBaseApiClient(
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
 ) {
-
+    private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
     }
@@ -76,7 +77,11 @@ open class KustoBaseApiClient(
                         }
                     } catch (e: Exception) {
                         // Handle token retrieval errors
-                        null
+                        logger.error(
+                            "Error retrieving access token: ${e.message}",
+                            e,
+                        )
+                        throw e
                     }
                 }
             }
