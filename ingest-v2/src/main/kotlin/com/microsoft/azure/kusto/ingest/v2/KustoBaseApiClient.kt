@@ -104,11 +104,13 @@ open class KustoBaseApiClient(
                 },
             )
         }
-        /* TODO Check what these settings should be */
-        config.install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 60_000
-            socketTimeoutMillis = 60_000
-        }
+        /*
+        TODO Check what these settings should be
+                config.install(HttpTimeout) {
+                    requestTimeoutMillis = 20_000
+                    connectTimeoutMillis = 20_000
+                    socketTimeoutMillis = 20_000
+                }
+         */
     }
 }
