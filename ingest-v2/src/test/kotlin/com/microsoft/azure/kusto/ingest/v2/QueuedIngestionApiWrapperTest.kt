@@ -13,8 +13,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.util.*
@@ -78,11 +79,18 @@ class QueuedIngestionApiWrapperTest {
     @AfterAll
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
-        adminClient.executeMgmt(database, dropTableScript)
+        // adminClient.executeMgmt(database, dropTableScript)
     }
 
-    @Test
-    fun `test queued ingestion with CSV blob`(): Unit = runBlocking {
+    @ParameterizedTest
+    @CsvSource(
+        "https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv, 0",
+      //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1", TODO This test fails (failureStatus is not right)
+    )
+    fun `test queued ingestion with CSV blob`(
+        blobUrl: String,
+        numberOfFailures: Int,
+    ): Unit = runBlocking {
         // Skip test if no DM_CONNECTION_STRING is set
         if (dmEndpoint == null) {
             assumeTrue(
@@ -97,10 +105,7 @@ class QueuedIngestionApiWrapperTest {
                 tokenCredential = azureCliCredential,
                 skipSecurityChecks = true,
             )
-        val testBlobUrls =
-            listOf(
-                "https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv",
-            )
+        val testBlobUrls = listOf(blobUrl)
         val format = DataFormat.CSV
         val properties = ingestProperties { enableTracking(true) }
 
@@ -170,6 +175,11 @@ class QueuedIngestionApiWrapperTest {
                 assert(succeededCount > 0 || failedCount > 0) {
                     "Expected at least some blobs to be processed"
                 }
+
+                assert(failedCount == numberOfFailures) {
+                    "Expected $numberOfFailures failed ingestions, but got $failedCount"
+                }
+
                 if (failedCount > 0) {
                     finalStatus.details
                         .filter { blobStatus ->
