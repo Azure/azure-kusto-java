@@ -9,12 +9,14 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
+import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.DataFormat
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
@@ -103,11 +105,35 @@ class QueuedIngestionApiWrapper(
 
                 return ingestResponseBody
             } else {
+                // 404 is a special case - it indicates that the endpoint is not found. This may be
+                // a transient network issue
+                if (response.status == HttpStatusCode.NotFound.value) {
+                    val message =
+                        "Endpoint $dmUrl not found. Please ensure the cluster supports queued ingestion."
+                    logger.error(
+                        "Ingestion endpoint not found. Please ensure that the target cluster supports " +
+                            "queued ingestion and that the endpoint URL is correct.",
+                    )
+                    throw IngestException(
+                        message = message,
+                        cause = RuntimeException(message),
+                        failureCode = response.status,
+                        failureSubCode = "",
+                        isPermanent = false,
+                    )
+                }
+                val nonSuccessResponseBody: IngestResponse = response.body()
+                // Exception for non-success status codes except for 404 in which case you can retry
                 val errorMessage =
                     "Failed to submit queued ingestion to $database.$table. " +
-                        "Status: ${response.status}, Body: ${response.body()}"
-                logger.error(errorMessage)
-                throw IngestException(errorMessage)
+                        "Status: ${response.status}, Body: $nonSuccessResponseBody. " +
+                        "OperationId ${nonSuccessResponseBody.ingestionOperationId}"
+                logger.error("Ingestion failed with response: {}", errorMessage)
+                throw IngestException(
+                    message = errorMessage,
+                    cause = RuntimeException(errorMessage),
+                    isPermanent = true,
+                )
             }
         } catch (e: Exception) {
             logger.error(
@@ -116,8 +142,10 @@ class QueuedIngestionApiWrapper(
             )
             if (e is IngestException) throw e
             throw IngestException(
-                "Failed to submit queued ingestion: ${e.message}",
-                e,
+                message =
+                "Error submitting queued ingest request to $dmUrl",
+                cause = e,
+                isPermanent = true,
             )
         }
     }
@@ -139,7 +167,6 @@ class QueuedIngestionApiWrapper(
         details: Boolean,
     ): StatusResponse {
         logger.debug("Checking ingestion summary for operation: $operationId")
-
         try {
             val response: HttpResponse<StatusResponse> =
                 api.getIngestStatus(
@@ -149,7 +176,7 @@ class QueuedIngestionApiWrapper(
                     details = details,
                 )
 
-            if (response.success) {
+            if (response.success && response.status == HttpStatusCode.OK.value) {
                 val ingestStatusResponse = response.body()
                 logger.debug(
                     "Successfully retrieved summary for operation: {} and details: {}",
@@ -158,21 +185,40 @@ class QueuedIngestionApiWrapper(
                 )
                 return ingestStatusResponse
             } else {
+                logger.error(response.toString())
                 val ingestStatusFailure: StatusResponse = response.body()
                 // check if it is a permanent failure from status
-                // TODO : get permanent failures from details if available
-                ingestStatusFailure.details?.let {
-                    if (IngestionResultUtils.hasFailedResults(it)) {
-                        logger.error(
-                            "Ingestion operation $operationId has permanent failures: $ingestStatusFailure",
-                        )
+                val transientFailures =
+                    ingestStatusFailure.details?.filter {
+                        it.failureStatus ==
+                            BlobStatus.FailureStatus.Transient
                     }
+                val hasTransientErrors = transientFailures.isNullOrEmpty()
+
+                if (
+                    response.status == HttpStatusCode.NotFound.value ||
+                    hasTransientErrors
+                ) {
+                    val message =
+                        if (hasTransientErrors) {
+                            printMessagesFromFailures(transientFailures)
+                        } else {
+                            "Error polling $dmUrl for operation $operationId."
+                        }
+                    logger.error(message)
+                    throw IngestException(
+                        message = message,
+                        cause = RuntimeException(message),
+                        failureCode = response.status,
+                        failureSubCode = "",
+                        isPermanent = false,
+                    )
                 }
                 val errorMessage =
-                    "Failed to get ingestion summary for operation $operationId. " +
-                        "Status: ${response.status}, Body: $ingestStatusFailure"
+                    printMessagesFromFailures(ingestStatusFailure.details)
+                        ?: "Failed to get ingestion summary for operation $operationId. Status: ${response.status}, Body: $ingestStatusFailure"
                 logger.error(errorMessage)
-                throw IngestException(errorMessage)
+                throw IngestException(errorMessage, isPermanent = true)
             }
         } catch (e: Exception) {
             logger.error(
@@ -184,6 +230,26 @@ class QueuedIngestionApiWrapper(
                 "Failed to get ingestion summary: ${e.message}",
                 e,
             )
+        }
+    }
+
+    private fun printMessagesFromFailures(
+        failures: List<BlobStatus>?,
+    ): String? {
+        return failures?.joinToString {
+                (
+                    sourceId,
+                    status,
+                    startedAt,
+                    lastUpdateTime,
+                    errorCode,
+                    failureStatus,
+                    details,
+                ),
+            ->
+            "Error ingesting blob with $sourceId. ErrorDetails $details, ErrorCode $errorCode " +
+                ", Status ${status?.value}. Ingestion lastUpdated at $lastUpdateTime & started at $startedAt. " +
+                "FailureStatus ${failureStatus?.value}"
         }
     }
 
