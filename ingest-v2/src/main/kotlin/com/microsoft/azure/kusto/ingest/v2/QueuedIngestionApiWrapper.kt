@@ -3,8 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
-import com.microsoft.azure.kusto.ingest.v2.client.IngestProperties
-import com.microsoft.azure.kusto.ingest.v2.client.toApiRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -47,7 +45,7 @@ class QueuedIngestionApiWrapper(
         table: String,
         blobUrls: List<String>,
         format: DataFormat,
-        ingestProperties: IngestProperties? = null,
+        ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
         logger.info(
             "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobUrls.size}",
@@ -71,8 +69,25 @@ class QueuedIngestionApiWrapper(
 
         // Create IngestRequestProperties using simplified approach
         val requestProperties =
-            ingestProperties?.toApiRequestProperties(apiFormat)
-                ?: IngestRequestProperties(format = apiFormat)
+            ingestProperties ?: IngestRequestProperties(format = apiFormat)
+
+        logger.info(
+            "****************************************************************",
+        )
+        logger.info(
+            "****************************************************************",
+        )
+        logger.info(
+            "** Ingesting to $database.$table with the following properties:",
+        )
+        logger.info("** Format: $requestProperties")
+
+        logger.info(
+            "****************************************************************",
+        )
+        logger.info(
+            "****************************************************************",
+        )
 
         // Create the ingestion request
         val ingestRequest =
@@ -176,7 +191,10 @@ class QueuedIngestionApiWrapper(
                     details = details,
                 )
 
-            if (response.success && response.status == HttpStatusCode.OK.value) {
+            if (
+                response.success &&
+                response.status == HttpStatusCode.OK.value
+            ) {
                 val ingestStatusResponse = response.body()
                 logger.debug(
                     "Successfully retrieved summary for operation: {} and details: {}",
