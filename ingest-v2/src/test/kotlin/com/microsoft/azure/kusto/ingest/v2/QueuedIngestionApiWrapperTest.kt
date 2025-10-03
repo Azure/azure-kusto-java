@@ -108,7 +108,7 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
         logger.error("-----------------------------------------------------")
         logger.error("Dropping table $targetTable")
         logger.error("-----------------------------------------------------")
-        // adminClient.executeMgmt(database, dropTableScript)
+        adminClient.executeMgmt(database, dropTableScript)
     }
 
     @ParameterizedTest(
