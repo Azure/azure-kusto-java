@@ -96,7 +96,7 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
             return
         }
         val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
-        val kcsb = ConnectionStringBuilder.createWithAzureCli("https://sdkse2etestppe.westus2.kusto.windows.net")
+        val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
         adminClient = ClientFactory.createClient(kcsb)
         adminClient.executeMgmt(database, createTableScript)
         adminClient.executeMgmt(database, mappingReference)
