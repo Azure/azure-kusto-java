@@ -6,14 +6,17 @@ import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.data.Client
 import com.microsoft.azure.kusto.data.ClientFactory
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder
-import com.microsoft.azure.kusto.ingest.v2.client.ingestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
+import com.microsoft.azure.kusto.ingest.v2.models.Format
+import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.DataFormat
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.slf4j.LoggerFactory
@@ -23,6 +26,7 @@ import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Execution(ExecutionMode.CONCURRENT)
 class QueuedIngestionApiWrapperTest {
     private val logger =
         LoggerFactory.getLogger(QueuedIngestionApiWrapperTest::class.java)
@@ -31,6 +35,33 @@ class QueuedIngestionApiWrapperTest {
     private val dmEndpoint = System.getenv("DM_CONNECTION_STRING")
     private val targetTable =
         "Storms_${UUID.randomUUID().toString().replace("-", "").take(8)}"
+    private val columnNamesToTypes =
+        mapOf(
+            "StartTime" to "datetime",
+            "EndTime" to "datetime",
+            "EpisodeId" to "string",
+            "EventId" to "string",
+            "State" to "string",
+            "EventType" to "string",
+            "InjuriesDirect" to "long",
+            "InjuriesIndirect" to "long",
+            "DeathsDirect" to "long",
+            "DeathsIndirect" to "long",
+            "DamageProperty" to "long",
+            "DamageCrops" to "long",
+            "Source" to "string",
+            "BeginLocation" to "string",
+            "EndLocation" to "string",
+            "BeginLat" to "real",
+            "BeginLon" to "real",
+            "EndLat" to "real",
+            "EndLon" to "real",
+            "EpisodeNarrative" to "string",
+            "EventNarrative" to "string",
+            "StormSummary" to "dynamic",
+            "SourceLocation" to "string",
+            "Type" to "string",
+        )
     private lateinit var adminClient: Client
 
     @BeforeAll
@@ -38,31 +69,25 @@ class QueuedIngestionApiWrapperTest {
         val createTableScript =
             """
             .create table $targetTable (
-                [State] : string,
-                [EventType] : string,
-                [CZTime] : datetime,
-                [InjuriesDirect] : int,
-                [InjuriesIndirect] : int,
-                [DeathsDirect] : int,
-                [DeathsIndirect] : int,
-                [DamageProperty] : real,
-                [DamageCrops] : real,
-                [WFO] : string,
-                [BeginLat] : real,
-                [BeginLon] : real,
-                [EndLat] : real,
-                [EndLon] : real,
-                [EpisodeId] : long,
-                [EventId] : long,
-                [Source] : string,
-                [MagNWP] : real,
-                [Sourcetype] : string,
-                [Magnitude] : real,
-                [County] : string,
-                [CountyID] : long
+                ${columnNamesToTypes.entries.joinToString(",") { "['${it.key}']:${it.value}" }}
             )
-        """
+            """
                 .trimIndent()
+
+        val mappingReference =
+            """
+            .create table $targetTable ingestion csv mapping '${targetTable}_mapping' ```[
+${columnNamesToTypes.keys.mapIndexed { idx, col ->
+                when (col) {
+                    "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
+                    "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
+                    else -> "    {\"column\":\"$col\", \"Properties\":{\"Ordinal\":\"$idx\"}},"
+                }
+            }.joinToString("\n").removeSuffix(",")}
+           ]```
+            """
+                .trimIndent()
+
         if (dmEndpoint == null) {
             assumeTrue(
                 false,
@@ -71,24 +96,34 @@ class QueuedIngestionApiWrapperTest {
             return
         }
         val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
-        val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
+        val kcsb = ConnectionStringBuilder.createWithAzureCli("https://sdkse2etestppe.westus2.kusto.windows.net")
         adminClient = ClientFactory.createClient(kcsb)
         adminClient.executeMgmt(database, createTableScript)
+        adminClient.executeMgmt(database, mappingReference)
     }
 
     @AfterAll
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
+        logger.error("-----------------------------------------------------")
+        logger.error("Dropping table $targetTable")
+        logger.error("-----------------------------------------------------")
         // adminClient.executeMgmt(database, dropTableScript)
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(
+        name =
+        "[QueuedIngestion] {index} => mappingReference={1}, ingestionMapping={2}",
+    )
     @CsvSource(
-        "https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv, 0",
-      //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1", TODO This test fails (failureStatus is not right)
+        "https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,true,false,0",
+        //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1",
+        // TODO This test fails (failureStatus is not right)
     )
     fun `test queued ingestion with CSV blob`(
         blobUrl: String,
+        mappingReference: Boolean,
+        ingestionMapping: Boolean,
         numberOfFailures: Int,
     ): Unit = runBlocking {
         // Skip test if no DM_CONNECTION_STRING is set
@@ -107,7 +142,62 @@ class QueuedIngestionApiWrapperTest {
             )
         val testBlobUrls = listOf(blobUrl)
         val format = DataFormat.CSV
-        val properties = ingestProperties { enableTracking(true) }
+
+        val properties =
+            if (mappingReference) {
+                IngestRequestProperties(
+                    format = Format.csv,
+                    ignoreFirstRecord = true,
+                    mappingReference = "${targetTable}_mapping",
+                    enableTracking = true,
+                )
+            } else if (ingestionMapping) {
+                val ingestionMappingArray =
+                    columnNamesToTypes.keys.mapIndexed { idx, col ->
+                        when (col) {
+                            "SourceLocation" ->
+                                mapOf(
+                                    "Column" to col,
+                                    "Properties" to
+                                        mapOf(
+                                            "Transform" to
+                                                "SourceLocation",
+                                        ),
+                                )
+                            "Type" ->
+                                mapOf(
+                                    "Column" to col,
+                                    "Properties" to
+                                        mapOf(
+                                            "ConstValue" to
+                                                "IngestionMapping",
+                                        ),
+                                )
+                            else ->
+                                mapOf(
+                                    "Column" to col,
+                                    "Properties" to
+                                        mapOf(
+                                            "Ordinal" to
+                                                idx
+                                                    .toString(),
+                                        ),
+                                )
+                        }
+                    }
+                IngestRequestProperties(
+                    format = Format.csv,
+                    ignoreFirstRecord = true,
+                    mapping = ingestionMappingArray.toString(),
+                    enableTracking = true,
+                )
+            } else {
+                IngestRequestProperties(
+                    format = Format.csv,
+                    ignoreFirstRecord = true,
+                    enableTracking = true,
+                )
+            }
 
         try {
             // Test successful ingestion submission
@@ -193,6 +283,33 @@ class QueuedIngestionApiWrapperTest {
                     logger.error(
                         "There are $failedCount blobs that failed ingestion.",
                     )
+                }
+                val filterType =
+                    when {
+                        mappingReference -> "MappingRef"
+                        ingestionMapping -> "IngestionMapping"
+                        else -> "None"
+                    }
+                if (mappingReference) {
+                    val results =
+                        adminClient
+                            .executeQuery(
+                                database,
+                                "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",
+                            )
+                            .primaryResults
+                    assertNotNull(results, "Query results should not be null")
+                    results.next()
+                    val count: Long = results.getLong("count")
+                    assertNotNull(count, "Count should not be null")
+                    assert(count > 0) {
+                        "Expected some records in the table after ingestion"
+                    }
+                    val sourceLocation: String =
+                        results.getString("SourceLocation")
+                    assert(sourceLocation.isNotEmpty()) {
+                        "SourceLocation should not be empty"
+                    }
                 }
             }
         } catch (e: ConnectException) {
