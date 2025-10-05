@@ -16,9 +16,9 @@ import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ConfigurationApiWrapperTest {
+class ConfigurationClientTest {
     private val logger =
-        LoggerFactory.getLogger(ConfigurationApiWrapperTest::class.java)
+        LoggerFactory.getLogger(ConfigurationClientTest::class.java)
 
     private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
@@ -38,7 +38,7 @@ class ConfigurationApiWrapperTest {
                 .build() // Replace with a real token provider
         // val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
-            ConfigurationApiWrapper(cluster, actualTokenProvider, true)
+            ConfigurationClient(cluster, actualTokenProvider, true)
         if (isException) {
             // assert the call to DefaultConfigurationCache throws
             assertThrows<IngestException> {

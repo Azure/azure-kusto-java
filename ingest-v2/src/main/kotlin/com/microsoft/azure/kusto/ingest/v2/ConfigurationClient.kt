@@ -8,13 +8,13 @@ import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import org.slf4j.LoggerFactory
 
-class ConfigurationApiWrapper(
+class ConfigurationClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
 ) : KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks) {
     private val logger =
-        LoggerFactory.getLogger(ConfigurationApiWrapper::class.java)
+        LoggerFactory.getLogger(ConfigurationClient::class.java)
     private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
 
     suspend fun getConfigurationDetails(): ConfigurationResponse {
