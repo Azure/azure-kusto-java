@@ -105,22 +105,23 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
     @AfterAll
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
-        logger.error("-----------------------------------------------------")
         logger.error("Dropping table $targetTable")
-        logger.error("-----------------------------------------------------")
         adminClient.executeMgmt(database, dropTableScript)
     }
 
-    @ParameterizedTest(
-        name =
-        "[QueuedIngestion] {index} => mappingReference={1}, ingestionMapping={2}",
-    )
+    @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
-        "https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,true,false,0",
-        //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1",
+        "QueuedIngestion-NoMapping,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,false,false,0",
+        // TODO This test fails (ingestionMappingReference is not passed correctly)
+        // "QueuedIngestion-WithMappingReference,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,true,false,0",
+        "QueuedIngestion-WithInlineMapping,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,false,true,0",
         // TODO This test fails (failureStatus is not right)
+        // "QueuedIngestion-FailWithInvalidBlob,https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json,false,false,0",
+        //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1",
+
     )
     fun `test queued ingestion with CSV blob`(
+        testName: String,
         blobUrl: String,
         mappingReference: Boolean,
         ingestionMapping: Boolean,
@@ -134,6 +135,7 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
             )
             return@runBlocking
         }
+        logger.info("Starting test: $testName")
         val queuedIngestionApiWrapper =
             QueuedIngestionApiWrapper(
                 dmUrl = dmEndpoint,
