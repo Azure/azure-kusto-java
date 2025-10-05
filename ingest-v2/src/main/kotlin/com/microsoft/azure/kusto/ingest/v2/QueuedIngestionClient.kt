@@ -13,27 +13,29 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
-import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.DataFormat
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.UUID
+import org.slf4j.LoggerFactory
+import java.time.OffsetDateTime
 import kotlin.time.Duration
 
 class QueuedIngestionClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
-) :
-    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
-    IngestClient {
+) : KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks) {
+
+    private val logger =
+        LoggerFactory.getLogger(QueuedIngestionClient::class.java)
 
     /**
      * Submits a queued ingestion request.
      *
      * @param database The target database name
      * @param table The target table name
-     * @param blobSources List of BlobSourceInfo objects to ingest
+     * @param blobUrls List of blob URLs to ingest
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
      * @return IngestionOperation for tracking the request
@@ -41,40 +43,43 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        blobSources: List<BlobSourceInfo>,
-        format: Format = Format.csv,
+        blobUrls: List<String>,
+        format: DataFormat,
         ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
         logger.info(
-            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobSources.size}",
+            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobUrls.size}",
         )
-        // Convert BlobSourceInfo objects to Blob objects
+        // Convert blob URLs to Blob objects
         val blobs =
-            blobSources.mapIndexed { index, blobSource ->
-                val sourceId =
-                    blobSource.sourceId?.toString()
-                        ?: UUID.randomUUID().toString()
-                logger.debug(
-                    "Preparing blob {} with sourceId {} for ingestion.",
-                    index,
-                    sourceId,
+            blobUrls.mapIndexed { index, url ->
+                Blob(
+                    url = url,
+                    sourceId =
+                    "source_${index}_${System.currentTimeMillis()}",
                 )
                 Blob(url = blobSource.blobPath, sourceId = sourceId)
             }
 
+        // Use the domain model directly - no conversion needed!
+        val apiFormat =
+            Format.decode(format.kustoValue)
+                ?: throw IngestException(
+                    "Unsupported format: ${format.kustoValue}",
+                )
+
+        // Create IngestRequestProperties using simplified approach
         val requestProperties =
-            ingestProperties ?: IngestRequestProperties(format = format)
+            ingestProperties ?: IngestRequestProperties(format = apiFormat)
 
-        logger.debug(
-            "** Ingesting to {}.{} with the following properties with properties {}",
-            database,
-            table,
-            requestProperties,
+        logger.info(
+            "** Ingesting to $database.$table with the following properties:",
         )
+        logger.info("** Format: $requestProperties")
 
+        // Create the ingestion request
         val ingestRequest =
             IngestRequest(
-                timestamp = java.time.OffsetDateTime.now(),
                 blobs = blobs,
                 properties = requestProperties,
             )
@@ -87,13 +92,51 @@ class QueuedIngestionClient(
                     ingestRequest = ingestRequest,
                 )
 
-            return handleIngestResponse(
-                response = response,
-                database = database,
-                table = table,
-                dmUrl = dmUrl,
-                endpointType = "queued",
-            )
+            if (response.success) {
+                val ingestResponseBody = response.body()
+                val operationId =
+                    ingestResponseBody.ingestionOperationId
+                        ?: throw IngestException(
+                            "No operation ID returned from ingestion service",
+                        )
+
+                logger.info(
+                    "Successfully submitted queued ingestion. Operation ID: $operationId",
+                )
+                logger.debug("Ingestion response: {}", response.body())
+
+                return ingestResponseBody
+            } else {
+                // 404 is a special case - it indicates that the endpoint is not found. This may be
+                // a transient network issue
+                if (response.status == HttpStatusCode.NotFound.value) {
+                    val message =
+                        "Endpoint $dmUrl not found. Please ensure the cluster supports queued ingestion."
+                    logger.error(
+                        "Ingestion endpoint not found. Please ensure that the target cluster supports " +
+                            "queued ingestion and that the endpoint URL is correct.",
+                    )
+                    throw IngestException(
+                        message = message,
+                        cause = RuntimeException(message),
+                        failureCode = response.status,
+                        failureSubCode = "",
+                        isPermanent = false,
+                    )
+                }
+                val nonSuccessResponseBody: IngestResponse = response.body()
+                // Exception for non-success status codes except for 404 in which case you can retry
+                val errorMessage =
+                    "Failed to submit queued ingestion to $database.$table. " +
+                        "Status: ${response.status}, Body: $nonSuccessResponseBody. " +
+                        "OperationId ${nonSuccessResponseBody.ingestionOperationId}"
+                logger.error("Ingestion failed with response: {}", errorMessage)
+                throw IngestException(
+                    message = errorMessage,
+                    cause = RuntimeException(errorMessage),
+                    isPermanent = true,
+                )
+            }
         } catch (e: Exception) {
             logger.error(
                 "Exception occurred during queued ingestion submission",
@@ -240,9 +283,7 @@ class QueuedIngestionClient(
             val statusResponse =
                 getIngestionDetails(database, table, operationId, true)
             logger.debug(
-                "Forcing detailed status retrieval for operation: {} returning {}",
-                operationId,
-                statusResponse,
+                "Forcing detailed status retrieval for operation: $operationId returning $statusResponse",
             )
             return statusResponse
         }

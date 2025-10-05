@@ -12,17 +12,4 @@ enum class IngestionMethod {
 
     /** Streaming ingestion method. */
     STREAMING,
-
-    ;
-
-    companion object {
-        @JvmStatic
-        fun fromApiString(apiValue: String?): IngestionMethod? {
-            return when (apiValue?.uppercase()) {
-                "STREAMING" -> STREAMING
-                "QUEUED" -> QUEUED
-                else -> null
-            }
-        }
-    }
 }
