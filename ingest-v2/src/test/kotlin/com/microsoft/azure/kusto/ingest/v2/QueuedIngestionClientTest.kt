@@ -27,9 +27,9 @@ import kotlin.time.Duration
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
-class QueuedIngestionApiWrapperTest {
+class QueuedIngestionClientTest {
     private val logger =
-        LoggerFactory.getLogger(QueuedIngestionApiWrapperTest::class.java)
+        LoggerFactory.getLogger(QueuedIngestionClientTest::class.java)
     private val azureCliCredential = AzureCliCredentialBuilder().build()
     private val database = System.getenv("TEST_DATABASE") ?: "e2e"
     private val dmEndpoint = System.getenv("DM_CONNECTION_STRING")
@@ -136,8 +136,8 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
             return@runBlocking
         }
         logger.info("Starting test: $testName")
-        val queuedIngestionApiWrapper =
-            QueuedIngestionApiWrapper(
+        val queuedIngestionClient =
+            QueuedIngestionClient(
                 dmUrl = dmEndpoint,
                 tokenCredential = azureCliCredential,
                 skipSecurityChecks = true,
@@ -204,7 +204,7 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
         try {
             // Test successful ingestion submission
             val ingestionResponse =
-                queuedIngestionApiWrapper.submitQueuedIngestion(
+                queuedIngestionClient.submitQueuedIngestion(
                     database = database,
                     table = targetTable,
                     blobUrls = testBlobUrls,
@@ -231,7 +231,7 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
             )
 
             val finalStatus =
-                queuedIngestionApiWrapper.pollUntilCompletion(
+                queuedIngestionClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
                     operationId =

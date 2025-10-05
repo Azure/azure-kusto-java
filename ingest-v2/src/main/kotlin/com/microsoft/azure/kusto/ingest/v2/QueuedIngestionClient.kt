@@ -21,14 +21,14 @@ import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import kotlin.time.Duration
 
-class QueuedIngestionApiWrapper(
+class QueuedIngestionClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
 ) : KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks) {
 
     private val logger =
-        LoggerFactory.getLogger(QueuedIngestionApiWrapper::class.java)
+        LoggerFactory.getLogger(QueuedIngestionClient::class.java)
 
     /**
      * Submits a queued ingestion request.
