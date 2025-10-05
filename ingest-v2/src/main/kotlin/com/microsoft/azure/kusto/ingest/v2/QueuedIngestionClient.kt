@@ -282,7 +282,9 @@ class QueuedIngestionClient(
             val statusResponse =
                 getIngestionDetails(database, table, operationId, true)
             logger.debug(
-                "Forcing detailed status retrieval for operation: $operationId returning $statusResponse",
+                "Forcing detailed status retrieval for operation: {} returning {}",
+                operationId,
+                statusResponse,
             )
             return statusResponse
         }
