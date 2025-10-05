@@ -72,22 +72,9 @@ class QueuedIngestionApiWrapper(
             ingestProperties ?: IngestRequestProperties(format = apiFormat)
 
         logger.info(
-            "****************************************************************",
-        )
-        logger.info(
-            "****************************************************************",
-        )
-        logger.info(
             "** Ingesting to $database.$table with the following properties:",
         )
         logger.info("** Format: $requestProperties")
-
-        logger.info(
-            "****************************************************************",
-        )
-        logger.info(
-            "****************************************************************",
-        )
 
         // Create the ingestion request
         val ingestRequest =
@@ -294,7 +281,7 @@ class QueuedIngestionApiWrapper(
         if (forceDetails) {
             val statusResponse =
                 getIngestionDetails(database, table, operationId, true)
-            logger.info(
+            logger.debug(
                 "Forcing detailed status retrieval for operation: $operationId returning $statusResponse",
             )
             return statusResponse
