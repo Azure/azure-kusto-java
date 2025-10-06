@@ -18,6 +18,7 @@ import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
+import java.net.ConnectException
 import java.time.OffsetDateTime
 import kotlin.time.Duration
 
@@ -72,10 +73,12 @@ class QueuedIngestionClient(
         val requestProperties =
             ingestProperties ?: IngestRequestProperties(format = apiFormat)
 
-        logger.info(
-            "** Ingesting to $database.$table with the following properties:",
+        logger.debug(
+            "** Ingesting to {}.{} with the following properties with properties {}",
+            database,
+            table,
+            requestProperties,
         )
-        logger.info("** Format: $requestProperties")
 
         // Create the ingestion request
         val ingestRequest =
@@ -118,7 +121,7 @@ class QueuedIngestionClient(
                     )
                     throw IngestException(
                         message = message,
-                        cause = RuntimeException(message),
+                        cause = ConnectException(message),
                         failureCode = response.status,
                         failureSubCode = "",
                         isPermanent = false,

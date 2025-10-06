@@ -17,6 +17,7 @@ import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Execution(ExecutionMode.CONCURRENT)
 class ConfigurationClientTest {
     private val logger =
         LoggerFactory.getLogger(ConfigurationClientTest::class.java)
@@ -37,8 +38,16 @@ class ConfigurationClientTest {
                 true,
                 false,
             ),
+            Arguments.of(
+                "Unreachable cluster - Non existent host",
+                "https://nonexistent.kusto.windows.net",
+                true,
+                true,
+            ),
         )
     }
+
+    private val tokenProvider = AzureCliCredentialBuilder().build()
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("endpointAndExceptionClause")
@@ -48,12 +57,9 @@ class ConfigurationClientTest {
         isException: Boolean,
         isUnreachableHost: Boolean,
     ): Unit = runBlocking {
-        val actualTokenProvider =
-            AzureCliCredentialBuilder()
-                .build() // Replace with a real token provider
+        logger.info("Running configuration test {}", testName)
         // val cluster = System.getenv("DM_CONNECTION_STRING")
-        val actualWrapper =
-            ConfigurationClient(cluster, actualTokenProvider, true)
+        val actualWrapper = ConfigurationClient(cluster, tokenProvider, true)
         if (isException) {
             // assert the call to DefaultConfigurationCache throws
             val exception =
