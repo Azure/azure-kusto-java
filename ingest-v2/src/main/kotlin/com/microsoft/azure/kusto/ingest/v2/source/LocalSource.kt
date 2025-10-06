@@ -10,7 +10,7 @@ abstract class LocalSource(
     override val format: Format,
     val leaveOpen: Boolean,
     override val compressionType: CompressionType = CompressionType.NONE,
-    val baseName: String? = null,
+    baseName: String? = null,
     override val sourceId: UUID = UUID.randomUUID(),
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
 

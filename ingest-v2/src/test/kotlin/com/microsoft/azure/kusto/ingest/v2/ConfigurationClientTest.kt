@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
-import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import kotlinx.coroutines.runBlocking
@@ -13,16 +12,13 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.slf4j.LoggerFactory
 import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
-class ConfigurationClientTest {
-    private val logger =
-        LoggerFactory.getLogger(ConfigurationClientTest::class.java)
-
+class ConfigurationClientTest :
+    IngestV2TestBase(ConfigurationClientTest::class.java) {
     private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
             Arguments.of(
@@ -47,8 +43,6 @@ class ConfigurationClientTest {
             ),
         )
     }
-
-    private val tokenProvider = AzureCliCredentialBuilder().build()
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("endpointAndExceptionClause")
