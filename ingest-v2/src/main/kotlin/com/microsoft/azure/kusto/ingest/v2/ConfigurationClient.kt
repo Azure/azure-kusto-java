@@ -75,10 +75,8 @@ class ConfigurationClient(
                 failureSubCode = "",
                 isPermanent = false,
             )
-        } catch (ex: IngestException) {
-            // if thrown from the body, rethrow this
-            throw ex
         } catch (ex: Exception) {
+            if (ex is IngestException) throw ex
             val message =
                 "An unexpected error occurred while trying to reach $baseUrl"
             throw IngestException(

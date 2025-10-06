@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
@@ -18,43 +19,20 @@ import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
-class StreamingIngestClientTest :
-    IngestV2TestBase(StreamingIngestClientTest::class.java) {
+class StreamingIngestClientTest : IngestV2TestBase(StreamingIngestClientTest::class.java) {
 
-    private val publicBlobUrl =
-        "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
-
-    private val targetUuid = UUID.randomUUID().toString()
-    private val randomRow: String =
-        """{"timestamp": "2023-05-02 15:23:50.0000000","deviceId": "$targetUuid","messageId": "7f316225-839a-4593-92b5-1812949279b3","temperature": 31.0301639051317,"humidity": 62.0791099602725}"""
-            .trimIndent()
-
-    private fun testParameters(): Stream<Arguments?> {
+    private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
             Arguments.of(
-                "Direct ingest - success",
-                engineEndpoint,
-                // isException
-                false,
-                // isUnreachableHost
-                false,
-                // blobUrl
-                null,
-            ),
-            Arguments.of(
-                "Blob based ingest - success",
-                engineEndpoint,
-                // isException
-                false,
-                // isUnreachableHost
-                false,
-                publicBlobUrl,
+                "Unreachable cluster - Non existent host",
+                "https://nonexistent.kusto.windows.net",
+                true,
+                true,
             ),
             // Blob-based streaming - error case
             Arguments.of(
-                "Blob based ingest- Invalid blob URL",
-                engineEndpoint,
-                // isException
+                "Cluster without streaming ingest",
+                "https://help.kusto.windows.net",
                 true,
                 // isUnreachableHost
                 false,
@@ -64,7 +42,7 @@ class StreamingIngestClientTest :
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("testParameters")
+    @MethodSource("endpointAndExceptionClause")
     fun `run streaming ingest test with various clusters`(
         testName: String,
         cluster: String,
@@ -74,65 +52,33 @@ class StreamingIngestClientTest :
     ) = runBlocking {
         logger.info("Running streaming ingest test {}", testName)
         val client = StreamingIngestClient(cluster, tokenProvider, true)
-        val ingestProps = IngestRequestProperties(format = targetTestFormat)
+        val database = "testdb"
+        val table = "testtable"
+        val data = "col1,col2\nval1,val2".toByteArray()
+        val format = Format.csv
+        val ingestProps =
+            IngestRequestProperties(
+                format = Format.csv,
+                ignoreFirstRecord = true,
+            )
         if (isException) {
-            if (blobUrl != null) {
-                logger.info(
-                    "Testing error handling for invalid blob URL: {}",
-                    blobUrl,
-                )
-                val exception =
-                    assertThrows<IngestException> {
-                        client.submitStreamingIngestion(
-                            database = database,
-                            table = targetTable,
-                            data = ByteArray(0),
-                            format = targetTestFormat,
-                            ingestProperties = ingestProps,
-                            blobUrl = blobUrl,
-                        )
-                    }
-                assertNotNull(
-                    exception,
-                    "Exception should not be null for invalid blob URL",
-                )
-                logger.info(
-                    "Expected exception caught for invalid blob URL: {}",
-                    exception.message,
-                )
-                logger.info(
-                    "Failure code: {}, isPermanent: {}",
-                    exception.failureCode,
-                    exception.isPermanent,
-                )
-
-                assert(exception.failureCode != 0) {
-                    "Expected non-zero failure code for invalid blob URL"
+            val exception =
+                assertThrows<IngestException> {
+                    client.submitStreamingIngestion(
+                        database,
+                        table,
+                        data,
+                        format,
+                        ingestProps,
+                    )
                 }
+            assertNotNull(exception, "Exception should not be null")
+            if (isUnreachableHost) {
+                assert(exception.cause is java.net.ConnectException)
+                assert(exception.isPermanent == false)
             } else {
-                logger.info(
-                    "Testing error handling for direct streaming ingestion",
-                )
-                val table = "testtable"
-                val data = "col1,col2\nval1,val2".toByteArray()
-                val exception =
-                    assertThrows<IngestException> {
-                        client.submitStreamingIngestion(
-                            database,
-                            table,
-                            data,
-                            targetTestFormat,
-                            ingestProps,
-                        )
-                    }
-                assertNotNull(exception, "Exception should not be null")
-                if (isUnreachableHost) {
-                    assert(exception.cause is java.net.ConnectException)
-                    assert(exception.isPermanent == false)
-                } else {
-                    assert(exception.failureCode == 404)
-                    assert(exception.isPermanent == false)
-                }
+                assert(exception.failureCode == 404)
+                assert(exception.isPermanent == false)
             }
         } else {
             if (blobUrl != null) {

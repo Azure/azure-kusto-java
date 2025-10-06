@@ -30,61 +30,43 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")
     protected open val targetTable: String =
-        "Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
-    protected val columnNamesToTypes: Map<String, String> =
-        mapOf(
-            "timestamp" to "datetime",
-            "deviceId" to "guid",
-            "messageId" to "guid",
-            "temperature" to "real",
-            "humidity" to "real",
-            "SourceLocation" to "string",
-            "Type" to "string",
-        )
-    protected lateinit var adminClusterClient: Client
+        "Storms_${UUID.randomUUID().toString().replace("-", "").take(8)}"
+    protected open val columnNamesToTypes: Map<String, String> = emptyMap()
+    protected lateinit var adminClient: Client
 
     @BeforeAll
-    fun createTables() {
+    open fun createTables() {
+        if (columnNamesToTypes.isEmpty()) return
         val createTableScript =
             """
-            .create-merge table $targetTable (
+            .create table $targetTable (
                 ${columnNamesToTypes.entries.joinToString(",") { "['${it.key}']:${it.value}" }}
             )
-            """
-                .trimIndent()
+            """.trimIndent()
         val mappingReference =
             """
-            .create-or-alter table $targetTable ingestion json mapping '${targetTable}_mapping' ```[
-            ${
-                columnNamesToTypes.keys.joinToString("\n") { col ->
-                    when (col) {
-                        "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
-                        "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
-                        else -> "    {\"column\":\"$col\", \"Properties\":{\"Path\":\"$.$col\"}},"
-                    }
-                }.removeSuffix(",")
-            }
+            .create table $targetTable ingestion csv mapping '${targetTable}_mapping' ```[
+${columnNamesToTypes.keys.mapIndexed { idx, col ->
+                when (col) {
+                    "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
+                    "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
+                    else -> "    {\"column\":\"$col\", \"Properties\":{\"Ordinal\":\"$idx\"}},"
+                }
+            }.joinToString("\n").removeSuffix(",")}
            ]```
-            """
-                .trimIndent()
-        adminClusterClient =
-            ClientFactory.createClient(
-                ConnectionStringBuilder.createWithAzureCli(
-                    engineEndpoint,
-                ),
-            )
-        adminClusterClient.executeMgmt(database, createTableScript)
-        adminClusterClient.executeMgmt(database, mappingReference)
-        adminClusterClient.executeMgmt(
-            database,
-            ".clear database cache streamingingestion schema",
-        )
+            """.trimIndent()
+        val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
+        val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
+        adminClient = ClientFactory.createClient(kcsb)
+        adminClient.executeMgmt(database, createTableScript)
+        adminClient.executeMgmt(database, mappingReference)
     }
 
     @AfterAll
-    fun dropTables() {
+    open fun dropTables() {
+        if (!::adminClient.isInitialized) return
         val dropTableScript = ".drop table $targetTable ifexists"
-        logger.info("Dropping table $targetTable")
-        adminClusterClient.executeMgmt(database, dropTableScript)
+        logger.error("Dropping table $targetTable")
+        adminClient.executeMgmt(database, dropTableScript)
     }
 }
