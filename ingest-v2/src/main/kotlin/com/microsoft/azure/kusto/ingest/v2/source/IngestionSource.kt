@@ -3,10 +3,11 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.common.utils.PathUtils
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import java.lang.AutoCloseable
 
 abstract class IngestionSource(
-    open val format: DataFormat,
+    open val format: Format,
     open val compressionType: CompressionType?,
     open val url: String?,
     open val sourceId: String?,
@@ -19,7 +20,7 @@ abstract class IngestionSource(
             this::class.simpleName?.lowercase()?.removeSuffix("source")
                 ?: "unknown"
         name =
-            "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format.toKustoValue()}$compressionType"
+            "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format}$compressionType"
     }
 }
 

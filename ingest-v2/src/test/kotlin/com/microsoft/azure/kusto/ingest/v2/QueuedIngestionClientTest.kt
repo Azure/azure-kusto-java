@@ -2,40 +2,28 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
-import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.data.Client
 import com.microsoft.azure.kusto.data.ClientFactory
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
-import com.microsoft.azure.kusto.ingest.v2.source.DataFormat
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assumptions.assumeTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.slf4j.LoggerFactory
 import java.net.ConnectException
-import java.util.*
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
-class QueuedIngestionClientTest {
-    private val logger =
-        LoggerFactory.getLogger(QueuedIngestionClientTest::class.java)
-    private val azureCliCredential = AzureCliCredentialBuilder().build()
-    private val database = System.getenv("TEST_DATABASE") ?: "e2e"
-    private val dmEndpoint = System.getenv("DM_CONNECTION_STRING")
-    private val targetTable =
-        "Storms_${UUID.randomUUID().toString().replace("-", "").take(8)}"
-    private val columnNamesToTypes =
+class QueuedIngestionClientTest :
+    IngestV2TestBase(QueuedIngestionClientTest::class.java) {
+    override val columnNamesToTypes =
         mapOf(
             "StartTime" to "datetime",
             "EndTime" to "datetime",
@@ -62,52 +50,6 @@ class QueuedIngestionClientTest {
             "SourceLocation" to "string",
             "Type" to "string",
         )
-    private lateinit var adminClient: Client
-
-    @BeforeAll
-    fun createTables() {
-        val createTableScript =
-            """
-            .create table $targetTable (
-                ${columnNamesToTypes.entries.joinToString(",") { "['${it.key}']:${it.value}" }}
-            )
-            """
-                .trimIndent()
-
-        val mappingReference =
-            """
-            .create table $targetTable ingestion csv mapping '${targetTable}_mapping' ```[
-${columnNamesToTypes.keys.mapIndexed { idx, col ->
-                when (col) {
-                    "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
-                    "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
-                    else -> "    {\"column\":\"$col\", \"Properties\":{\"Ordinal\":\"$idx\"}},"
-                }
-            }.joinToString("\n").removeSuffix(",")}
-           ]```
-            """
-                .trimIndent()
-
-        if (dmEndpoint == null) {
-            assumeTrue(
-                false,
-                "Skipping test: No DM_CONNECTION_STRING environment variable set for real cluster testing",
-            )
-            return
-        }
-        val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
-        val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
-        adminClient = ClientFactory.createClient(kcsb)
-        adminClient.executeMgmt(database, createTableScript)
-        adminClient.executeMgmt(database, mappingReference)
-    }
-
-    @AfterAll
-    fun dropTables() {
-        val dropTableScript = ".drop table $targetTable ifexists"
-        logger.error("Dropping table $targetTable")
-        adminClient.executeMgmt(database, dropTableScript)
-    }
 
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
@@ -128,22 +70,15 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
         numberOfFailures: Int,
     ): Unit = runBlocking {
         // Skip test if no DM_CONNECTION_STRING is set
-        if (dmEndpoint == null) {
-            assumeTrue(
-                false,
-                "Skipping test: No DM_CONNECTION_STRING environment variable set for real cluster testing",
-            )
-            return@runBlocking
-        }
         logger.info("Starting test: $testName")
         val queuedIngestionClient =
             QueuedIngestionClient(
                 dmUrl = dmEndpoint,
-                tokenCredential = azureCliCredential,
+                tokenCredential = tokenProvider,
                 skipSecurityChecks = true,
             )
         val testBlobUrls = listOf(blobUrl)
-        val format = DataFormat.CSV
+        val format = Format.csv
 
         val properties =
             if (mappingReference) {

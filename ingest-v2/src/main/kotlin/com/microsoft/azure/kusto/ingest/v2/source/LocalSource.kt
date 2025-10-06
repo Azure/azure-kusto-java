@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.source
 
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import java.io.InputStream
 
 abstract class LocalSource(
-    override val format: DataFormat,
+    override val format: Format,
     val leaveOpen: Boolean,
     override val compressionType: CompressionType = CompressionType.NONE,
-    val baseName: String? = null,
+    baseName: String? = null,
     override val sourceId: String? = null,
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
 
@@ -20,7 +21,7 @@ abstract class LocalSource(
     internal val shouldCompress: Boolean
         get() =
             (compressionType == CompressionType.NONE) &&
-                !format.isBinaryFormat()
+                !FormatUtil.isBinaryFormat(format)
 
     abstract fun data(): InputStream
 
@@ -37,7 +38,7 @@ abstract class LocalSource(
 
 class StreamSource(
     stream: InputStream,
-    format: DataFormat,
+    format: Format,
     sourceCompression: CompressionType,
     sourceId: String? = null,
     name: String? = null,

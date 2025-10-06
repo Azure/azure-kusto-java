@@ -2,13 +2,15 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.source
 
+import com.microsoft.azure.kusto.ingest.v2.models.Format
+
 class BlobSource : IngestionSource {
     override val url: String
     val exactSize: Int?
 
     constructor(
         url: String,
-        format: DataFormat,
+        format: Format,
         compression: CompressionType? = null,
         sourceId: String? = null,
     ) : super(
