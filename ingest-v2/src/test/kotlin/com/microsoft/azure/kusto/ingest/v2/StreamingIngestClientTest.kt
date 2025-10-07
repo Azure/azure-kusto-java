@@ -18,7 +18,8 @@ import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
-class StreamingIngestClientTest : IngestV2TestBase(StreamingIngestClientTest::class.java) {
+class StreamingIngestClientTest :
+    IngestV2TestBase(StreamingIngestClientTest::class.java) {
 
     private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
