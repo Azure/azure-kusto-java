@@ -62,6 +62,21 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
         adminClient.executeMgmt(database, mappingReference)
     }
 
+    protected fun enableStreamingIngestion(waitTimeMs: Long = 30000) {
+        if (!::adminClient.isInitialized) {
+            throw IllegalStateException("adminClient not initialized. Call createTables() first.")
+        }
+        
+        adminClient.executeMgmt(
+            database,
+            ".alter table $targetTable policy streamingingestion enable"
+        )
+        logger.info("Enabled streaming ingestion policy on table {}", targetTable)
+        
+        Thread.sleep(waitTimeMs)
+        logger.info("Waited {} ms for streaming ingestion policy to propagate", waitTimeMs)
+    }
+
     @AfterAll
     open fun dropTables() {
         if (!::adminClient.isInitialized) return
