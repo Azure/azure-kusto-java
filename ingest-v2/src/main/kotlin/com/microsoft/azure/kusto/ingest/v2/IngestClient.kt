@@ -14,7 +14,7 @@ interface IngestClient {
     val logger: Logger
         get() = LoggerFactory.getLogger(IngestClient::class.java)
 
-    //Common way to parse ingestion response for both Streaming and Queued ingestion
+    // Common way to parse ingestion response for both Streaming and Queued ingestion
 
     suspend fun <T : Any> handleIngestResponse(
         response: HttpResponse<T>,
