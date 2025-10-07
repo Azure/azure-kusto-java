@@ -42,7 +42,8 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
             .create table $targetTable (
                 ${columnNamesToTypes.entries.joinToString(",") { "['${it.key}']:${it.value}" }}
             )
-            """.trimIndent()
+            """
+                .trimIndent()
         val mappingReference =
             """
             .create table $targetTable ingestion csv mapping '${targetTable}_mapping' ```[
@@ -54,7 +55,8 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
                 }
             }.joinToString("\n").removeSuffix(",")}
            ]```
-            """.trimIndent()
+            """
+                .trimIndent()
         val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
         val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
         adminClient = ClientFactory.createClient(kcsb)
@@ -64,17 +66,25 @@ ${columnNamesToTypes.keys.mapIndexed { idx, col ->
 
     protected fun enableStreamingIngestion(waitTimeMs: Long = 30000) {
         if (!::adminClient.isInitialized) {
-            throw IllegalStateException("adminClient not initialized. Call createTables() first.")
+            throw IllegalStateException(
+                "adminClient not initialized. Call createTables() first.",
+            )
         }
-        
+
         adminClient.executeMgmt(
             database,
-            ".alter table $targetTable policy streamingingestion enable"
+            ".alter table $targetTable policy streamingingestion enable",
         )
-        logger.info("Enabled streaming ingestion policy on table {}", targetTable)
-        
+        logger.info(
+            "Enabled streaming ingestion policy on table {}",
+            targetTable,
+        )
+
         Thread.sleep(waitTimeMs)
-        logger.info("Waited {} ms for streaming ingestion policy to propagate", waitTimeMs)
+        logger.info(
+            "Waited {} ms for streaming ingestion policy to propagate",
+            waitTimeMs,
+        )
     }
 
     @AfterAll

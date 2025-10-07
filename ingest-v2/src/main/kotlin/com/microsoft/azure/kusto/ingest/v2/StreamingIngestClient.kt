@@ -98,8 +98,7 @@ class StreamingIngestClient(
                 dmUrl = dmUrl,
                 endpointType = "streaming",
             )
-        }
-        catch (notAbleToReachHost: ConnectException) {
+        } catch (notAbleToReachHost: ConnectException) {
             val message =
                 "Failed to reach $dmUrl for streaming ingestion. Please ensure the cluster address is correct and the cluster is reachable."
             throw IngestException(
@@ -109,8 +108,7 @@ class StreamingIngestClient(
                 failureSubCode = "",
                 isPermanent = false,
             )
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             logger.error(
                 "Exception occurred during streaming ingestion submission",
                 e,

@@ -40,7 +40,7 @@ class QueuedIngestionClient(
         database: String,
         table: String,
         blobUrls: List<String>,
-        format: Format=Format.csv,
+        format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
         logger.info(
