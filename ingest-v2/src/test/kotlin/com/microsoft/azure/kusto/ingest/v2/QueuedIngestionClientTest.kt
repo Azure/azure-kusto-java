@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -20,40 +19,12 @@ import kotlin.time.Duration
 @Execution(ExecutionMode.CONCURRENT)
 class QueuedIngestionClientTest :
     IngestV2TestBase(QueuedIngestionClientTest::class.java) {
-    override val columnNamesToTypes =
-        mapOf(
-            "StartTime" to "datetime",
-            "EndTime" to "datetime",
-            "EpisodeId" to "string",
-            "EventId" to "string",
-            "State" to "string",
-            "EventType" to "string",
-            "InjuriesDirect" to "long",
-            "InjuriesIndirect" to "long",
-            "DeathsDirect" to "long",
-            "DeathsIndirect" to "long",
-            "DamageProperty" to "long",
-            "DamageCrops" to "long",
-            "Source" to "string",
-            "BeginLocation" to "string",
-            "EndLocation" to "string",
-            "BeginLat" to "real",
-            "BeginLon" to "real",
-            "EndLat" to "real",
-            "EndLon" to "real",
-            "EpisodeNarrative" to "string",
-            "EventNarrative" to "string",
-            "StormSummary" to "dynamic",
-            "SourceLocation" to "string",
-            "Type" to "string",
-        )
 
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
-        "QueuedIngestion-NoMapping,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,false,false,0",
-        // TODO This test fails (ingestionMappingReference is not passed correctly)
-        // "QueuedIngestion-WithMappingReference,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,true,false,0",
-        "QueuedIngestion-WithInlineMapping,https://kustosamples.blob.core.windows.net/samplefiles/StormEvents.csv,false,true,0",
+        "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
+        "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true,0",
         // TODO This test fails (failureStatus is not right)
         // "QueuedIngestion-FailWithInvalidBlob,https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json,false,false,0",
         //  "https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json, 1",
@@ -75,19 +46,18 @@ class QueuedIngestionClientTest :
                 skipSecurityChecks = true,
             )
         val testBlobUrls = listOf(blobUrl)
-        val format = Format.csv
 
         val properties =
             if (mappingReference) {
                 IngestRequestProperties(
-                    format = Format.csv,
-                    ignoreFirstRecord = true,
-                    mappingReference = "${targetTable}_mapping",
+                    format = targetTestFormat,
+                    ingestionMappingReference =
+                    "${targetTable}_mapping",
                     enableTracking = true,
                 )
             } else if (ingestionMapping) {
                 val ingestionMappingArray =
-                    columnNamesToTypes.keys.mapIndexed { idx, col ->
+                    columnNamesToTypes.keys.map { col ->
                         when (col) {
                             "SourceLocation" ->
                                 mapOf(
@@ -112,23 +82,20 @@ class QueuedIngestionClientTest :
                                     "Column" to col,
                                     "Properties" to
                                         mapOf(
-                                            "Ordinal" to
-                                                idx
-                                                    .toString(),
+                                            "Path" to
+                                                "$.$col",
                                         ),
                                 )
                         }
                     }
                 IngestRequestProperties(
-                    format = Format.csv,
-                    ignoreFirstRecord = true,
+                    format = targetTestFormat,
                     mapping = ingestionMappingArray.toString(),
                     enableTracking = true,
                 )
             } else {
                 IngestRequestProperties(
-                    format = Format.csv,
-                    ignoreFirstRecord = true,
+                    format = targetTestFormat,
                     enableTracking = true,
                 )
             }
@@ -140,7 +107,7 @@ class QueuedIngestionClientTest :
                     database = database,
                     table = targetTable,
                     blobUrls = testBlobUrls,
-                    format = format,
+                    format = targetTestFormat,
                     ingestProperties = properties,
                 )
 
@@ -226,7 +193,7 @@ class QueuedIngestionClientTest :
                     }
                 if (mappingReference) {
                     val results =
-                        adminClient
+                        adminClusterClient
                             .executeQuery(
                                 database,
                                 "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",

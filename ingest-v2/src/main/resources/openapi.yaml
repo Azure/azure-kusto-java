@@ -129,6 +129,36 @@ paths:
             type: string
             enum:
               - uri
+        - name: Host
+          in: header
+          required: true
+          schema:
+            type: string
+          example: "gzip"
+        - name: Accept-Encoding
+          in: header
+          required: false
+          schema:
+            type: string
+          example: "gzip"
+        - name: Connection
+          in: header
+          required: false
+          schema:
+            type: string
+          example: "Keep-Alive"
+        - name: Content-Encoding
+          in: header
+          required: false
+          schema:
+            type: string
+          example: "gzip"
+        - name: Content-Type
+          in: header
+          required: false
+          schema:
+            type: string
+          example: "application/octet-stream"
       responses:
         '200':
           description: Ingestion mappings response
@@ -207,7 +237,7 @@ components:
               type: boolean
               description: Delete blob after download
               nullable: true
-            mappingReference:
+            ingestionMappingReference:
               type: string
               description: Reference to a named mapping policy
               nullable: true
