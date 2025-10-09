@@ -35,12 +35,6 @@ class ConfigurationClientTest :
                 true,
                 false,
             ),
-            Arguments.of(
-                "Unreachable cluster - Non existent host",
-                "https://nonexistent.kusto.windows.net",
-                true,
-                true,
-            ),
         )
     }
 

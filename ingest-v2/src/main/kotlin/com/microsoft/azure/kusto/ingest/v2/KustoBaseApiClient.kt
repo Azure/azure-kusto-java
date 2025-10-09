@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
@@ -103,13 +104,11 @@ open class KustoBaseApiClient(
                 },
             )
         }
-        /*
-        TODO Check what these settings should be
-                config.install(HttpTimeout) {
-                    requestTimeoutMillis = 20_000
-                    connectTimeoutMillis = 20_000
-                    socketTimeoutMillis = 20_000
-                }
-         */
+        /* TODO Check what these settings should be */
+        config.install(HttpTimeout) {
+            requestTimeoutMillis = 20_000
+            connectTimeoutMillis = 20_000
+            socketTimeoutMillis = 20_000
+        }
     }
 }
