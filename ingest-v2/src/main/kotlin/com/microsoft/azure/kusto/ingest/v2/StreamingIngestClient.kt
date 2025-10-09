@@ -14,17 +14,12 @@ import kotlinx.serialization.json.Json
 import java.net.ConnectException
 import java.net.URI
 
-@Serializable
-private data class StreamFromBlobRequestBody(
-    @SerialName("SourceUri") val sourceUri: String,
-)
-
 class StreamingIngestClient(
-    override val dmUrl: String,
+    val engineUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
 ) :
-    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
+    KustoBaseApiClient(engineUrl, tokenCredential, skipSecurityChecks),
     IngestClient {
 
     /**
@@ -48,38 +43,13 @@ class StreamingIngestClient(
         blobUrl: String? = null,
     ) {
         val host = URI(engineUrl).host
-
-        val bodyContent: Any
-        val sourceKind: String?
-        val contentType: String
-
-        if (blobUrl != null) {
-            // Blob-based streaming
-            val requestBody = StreamFromBlobRequestBody(sourceUri = blobUrl)
-            bodyContent = Json.encodeToString(requestBody).toByteArray()
-            sourceKind = "uri"
-            contentType = "application/json"
-            logger.info(
-                "Submitting streaming ingestion from blob for database: {}, table: {}, blob: {}. Host {}",
-                database,
-                table,
-                blobUrl,
-                host,
-            )
-        } else {
-            // Direct streaming using raw data
-            bodyContent = data
-            sourceKind = null
-            contentType = "application/octet-stream"
-            logger.info(
-                "Submitting streaming ingestion request for database: {}, table: {}, data size: {}. Host {}",
-                "Submitting streaming ingestion request for database: {}, table: {}, data size: {}",
+        logger.info(
+            "Submitting streaming ingestion request for database: {}, table: {}, data size: {}. Host {}",
             database,
             table,
             data.size,
-        host,
-            )
-        }
+            host,
+        )
         try {
             val response: HttpResponse<Unit> =
                 api.postStreamingIngest(
@@ -87,20 +57,26 @@ class StreamingIngestClient(
                     table = table,
                     streamFormat = format,
                     body = data,
-                    mappingName = ingestProperties?.mappingReference,
+                    mappingName =
+                    ingestProperties?.ingestionMappingReference,
                     // TODO: What is sourceKind for streaming ingestion?
                     sourceKind = null,
+                    host = host,
+                    acceptEncoding = "gzip",
+                    connection = "Keep-Alive",
+                    contentEncoding = null,
+                    contentType = "application/octet-stream",
                 )
             return handleIngestResponse(
                 response = response,
                 database = database,
                 table = table,
-                dmUrl = dmUrl,
+                dmUrl = engineUrl,
                 endpointType = "streaming",
             )
         } catch (notAbleToReachHost: ConnectException) {
             val message =
-                "Failed to reach $dmUrl for streaming ingestion. Please ensure the cluster address is correct and the cluster is reachable."
+                "Failed to reach $engineUrl for streaming ingestion. Please ensure the cluster address is correct and the cluster is reachable."
             throw IngestException(
                 message = message,
                 cause = notAbleToReachHost,
@@ -116,7 +92,7 @@ class StreamingIngestClient(
             if (e is IngestException) throw e
             throw IngestException(
                 message =
-                "Error submitting streaming ingest request to $dmUrl",
+                "Error submitting streaming ingest request to $engineUrl",
                 cause = e,
                 isPermanent = true,
             )

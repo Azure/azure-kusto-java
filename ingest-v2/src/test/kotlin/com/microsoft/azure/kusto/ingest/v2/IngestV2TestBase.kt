@@ -30,68 +30,61 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")
     protected open val targetTable: String =
-        "Storms_${UUID.randomUUID().toString().replace("-", "").take(8)}"
-    protected open val columnNamesToTypes: Map<String, String> = emptyMap()
-    protected lateinit var adminClient: Client
+        "Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
+    protected val columnNamesToTypes: Map<String, String> =
+        mapOf(
+            "timestamp" to "datetime",
+            "deviceId" to "guid",
+            "messageId" to "guid",
+            "temperature" to "real",
+            "humidity" to "real",
+            "SourceLocation" to "string",
+            "Type" to "string",
+        )
+    protected lateinit var adminClusterClient: Client
 
     @BeforeAll
-    open fun createTables() {
-        if (columnNamesToTypes.isEmpty()) return
+    fun createTables() {
         val createTableScript =
             """
-            .create table $targetTable (
+            .create-merge table $targetTable (
                 ${columnNamesToTypes.entries.joinToString(",") { "['${it.key}']:${it.value}" }}
             )
             """
                 .trimIndent()
         val mappingReference =
             """
-            .create table $targetTable ingestion csv mapping '${targetTable}_mapping' ```[
-${columnNamesToTypes.keys.mapIndexed { idx, col ->
-                when (col) {
-                    "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
-                    "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
-                    else -> "    {\"column\":\"$col\", \"Properties\":{\"Ordinal\":\"$idx\"}},"
-                }
-            }.joinToString("\n").removeSuffix(",")}
+            .create-or-alter table $targetTable ingestion json mapping '${targetTable}_mapping' ```[
+            ${
+                columnNamesToTypes.keys.joinToString("\n") { col ->
+                    when (col) {
+                        "SourceLocation" -> "    {\"column\":\"$col\", \"Properties\":{\"Transform\":\"SourceLocation\"}},"
+                        "Type" -> "    {\"column\":\"$col\", \"Properties\":{\"ConstValue\":\"MappingRef\"}}"
+                        else -> "    {\"column\":\"$col\", \"Properties\":{\"Path\":\"$.$col\"}},"
+                    }
+                }.removeSuffix(",")
+            }
            ]```
             """
                 .trimIndent()
-        val engineEndpoint = dmEndpoint.replace("https://ingest-", "https://")
-        val kcsb = ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
-        adminClient = ClientFactory.createClient(kcsb)
-        adminClient.executeMgmt(database, createTableScript)
-        adminClient.executeMgmt(database, mappingReference)
-    }
-
-    protected fun enableStreamingIngestion(waitTimeMs: Long = 30000) {
-        if (!::adminClient.isInitialized) {
-            throw IllegalStateException(
-                "adminClient not initialized. Call createTables() first.",
+        adminClusterClient =
+            ClientFactory.createClient(
+                ConnectionStringBuilder.createWithAzureCli(
+                    engineEndpoint,
+                ),
             )
-        }
-
-        adminClient.executeMgmt(
+        adminClusterClient.executeMgmt(database, createTableScript)
+        adminClusterClient.executeMgmt(database, mappingReference)
+        adminClusterClient.executeMgmt(
             database,
-            ".alter table $targetTable policy streamingingestion enable",
-        )
-        logger.info(
-            "Enabled streaming ingestion policy on table {}",
-            targetTable,
-        )
-
-        Thread.sleep(waitTimeMs)
-        logger.info(
-            "Waited {} ms for streaming ingestion policy to propagate",
-            waitTimeMs,
+            ".clear database cache streamingingestion schema",
         )
     }
 
     @AfterAll
-    open fun dropTables() {
-        if (!::adminClient.isInitialized) return
+    fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
         logger.error("Dropping table $targetTable")
-        adminClient.executeMgmt(database, dropTableScript)
+        adminClusterClient.executeMgmt(database, dropTableScript)
     }
 }
