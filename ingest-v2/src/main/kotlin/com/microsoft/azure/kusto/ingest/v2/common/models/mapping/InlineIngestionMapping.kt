@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable as KSerializable
 @KSerializable
 data class InlineIngestionMapping(
     var columnMappings: List<ColumnMapping>? = null,
-    var ingestionMappingType: IngestionMappingType? = null,
+    var ingestionMappingType: IngestionMappingType? = null
 ) {
     constructor(
         other: InlineIngestionMapping,
@@ -19,7 +19,7 @@ data class InlineIngestionMapping(
                 properties = it.properties,
             )
         },
-        other.ingestionMappingType,
+        other.ingestionMappingType
     )
 
     enum class IngestionMappingType(val kustoValue: String) {

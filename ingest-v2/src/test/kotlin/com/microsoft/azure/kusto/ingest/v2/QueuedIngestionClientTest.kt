@@ -3,7 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
-import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
@@ -26,10 +26,11 @@ class QueuedIngestionClientTest :
 
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
-        //
-        // "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
-        //
-        // "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        // Single JSON blob, no mapping
+         "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
+        // Single JSON blob, with mapping reference
+         "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        // Single JSON blob, with inline mapping
         "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true,0",
         // TODO This test fails (failureStatus is not right)
         // "QueuedIngestion-FailWithInvalidBlob,https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json,false,false,0",
@@ -99,17 +100,17 @@ class QueuedIngestionClientTest :
                                     .apply { setPath("$.$col") }
                         }
                     }
-                val ingestionMappingInline =
-                    IngestionMapping(
+                val inlineIngestionMappingInline =
+                    InlineIngestionMapping(
                         columnMappings = ingestionColumnMappings,
                         ingestionMappingType =
-                        IngestionMapping
+                        InlineIngestionMapping
                             .IngestionMappingType
                             .JSON,
                     )
                 val ingestionMappingString =
                     Json.encodeToString(
-                        ingestionMappingInline.columnMappings,
+                        inlineIngestionMappingInline.columnMappings,
                     )
                 IngestRequestProperties(
                     format = targetTestFormat,
