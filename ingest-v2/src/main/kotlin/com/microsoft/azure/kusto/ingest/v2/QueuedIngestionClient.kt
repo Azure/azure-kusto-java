@@ -13,9 +13,11 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
+import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.UUID
 import kotlin.time.Duration
 
 class QueuedIngestionClient(
@@ -31,7 +33,7 @@ class QueuedIngestionClient(
      *
      * @param database The target database name
      * @param table The target table name
-     * @param blobUrls List of blob URLs to ingest
+     * @param sources List of ingestion sources to ingest
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
      * @return IngestionOperation for tracking the request
@@ -39,28 +41,30 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        blobUrls: List<String>,
+        sources: List<IngestionSource>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
-        logger.info(
-            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobUrls.size}",
-        )
         // Convert blob URLs to Blob objects
         val blobs =
-            blobUrls.mapIndexed { index, url ->
-                Blob(
-                    url = url,
-                    sourceId =
-                    "source_${index}_${System.currentTimeMillis()}",
+            sources.map { source ->
+                val sourceId =
+                    source.sourceId ?: UUID.randomUUID().toString()
+                logger.info(
+                    "Submitting queued ingestion request for database: {}, table: {}, format: {}, sourceId: {}",
+                    database,
+                    table,
+                    format,
+                    sourceId,
                 )
+                Blob(url = source.url, sourceId = sourceId)
             }
 
         val requestProperties =
             ingestProperties ?: IngestRequestProperties(format = format)
 
         logger.debug(
-            "** Ingesting to {}.{} with the following properties with properties {}",
+            "Ingesting to {}.{} with the following properties with properties {}",
             database,
             table,
             requestProperties,
@@ -287,10 +291,6 @@ class QueuedIngestionClient(
                         )
                     logger.debug(
                         "Starting to poll ingestion status for operation: $operationId, timeout: $timeout",
-                    )
-                    logger.debug(
-                        "IngestionStatus: {}",
-                        currentStatus.details,
                     )
                     if (
                         IngestionResultUtils.isCompleted(
