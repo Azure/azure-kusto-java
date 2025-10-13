@@ -63,7 +63,7 @@ class QueuedIngestionClient(
             ingestProperties ?: IngestRequestProperties(format = format)
 
         logger.debug(
-            "** Ingesting to {}.{} with the following properties with properties {}",
+            "Ingesting to {}.{} with the following properties with properties {}",
             database,
             table,
             requestProperties,
@@ -291,10 +291,6 @@ class QueuedIngestionClient(
                         )
                     logger.debug(
                         "Starting to poll ingestion status for operation: $operationId, timeout: $timeout",
-                    )
-                    logger.debug(
-                        "IngestionStatus: {}",
-                        currentStatus.details,
                     )
                     if (
                         IngestionResultUtils.isCompleted(
