@@ -3,7 +3,11 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
+import java.io.File
+import java.io.FileInputStream
 import java.io.InputStream
+import java.util.zip.GZIPInputStream
+import java.util.zip.ZipInputStream
 
 abstract class LocalSource(
     override val format: Format,
@@ -52,5 +56,40 @@ class StreamSource(
 
     override fun data(): InputStream {
         return mStream!!
+    }
+}
+
+class FileSource(
+    file: File,
+    format: Format,
+    compressionType: CompressionType = CompressionType.NONE,
+    name: String? = null,
+    sourceId: String? = null,
+    leaveOpen: Boolean = false,
+) : LocalSource(format, leaveOpen, compressionType, name, sourceId) {
+
+    private val fileStream: InputStream = when (compressionType) {
+        CompressionType.GZIP -> GZIPInputStream(FileInputStream(file))
+        CompressionType.ZIP -> {
+            val zipStream = ZipInputStream(FileInputStream(file))
+            zipStream.nextEntry // Move to first entry
+            zipStream
+        }
+        else -> FileInputStream(file)
+    }
+
+    init {
+        mStream = fileStream
+        initName(name)
+    }
+
+    override fun data(): InputStream {
+        return mStream!!
+    }
+
+    override fun close() {
+        if (!leaveOpen) {
+            fileStream.close()
+        }
     }
 }

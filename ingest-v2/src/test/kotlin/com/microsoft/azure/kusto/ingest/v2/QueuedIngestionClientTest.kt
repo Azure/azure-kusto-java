@@ -27,9 +27,9 @@ class QueuedIngestionClientTest :
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
         // Single JSON blob, no mapping
-         "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
+        "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
         // Single JSON blob, with mapping reference
-         "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
         // Single JSON blob, with inline mapping
         "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true,0",
         // TODO This test fails (failureStatus is not right)
