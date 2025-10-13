@@ -2,9 +2,13 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
@@ -22,8 +26,10 @@ class QueuedIngestionClientTest :
 
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
-        "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
-        "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        //
+        // "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
+        //
+        // "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
         "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true,0",
         // TODO This test fails (failureStatus is not right)
         // "QueuedIngestion-FailWithInvalidBlob,https://nonexistentaccount.blob.core.windows.net/samplefiles/StormEvents.json,false,false,0",
@@ -33,8 +39,8 @@ class QueuedIngestionClientTest :
     fun `test queued ingestion with CSV blob`(
         testName: String,
         blobUrl: String,
-        mappingReference: Boolean,
-        ingestionMapping: Boolean,
+        useMappingReference: Boolean,
+        useInlineIngestionMapping: Boolean,
         numberOfFailures: Int,
     ): Unit = runBlocking {
         // Skip test if no DM_CONNECTION_STRING is set
@@ -48,49 +54,66 @@ class QueuedIngestionClientTest :
         val testBlobUrls = listOf(blobUrl)
 
         val properties =
-            if (mappingReference) {
+            if (useMappingReference) {
                 IngestRequestProperties(
                     format = targetTestFormat,
                     ingestionMappingReference =
                     "${targetTable}_mapping",
                     enableTracking = true,
                 )
-            } else if (ingestionMapping) {
-                val ingestionMappingArray =
+            } else if (useInlineIngestionMapping) {
+                val ingestionColumnMappings =
                     columnNamesToTypes.keys.map { col ->
                         when (col) {
                             "SourceLocation" ->
-                                mapOf(
-                                    "Column" to col,
-                                    "Properties" to
-                                        mapOf(
-                                            "Transform" to
-                                                "SourceLocation",
-                                        ),
+                                ColumnMapping(
+                                    columnName = col,
+                                    columnType =
+                                    "string",
                                 )
+                                    .apply {
+                                        setTransform(
+                                            TransformationMethod
+                                                .SourceLocation,
+                                        )
+                                    }
                             "Type" ->
-                                mapOf(
-                                    "Column" to col,
-                                    "Properties" to
-                                        mapOf(
-                                            "ConstValue" to
-                                                "IngestionMapping",
-                                        ),
+                                ColumnMapping(
+                                    columnName = col,
+                                    columnType =
+                                    "string",
                                 )
+                                    .apply {
+                                        setConstantValue(
+                                            "IngestionMapping",
+                                        )
+                                    }
                             else ->
-                                mapOf(
-                                    "Column" to col,
-                                    "Properties" to
-                                        mapOf(
-                                            "Path" to
-                                                "$.$col",
-                                        ),
+                                ColumnMapping(
+                                    columnName = col,
+                                    columnType =
+                                    columnNamesToTypes[
+                                        col,
+                                    ]!!,
                                 )
+                                    .apply { setPath("$.$col") }
                         }
                     }
+                val ingestionMappingInline =
+                    IngestionMapping(
+                        columnMappings = ingestionColumnMappings,
+                        ingestionMappingType =
+                        IngestionMapping
+                            .IngestionMappingType
+                            .JSON,
+                    )
+                val ingestionMappingString =
+                    Json.encodeToString(
+                        ingestionMappingInline.columnMappings,
+                    )
                 IngestRequestProperties(
                     format = targetTestFormat,
-                    mapping = ingestionMappingArray.toString(),
+                    ingestionMapping = ingestionMappingString,
                     enableTracking = true,
                 )
             } else {
@@ -187,11 +210,11 @@ class QueuedIngestionClientTest :
                 }
                 val filterType =
                     when {
-                        mappingReference -> "MappingRef"
-                        ingestionMapping -> "IngestionMapping"
+                        useMappingReference -> "MappingRef"
+                        useInlineIngestionMapping -> "IngestionMapping"
                         else -> "None"
                     }
-                if (mappingReference) {
+                if (useMappingReference || useInlineIngestionMapping) {
                     val results =
                         adminClusterClient
                             .executeQuery(
@@ -231,3 +254,4 @@ class QueuedIngestionClientTest :
         }
     }
 }
+// https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json

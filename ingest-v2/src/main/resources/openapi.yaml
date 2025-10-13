@@ -241,7 +241,7 @@ components:
               type: string
               description: Reference to a named mapping policy
               nullable: true
-            mapping:
+            ingestionMapping:
               type: string
               description: Ingestion mapping object
               nullable: true
