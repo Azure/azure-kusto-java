@@ -29,7 +29,8 @@ object ExtendedDataSourceCompressionType {
     fun detectFromUri(url: String): CompressionType? {
         val lowerUrl = url.lowercase()
         return when {
-            lowerUrl.endsWith(".gz") || lowerUrl.endsWith(".gzip") -> CompressionType.GZIP
+            lowerUrl.endsWith(".gz") || lowerUrl.endsWith(".gzip") ->
+                CompressionType.GZIP
             lowerUrl.endsWith(".zip") -> CompressionType.ZIP
             else -> CompressionType.NONE
         }

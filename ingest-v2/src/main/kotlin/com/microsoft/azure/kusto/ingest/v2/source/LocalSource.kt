@@ -72,15 +72,16 @@ class FileSource(
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, compressionType, name, sourceId) {
 
-    private val fileStream: InputStream = when (compressionType) {
-        CompressionType.GZIP -> GZIPInputStream(FileInputStream(file))
-        CompressionType.ZIP -> {
-            val zipStream = ZipInputStream(FileInputStream(file))
-            zipStream.nextEntry // Move to first entry
-            zipStream
+    private val fileStream: InputStream =
+        when (compressionType) {
+            CompressionType.GZIP -> GZIPInputStream(FileInputStream(file))
+            CompressionType.ZIP -> {
+                val zipStream = ZipInputStream(FileInputStream(file))
+                zipStream.nextEntry // Move to first entry
+                zipStream
+            }
+            else -> FileInputStream(file)
         }
-        else -> FileInputStream(file)
-    }
 
     init {
         mStream = fileStream

@@ -6,6 +6,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import kotlinx.coroutines.runBlocking
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import java.net.ConnectException
+import java.util.UUID
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
@@ -53,7 +55,16 @@ class QueuedIngestionClientTest :
                 tokenCredential = tokenProvider,
                 skipSecurityChecks = true,
             )
-        val testBlobUrls = listOf(blobUrl)
+        val ingestionSourceId = UUID.randomUUID().toString()
+        val testSources: List<IngestionSource> =
+            listOf(
+                BlobSource(
+                    url = blobUrl,
+                    format = Format.json,
+                    compression = CompressionType.NONE,
+                    sourceId = ingestionSourceId,
+                ),
+            )
         val testBlobSources = testBlobUrls.map { url -> BlobSourceInfo(url) }
 
         val properties =
@@ -135,6 +146,7 @@ class QueuedIngestionClientTest :
                     blobSources = testBlobSources,
                     format = targetTestFormat,
                     ingestProperties = properties,
+                    sources = testSources,
                 )
 
             logger.info(
@@ -159,8 +171,7 @@ class QueuedIngestionClientTest :
                 queuedIngestionClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId =
-                    ingestionResponse.ingestionOperationId,
+                    operationId = ingestionResponse.ingestionOperationId,
                     // Poll every 5 seconds for testing
                     pollingInterval = Duration.parse("PT5S"),
                     // 5 minute timeout for testing
