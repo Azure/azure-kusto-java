@@ -171,7 +171,8 @@ class QueuedIngestionClientTest :
                 queuedIngestionClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId = ingestionResponse.ingestionOperationId,
+                    operationId =
+                    ingestionResponse.ingestionOperationId,
                     // Poll every 5 seconds for testing
                     pollingInterval = Duration.parse("PT5S"),
                     // 5 minute timeout for testing

@@ -12,7 +12,7 @@ abstract class IngestionSource(
     open val url: String?,
     open val sourceId: String?,
 ) : AutoCloseable {
-    var name: String? = null
+    lateinit var name: String
         private set
 
     fun initName(baseName: String? = null) {
@@ -22,6 +22,8 @@ abstract class IngestionSource(
         name =
             "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format}$compressionType"
     }
+
+    open fun getUrl(): String? = url
 }
 
 // Placeholder classes for missing dependencies

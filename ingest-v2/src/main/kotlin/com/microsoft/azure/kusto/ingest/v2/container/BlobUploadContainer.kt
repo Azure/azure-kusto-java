@@ -2,19 +2,18 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.container
 
+import com.azure.storage.blob.BlobClientBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
-import org.jetbrains.annotations.NotNull
 
-class BlobUploadContainer(val configResponse: @NotNull ConfigurationResponse) :
+class BlobUploadContainer(val configurationCache: ConfigurationCache) :
     UploadContainerBase {
-
     // choose a random container from the configResponse.containerSettings.containers
-
     override suspend fun uploadAsync(
         name: String,
         stream: java.io.InputStream,
     ): String {
+        val configResponse = configurationCache.getConfiguration()
         // Placeholder for actual upload logic
         // In a real implementation, this would upload the stream to the blob storage
         // and return the URI of the uploaded blob.
@@ -42,6 +41,11 @@ class BlobUploadContainer(val configResponse: @NotNull ConfigurationResponse) :
             } else {
                 configResponse.containerSettings.containers.random()
             }
-        return "${targetPath.path}/$name"
+        val blobTargetUrl = "${targetPath.path}/$name"
+        // Ensure the endpoint is a valid full URL for Azure BlobClientBuilder
+        val blobClient =
+            BlobClientBuilder().endpoint(blobTargetUrl).buildClient()
+        blobClient.upload(stream, true)
+        return blobTargetUrl
     }
 }
