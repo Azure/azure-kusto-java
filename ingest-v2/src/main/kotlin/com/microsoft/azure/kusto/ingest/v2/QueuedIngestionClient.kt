@@ -3,11 +3,9 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
-import com.azure.storage.blob.BlobClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
-import com.microsoft.azure.kusto.ingest.v2.common.utils.PathUtils.createFileNameForUpload
 import com.microsoft.azure.kusto.ingest.v2.container.BlobUploadContainer
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
