@@ -22,8 +22,6 @@ abstract class IngestionSource(
         name =
             "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format}$compressionType"
     }
-
-    open fun getUrl(): String? = url
 }
 
 // Placeholder classes for missing dependencies
