@@ -22,12 +22,6 @@ abstract class LocalSource(
 
     // Indicates whether the stream should be left open after ingestion.
     // val leaveOpen: Boolean // Already a constructor property
-
-    internal val shouldCompress: Boolean
-        get() =
-            (compressionType == CompressionType.NONE) &&
-                !FormatUtil.isBinaryFormat(format)
-
     abstract fun data(): InputStream
 
     fun reset() {

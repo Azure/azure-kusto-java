@@ -3,8 +3,11 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
+import com.azure.storage.blob.BlobClientBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
+import com.microsoft.azure.kusto.ingest.v2.container.BlobUploadContainer
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
@@ -27,6 +30,13 @@ class QueuedIngestionClient(
 ) :
     KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
     IngestClient {
+
+    private val defaultConfigurationCache =
+        DefaultConfigurationCache(
+            dmUrl = dmUrl,
+            tokenCredential = tokenCredential,
+            skipSecurityChecks = skipSecurityChecks,
+        )
 
     /**
      * Submits a queued ingestion request.
@@ -52,6 +62,23 @@ class QueuedIngestionClient(
         val blobs =
             blobSources.mapIndexed { index, blobSource ->
                 val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
+                when (source) {
+                    is FileSource,
+                    is StreamSource,
+                    -> {
+                        val blobUploadContainer =
+                            BlobUploadContainer(
+                                defaultConfigurationCache
+                                    .getConfiguration(),
+                            )
+                        val blobClient = BlobClientBuilder()
+                        source.data().reset()
+                    }
+                    else -> {
+                        /* no-op */
+                    }
+                }
+
                 logger.debug("Preparing blob {} with sourceId {} for ingestion.", index, sourceId)
                 Blob(
                     url = blobSource.blobPath,
@@ -159,11 +186,10 @@ class QueuedIngestionClient(
                     hasTransientErrors
                 ) {
                     val message =
-                        if (hasTransientErrors) {
-                            printMessagesFromFailures(transientFailures)
-                        } else {
-                            "Error polling $dmUrl for operation $operationId."
-                        }
+                        printMessagesFromFailures(
+                            transientFailures,
+                            isTransientFailure = true,
+                        )
                     logger.error(message)
                     throw IngestException(
                         message = message,
@@ -175,8 +201,10 @@ class QueuedIngestionClient(
                 }
                 // TODO: We need to eventually look at OneApiExceptions
                 val errorMessage =
-                    printMessagesFromFailures(ingestStatusFailure.details)
-                        ?: "Failed to get ingestion summary for operation $operationId. Status: ${response.status}, Body: $ingestStatusFailure"
+                    printMessagesFromFailures(
+                        ingestStatusFailure.details,
+                        isTransientFailure = false,
+                    )
                 logger.error(errorMessage)
                 throw IngestException(errorMessage, isPermanent = true)
             }
@@ -195,6 +223,7 @@ class QueuedIngestionClient(
 
     private fun printMessagesFromFailures(
         failures: List<BlobStatus>?,
+        isTransientFailure: Boolean,
     ): String? {
         return failures?.joinToString {
                 (
@@ -209,7 +238,7 @@ class QueuedIngestionClient(
             ->
             "Error ingesting blob with $sourceId. ErrorDetails $details, ErrorCode $errorCode " +
                 ", Status ${status?.value}. Ingestion lastUpdated at $lastUpdateTime & started at $startedAt. " +
-                "FailureStatus ${failureStatus?.value}"
+                "FailureStatus ${failureStatus?.value}. Is transient failure: $isTransientFailure"
         }
     }
 
