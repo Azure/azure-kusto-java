@@ -65,19 +65,25 @@ class QueuedIngestionClient(
                 val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
                 val uploadedUrl =
                     when (source) {
-                        is FileSource,
-                        is StreamSource,
-                        -> {
+                        is FileSource -> {
                             val blobUploadContainer =
                                 BlobUploadContainer(
                                     defaultConfigurationCache,
                                 )
-                            val targetBlobUrl =
-                                blobUploadContainer.uploadAsync(
-                                    source.name,
-                                    source.data(),
+                            blobUploadContainer.uploadFromFileAsync(
+                                source.name,
+                                source.filePath,
+                            )
+                        }
+                        is StreamSource -> {
+                            val blobUploadContainer =
+                                BlobUploadContainer(
+                                    defaultConfigurationCache,
                                 )
-                            targetBlobUrl
+                            blobUploadContainer.uploadAsync(
+                                source.name,
+                                source.data(),
+                            )
                         }
                         else -> {
                             source.url

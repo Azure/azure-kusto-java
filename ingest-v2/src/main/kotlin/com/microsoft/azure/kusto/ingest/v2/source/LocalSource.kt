@@ -58,13 +58,16 @@ class StreamSource(
 }
 
 class FileSource(
-    path: Path,
+    val path: Path,
     format: Format,
     compressionType: CompressionType = CompressionType.NONE,
     name: String? = null,
     sourceId: String? = null,
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, compressionType, name, sourceId) {
+
+    // Expose file path for direct file upload APIs
+    val filePath: String = path.toAbsolutePath().toString()
 
     private val fileStream: InputStream =
         when (compressionType) {
