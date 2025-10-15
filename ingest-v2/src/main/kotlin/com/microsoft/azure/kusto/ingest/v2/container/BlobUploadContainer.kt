@@ -2,11 +2,38 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.container
 
+import com.azure.core.util.Context
 import com.azure.storage.blob.BlobClientBuilder
+import com.azure.storage.blob.models.ParallelTransferOptions
+import com.azure.storage.blob.options.BlobUploadFromFileOptions
+import com.azure.storage.common.policy.RequestRetryOptions
+import com.azure.storage.common.policy.RetryPolicyType
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.time.Duration
+
+private const val BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024 // 4 MB block size
+private const val MAX_CONCURRENCY: Int = 8 // 8 concurrent requests
+private const val MAX_SINGLE_UPLOAD_SIZE_BYTES: Long =
+    256 * 1024 * 1024 // 256 MB max single upload
+
+private val DEFAULT_RETRY_OPTIONS =
+    RequestRetryOptions(
+        RetryPolicyType.EXPONENTIAL,
+        // 3 retries
+        3,
+        // Try timeout in seconds to 1 min
+        60,
+        // Retry delay in ms (default)
+        100,
+        // Max retry delay in ms (default)
+        300,
+        // Secondary host (default)
+        null,
+    )
 
 class BlobUploadContainer(val configurationCache: ConfigurationCache) :
     UploadContainerBase {
@@ -18,41 +45,69 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
         name: String,
         stream: InputStream,
     ): String {
-        val (url, sas, targetPath) = getBlobTargetInfo(name)
+        val targetInfo = getBlobTargetInfo()
         val blobClient =
             BlobClientBuilder()
-                .endpoint(targetPath.path)
+                .endpoint(targetInfo.containerInfo.path)
                 .blobName(name)
                 .buildClient()
-        logger.debug("Uploading stream to blob url: {} to container {}", url, name)
+        logger.debug(
+            "Uploading stream to blob url: {} to container {}",
+            targetInfo.url,
+            name,
+        )
         // TODO Check on parallel uploads, retries to be implemented. Explore upload from File API
         // TODO What is the size of the stream, should we use uploadFromFile API?
         blobClient.upload(stream, true)
-        return "$url/$name?$sas"
+        return "${targetInfo.url}/$name?${targetInfo.sas}"
     }
 
-
-    suspend fun uploadFromFileAsync(
-        name: String,
-        filePath: String,
-    ): String {
-        val (url, sas, targetPath) = getBlobTargetInfo(name)
+    suspend fun uploadFromFileAsync(name: String, filePath: String): String {
+        val targetInfo = getBlobTargetInfo()
         val blobClient =
             BlobClientBuilder()
-                .endpoint(targetPath.path)
+                .endpoint(targetInfo.containerInfo.path)
                 .blobName(name)
+                .retryOptions(DEFAULT_RETRY_OPTIONS)
                 .buildClient()
-        logger.debug("Uploading file {} to blob url: {} to container {}", filePath, url, name)
-        blobClient.uploadFromFile(filePath, true)
-        return "$url/$name?$sas"
+        logger.debug(
+            "Uploading file {} to blob url: {} to container {}",
+            filePath,
+            targetInfo.url,
+            name,
+        )
+        val parallelTransferOptions =
+            ParallelTransferOptions()
+                .setBlockSizeLong(BLOCK_SIZE_BYTES)
+                .setMaxConcurrency(MAX_CONCURRENCY)
+                .setMaxSingleUploadSizeLong(
+                    MAX_SINGLE_UPLOAD_SIZE_BYTES,
+                )
+
+        return try {
+            val response =
+                blobClient.uploadFromFileWithResponse(
+                    BlobUploadFromFileOptions(filePath)
+                        .setParallelTransferOptions(
+                            parallelTransferOptions,
+                        ),
+                    Duration.ofHours(1),
+                    Context.NONE,
+                )
+            if (response.statusCode in 200..299 && response.value != null) {
+                "${targetInfo.url}/$name?${targetInfo.sas}"
+            } else {
+                throw IngestException(
+                    "Upload failed with status: ${response.statusCode}",
+                )
+            }
+        } catch (e: Exception) {
+            throw IngestException("Upload failed", e)
+        }
     }
 
-    private suspend fun getBlobTargetInfo(name: String): Triple<String, String, com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo> {
+    private suspend fun getBlobTargetInfo(): BlobTargetInfo {
         val configResponse = configurationCache.getConfiguration()
-        // Placeholder for actual upload logic
-        // In a real implementation, this would upload the stream to the blob storage
-        // and return the URI of the uploaded blob.
-        // check if the configResponse has containerSettings
         val noUploadLocation =
             configResponse.containerSettings == null ||
                 (
@@ -66,7 +121,6 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
                 "No container settings available in the configuration response",
             )
         }
-        // check if containers is null or empty , if so use lakeFolders and choose one randomly
         val targetPath =
             if (
                 configResponse.containerSettings.containers
@@ -77,6 +131,12 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
                 configResponse.containerSettings.containers.random()
             }
         val (url, sas) = targetPath.path!!.split("?")
-        return Triple(url, sas, targetPath)
+        return BlobTargetInfo(url, sas, targetPath)
     }
 }
+
+private data class BlobTargetInfo(
+    val url: String,
+    val sas: String,
+    val containerInfo: ContainerInfo,
+)
