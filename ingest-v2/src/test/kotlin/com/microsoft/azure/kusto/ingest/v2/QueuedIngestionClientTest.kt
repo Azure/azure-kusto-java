@@ -10,7 +10,9 @@ import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
+import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -19,7 +21,9 @@ import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.io.ByteArrayInputStream
 import java.net.ConnectException
+import java.nio.file.Files
 import java.util.UUID
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
@@ -266,6 +270,114 @@ class QueuedIngestionClientTest :
             } else {
                 throw e
             }
+        }
+    }
+
+    @ParameterizedTest(
+        name =
+        "[QueuedIngestion-LocalSource] {index} => SourceType={0}, TestName={1}",
+    )
+    @CsvSource(
+        "file,QueuedIngestion-FileSource,SampleFileSource.json",
+        "stream,QueuedIngestion-StreamSource,SampleStreamSource.json",
+    )
+    fun `test queued ingestion with LocalSource`(
+        sourceType: String,
+        testName: String,
+        fileName: String,
+    ) = runBlocking {
+        logger.info("Starting LocalSource test: $testName")
+        val deviceDataUrl =
+            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json"
+        val deviceData = java.net.URL(deviceDataUrl).readText()
+        val targetFormat = Format.multijson
+        val source: IngestionSource =
+            when (sourceType) {
+                "file" -> {
+                    val tempFile = Files.createTempFile(fileName, null)
+                    Files.write(tempFile, deviceData.toByteArray())
+                    FileSource(
+                        path = tempFile,
+                        format = targetFormat,
+                        compressionType = CompressionType.NONE,
+                        name = fileName,
+                        sourceId = UUID.randomUUID().toString(),
+                    )
+                        .also {
+                            Runtime.getRuntime()
+                                .addShutdownHook(
+                                    Thread {
+                                        Files.deleteIfExists(
+                                            tempFile,
+                                        )
+                                    },
+                                )
+                        }
+                }
+                "stream" ->
+                    StreamSource(
+                        stream =
+                        ByteArrayInputStream(
+                            deviceData.toByteArray(),
+                        ),
+                        format = targetFormat,
+                        sourceCompression = CompressionType.NONE,
+                        name = fileName,
+                        sourceId = UUID.randomUUID().toString(),
+                    )
+                else -> error("Unknown sourceType: $sourceType")
+            }
+        val queuedIngestionClient =
+            QueuedIngestionClient(
+                dmUrl = dmEndpoint,
+                tokenCredential = tokenProvider,
+                skipSecurityChecks = true,
+            )
+        val properties =
+            IngestRequestProperties(
+                format = targetFormat,
+                enableTracking = true,
+            )
+        val ingestionResponse =
+            queuedIngestionClient.submitQueuedIngestion(
+                database = database,
+                table = targetTable,
+                format = targetFormat,
+                ingestProperties = properties,
+                sources = listOf(source),
+            )
+        logger.info(
+            "{}: Submitted queued ingestion with operation ID: {}",
+            testName,
+            ingestionResponse.ingestionOperationId,
+        )
+        assertNotNull(
+            ingestionResponse,
+            "IngestionOperation should not be null",
+        )
+        assertNotNull(
+            ingestionResponse.ingestionOperationId,
+            "Operation ID should not be null",
+        )
+        val finalStatus =
+            queuedIngestionClient.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = ingestionResponse.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M"),
+            )
+        logger.info(
+            "{} ingestion completed with final status: {}",
+            testName,
+            finalStatus.status,
+        )
+        assert(
+            finalStatus.details?.any {
+                it.status == BlobStatus.Status.Succeeded
+            } == true,
+        ) {
+            "Expected at least one successful ingestion for $testName"
         }
     }
 }

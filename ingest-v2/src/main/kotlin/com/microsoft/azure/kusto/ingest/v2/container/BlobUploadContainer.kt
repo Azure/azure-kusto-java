@@ -5,13 +5,18 @@ package com.microsoft.azure.kusto.ingest.v2.container
 import com.azure.storage.blob.BlobClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import org.slf4j.LoggerFactory
+import java.io.InputStream
 
 class BlobUploadContainer(val configurationCache: ConfigurationCache) :
     UploadContainerBase {
+    private val logger =
+        LoggerFactory.getLogger(BlobUploadContainer::class.java)
+
     // choose a random container from the configResponse.containerSettings.containers
     override suspend fun uploadAsync(
         name: String,
-        stream: java.io.InputStream,
+        stream: InputStream,
     ): String {
         val configResponse = configurationCache.getConfiguration()
         // Placeholder for actual upload logic
@@ -41,10 +46,17 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
             } else {
                 configResponse.containerSettings.containers.random()
             }
-        val blobTargetUrl = "${targetPath.path}/$name"
+        val (url, sas) = targetPath.path!!.split("?")
+        val blobTargetUrl = "$url/$name?$sas"
         // Ensure the endpoint is a valid full URL for Azure BlobClientBuilder
         val blobClient =
-            BlobClientBuilder().endpoint(blobTargetUrl).buildClient()
+            BlobClientBuilder()
+                .endpoint(targetPath.path)
+                .blobName(name)
+                .buildClient()
+        logger.debug("Uploading to blob url: {} to container {}", url, name)
+        // TODO Check on parallel uploads, retries to be implemented. Explore upload from File API
+        // TODO What is the size of the stream, should we use uploadFromFile API?
         blobClient.upload(stream, true)
         return blobTargetUrl
     }

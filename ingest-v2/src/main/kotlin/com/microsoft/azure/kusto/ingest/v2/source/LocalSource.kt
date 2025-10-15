@@ -3,9 +3,9 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import java.io.File
-import java.io.FileInputStream
 import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.zip.GZIPInputStream
 import java.util.zip.ZipInputStream
 
@@ -53,7 +53,7 @@ class StreamSource(
 }
 
 class FileSource(
-    file: File,
+    path: Path,
     format: Format,
     compressionType: CompressionType = CompressionType.NONE,
     name: String? = null,
@@ -63,13 +63,14 @@ class FileSource(
 
     private val fileStream: InputStream =
         when (compressionType) {
-            CompressionType.GZIP -> GZIPInputStream(FileInputStream(file))
+            CompressionType.GZIP ->
+                GZIPInputStream(Files.newInputStream(path))
             CompressionType.ZIP -> {
-                val zipStream = ZipInputStream(FileInputStream(file))
+                val zipStream = ZipInputStream(Files.newInputStream(path))
                 zipStream.nextEntry // Move to first entry
                 zipStream
             }
-            else -> FileInputStream(file)
+            else -> Files.newInputStream(path)
         }
 
     init {
