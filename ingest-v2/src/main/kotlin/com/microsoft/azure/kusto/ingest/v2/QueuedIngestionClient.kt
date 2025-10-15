@@ -19,6 +19,8 @@ import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.Clock
+import java.time.OffsetDateTime
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -61,20 +63,26 @@ class QueuedIngestionClient(
         val blobs =
             blobSources.mapIndexed { index, blobSource ->
                 val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
-                val uploadedUrl = when (source) {
-                    is FileSource,
-                    is StreamSource,
-                    -> {
-                        val blobUploadContainer =
-                            BlobUploadContainer(
-                                defaultConfigurationCache,
-                            )
-                        blobUploadContainer.uploadAsync(source.name,source.data())
+                val uploadedUrl =
+                    when (source) {
+                        is FileSource,
+                        is StreamSource,
+                        -> {
+                            val blobUploadContainer =
+                                BlobUploadContainer(
+                                    defaultConfigurationCache,
+                                )
+                            val targetBlobUrl =
+                                blobUploadContainer.uploadAsync(
+                                    source.name,
+                                    source.data(),
+                                )
+                            targetBlobUrl
+                        }
+                        else -> {
+                            source.url
+                        }
                     }
-                    else -> {
-                        source.url
-                    }
-                }
 
                 logger.debug("Preparing blob {} with sourceId {} for ingestion.", index, sourceId)
                 Blob(
@@ -93,14 +101,12 @@ class QueuedIngestionClient(
             table,
             requestProperties,
         )
-
         val ingestRequest =
             IngestRequest(
-                timestamp = java.time.OffsetDateTime.now(),
+                timestamp = OffsetDateTime.now(Clock.systemUTC()),
                 blobs = blobs,
                 properties = requestProperties,
             )
-
         try {
             val response: HttpResponse<IngestResponse> =
                 api.postQueuedIngest(

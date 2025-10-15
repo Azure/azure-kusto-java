@@ -21,8 +21,7 @@ class DefaultConfigurationCache(
     val dmUrl: String? = null,
     val tokenCredential: TokenCredential? = null,
     val skipSecurityChecks: Boolean? = null,
-    val configurationProvider: (suspend () -> ConfigurationResponse)? =
-        null,
+    val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
 
     init {
