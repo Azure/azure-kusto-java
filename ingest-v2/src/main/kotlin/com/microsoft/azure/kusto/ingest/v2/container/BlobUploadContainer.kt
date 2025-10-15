@@ -18,6 +18,36 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
         name: String,
         stream: InputStream,
     ): String {
+        val (url, sas, targetPath) = getBlobTargetInfo(name)
+        val blobClient =
+            BlobClientBuilder()
+                .endpoint(targetPath.path)
+                .blobName(name)
+                .buildClient()
+        logger.debug("Uploading stream to blob url: {} to container {}", url, name)
+        // TODO Check on parallel uploads, retries to be implemented. Explore upload from File API
+        // TODO What is the size of the stream, should we use uploadFromFile API?
+        blobClient.upload(stream, true)
+        return "$url/$name?$sas"
+    }
+
+
+    suspend fun uploadFromFileAsync(
+        name: String,
+        filePath: String,
+    ): String {
+        val (url, sas, targetPath) = getBlobTargetInfo(name)
+        val blobClient =
+            BlobClientBuilder()
+                .endpoint(targetPath.path)
+                .blobName(name)
+                .buildClient()
+        logger.debug("Uploading file {} to blob url: {} to container {}", filePath, url, name)
+        blobClient.uploadFromFile(filePath, true)
+        return "$url/$name?$sas"
+    }
+
+    private suspend fun getBlobTargetInfo(name: String): Triple<String, String, com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo> {
         val configResponse = configurationCache.getConfiguration()
         // Placeholder for actual upload logic
         // In a real implementation, this would upload the stream to the blob storage
@@ -47,17 +77,6 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
                 configResponse.containerSettings.containers.random()
             }
         val (url, sas) = targetPath.path!!.split("?")
-        val blobTargetUrl = "$url/$name?$sas"
-        // Ensure the endpoint is a valid full URL for Azure BlobClientBuilder
-        val blobClient =
-            BlobClientBuilder()
-                .endpoint(targetPath.path)
-                .blobName(name)
-                .buildClient()
-        logger.debug("Uploading to blob url: {} to container {}", url, name)
-        // TODO Check on parallel uploads, retries to be implemented. Explore upload from File API
-        // TODO What is the size of the stream, should we use uploadFromFile API?
-        blobClient.upload(stream, true)
-        return blobTargetUrl
+        return Triple(url, sas, targetPath)
     }
 }
