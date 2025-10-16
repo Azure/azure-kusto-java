@@ -12,7 +12,8 @@ abstract class LocalSource(
     override val sourceId: String? = null,
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
 
-    protected var mStream: InputStream? = null
+    // Lazily initialized input stream for ingestion source
+    protected lateinit var mStream: InputStream
 
     // Indicates whether the stream should be left open after ingestion.
     // val leaveOpen: Boolean // Already a constructor property
@@ -30,7 +31,9 @@ abstract class LocalSource(
 
     override fun close() {
         if (!leaveOpen) {
-            mStream?.close()
+            if (this::mStream.isInitialized) {
+                mStream.close()
+            }
         }
     }
 }
@@ -50,6 +53,6 @@ class StreamSource(
     }
 
     override fun data(): InputStream {
-        return mStream!!
+        return mStream ?: throw IllegalStateException("Stream is not initialized")
     }
 }
