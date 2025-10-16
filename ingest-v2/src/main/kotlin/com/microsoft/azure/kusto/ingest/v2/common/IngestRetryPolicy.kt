@@ -4,7 +4,7 @@ package com.microsoft.azure.kusto.ingest.v2.common
 
 import java.time.Duration
 
-data class RetryDecision(val shouldRetry: Boolean, val interval: Duration)
+data class Retry(val shouldRetry: Boolean, val interval: Duration)
 
 interface IngestRetryPolicy {
     /**
@@ -12,12 +12,12 @@ interface IngestRetryPolicy {
      * retryNumber. Returns a RetryDecision indicating whether to retry and the
      * duration of the retry interval.
      */
-    fun moveNext(retryNumber: UInt): RetryDecision
+    fun moveNext(retryNumber: UInt): Retry
 }
 
 object NoRetryPolicy : IngestRetryPolicy {
-    override fun moveNext(retryNumber: UInt): RetryDecision {
-        return RetryDecision(false, Duration.ZERO)
+    override fun moveNext(retryNumber: UInt): Retry {
+        return Retry(false, Duration.ZERO)
     }
 }
 
@@ -29,12 +29,12 @@ class SimpleRetryPolicy(
         require(totalRetries > 0) { "totalRetries must be positive" }
     }
 
-    override fun moveNext(retryNumber: UInt): RetryDecision {
+    override fun moveNext(retryNumber: UInt): Retry {
         require(retryNumber > 0u) { "retryNumber must be positive" }
         if (retryNumber >= totalRetries.toUInt()) {
-            return RetryDecision(false, Duration.ZERO)
+            return Retry(false, Duration.ZERO)
         }
-        return RetryDecision(true, intervalDuration)
+        return Retry(true, intervalDuration)
     }
 }
 
@@ -51,11 +51,11 @@ class CustomRetryPolicy(intervalDurations: Array<Duration>? = null) :
     val intervals: List<Duration>
         get() = intervalDurations.toList()
 
-    override fun moveNext(retryNumber: UInt): RetryDecision {
+    override fun moveNext(retryNumber: UInt): Retry {
         val idx = retryNumber.toInt()
         if (idx >= intervalDurations.size) {
-            return RetryDecision(false, Duration.ZERO)
+            return Retry(false, Duration.ZERO)
         }
-        return RetryDecision(true, intervalDurations[idx])
+        return Retry(true, intervalDurations[idx])
     }
 }
