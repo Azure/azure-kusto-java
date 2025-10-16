@@ -54,6 +54,7 @@ class StreamSource(
     }
 
     override fun data(): InputStream {
-        return mStream ?: throw IllegalStateException("Stream is not initialized")
+        return mStream
+            ?: throw IllegalStateException("Stream is not initialized")
     }
 }
