@@ -12,8 +12,8 @@ import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.serialization.json.Json
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.json.Json
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -46,15 +46,24 @@ open class KustoBaseApiClient(
                                 .getToken(trc)
                                 .subscribe(
                                     { accessToken ->
-                                        val bearerTokens = BearerTokens(
-                                            accessToken = accessToken.token,
-                                            refreshToken = null,
+                                        val bearerTokens =
+                                            BearerTokens(
+                                                accessToken =
+                                                accessToken
+                                                    .token,
+                                                refreshToken =
+                                                null,
+                                            )
+                                        continuation.resume(
+                                            bearerTokens,
                                         )
-                                        continuation.resume(bearerTokens)
                                     },
                                     { error ->
-                                        continuation.resumeWithException(error)
-                                    }
+                                        continuation
+                                            .resumeWithException(
+                                                error,
+                                            )
+                                    },
                                 )
                         }
                     } catch (e: Exception) {
