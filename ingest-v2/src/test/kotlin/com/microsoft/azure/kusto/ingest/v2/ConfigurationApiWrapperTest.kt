@@ -35,7 +35,8 @@ class ConfigurationApiWrapperTest {
         isException: Boolean,
     ): Unit = runBlocking {
         val actualTokenProvider =
-            AzureCliCredentialBuilder().build() // Replace with a real token provider
+            AzureCliCredentialBuilder()
+                .build() // Replace with a real token provider
         // val cluster = System.getenv("DM_CONNECTION_STRING")
         val actualWrapper =
             ConfigurationApiWrapper(cluster, actualTokenProvider, true)

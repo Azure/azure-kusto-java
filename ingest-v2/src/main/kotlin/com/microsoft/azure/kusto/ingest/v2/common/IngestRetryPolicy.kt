@@ -9,8 +9,8 @@ data class RetryDecision(val shouldRetry: Boolean, val interval: Duration)
 interface IngestRetryPolicy {
     /**
      * Determines whether the operation should be retried based on the
-     * retryNumber. Returns a RetryDecision indicating whether to
-     * retry and the duration of the retry interval.
+     * retryNumber. Returns a RetryDecision indicating whether to retry and the
+     * duration of the retry interval.
      */
     fun moveNext(retryNumber: UInt): RetryDecision
 }
