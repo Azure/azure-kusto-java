@@ -106,9 +106,9 @@ open class KustoBaseApiClient(
         }
         /* TODO Check what these settings should be */
         config.install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 60_000
-            socketTimeoutMillis = 60_000
+            requestTimeoutMillis = KUSTO_API_REQUEST_TIMEOUT_MS
+            connectTimeoutMillis = KUSTO_API_CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = KUSTO_API_SOCKET_TIMEOUT_MS
         }
     }
 }

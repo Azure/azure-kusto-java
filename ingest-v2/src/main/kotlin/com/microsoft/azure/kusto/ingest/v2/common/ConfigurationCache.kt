@@ -3,6 +3,8 @@
 package com.microsoft.azure.kusto.ingest.v2.common
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS
+import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS
 import com.microsoft.azure.kusto.ingest.v2.ConfigurationClient
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
@@ -17,10 +19,12 @@ interface ConfigurationCache : AutoCloseable {
 }
 
 class DefaultConfigurationCache(
-    override val refreshInterval: Duration = Duration.ofHours(1),
+    override val refreshInterval: Duration =
+        Duration.ofHours(CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS),
     val dmUrl: String? = null,
     val tokenCredential: TokenCredential? = null,
-    val skipSecurityChecks: Boolean? = null,
+    val skipSecurityChecks: Boolean? =
+        CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS,
     val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
 
