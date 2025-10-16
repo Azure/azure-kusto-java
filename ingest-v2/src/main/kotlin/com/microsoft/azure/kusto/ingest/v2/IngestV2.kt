@@ -1,0 +1,48 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+package com.microsoft.azure.kusto.ingest.v2
+
+// Size of each block to upload to Azure Blob Storage (4 MB)
+const val UPLOAD_BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024
+
+// Maximum number of concurrent upload operations for blob upload
+const val UPLOAD_MAX_CONCURRENCY: Int = 8
+
+// Maximum size for a single upload operation to Azure Blob Storage (256 MB)
+const val UPLOAD_MAX_SINGLE_SIZE_BYTES: Long = 256 * 1024 * 1024
+
+// Maximum number of retry attempts for blob upload operations
+const val UPLOAD_RETRY_MAX_TRIES: Int = 3
+
+// Timeout in seconds for each blob upload attempt
+const val UPLOAD_RETRY_TIMEOUT_SECONDS: Int = 60
+
+// Initial delay in milliseconds between blob upload retry attempts
+const val UPLOAD_RETRY_DELAY_MS: Long = 100
+
+// Maximum delay in milliseconds between blob upload retry attempts
+const val UPLOAD_RETRY_MAX_DELAY_MS: Long = 300
+
+// Request timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_REQUEST_TIMEOUT_MS: Long = 60_000
+
+// Connection timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_CONNECT_TIMEOUT_MS: Long = 60_000
+
+// Socket timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_SOCKET_TIMEOUT_MS: Long = 60_000
+
+// Default refresh interval for configuration cache (1 hour)
+const val CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS: Long = 1
+
+// Default value for skipSecurityChecks if not provided
+const val CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS: Boolean = false
+
+// Default interval between retries for SimpleRetryPolicy (10 seconds)
+const val INGEST_RETRY_POLICY_DEFAULT_INTERVAL_SECONDS: Long = 10
+
+// Default total number of retries for SimpleRetryPolicy
+const val INGEST_RETRY_POLICY_DEFAULT_TOTAL_RETRIES: Int = 3
+
+// Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
+val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)

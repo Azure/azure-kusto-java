@@ -8,6 +8,13 @@ import com.azure.storage.blob.models.ParallelTransferOptions
 import com.azure.storage.blob.options.BlobUploadFromFileOptions
 import com.azure.storage.common.policy.RequestRetryOptions
 import com.azure.storage.common.policy.RetryPolicyType
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_CONCURRENCY
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_DELAY_MS
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_MAX_DELAY_MS
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_MAX_TRIES
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_TIMEOUT_SECONDS
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
@@ -15,22 +22,17 @@ import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Duration
 
-private const val BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024 // 4 MB block size
-private const val MAX_CONCURRENCY: Int = 8 // 8 concurrent requests
-private const val MAX_SINGLE_UPLOAD_SIZE_BYTES: Long =
-    256 * 1024 * 1024 // 256 MB max single upload
-
 private val DEFAULT_RETRY_OPTIONS =
     RequestRetryOptions(
         RetryPolicyType.EXPONENTIAL,
         // 3 retries
-        3,
+        UPLOAD_RETRY_MAX_TRIES,
         // Try timeout in seconds to 1 min
-        60,
+        UPLOAD_RETRY_TIMEOUT_SECONDS,
         // Retry delay in ms (default)
-        100,
+        UPLOAD_RETRY_DELAY_MS,
         // Max retry delay in ms (default)
-        300,
+        UPLOAD_RETRY_MAX_DELAY_MS,
         // Secondary host (default)
         null,
     )
@@ -78,10 +80,10 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
         )
         val parallelTransferOptions =
             ParallelTransferOptions()
-                .setBlockSizeLong(BLOCK_SIZE_BYTES)
-                .setMaxConcurrency(MAX_CONCURRENCY)
+                .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)
+                .setMaxConcurrency(UPLOAD_MAX_CONCURRENCY)
                 .setMaxSingleUploadSizeLong(
-                    MAX_SINGLE_UPLOAD_SIZE_BYTES,
+                    UPLOAD_MAX_SINGLE_SIZE_BYTES,
                 )
 
         return try {
