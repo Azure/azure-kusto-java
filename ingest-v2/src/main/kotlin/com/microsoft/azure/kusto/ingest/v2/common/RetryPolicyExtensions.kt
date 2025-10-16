@@ -33,20 +33,20 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
             val decision =
                 shouldRetry?.invoke(attempt, ex, isPermanent)
                     ?: if (isPermanent) {
-                        RetryDecision.Throw
+                        Retry.Throw
                     } else {
-                        RetryDecision.Continue
+                        Retry.Continue
                     }
 
             when (decision) {
-                RetryDecision.Throw -> {
+                Retry.Throw -> {
                     tracer?.invoke(
                         "Decision to throw on attempt $attempt. Is Permanent: $isPermanent. Exception: ${ex.message}",
                     )
                     throw ex
                 }
 
-                RetryDecision.Break -> {
+                Retry.Break -> {
                     tracer?.invoke(
                         "Breaking out of retry loop early, on attempt $attempt. Exception: ${ex.message}",
                     )
@@ -65,7 +65,7 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
                     tracer?.invoke(
                         "Transient error occurred: ${ex.message}. Retrying attempt $attempt.",
                     )
-                    if (decision != RetryDecision.ContinueWithoutDelay) {
+                    if (decision != Retry.ContinueWithoutDelay) {
                         if (delayDuration.toMillis() > 0) {
                             if (cancellationChecker?.invoke() == true) {
                                 throw CancellationException(
