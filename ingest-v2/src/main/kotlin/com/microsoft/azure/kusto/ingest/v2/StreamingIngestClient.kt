@@ -8,8 +8,18 @@ import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import io.ktor.http.HttpStatusCode
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.json.Json
 import java.net.ConnectException
 import java.net.URI
+
+
+@Serializable
+private data class StreamFromBlobRequestBody(
+    @SerialName("SourceUri")
+    val sourceUri: String,
+)
 
 class StreamingIngestClient(
     val engineUrl: String,
@@ -27,6 +37,7 @@ class StreamingIngestClient(
      * @param data The data to ingest (as ByteArray)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
+     * @param blobUrl Optional blob URL for blob-based streaming ingestion (if provided, data is ignored)
      * @return IngestResponse for tracking the request
      */
     suspend fun submitStreamingIngestion(
@@ -35,31 +46,55 @@ class StreamingIngestClient(
         data: ByteArray,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
+        blobUrl: String? = null,
     ) {
         val host = URI(engineUrl).host
-        logger.info(
-            "Submitting streaming ingestion request for database: {}, table: {}, data size: {}. Host {}",
-            database,
-            table,
-            data.size,
-            host,
-        )
+        
+        val bodyContent: Any
+        val sourceKind: String?
+        val contentType: String
+        
+        if (blobUrl != null) {
+            // Blob-based streaming
+            val requestBody = StreamFromBlobRequestBody(sourceUri = blobUrl)
+            bodyContent = Json.encodeToString(requestBody).toByteArray()
+            sourceKind = "uri"
+            contentType = "application/json"
+            logger.info(
+                "Submitting streaming ingestion from blob for database: {}, table: {}, blob: {}. Host {}",
+                database,
+                table,
+                blobUrl,
+                host,
+            )
+        } else {
+            // Direct streaming using raw data
+            bodyContent = data
+            sourceKind = null
+            contentType = "application/octet-stream"
+            logger.info(
+                "Submitting streaming ingestion request for database: {}, table: {}, data size: {}. Host {}",
+                database,
+                table,
+                data.size,
+                host,
+            )
+        }
+        
         try {
             val response: HttpResponse<Unit> =
                 api.postStreamingIngest(
                     database = database,
                     table = table,
                     streamFormat = format,
-                    body = data,
-                    mappingName =
-                    ingestProperties?.ingestionMappingReference,
-                    // TODO: What is sourceKind for streaming ingestion?
-                    sourceKind = null,
+                    body = bodyContent,
+                    mappingName = ingestProperties?.ingestionMappingReference,
+                    sourceKind = sourceKind,
                     host = host,
                     acceptEncoding = "gzip",
                     connection = "Keep-Alive",
                     contentEncoding = null,
-                    contentType = "application/octet-stream",
+                    contentType = contentType,
                 )
             return handleIngestResponse(
                 response = response,
