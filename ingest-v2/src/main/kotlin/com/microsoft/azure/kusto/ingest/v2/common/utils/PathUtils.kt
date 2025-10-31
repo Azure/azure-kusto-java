@@ -73,8 +73,8 @@ object PathUtils {
             }
         if (uriObj == null || !uriObj.isAbsolute) {
             // Not a valid absolute URI, treat as path
-            return uri.substringAfterLast('/')
-                .substringAfterLast("\\")
+            // Chain substringAfterLast for both '/' and '\' correctly
+            return uri.substringAfterLast('/').substringAfterLast('\\')
         }
         // For web URIs, extract last segment of the path, remove query/fragment
         val path = uriObj.path ?: ""
