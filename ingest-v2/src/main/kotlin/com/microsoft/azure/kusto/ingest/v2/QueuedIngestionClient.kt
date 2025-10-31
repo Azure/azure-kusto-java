@@ -16,6 +16,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.UUID
 import kotlin.time.Duration
 
 class QueuedIngestionClient(
@@ -47,12 +48,13 @@ class QueuedIngestionClient(
             "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobUrls.size}",
         )
         // Convert blob URLs to Blob objects
+        // TODO the sourceId generation strategy might need to be revisited- It can be passed down from the caller
         val blobs =
             blobUrls.mapIndexed { index, url ->
                 Blob(
                     url = url,
                     sourceId =
-                    "source_${index}_${System.currentTimeMillis()}",
+                    UUID.randomUUID().toString(),
                 )
                 Blob(url = blobSource.blobPath, sourceId = sourceId)
             }
