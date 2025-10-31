@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestion
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -53,6 +54,7 @@ class QueuedIngestionClientTest :
                 skipSecurityChecks = true,
             )
         val testBlobUrls = listOf(blobUrl)
+        val testBlobSources = testBlobUrls.map { url -> BlobSourceInfo(url) }
 
         val properties =
             if (useMappingReference) {
@@ -130,7 +132,7 @@ class QueuedIngestionClientTest :
                 queuedIngestionClient.submitQueuedIngestion(
                     database = database,
                     table = targetTable,
-                    blobUrls = testBlobUrls,
+                    blobSources = testBlobSources,
                     format = targetTestFormat,
                     ingestProperties = properties,
                 )
