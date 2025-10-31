@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -32,7 +33,7 @@ class QueuedIngestionClient(
      *
      * @param database The target database name
      * @param table The target table name
-     * @param blobUrls List of blob URLs to ingest
+     * @param blobSources List of BlobSourceInfo objects to ingest
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
      * @return IngestionOperation for tracking the request
@@ -40,24 +41,21 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        // TODO this has to be List<BlobSourceInfo> and not List<String>
-        blobUrls: List<String>,
+        blobSources: List<BlobSourceInfo>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
         logger.info(
-            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobUrls.size}",
+            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobSources.size}",
         )
-        // Convert blob URLs to Blob objects
-        // TODO the sourceId generation strategy might need to be revisited- It can be passed down from the caller
+        // Convert BlobSourceInfo objects to Blob objects
         val blobs =
-            blobUrls.mapIndexed { index, url ->
-                val sourceId = UUID.randomUUID().toString()
-                logger.debug("Preparing blob {} with sourceId {} for ingestion.", index,sourceId)
+            blobSources.mapIndexed { index, blobSource ->
+                val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
+                logger.debug("Preparing blob {} with sourceId {} for ingestion.", index, sourceId)
                 Blob(
-                    url = url,
-                    sourceId = sourceId
-                    ,
+                    url = blobSource.blobPath,
+                    sourceId = sourceId,
                 )
             }
 
