@@ -40,6 +40,7 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
+        // TODO this has to be List<BlobSourceInfo> and not List<String>
         blobUrls: List<String>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
@@ -51,10 +52,12 @@ class QueuedIngestionClient(
         // TODO the sourceId generation strategy might need to be revisited- It can be passed down from the caller
         val blobs =
             blobUrls.mapIndexed { index, url ->
+                val sourceId = UUID.randomUUID().toString()
+                logger.debug("Preparing blob {} with sourceId {} for ingestion.", index,sourceId)
                 Blob(
                     url = url,
-                    sourceId =
-                    UUID.randomUUID().toString(),
+                    sourceId = sourceId
+                    ,
                 )
                 Blob(url = blobSource.blobPath, sourceId = sourceId)
             }
