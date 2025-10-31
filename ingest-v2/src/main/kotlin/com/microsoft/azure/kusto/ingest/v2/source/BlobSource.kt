@@ -43,6 +43,7 @@ class BlobSource : IngestionSource {
     }
 
     // No resources to close; method intentionally left empty.
-    override fun close() {TODO("Not yet implemented")
+    override fun close() {
+        TODO("Not yet implemented")
     }
 }
