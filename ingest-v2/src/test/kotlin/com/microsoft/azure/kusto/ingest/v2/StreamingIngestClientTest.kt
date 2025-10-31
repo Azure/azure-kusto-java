@@ -21,8 +21,9 @@ import kotlin.test.assertNotNull
 class StreamingIngestClientTest :
     IngestV2TestBase(StreamingIngestClientTest::class.java) {
 
-    private val publicBlobUrl = "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
-    
+    private val publicBlobUrl =
+        "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
+
     private val targetUuid = UUID.randomUUID().toString()
     private val randomRow: String =
         """{"timestamp": "2023-05-02 15:23:50.0000000","deviceId": "$targetUuid","messageId": "7f316225-839a-4593-92b5-1812949279b3","temperature": 31.0301639051317,"humidity": 62.0791099602725}"""
@@ -33,33 +34,32 @@ class StreamingIngestClientTest :
             Arguments.of(
                 "Direct ingest - success",
                 engineEndpoint,
-                false, // isException
-                false, // isUnreachableHost
-                null,  // blobUrl
+                // isException
+                false,
+                // isUnreachableHost
+                false,
+                // blobUrl
+                null,
             ),
             Arguments.of(
                 "Blob based ingest - success",
                 engineEndpoint,
-                false, // isException
-                false, // isUnreachableHost
+                // isException
+                false,
+                // isUnreachableHost
+                false,
                 publicBlobUrl,
             ),
             // Blob-based streaming - error case
             Arguments.of(
                 "Blob based ingest- Invalid blob URL",
                 engineEndpoint,
-                true,  // isException
-                false, // isUnreachableHost
+                // isException
+                true,
+                // isUnreachableHost
+                false,
                 "https://nonexistentaccount.blob.core.windows.net/container/file.json",
             ),
-            // Uncomment to test cluster without streaming ingest
-            // Arguments.of(
-            //     "Cluster without streaming ingest",
-            //     "https://help.kusto.windows.net",
-            //     true,
-            //     false,
-            //     null,
-            // ),
         )
     }
 
@@ -77,7 +77,10 @@ class StreamingIngestClientTest :
         val ingestProps = IngestRequestProperties(format = targetTestFormat)
         if (isException) {
             if (blobUrl != null) {
-                logger.info("Testing error handling for invalid blob URL: {}", blobUrl)
+                logger.info(
+                    "Testing error handling for invalid blob URL: {}",
+                    blobUrl,
+                )
                 val exception =
                     assertThrows<IngestException> {
                         client.submitStreamingIngestion(
@@ -89,15 +92,27 @@ class StreamingIngestClientTest :
                             blobUrl = blobUrl,
                         )
                     }
-                assertNotNull(exception, "Exception should not be null for invalid blob URL")
-                logger.info("Expected exception caught for invalid blob URL: {}", exception.message)
-                logger.info("Failure code: {}, isPermanent: {}", exception.failureCode, exception.isPermanent)
-                
+                assertNotNull(
+                    exception,
+                    "Exception should not be null for invalid blob URL",
+                )
+                logger.info(
+                    "Expected exception caught for invalid blob URL: {}",
+                    exception.message,
+                )
+                logger.info(
+                    "Failure code: {}, isPermanent: {}",
+                    exception.failureCode,
+                    exception.isPermanent,
+                )
+
                 assert(exception.failureCode != 0) {
                     "Expected non-zero failure code for invalid blob URL"
                 }
             } else {
-                logger.info("Testing error handling for direct streaming ingestion")
+                logger.info(
+                    "Testing error handling for direct streaming ingestion",
+                )
                 val table = "testtable"
                 val data = "col1,col2\nval1,val2".toByteArray()
                 val exception =
@@ -121,27 +136,34 @@ class StreamingIngestClientTest :
             }
         } else {
             if (blobUrl != null) {
-                logger.info("Blob-based streaming ingestion with URL: {}", blobUrl)
-                
+                logger.info(
+                    "Blob-based streaming ingestion with URL: {}",
+                    blobUrl,
+                )
+
                 client.submitStreamingIngestion(
                     database = database,
                     table = targetTable,
-                    data = ByteArray(0), // Ignored when blobUrl is provided
+                    // Ignored when blobUrl is provided
+                    data = ByteArray(0),
                     format = targetTestFormat,
                     ingestProperties = ingestProps,
                     blobUrl = blobUrl,
                 )
-                
-                logger.info("Blob-based streaming ingestion submitted successfully")
-                
+
+                logger.info(
+                    "Blob-based streaming ingestion submitted successfully",
+                )
+
                 kotlinx.coroutines.delay(3000)
-                val results = adminClusterClient
-                    .executeQuery(
-                        database,
-                        "$targetTable | summarize count=count()"
-                    )
-                    .primaryResults
-                
+                val results =
+                    adminClusterClient
+                        .executeQuery(
+                            database,
+                            "$targetTable | summarize count=count()",
+                        )
+                        .primaryResults
+
                 assertNotNull(results, "Query results should not be null")
                 results.next()
                 val count: Long = results.getLong("count")
@@ -149,8 +171,11 @@ class StreamingIngestClientTest :
                 assert(count > 0) {
                     "Expected records in table after blob-based streaming ingestion, but got $count"
                 }
-                
-                logger.info("Blob-based streaming ingestion verified - {} records in table", count)
+
+                logger.info(
+                    "Blob-based streaming ingestion verified - {} records in table",
+                    count,
+                )
             } else {
                 logger.info("Direct streaming ingestion - success case")
                 client.submitStreamingIngestion(
@@ -161,7 +186,7 @@ class StreamingIngestClientTest :
                     ingestProperties = ingestProps,
                     blobUrl = null,
                 )
-                
+
                 val results =
                     adminClusterClient
                         .executeQuery(

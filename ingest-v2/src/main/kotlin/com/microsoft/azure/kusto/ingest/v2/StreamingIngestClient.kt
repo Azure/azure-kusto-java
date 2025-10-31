@@ -8,17 +8,15 @@ import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import io.ktor.http.HttpStatusCode
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.ConnectException
 import java.net.URI
 
-
 @Serializable
 private data class StreamFromBlobRequestBody(
-    @SerialName("SourceUri")
-    val sourceUri: String,
+    @SerialName("SourceUri") val sourceUri: String,
 )
 
 class StreamingIngestClient(
@@ -37,7 +35,8 @@ class StreamingIngestClient(
      * @param data The data to ingest (as ByteArray)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
-     * @param blobUrl Optional blob URL for blob-based streaming ingestion (if provided, data is ignored)
+     * @param blobUrl Optional blob URL for blob-based streaming ingestion (if
+     *   provided, data is ignored)
      * @return IngestResponse for tracking the request
      */
     suspend fun submitStreamingIngestion(
@@ -49,11 +48,11 @@ class StreamingIngestClient(
         blobUrl: String? = null,
     ) {
         val host = URI(engineUrl).host
-        
+
         val bodyContent: Any
         val sourceKind: String?
         val contentType: String
-        
+
         if (blobUrl != null) {
             // Blob-based streaming
             val requestBody = StreamFromBlobRequestBody(sourceUri = blobUrl)
@@ -80,7 +79,7 @@ class StreamingIngestClient(
                 host,
             )
         }
-        
+
         try {
             val response: HttpResponse<Unit> =
                 api.postStreamingIngest(
@@ -88,7 +87,8 @@ class StreamingIngestClient(
                     table = table,
                     streamFormat = format,
                     body = bodyContent,
-                    mappingName = ingestProperties?.ingestionMappingReference,
+                    mappingName =
+                    ingestProperties?.ingestionMappingReference,
                     sourceKind = sourceKind,
                     host = host,
                     acceptEncoding = "gzip",

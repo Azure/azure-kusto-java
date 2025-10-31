@@ -21,12 +21,12 @@ class BlobUploadContainer(val configResponse: @NotNull ConfigurationResponse) :
         // check if the configResponse has containerSettings
         val noUploadLocation =
             configResponse.containerSettings == null ||
-                    (
-                            configResponse.containerSettings.containers
-                                ?.isEmpty() == true &&
-                                    configResponse.containerSettings.lakeFolders
-                                        ?.isEmpty() == true
-                            )
+                (
+                    configResponse.containerSettings.containers
+                        ?.isEmpty() == true &&
+                        configResponse.containerSettings.lakeFolders
+                            ?.isEmpty() == true
+                    )
         if (noUploadLocation) {
             throw IngestException(
                 "No container settings available in the configuration response",
