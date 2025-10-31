@@ -44,7 +44,8 @@ abstract class LocalSource(
             Format.avro,
             Format.parquet,
             Format.orc,
-            Format.apacheavro -> true
+            Format.apacheavro,
+            -> true
             else -> false
         }
     }
@@ -68,6 +69,4 @@ class StreamSource(
         return mStream
             ?: throw IllegalStateException("Stream is not initialized")
     }
-
-
 }
