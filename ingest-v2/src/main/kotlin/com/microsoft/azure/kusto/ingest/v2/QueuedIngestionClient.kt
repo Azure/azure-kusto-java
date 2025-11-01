@@ -15,13 +15,16 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
+import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import java.lang.Long
 import java.time.Clock
 import java.time.OffsetDateTime
-import java.util.UUID
 import kotlin.time.Duration
 
 class QueuedIngestionClient(
@@ -39,12 +42,19 @@ class QueuedIngestionClient(
             skipSecurityChecks = skipSecurityChecks,
         )
 
+    // Reusable BlobUploadContainer instance
+    private val blobUploadContainer =
+        BlobUploadContainer(defaultConfigurationCache)
+
     /**
-     * Submits a queued ingestion request.
+     * Submits a queued ingestion request with support for all source types.
+     * Local sources (FileSourceInfo, StreamSourceInfo) will be automatically
+     * uploaded to blob storage before ingestion.
      *
      * @param database The target database name
      * @param table The target table name
-     * @param blobSources List of BlobSourceInfo objects to ingest
+     * @param sources List of SourceInfo objects (BlobSourceInfo,
+     *   FileSourceInfo, or StreamSourceInfo)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
      * @return IngestionOperation for tracking the request
@@ -52,48 +62,51 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        blobSources: List<BlobSourceInfo>,
+        sources: List<AbstractSourceInfo>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
     ): IngestResponse {
         logger.info(
-            "Submitting queued ingestion request for database: $database, table: $table, blobs: ${blobSources.size}",
+            "Submitting queued ingestion request for database: $database, table: $table, sources: ${sources.size}",
         )
+        // Convert all sources to BlobSourceInfo
+        val blobSources =
+            sources.map { source ->
+                when (source) {
+                    is BlobSourceInfo -> source
+                    is FileSourceInfo -> {
+                        logger.debug(
+                            "Uploading FileSourceInfo to blob storage: ${source.name}",
+                        )
+                        BlobSourceInfo.fromFileSourceInfo(
+                            source,
+                            blobUploadContainer,
+                        )
+                    }
+                    is StreamSourceInfo -> {
+                        logger.debug(
+                            "Uploading StreamSourceInfo to blob storage: ${source.name}",
+                        )
+                        BlobSourceInfo.fromStreamSourceInfo(
+                            source,
+                            blobUploadContainer,
+                        )
+                    }
+                    else ->
+                        throw IngestException(
+                            "Unsupported source type: ${source::class.simpleName}",
+                            isPermanent = true,
+                        )
+                }
+            }
         // Convert BlobSourceInfo objects to Blob objects
         val blobs =
-            blobSources.mapIndexed { index, blobSource ->
-                val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
-                val uploadedUrl =
-                    when (source) {
-                        is FileSource -> {
-                            val blobUploadContainer =
-                                BlobUploadContainer(
-                                    defaultConfigurationCache,
-                                )
-                            blobUploadContainer.uploadFromFileAsync(
-                                source.name,
-                                source.filePath,
-                            )
-                        }
-                        is StreamSource -> {
-                            val blobUploadContainer =
-                                BlobUploadContainer(
-                                    defaultConfigurationCache,
-                                )
-                            blobUploadContainer.uploadAsync(
-                                source.name,
-                                source.data(),
-                            )
-                        }
-                        else -> {
-                            source.url
-                        }
-                    }
-
-                logger.debug("Preparing blob {} with sourceId {} for ingestion.", index, sourceId)
+            blobSources.map { blobSource ->
+                val sourceId = blobSource.sourceId.toString()
                 Blob(
                     url = blobSource.blobPath,
                     sourceId = sourceId,
+                    rawSize = blobSource.blobExactSize as Long?,
                 )
             }
 
@@ -106,12 +119,14 @@ class QueuedIngestionClient(
             table,
             requestProperties,
         )
+
         val ingestRequest =
             IngestRequest(
                 timestamp = OffsetDateTime.now(Clock.systemUTC()),
                 blobs = blobs,
                 properties = requestProperties,
             )
+
         try {
             val response: HttpResponse<IngestResponse> =
                 api.postQueuedIngest(

@@ -3,91 +3,149 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 import java.util.zip.ZipInputStream
 
 abstract class LocalSource(
-    override val format: Format,
+    val format: Format,
     val leaveOpen: Boolean,
-    override val compressionType: CompressionType = CompressionType.NONE,
+    val compressionType: CompressionType = CompressionType.NONE,
     baseName: String? = null,
-    override val sourceId: String? = null,
-) : IngestionSource(format, compressionType, baseName, sourceId) {
+    override var sourceId: UUID = UUID.randomUUID(),
+) : AbstractSourceInfo() {
+
+    init {
+        initName(baseName)
+    }
 
     // Lazily initialized input stream for ingestion source
     protected lateinit var mStream: InputStream
 
+    lateinit var name: String
+        private set
+
+    fun initName(baseName: String? = null) {
+        name = "${baseName ?: sourceId.toString()}_$format.$compressionType"
+    }
+
     // Indicates whether the stream should be left open after ingestion.
-    // val leaveOpen: Boolean // Already a constructor property
     abstract fun data(): InputStream
 
     fun reset() {
         data().reset()
     }
 
-    override fun close() {
+    open fun close() {
         if (!leaveOpen) {
             if (this::mStream.isInitialized) {
                 mStream.close()
             }
         }
     }
+
+    /**
+     * Prepares the source data for blob upload, handling compression if needed.
+     * Returns a pair of (InputStream, size, effectiveCompressionType)
+     */
+    fun prepareForUpload(): Triple<InputStream, Long?, CompressionType> {
+        return if (compressionType == CompressionType.NONE) {
+            // Compress using GZIP
+            val byteStream = ByteArrayOutputStream()
+            GZIPOutputStream(byteStream).use { gzipOut ->
+                data().copyTo(gzipOut)
+            }
+            val bytes = byteStream.toByteArray()
+            Triple(
+                bytes.inputStream(),
+                bytes.size.toLong(),
+                CompressionType.GZIP,
+            )
+        } else {
+            val stream = data()
+            val size =
+                when (this) {
+                    is FileSourceInfo -> Files.size(path)
+                    is StreamSourceInfo ->
+                        try {
+                            stream.available().toLong()
+                        } catch (_: Exception) {
+                            null
+                        }
+                    else -> null
+                }
+            Triple(stream, size, compressionType)
+        }
+    }
+
+    /** Generates a unique blob name for upload */
+    fun generateBlobName(): String {
+        val effectiveCompression =
+            if (compressionType == CompressionType.NONE) {
+                CompressionType.GZIP
+            } else {
+                compressionType
+            }
+        return "${sourceId}_${format.value}.$effectiveCompression"
+    }
+
+    override fun validate() {
+        // Basic validation - subclasses can override for specific validation
+    }
 }
 
-class StreamSource(
+class StreamSourceInfo(
     stream: InputStream,
     format: Format,
     sourceCompression: CompressionType,
-    sourceId: String? = null,
+    sourceId: UUID = UUID.randomUUID(),
     name: String? = null,
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, sourceCompression, name, sourceId) {
 
     init {
         mStream = stream
-        initName(name)
     }
 
     override fun data(): InputStream {
         return mStream
-            ?: throw IllegalStateException("Stream is not initialized")
     }
 }
 
-class FileSource(
+class FileSourceInfo(
     val path: Path,
     format: Format,
     compressionType: CompressionType = CompressionType.NONE,
     name: String? = null,
-    sourceId: String? = null,
+    sourceId: UUID = UUID.randomUUID(),
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, compressionType, name, sourceId) {
 
     // Expose file path for direct file upload APIs
-    val filePath: String = path.toAbsolutePath().toString()
-
     private val fileStream: InputStream =
         when (compressionType) {
             CompressionType.GZIP ->
                 GZIPInputStream(Files.newInputStream(path))
             CompressionType.ZIP -> {
                 val zipStream = ZipInputStream(Files.newInputStream(path))
-                zipStream.nextEntry // Move to first entry
+                zipStream.nextEntry
                 zipStream
             }
             else -> Files.newInputStream(path)
         }
 
+    // Move to first entry
     init {
         mStream = fileStream
-        initName(name)
     }
 
     override fun data(): InputStream {
-        return mStream!!
+        return mStream
     }
 
     override fun close() {
