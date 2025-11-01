@@ -8,12 +8,11 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationM
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
-import com.microsoft.azure.kusto.ingest.v2.source.FileSource
-import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
-import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
+import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -62,17 +61,7 @@ class QueuedIngestionClientTest :
                 tokenCredential = tokenProvider,
                 skipSecurityChecks = true,
             )
-        val ingestionSourceId = UUID.randomUUID().toString()
-        val testSources: List<IngestionSource> =
-            listOf(
-                BlobSource(
-                    url = blobUrl,
-                    format = Format.json,
-                    compression = CompressionType.NONE,
-                    sourceId = ingestionSourceId,
-                ),
-            )
-        val testBlobSources = testBlobUrls.map { url -> BlobSourceInfo(url) }
+        val testSources = listOf(BlobSourceInfo(blobUrl))
 
         val properties =
             if (useMappingReference) {
@@ -150,10 +139,9 @@ class QueuedIngestionClientTest :
                 queuedIngestionClient.submitQueuedIngestion(
                     database = database,
                     table = targetTable,
-                    blobSources = testBlobSources,
+                    sources = testSources,
                     format = targetTestFormat,
                     ingestProperties = properties,
-                    sources = testSources,
                 )
 
             logger.info(
@@ -294,17 +282,17 @@ class QueuedIngestionClientTest :
             "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json"
         val deviceData = java.net.URL(deviceDataUrl).readText()
         val targetFormat = Format.multijson
-        val source: IngestionSource =
+        val source: AbstractSourceInfo =
             when (sourceType) {
                 "file" -> {
                     val tempFile = Files.createTempFile(fileName, null)
                     Files.write(tempFile, deviceData.toByteArray())
-                    FileSource(
+                    FileSourceInfo(
                         path = tempFile,
                         format = targetFormat,
                         compressionType = CompressionType.NONE,
                         name = fileName,
-                        sourceId = UUID.randomUUID().toString(),
+                        sourceId = UUID.randomUUID(),
                     )
                         .also {
                             Runtime.getRuntime()
@@ -318,15 +306,15 @@ class QueuedIngestionClientTest :
                         }
                 }
                 "stream" ->
-                    StreamSource(
+                    StreamSourceInfo(
                         stream =
                         ByteArrayInputStream(
                             deviceData.toByteArray(),
                         ),
                         format = targetFormat,
                         sourceCompression = CompressionType.NONE,
+                        sourceId = UUID.randomUUID(),
                         name = fileName,
-                        sourceId = UUID.randomUUID().toString(),
                     )
                 else -> error("Unknown sourceType: $sourceType")
             }
@@ -345,9 +333,9 @@ class QueuedIngestionClientTest :
             queuedIngestionClient.submitQueuedIngestion(
                 database = database,
                 table = targetTable,
+                sources = listOf(source),
                 format = targetFormat,
                 ingestProperties = properties,
-                sources = listOf(source),
             )
         logger.info(
             "{}: Submitted queued ingestion with operation ID: {}",

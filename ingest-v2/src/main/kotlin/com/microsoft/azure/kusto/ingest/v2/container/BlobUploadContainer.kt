@@ -4,8 +4,9 @@ package com.microsoft.azure.kusto.ingest.v2.container
 
 import com.azure.core.util.Context
 import com.azure.storage.blob.BlobClientBuilder
+import com.azure.storage.blob.models.BlockBlobItem
 import com.azure.storage.blob.models.ParallelTransferOptions
-import com.azure.storage.blob.options.BlobUploadFromFileOptions
+import com.azure.storage.blob.options.BlobParallelUploadOptions
 import com.azure.storage.common.policy.RequestRetryOptions
 import com.azure.storage.common.policy.RetryPolicyType
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
@@ -60,24 +61,6 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
         )
         // TODO Check on parallel uploads, retries to be implemented. Explore upload from File API
         // TODO What is the size of the stream, should we use uploadFromFile API?
-        blobClient.upload(stream, true)
-        return "${targetInfo.url}/$name?${targetInfo.sas}"
-    }
-
-    suspend fun uploadFromFileAsync(name: String, filePath: String): String {
-        val targetInfo = getBlobTargetInfo()
-        val blobClient =
-            BlobClientBuilder()
-                .endpoint(targetInfo.containerInfo.path)
-                .blobName(name)
-                .retryOptions(DEFAULT_RETRY_OPTIONS)
-                .buildClient()
-        logger.debug(
-            "Uploading file {} to blob url: {} to container {}",
-            filePath,
-            targetInfo.url,
-            name,
-        )
         val parallelTransferOptions =
             ParallelTransferOptions()
                 .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)
@@ -85,27 +68,32 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
                 .setMaxSingleUploadSizeLong(
                     UPLOAD_MAX_SINGLE_SIZE_BYTES,
                 )
-
-        return try {
-            val response =
-                blobClient.uploadFromFileWithResponse(
-                    BlobUploadFromFileOptions(filePath)
-                        .setParallelTransferOptions(
-                            parallelTransferOptions,
-                        ),
-                    Duration.ofHours(1),
-                    Context.NONE,
-                )
-            if (response.statusCode in 200..299 && response.value != null) {
-                "${targetInfo.url}/$name?${targetInfo.sas}"
-            } else {
-                throw IngestException(
-                    "Upload failed with status: ${response.statusCode}",
-                )
-            }
-        } catch (e: Exception) {
-            throw IngestException("Upload failed", e)
+        val blobUploadOptions =
+            BlobParallelUploadOptions(stream)
+                .setParallelTransferOptions(parallelTransferOptions)
+        val blobUploadResult =
+            blobClient.uploadWithResponse(
+                blobUploadOptions,
+                Duration.ofHours(1),
+                Context.NONE,
+            )
+        if (
+            blobUploadResult.statusCode in 200..299 &&
+            blobUploadResult.value != null
+        ) {
+            val blockBlobItem: BlockBlobItem = blobUploadResult.value
+            logger.debug(
+                "Upload succeeded to blob url: {} with eTag: {}",
+                targetInfo.url,
+                blockBlobItem.eTag,
+            )
+            "${targetInfo.url}/$name?${targetInfo.sas}"
+        } else {
+            throw IngestException(
+                "Upload failed with status: ${blobUploadResult.statusCode}",
+            )
         }
+        return "${targetInfo.url}/$name?${targetInfo.sas}"
     }
 
     private suspend fun getBlobTargetInfo(): BlobTargetInfo {
