@@ -3,20 +3,17 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
-import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.ByteArrayInputStream
 import java.net.ConnectException
@@ -58,7 +55,6 @@ class StreamingIngestClientTest :
                 false,
                 publicBlobUrl,
             ),
-            // Blob-based streaming - error case
             Arguments.of(
                 "Blob based ingest- Invalid blob URL",
                 engineEndpoint,
@@ -81,7 +77,8 @@ class StreamingIngestClientTest :
         blobUrl: String?,
     ) = runBlocking {
         logger.info("Running streaming ingest test {}", testName)
-        val client: IngestClient = StreamingIngestClient(cluster, tokenProvider, true)
+        val client: IngestClient =
+            StreamingIngestClient(cluster, tokenProvider, true)
         val ingestProps = IngestRequestProperties(format = targetTestFormat)
         if (isException) {
             if (blobUrl != null) {
@@ -125,13 +122,15 @@ class StreamingIngestClientTest :
                 val data = "col1,col2\nval1,val2".toByteArray()
                 val exception =
                     assertThrows<IngestException> {
-                        val streamSource = StreamSourceInfo(
-                            stream = ByteArrayInputStream(data),
-                            format = targetTestFormat,
-                            sourceCompression = CompressionType.NONE,
-                            sourceId = UUID.randomUUID(),
-                            name = "error-test-stream"
-                        )
+                        val streamSource =
+                            StreamSourceInfo(
+                                stream = ByteArrayInputStream(data),
+                                format = targetTestFormat,
+                                sourceCompression =
+                                CompressionType.NONE,
+                                sourceId = UUID.randomUUID(),
+                                name = "error-test-stream",
+                            )
                         client.submitIngestion(
                             database = database,
                             table = table,
@@ -192,13 +191,17 @@ class StreamingIngestClientTest :
                 )
             } else {
                 logger.info("Direct streaming ingestion - success case")
-                val streamSource = StreamSourceInfo(
-                    stream = ByteArrayInputStream(randomRow.toByteArray()),
-                    format = targetTestFormat,
-                    sourceCompression = CompressionType.NONE,
-                    sourceId = UUID.randomUUID(),
-                    name = "direct-stream-$targetUuid"
-                )
+                val streamSource =
+                    StreamSourceInfo(
+                        stream =
+                        ByteArrayInputStream(
+                            randomRow.toByteArray(),
+                        ),
+                        format = targetTestFormat,
+                        sourceCompression = CompressionType.NONE,
+                        sourceId = UUID.randomUUID(),
+                        name = "direct-stream-$targetUuid",
+                    )
 
                 client.submitIngestion(
                     database = database,

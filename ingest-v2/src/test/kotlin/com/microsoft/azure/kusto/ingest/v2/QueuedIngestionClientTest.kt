@@ -163,16 +163,18 @@ class QueuedIngestionClientTest :
             )
 
             val finalStatus =
-                (queuedIngestionClient as QueuedIngestionClient).pollUntilCompletion(
-                    database = database,
-                    table = targetTable,
-                    operationId =
-                    ingestionResponse.ingestionOperationId,
-                    // Poll every 5 seconds for testing
-                    pollingInterval = Duration.parse("PT5S"),
-                    // 5 minute timeout for testing
-                    timeout = Duration.parse("PT5M"),
-                )
+                (queuedIngestionClient as QueuedIngestionClient)
+                    .pollUntilCompletion(
+                        database = database,
+                        table = targetTable,
+                        operationId =
+                        ingestionResponse
+                            .ingestionOperationId,
+                        // Poll every 5 seconds for testing
+                        pollingInterval = Duration.parse("PT5S"),
+                        // 5 minute timeout for testing
+                        timeout = Duration.parse("PT5M"),
+                    )
 
             logger.info(
                 "Ingestion completed with final status: {}",
@@ -353,13 +355,15 @@ class QueuedIngestionClientTest :
             "Operation ID should not be null",
         )
         val finalStatus =
-            (queuedIngestionClient as QueuedIngestionClient).pollUntilCompletion(
-                database = database,
-                table = targetTable,
-                operationId = ingestionResponse.ingestionOperationId,
-                pollingInterval = Duration.parse("PT5S"),
-                timeout = Duration.parse("PT5M"),
-            )
+            (queuedIngestionClient as QueuedIngestionClient)
+                .pollUntilCompletion(
+                    database = database,
+                    table = targetTable,
+                    operationId =
+                    ingestionResponse.ingestionOperationId,
+                    pollingInterval = Duration.parse("PT5S"),
+                    timeout = Duration.parse("PT5M"),
+                )
         logger.info(
             "{} ingestion completed with final status: {}",
             testName,

@@ -16,23 +16,24 @@ import java.net.ConnectException
 
 /**
  * interface with provides core abstraction for ingesting data into Kusto.
- * 
+ *
  * Supports multiple source types:
  * - BlobSourceInfo: Ingest from Azure Blob Storage
  * - FileSourceInfo: Ingest from local files
  * - StreamSourceInfo: Ingest from in-memory streams
  */
 interface IngestClient {
-    
+
     val logger: Logger
         get() = LoggerFactory.getLogger(IngestClient::class.java)
 
     /**
      * Submits an ingestion request from any source type.
-     * 
+     *
      * @param database The target database name
      * @param table The target table name
-     * @param sources List of sources to ingest (BlobSourceInfo, FileSourceInfo, or StreamSourceInfo)
+     * @param sources List of sources to ingest (BlobSourceInfo, FileSourceInfo,
+     *   or StreamSourceInfo)
      * @param format The data format (CSV, JSON, others)
      * @param ingestProperties Optional ingestion properties
      * @return IngestResponse containing the operation ID for tracking
@@ -47,7 +48,7 @@ interface IngestClient {
 
     /**
      * Gets the status of an ingestion operation.
-     * 
+     *
      * @param database The target database name
      * @param table The target table name
      * @param operationId The operation ID returned from submitIngestion
@@ -63,13 +64,14 @@ interface IngestClient {
 
     /**
      * Gets detailed information about an ingestion operation.
-     * 
+     *
      * @param database The target database name
      * @param table The target table name
      * @param operationId The operation ID returned from submitIngestion
      * @param details Whether to retrieve detailed blob-level information
      * @return StatusResponse containing operation details
-     * @throws UnsupportedOperationException if the implementation doesn't support operation tracking
+     * @throws UnsupportedOperationException if the implementation doesn't
+     *   support operation tracking
      */
     suspend fun getIngestionDetails(
         database: String,

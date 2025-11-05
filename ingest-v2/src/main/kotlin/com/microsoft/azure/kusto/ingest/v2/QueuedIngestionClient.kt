@@ -43,7 +43,13 @@ class QueuedIngestionClient(
         ingestProperties: IngestRequestProperties?,
     ): IngestResponse {
         val abstractSources = sources.map { it as AbstractSourceInfo }
-        return submitQueuedIngestion(database, table, abstractSources, format, ingestProperties)
+        return submitQueuedIngestion(
+            database,
+            table,
+            abstractSources,
+            format,
+            ingestProperties,
+        )
     }
 
     override suspend fun getIngestionStatus(
@@ -52,7 +58,12 @@ class QueuedIngestionClient(
         operationId: String,
         forceDetails: Boolean,
     ): StatusResponse {
-        return getIngestionStatusInternal(database, table, operationId, forceDetails)
+        return getIngestionStatusInternal(
+            database,
+            table,
+            operationId,
+            forceDetails,
+        )
     }
 
     private val defaultConfigurationCache =
