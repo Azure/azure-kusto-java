@@ -55,7 +55,7 @@ class QueuedIngestionClientTest :
     ): Unit = runBlocking {
         // Skip test if no DM_CONNECTION_STRING is set
         logger.info("Starting test: $testName")
-        val queuedIngestionClient =
+        val queuedIngestionClient: IngestClient =
             QueuedIngestionClient(
                 dmUrl = dmEndpoint,
                 tokenCredential = tokenProvider,
@@ -136,7 +136,7 @@ class QueuedIngestionClientTest :
         try {
             // Test successful ingestion submission
             val ingestionResponse =
-                queuedIngestionClient.submitQueuedIngestion(
+                queuedIngestionClient.submitIngestion(
                     database = database,
                     table = targetTable,
                     sources = testSources,
@@ -163,7 +163,7 @@ class QueuedIngestionClientTest :
             )
 
             val finalStatus =
-                queuedIngestionClient.pollUntilCompletion(
+                (queuedIngestionClient as QueuedIngestionClient).pollUntilCompletion(
                     database = database,
                     table = targetTable,
                     operationId =
@@ -318,7 +318,8 @@ class QueuedIngestionClientTest :
                     )
                 else -> error("Unknown sourceType: $sourceType")
             }
-        val queuedIngestionClient =
+
+        val queuedIngestionClient: IngestClient =
             QueuedIngestionClient(
                 dmUrl = dmEndpoint,
                 tokenCredential = tokenProvider,
@@ -329,8 +330,9 @@ class QueuedIngestionClientTest :
                 format = targetFormat,
                 enableTracking = true,
             )
+
         val ingestionResponse =
-            queuedIngestionClient.submitQueuedIngestion(
+            queuedIngestionClient.submitIngestion(
                 database = database,
                 table = targetTable,
                 sources = listOf(source),
@@ -351,7 +353,7 @@ class QueuedIngestionClientTest :
             "Operation ID should not be null",
         )
         val finalStatus =
-            queuedIngestionClient.pollUntilCompletion(
+            (queuedIngestionClient as QueuedIngestionClient).pollUntilCompletion(
                 database = database,
                 table = targetTable,
                 operationId = ingestionResponse.ingestionOperationId,

@@ -7,12 +7,19 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
+import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.SourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.ConnectException
 import java.net.URI
+import java.util.UUID
 
 @Serializable
 private data class StreamFromBlobRequestBody(
@@ -26,6 +33,108 @@ class StreamingIngestClient(
 ) :
     KustoBaseApiClient(engineUrl, tokenCredential, skipSecurityChecks),
     IngestClient {
+
+    /**
+     * Handles multiple source types for streaming ingestion.
+     */
+    override suspend fun submitIngestion(
+        database: String,
+        table: String,
+        sources: List<SourceInfo>,
+        format: Format,
+        ingestProperties: IngestRequestProperties?,
+    ): IngestResponse {
+        require(sources.isNotEmpty()) { "At least one source is required" }
+        
+        // Streaming ingestion processes one source at a time
+        val source = sources.first()
+        val operationId = UUID.randomUUID().toString()
+        
+        when (source) {
+            is BlobSourceInfo -> {
+                logger.info("Streaming ingestion from BlobSource: ${source.blobPath}")
+                submitStreamingIngestion(
+                    database = database,
+                    table = table,
+                    data = ByteArray(0), // Not used for blob-based streaming
+                    format = format,
+                    ingestProperties = ingestProperties,
+                    blobUrl = source.blobPath
+                )
+            }
+            is FileSourceInfo -> {
+                logger.info("Streaming ingestion from FileSource: ${source.name}")
+                val data = source.data().readBytes()
+                submitStreamingIngestion(
+                    database = database,
+                    table = table,
+                    data = data,
+                    format = format,
+                    ingestProperties = ingestProperties,
+                    blobUrl = null
+                )
+                source.close()
+            }
+            is StreamSourceInfo -> {
+                logger.info("Streaming ingestion from StreamSource: ${source.name}")
+                val data = source.data().readBytes()
+                submitStreamingIngestion(
+                    database = database,
+                    table = table,
+                    data = data,
+                    format = format,
+                    ingestProperties = ingestProperties,
+                    blobUrl = null
+                )
+                source.close()
+            }
+            else -> {
+                throw IngestException(
+                    message = "Unsupported source type for streaming ingestion: ${source::class.simpleName}",
+                    isPermanent = true
+                )
+            }
+        }
+        
+        // Streaming ingestion doesn't return an operation ID from the server
+        // We generate one locally for consistency with the IngestClient interface
+        return IngestResponse(ingestionOperationId = operationId)
+    }
+
+    /**
+     * Note: Streaming ingestion doesn't support operation tracking.
+     * Throws UnsupportedOperationException.
+     */
+    override suspend fun getIngestionStatus(
+        database: String,
+        table: String,
+        operationId: String,
+        forceDetails: Boolean,
+    ): StatusResponse {
+        throw UnsupportedOperationException(
+            "Streaming ingestion does not support operation status tracking. " +
+            "Operation ID: $operationId cannot be tracked. "
+        )
+    }
+
+    /**
+     * Note: Streaming ingestion doesn't support operation tracking.
+     * Throws UnsupportedOperationException.
+     */
+    override suspend fun getIngestionDetails(
+        database: String,
+        table: String,
+        operationId: String,
+        details: Boolean,
+    ): StatusResponse {
+        throw UnsupportedOperationException(
+            "Streaming ingestion does not support detailed operation tracking. " +
+            "Operation ID: $operationId cannot be tracked. "
+        )
+    }
+
+
+
 
     /**
      * Submits a streaming ingestion request.

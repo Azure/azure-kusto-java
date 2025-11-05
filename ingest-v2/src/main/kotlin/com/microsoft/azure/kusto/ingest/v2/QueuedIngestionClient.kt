@@ -35,6 +35,26 @@ class QueuedIngestionClient(
     KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
     IngestClient {
 
+    override suspend fun submitIngestion(
+        database: String,
+        table: String,
+        sources: List<com.microsoft.azure.kusto.ingest.v2.source.SourceInfo>,
+        format: Format,
+        ingestProperties: IngestRequestProperties?,
+    ): IngestResponse {
+        val abstractSources = sources.map { it as AbstractSourceInfo }
+        return submitQueuedIngestion(database, table, abstractSources, format, ingestProperties)
+    }
+
+    override suspend fun getIngestionStatus(
+        database: String,
+        table: String,
+        operationId: String,
+        forceDetails: Boolean,
+    ): StatusResponse {
+        return getIngestionStatusInternal(database, table, operationId, forceDetails)
+    }
+
     private val defaultConfigurationCache =
         DefaultConfigurationCache(
             dmUrl = dmUrl,
@@ -158,16 +178,15 @@ class QueuedIngestionClient(
     }
 
     /**
-     * Gets a summary of the ingestion operation status (lightweight, fast).
-     * This method provides overall status counters without detailed blob
-     * information. Use this for quick status checks and polling scenarios.
+     * Gets detailed information about an ingestion operation.
      *
      * @param database The target database name
      * @param table The target table name
      * @param operationId The operation ID returned from the ingestion request
-     * @return Updated IngestionOperation with status summary
+     * @param details Whether to retrieve detailed blob-level information
+     * @return StatusResponse with operation details
      */
-    private suspend fun getIngestionDetails(
+    override suspend fun getIngestionDetails(
         database: String,
         table: String,
         operationId: String,
@@ -279,7 +298,7 @@ class QueuedIngestionClient(
      *   operation status
      * @return Updated IngestionOperation with current status
      */
-    suspend fun getIngestionStatus(
+    private suspend fun getIngestionStatusInternal(
         database: String,
         table: String,
         operationId: String,
