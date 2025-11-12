@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
@@ -30,8 +31,9 @@ class StreamingIngestClient(
     val engineUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
+    override val clientDetails: ClientDetails? = null,
 ) :
-    KustoBaseApiClient(engineUrl, tokenCredential, skipSecurityChecks),
+    KustoBaseApiClient(engineUrl, tokenCredential, skipSecurityChecks, clientDetails),
     IngestClient {
 
     /** Handles multiple source types for streaming ingestion. */

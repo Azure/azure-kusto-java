@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
@@ -27,6 +28,7 @@ open class KustoBaseApiClient(
     open val dmUrl: String,
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
+    open val clientDetails: ClientDetails? = null,
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
@@ -40,6 +42,13 @@ open class KustoBaseApiClient(
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
             header("Content-Type", "application/json")
+            
+            // Add client details headers if provided
+            clientDetails?.let { details ->
+                header("x-ms-app", details.getApplicationForTracing())
+                header("x-ms-user", details.getUserNameForTracing())
+                header("x-ms-client-version", details.getClientVersionForTracing())
+            }
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {

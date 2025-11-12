@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
@@ -31,8 +32,9 @@ class QueuedIngestionClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
+    override val clientDetails: ClientDetails? = null,
 ) :
-    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
+    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks, clientDetails),
     IngestClient {
 
     override suspend fun submitIngestion(

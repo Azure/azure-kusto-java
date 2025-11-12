@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestionClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
@@ -16,15 +17,18 @@ import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
+import org.junit.jupiter.api.parallel.ResourceLock
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import java.io.ByteArrayInputStream
 import java.net.ConnectException
 import java.nio.file.Files
 import java.util.UUID
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
@@ -33,7 +37,133 @@ import kotlin.time.Duration
 class QueuedIngestionClientTest :
     IngestV2TestBase(QueuedIngestionClientTest::class.java) {
 
+    @Test
+    fun `test builder with optional parameters`() {
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withClientDetails("TestClient", "1.0")
+            .withMaxConcurrency(10)
+            .build()
+        
+        assertNotNull(client, "Client should not be null")
+    }
+
+    @Test
+    fun `test builder with connector client details`() {
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withConnectorClientDetails(
+                name = "TestConnector",
+                version = "2.0",
+                appName = "MyApp",
+                appVersion = "1.5",
+                additionalFields = mapOf(
+                    "JobId" to "job-123",
+                    "RunId" to "run-456"
+                )
+            )
+            .build()
+        
+        assertNotNull(client, "Client should not be null")
+    }
+
+    @Test
+    fun `test builder with connector client details and user`() {
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withConnectorClientDetails(
+                name = "TestConnector",
+                version = "2.0",
+                sendUser = true,
+                overrideUser = "test-user@example.com"
+            )
+            .build()
+        
+        assertNotNull(client, "Client should not be null")
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `test queued ingestion with builder pattern`(): Unit = runBlocking {
+        logger.info("Starting builder pattern test")
+
+        val queuedIngestionClient: IngestClient = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .skipSecurityChecks()
+            .build()
+
+        val blobUrl = "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
+        val testSources = listOf(BlobSourceInfo(blobUrl))
+        val properties = IngestRequestProperties(
+            format = targetTestFormat,
+            ingestionMappingReference = "${targetTable}_mapping",
+            enableTracking = true,
+        )
+
+        try {
+            val ingestionResponse = queuedIngestionClient.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = testSources,
+                format = targetTestFormat,
+                ingestProperties = properties,
+            )
+
+            logger.info(
+                "Builder pattern test: Submitted queued ingestion with operation ID: {}",
+                ingestionResponse.ingestionOperationId,
+            )
+            assertNotNull(ingestionResponse, "IngestionOperation should not be null")
+            assertNotNull(ingestionResponse.ingestionOperationId, "Operation ID should not be null")
+
+            val finalStatus = (queuedIngestionClient as QueuedIngestionClient)
+                .pollUntilCompletion(
+                    database = database,
+                    table = targetTable,
+                    operationId = ingestionResponse.ingestionOperationId,
+                    pollingInterval = Duration.parse("PT5S"),
+                    timeout = Duration.parse("PT5M"),
+                )
+
+            logger.info(
+                "Builder pattern test: Ingestion completed with final status: {}",
+                finalStatus.status,
+            )
+
+            if (finalStatus.details?.isNotEmpty() == true) {
+                val succeededCount = finalStatus.details.count { it.status == BlobStatus.Status.Succeeded }
+                val failedCount = finalStatus.details.count { it.status == BlobStatus.Status.Failed }
+                logger.info("Builder pattern test: Succeeded: {}, Failed: {}", succeededCount, failedCount)
+
+                assert(succeededCount > 0 || failedCount > 0) {
+                    "Expected at least some blobs to be processed"
+                }
+            } else {
+                logger.info("Builder pattern test: No details available, but operation was submitted successfully")
+            }
+        } catch (e: ConnectException) {
+            assumeTrue(
+                false,
+                "Skipping test: Unable to connect to test cluster: ${e.message}",
+            )
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(
+                    false,
+                    "Skipping test: Unable to connect to test cluster: ${e.cause?.message}",
+                )
+            } else {
+                throw e
+            }
+        }
+    }
+
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
+    @ResourceLock("blob-ingestion")
     @CsvSource(
         // Single JSON blob, no mapping
         "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",

@@ -69,6 +69,101 @@ class StreamingIngestClientTest :
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("testParameters")
+    fun `run streaming ingest test using builder pattern`(
+        testName: String,
+        cluster: String,
+        isException: Boolean,
+        isUnreachableHost: Boolean,
+        blobUrl: String?,
+    ) = runBlocking {
+        logger.info("Running streaming ingest builder test {}", testName)
+
+        // Create client using builder
+        val client: IngestClient =
+            com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
+                .create(cluster)
+                .withAuthentication(tokenProvider)
+                .skipSecurityChecks()
+                .withClientDetails("BuilderStreamingE2ETest", "1.0")
+                .build()
+
+        val ingestProps = IngestRequestProperties(format = targetTestFormat)
+        if (isException) {
+            if (blobUrl != null) {
+                logger.info(
+                    "Testing error handling for invalid blob URL with builder: {}",
+                    blobUrl,
+                )
+                val exception =
+                    assertThrows<IngestException> {
+                        val sources = listOf(BlobSourceInfo(blobUrl))
+                        client.submitIngestion(
+                            database = database,
+                            table = targetTable,
+                            sources = sources,
+                            format = targetTestFormat,
+                            ingestProperties = ingestProps,
+                        )
+                    }
+                assertNotNull(
+                    exception,
+                    "Exception should not be null for invalid blob URL",
+                )
+                logger.info(
+                    "Expected exception caught (builder test): {}",
+                    exception.message,
+                )
+                assert(exception.failureCode != 0) {
+                    "Expected non-zero failure code for invalid blob URL"
+                }
+            }
+        } else {
+            if (blobUrl != null) {
+                logger.info(
+                    "Blob-based streaming ingestion with builder: {}",
+                    blobUrl,
+                )
+
+                val sources = listOf(BlobSourceInfo(blobUrl))
+                client.submitIngestion(
+                    database = database,
+                    table = targetTable,
+                    sources = sources,
+                    format = targetTestFormat,
+                    ingestProperties = ingestProps,
+                )
+
+                logger.info(
+                    "Blob-based streaming ingestion submitted successfully (builder)",
+                )
+
+                kotlinx.coroutines.delay(3000)
+                val results =
+                    adminClusterClient
+                        .executeQuery(
+                            database,
+                            "$targetTable | summarize count=count()",
+                        )
+                        .primaryResults
+
+                assertNotNull(results, "Query results should not be null")
+                results.next()
+                val count: Long = results.getLong("count")
+                assertNotNull(count, "Count should not be null")
+                assert(count > 0) {
+                    "Expected records in table after builder streaming ingestion"
+                }
+
+                logger.info(
+                    "Builder streaming ingestion verified - {} records",
+                    count,
+                )
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("testParameters")
     fun `run streaming ingest test with various clusters`(
         testName: String,
         cluster: String,
