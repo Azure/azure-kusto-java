@@ -21,6 +21,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
+import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -29,8 +30,14 @@ open class KustoBaseApiClient(
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
     open val clientDetails: ClientDetails? = null,
+    open val clientRequestIdPrefix: String = "KIC.execute",
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
+    
+    companion object {
+        private const val KUSTO_API_VERSION = "2024-12-12"
+    }
+    
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
     }
@@ -49,6 +56,20 @@ open class KustoBaseApiClient(
                 header("x-ms-user", details.getUserNameForTracing())
                 header("x-ms-client-version", details.getClientVersionForTracing())
             }
+            
+            // Generate unique client request ID for tracing (format: prefix;uuid)
+            val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
+            header("x-ms-client-request-id", clientRequestId)
+            
+            // Set Kusto API version
+            header("x-ms-version", KUSTO_API_VERSION)
+            
+            // Configure Keep-Alive for connection reuse
+            header("Connection", "Keep-Alive")
+            
+            // Accept encoding for compression
+            header("Accept-Encoding", "gzip,deflate")
+            header("Accept", "application/json")
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {
