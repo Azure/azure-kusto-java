@@ -2,10 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common
 
-/**
- * Contains information about the application/user/client that sends requests to Kusto.
- * This information is passed to the Kusto service for tracing purposes.
- */
+import java.util.concurrent.ConcurrentHashMap
+
 data class ClientDetails(
     val applicationForTracing: String?,
     val userNameForTracing: String?,
@@ -13,6 +11,9 @@ data class ClientDetails(
 ) {
     companion object {
         const val NONE = "[none]"
+        
+        // Cache for default values to avoid recomputing on every call
+        private val defaultValuesCache = ConcurrentHashMap<String, String>()
 
         /**
          * Escapes special characters in header field values by wrapping in curly braces
@@ -36,51 +37,61 @@ data class ClientDetails(
         }
 
         /**
-         * Gets the process name from system properties.
+         * Gets the process name from system properties with caching.
          */
         private fun getProcessName(): String {
-            val command = System.getProperty("sun.java.command")
-            return if (!command.isNullOrBlank()) {
-                // Strip file name from command line (matches UriUtils.stripFileNameFromCommandLine)
-                command.split(" ").firstOrNull() ?: "JavaProcess"
-            } else {
-                "JavaProcess"
+            return defaultValuesCache.computeIfAbsent("processName") {
+                val command = System.getProperty("sun.java.command")
+                if (!command.isNullOrBlank()) {
+                    // Strip file name from command line (matches UriUtils.stripFileNameFromCommandLine)
+                    command.split(" ").firstOrNull() ?: "JavaProcess"
+                } else {
+                    "JavaProcess"
+                }
             }
         }
 
         private fun getUserName(): String {
-            var user = System.getProperty("user.name")
-            if (user.isNullOrBlank()) {
-                user = System.getenv("USERNAME")
-                val domain = System.getenv("USERDOMAIN")
-                if (!domain.isNullOrBlank() && !user.isNullOrBlank()) {
-                    user = "$domain\\$user"
+            return defaultValuesCache.computeIfAbsent("userName") {
+                var user = System.getProperty("user.name")
+                if (user.isNullOrBlank()) {
+                    user = System.getenv("USERNAME")
+                    val domain = System.getenv("USERDOMAIN")
+                    if (!domain.isNullOrBlank() && !user.isNullOrBlank()) {
+                        user = "$domain\\$user"
+                    }
                 }
+                if (!user.isNullOrBlank()) user else NONE
             }
-            return if (!user.isNullOrBlank()) user else NONE
         }
 
         private fun getRuntime(): String {
-            return System.getProperty("java.runtime.name")
-                ?: System.getProperty("java.vm.name")
-                ?: System.getProperty("java.vendor")
-                ?: "UnknownRuntime"
+            return defaultValuesCache.computeIfAbsent("runtime") {
+                System.getProperty("java.runtime.name")
+                    ?: System.getProperty("java.vm.name")
+                    ?: System.getProperty("java.vendor")
+                    ?: "UnknownRuntime"
+            }
         }
 
         private fun getJavaVersion(): String {
-            return System.getProperty("java.version") ?: "UnknownVersion"
+            return defaultValuesCache.computeIfAbsent("javaVersion") {
+                System.getProperty("java.version") ?: "UnknownVersion"
+            }
         }
 
         /**
-         * Gets the default client version string.
+         * Gets the default client version string with caching.
          * Format: "Kusto.Java.Client:{version}|Runtime.{runtime}:{javaVersion}"
          */
         private fun getDefaultVersion(): String {
-            val baseMap = linkedMapOf(
-                "Kusto.Java.Client" to getPackageVersion(),
-                "Runtime.${escapeField(getRuntime())}" to getJavaVersion()
-            )
-            return formatHeader(baseMap)
+            return defaultValuesCache.computeIfAbsent("defaultVersion") {
+                val baseMap = linkedMapOf(
+                    "Kusto.Java.Client" to getPackageVersion(),
+                    "Runtime.${escapeField(getRuntime())}" to getJavaVersion()
+                )
+                formatHeader(baseMap)
+            }
         }
 
         /**
