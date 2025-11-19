@@ -11,7 +11,9 @@ class QueuedIngestionClientBuilder private constructor(
     private val dmUrl: String,
 ) : BaseIngestClientBuilder<QueuedIngestionClientBuilder>() {
 
-      private var maxConcurrency: Int? = null
+    private var maxConcurrency: Int? = null
+    private var maxDataSize: Long? = null
+    private var ignoreFileSize: Boolean = false
 
     companion object {
         @JvmStatic
@@ -26,6 +28,17 @@ class QueuedIngestionClientBuilder private constructor(
         this.maxConcurrency = concurrency
         return this
     }
+
+    fun withMaxDataSize(bytes: Long): QueuedIngestionClientBuilder {
+        require(bytes > 0) { "Max data size must be positive, got: $bytes" }
+        this.maxDataSize = bytes
+        return this
+    }
+
+    fun withIgnoreFileSize(ignore: Boolean): QueuedIngestionClientBuilder {
+        this.ignoreFileSize = ignore
+        return this
+    }
     
     fun build(): QueuedIngestionClient {
         requireNotNull(tokenCredential) {
@@ -37,6 +50,9 @@ class QueuedIngestionClientBuilder private constructor(
             tokenCredential = tokenCredential!!,
             skipSecurityChecks = skipSecurityChecks,
             clientDetails = clientDetails,
+            maxConcurrency = maxConcurrency,
+            maxDataSize = maxDataSize,
+            ignoreFileSize = ignoreFileSize,
         )
     }
 }

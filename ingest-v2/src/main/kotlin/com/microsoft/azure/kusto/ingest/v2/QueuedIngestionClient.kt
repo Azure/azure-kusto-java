@@ -33,6 +33,9 @@ class QueuedIngestionClient(
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
     override val clientDetails: ClientDetails? = null,
+    private val maxConcurrency: Int? = null,
+    private val maxDataSize: kotlin.Long? = null,
+    private val ignoreFileSize: Boolean = false,
 ) :
     KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks, clientDetails),
     IngestClient {
@@ -76,7 +79,12 @@ class QueuedIngestionClient(
         )
 
     private val blobUploadContainer =
-        BlobUploadContainer(defaultConfigurationCache)
+        BlobUploadContainer(
+            configurationCache = defaultConfigurationCache,
+            maxConcurrency = maxConcurrency ?: 4,
+            maxDataSize = maxDataSize ?: (4L * 1024 * 1024 * 1024),
+            ignoreSizeLimit = ignoreFileSize,
+        )
 
     /**
      * Submits a queued ingestion request with support for all source types.

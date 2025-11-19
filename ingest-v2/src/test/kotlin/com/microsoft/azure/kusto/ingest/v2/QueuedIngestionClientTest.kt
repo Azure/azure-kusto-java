@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestionClientBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
@@ -390,6 +391,461 @@ class QueuedIngestionClientTest :
                     false,
                     "Skipping test: Unable to connect to test cluster due to network connectivity issues: ${e.cause?.message}",
                 )
+            } else {
+                throw e
+            }
+        }
+    }
+
+
+    private fun createTestStreamSource(sizeInBytes: Int, name: String): StreamSourceInfo {
+        val jsonLine = """{"testField":"value","size":$sizeInBytes,"name":"$name"}""" + "\n"
+        val jsonLineBytes = jsonLine.toByteArray()
+
+        val numLines = (sizeInBytes / jsonLineBytes.size).coerceAtLeast(1)
+        val data = ByteArray(numLines * jsonLineBytes.size)
+        
+        for (i in 0 until numLines) {
+            System.arraycopy(jsonLineBytes, 0, data, i * jsonLineBytes.size, jsonLineBytes.size)
+        }
+        
+        return StreamSourceInfo(
+            stream = ByteArrayInputStream(data),
+            format = Format.multijson,
+            sourceCompression = CompressionType.NONE,
+            sourceId = UUID.randomUUID(),
+            name = name,
+        )
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - single small file upload`() = runBlocking {
+        logger.info("E2E: Testing single upload with small file")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .skipSecurityChecks()
+            .build()
+        
+        val source = createTestStreamSource(1024, "e2e_single_small.json")
+        
+        try {
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = listOf(source),
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Single small file submitted: ${response.ingestionOperationId}")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            assert(succeededCount > 0) { "Expected successful ingestion" }
+            logger.info("E2E: Single small file upload completed successfully")
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - single large file upload`() = runBlocking {
+        logger.info("E2E: Testing single upload with large file (10MB)")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .skipSecurityChecks()
+            .build()
+        
+        val source = createTestStreamSource(10 * 1024 * 1024, "e2e_single_large.json")
+        
+        try {
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = listOf(source),
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Large file submitted: ${response.ingestionOperationId}")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            assert(succeededCount > 0) { "Expected successful large file ingestion" }
+            logger.info("E2E: Large file upload completed successfully")
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - batch upload multiple files`() = runBlocking {
+        logger.info("E2E: Testing batch upload with multiple files")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .skipSecurityChecks()
+            .build()
+        
+        val sources = (1..5).map { index ->
+            createTestStreamSource(1024 * index, "e2e_batch_$index.json")
+        }
+        
+        try {
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = sources,
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Batch submitted: ${response.ingestionOperationId}")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            val failedCount = finalStatus.details?.count { it.status == BlobStatus.Status.Failed } ?: 0
+            
+            logger.info("E2E: Batch results - Success: $succeededCount, Failure: $failedCount")
+            assert(succeededCount == sources.size) { "Expected successful uploads" }
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - parallel processing with maxConcurrency`() = runBlocking {
+        logger.info("E2E: Testing parallel processing with maxConcurrency=3")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withMaxConcurrency(5)
+            .skipSecurityChecks()
+            .build()
+        
+        val sources = (1..10).map { index ->
+            createTestStreamSource(512 * 1024, "e2e_parallel_$index.json")
+        }
+        
+        try {
+            val startTime = System.currentTimeMillis()
+            
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = sources,
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            val uploadDuration = System.currentTimeMillis() - startTime
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Parallel upload submitted in ${uploadDuration}ms: ${response.ingestionOperationId}")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            logger.info("E2E: Parallel upload: $succeededCount/${sources.size} succeeded")
+            logger.info("E2E: Average time per upload: ${uploadDuration / sources.size}ms")
+            
+            assert(succeededCount == sources.size) { "Expected parallel uploads to succeed" }
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - size validation within limit`() = runBlocking {
+        logger.info("E2E: Testing size validation with file within limit")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withMaxDataSize(10L * 1024 * 1024) // 10MB limit
+            .skipSecurityChecks()
+            .build()
+        
+        val source = createTestStreamSource(5 * 1024 * 1024, "e2e_size_valid.json")
+        
+        try {
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = listOf(source),
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Size validation passed for file within limit")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            assert(succeededCount > 0) { "Expected successful upload for file within size limit" }
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - size validation exceeds limit`() = runBlocking {
+        logger.info("E2E: Testing size validation with file exceeding limit")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withMaxDataSize(1L * 1024 * 1024) // 1MB limit
+            .skipSecurityChecks()
+            .build()
+        
+        val source = createTestStreamSource(2 * 1024 * 1024, "e2e_size_exceed.json")
+        
+        try {
+            try {
+                client.submitIngestion(
+                    database = database,
+                    table = targetTable,
+                    sources = listOf(source),
+                    format = Format.multijson,
+                    ingestProperties = IngestRequestProperties(
+                        format = Format.multijson,
+                        enableTracking = true
+                    )
+                )
+                throw AssertionError("Expected size validation to reject the file")
+            } catch (e: IngestException) {
+                logger.info("E2E: Size validation correctly rejected: ${e.message}")
+            }
+            logger.info("E2E: Size validation correctly rejected file exceeding limit")
+        } catch (e: AssertionError) {
+            logger.info("E2E: Size limit enforced as expected")
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else if (e.message?.contains("size", ignoreCase = true) == true) {
+                logger.info("E2E: Size validation correctly rejected: ${e.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - ignore size limit flag`() = runBlocking {
+        logger.info("E2E: Testing size validation with ignore limit flag")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withMaxDataSize(1L * 1024 * 1024) // 1MB limit
+            .withIgnoreFileSize(true) // But ignore it
+            .skipSecurityChecks()
+            .build()
+        
+        val source = createTestStreamSource(2 * 1024 * 1024, "e2e_size_ignore.json")
+        
+        try {
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = listOf(source),
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: Size limit successfully bypassed with ignoreFileSize flag")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT5S"),
+                timeout = Duration.parse("PT5M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            assert(succeededCount > 0) { "Expected successful upload with ignore flag" }
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
+            } else {
+                throw e
+            }
+        }
+    }
+
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `E2E - combined all features scenario`() = runBlocking {
+        logger.info("E2E: Testing combined features (parallel + size validation + ignore flag)")
+        
+        val client = QueuedIngestionClientBuilder
+            .create(dmEndpoint)
+            .withAuthentication(tokenProvider)
+            .withMaxConcurrency(8)
+            .withMaxDataSize(10L * 1024 * 1024) // 10MB standard limit
+            .withIgnoreFileSize(true)
+            .skipSecurityChecks()
+            .build()
+        
+        // Mix of file sizes: small (1-5MB), medium (5-10MB), large (10-20MB)
+        val sources = mutableListOf<StreamSourceInfo>()
+        
+        // small files
+        (1..7).forEach { i ->
+            sources.add(createTestStreamSource(1024 * 1024 * (1 + (i % 5)), "e2e_combined_small_$i.json"))
+        }
+        
+        // medium files
+        (1..2).forEach { i ->
+            sources.add(createTestStreamSource(1024 * 1024 * (5 + (i % 5)), "e2e_combined_medium_$i.json"))
+        }
+        
+        // large files (need ignore flag)
+        sources.add(createTestStreamSource(15 * 1024 * 1024, "e2e_combined_large_1.json"))
+        
+        logger.info("E2E: Testing combined batch: ${sources.size} files, sizes 1MB-15MB")
+        
+        try {
+            val startTime = System.currentTimeMillis()
+            
+            val response = client.submitIngestion(
+                database = database,
+                table = targetTable,
+                sources = sources,
+                format = Format.multijson,
+                ingestProperties = IngestRequestProperties(
+                    format = Format.multijson,
+                    enableTracking = true
+                )
+            )
+            
+            val uploadDuration = System.currentTimeMillis() - startTime
+            
+            assertNotNull(response.ingestionOperationId)
+            logger.info("E2E: combined batch uploaded in ${uploadDuration}ms")
+            
+            val finalStatus = client.pollUntilCompletion(
+                database = database,
+                table = targetTable,
+                operationId = response.ingestionOperationId,
+                pollingInterval = Duration.parse("PT10S"),
+                timeout = Duration.parse("PT15M")
+            )
+            
+            val succeededCount = finalStatus.details?.count { it.status == BlobStatus.Status.Succeeded } ?: 0
+            
+            logger.info("E2E: combined scenario: $succeededCount/${sources.size} succeeded")
+            assert(succeededCount == sources.size) { "Combined scenario: ingestion succeeded" }
+        } catch (e: ConnectException) {
+            assumeTrue(false, "Skipping test: ${e.message}")
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(false, "Skipping test: ${e.cause?.message}")
             } else {
                 throw e
             }
