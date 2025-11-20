@@ -121,41 +121,46 @@ class BlobUploadContainer(
     }
 
     suspend fun uploadManyAsync(sources: List<UploadSource>): UploadResults = coroutineScope {
-        val results = sources.map { source ->
-            async {
-                val startedAt = OffsetDateTime.now()
-                try {
-                    val blobUrl = uploadAsync(source.name, source.stream)
-                    val completedAt = OffsetDateTime.now()
-                    UploadResult.Success(
-                        sourceName = source.name,
-                        startedAt = startedAt,
-                        completedAt = completedAt,
-                        blobUrl = blobUrl,
-                        sizeBytes = source.sizeBytes
-                    )
-                } catch (e: Exception) {
-                    val completedAt = OffsetDateTime.now()
-                    val errorCode = when {
-                        e.message?.contains("size") == true -> UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
-                        e.message?.contains("readable") == true -> UploadErrorCode.SOURCE_NOT_READABLE
-                        e.message?.contains("empty") == true -> UploadErrorCode.SOURCE_IS_EMPTY
-                        e.message?.contains("container") == true -> UploadErrorCode.NO_CONTAINERS_AVAILABLE
-                        else -> UploadErrorCode.UPLOAD_FAILED
-                    }
+        logger.info("Starting batch upload of {} sources with max concurrency {}", sources.size, maxConcurrency)
 
-                    UploadResult.Failure(
-                        sourceName = source.name,
-                        startedAt = startedAt,
-                        completedAt = completedAt,
-                        errorCode = errorCode,
-                        errorMessage = e.message ?: "Upload failed",
-                        exception = e,
-                        isPermanent = e is IngestException && e.isPermanent == true
-                    )
+        // Process sources in chunks to respect maxConcurrency at file level
+        val results = sources.chunked(maxConcurrency).flatMap { chunk ->
+            chunk.map { source ->
+                async {
+                    val startedAt = OffsetDateTime.now()
+                    try {
+                        val blobUrl = uploadAsync(source.name, source.stream)
+                        val completedAt = OffsetDateTime.now()
+                        UploadResult.Success(
+                            sourceName = source.name,
+                            startedAt = startedAt,
+                            completedAt = completedAt,
+                            blobUrl = blobUrl,
+                            sizeBytes = source.sizeBytes
+                        )
+                    } catch (e: Exception) {
+                        val completedAt = OffsetDateTime.now()
+                        val errorCode = when {
+                            e.message?.contains("size") == true -> UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
+                            e.message?.contains("readable") == true -> UploadErrorCode.SOURCE_NOT_READABLE
+                            e.message?.contains("empty") == true -> UploadErrorCode.SOURCE_IS_EMPTY
+                            e.message?.contains("container") == true -> UploadErrorCode.NO_CONTAINERS_AVAILABLE
+                            else -> UploadErrorCode.UPLOAD_FAILED
+                        }
+
+                        UploadResult.Failure(
+                            sourceName = source.name,
+                            startedAt = startedAt,
+                            completedAt = completedAt,
+                            errorCode = errorCode,
+                            errorMessage = e.message ?: "Upload failed",
+                            exception = e,
+                            isPermanent = e is IngestException && e.isPermanent == true
+                        )
+                    }
                 }
-            }
-        }.awaitAll()
+            }.awaitAll()
+        }
 
         val successes = results.filterIsInstance<UploadResult.Success>()
         val failures = results.filterIsInstance<UploadResult.Failure>()

@@ -19,6 +19,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
@@ -89,7 +90,7 @@ class QueuedIngestionClient(
     /**
      * Submits a queued ingestion request with support for all source types.
      * Local sources (FileSourceInfo, StreamSourceInfo) will be automatically
-     * uploaded to blob storage before ingestion.
+     * uploaded to blob storage before ingestion using parallel batch uploads.
      *
      * @param database The target database name
      * @param table The target table name
@@ -97,6 +98,7 @@ class QueuedIngestionClient(
      *   FileSourceInfo, or StreamSourceInfo)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
+     * @param failOnPartialUploadError If true, fails the entire operation if any uploads fail
      * @return IngestionOperation for tracking the request
      */
     suspend fun submitQueuedIngestion(
@@ -105,43 +107,62 @@ class QueuedIngestionClient(
         sources: List<AbstractSourceInfo>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
+        failOnPartialUploadError: Boolean = true,
     ): IngestResponse {
         logger.info(
             "Submitting queued ingestion request for database: $database, table: $table, sources: ${sources.size}",
         )
-        // Convert all sources to BlobSourceInfo
-        val blobSources =
-            sources.map { source ->
-                when (source) {
-                    is BlobSourceInfo -> source
-                    is FileSourceInfo -> {
-                        logger.debug(
-                            "Uploading FileSourceInfo to blob storage: ${source.name}",
-                        )
-                        BlobSourceInfo.fromFileSourceInfo(
-                            source,
-                            blobUploadContainer,
-                        )
-                    }
-                    is StreamSourceInfo -> {
-                        logger.debug(
-                            "Uploading StreamSourceInfo to blob storage: ${source.name}",
-                        )
-                        BlobSourceInfo.fromStreamSourceInfo(
-                            source,
-                            blobUploadContainer,
-                        )
-                    }
-                    else ->
-                        throw IngestException(
-                            "Unsupported source type: ${source::class.simpleName}",
-                            isPermanent = true,
-                        )
+        
+        // Separate sources by type
+        val blobSources = sources.filterIsInstance<BlobSourceInfo>()
+        val localSources = sources.filterIsInstance<LocalSource>()
+        
+        // Convert local sources to blob sources
+        val allBlobSources = if (localSources.isNotEmpty()) {
+            logger.info("Uploading ${localSources.size} local sources to blob storage in parallel")
+            
+            // Use batch upload for efficiency
+            val batchResult = BlobSourceInfo.fromLocalSourcesBatch(
+                localSources,
+                blobUploadContainer
+            )
+            
+            // Log batch results
+            logger.info(
+                "Batch upload completed: ${batchResult.successes.size} succeeded, " +
+                "${batchResult.failures.size} failed out of ${localSources.size} total"
+            )
+            
+            // Handle failures based on policy
+            if (batchResult.hasFailures) {
+                val failureDetails = batchResult.failures.joinToString("\n") { failure ->
+                    "  - ${failure.source.name}: ${failure.errorCode} - ${failure.errorMessage}"
+                }
+                
+                if (failOnPartialUploadError) {
+                    throw IngestException(
+                        "Failed to upload ${batchResult.failures.size} out of ${localSources.size} sources:\n$failureDetails",
+                        isPermanent = batchResult.failures.all { it.isPermanent }
+                    )
+                } else {
+                    logger.warn("Some uploads failed but continuing with successful uploads:\n$failureDetails")
                 }
             }
+            
+            blobSources + batchResult.successes
+        } else {
+            blobSources
+        }
+        
+        if (allBlobSources.isEmpty()) {
+            throw IngestException(
+                "No sources available for ingestion after upload processing",
+                isPermanent = true
+            )
+        }
         // Convert BlobSourceInfo objects to Blob objects
         val blobs =
-            blobSources.map { blobSource ->
+            allBlobSources.map { blobSource ->
                 val sourceId = blobSource.sourceId.toString()
                 Blob(
                     url = blobSource.blobPath,
