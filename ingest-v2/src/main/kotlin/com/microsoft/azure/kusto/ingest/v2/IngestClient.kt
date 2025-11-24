@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 import java.net.ConnectException
 
 /**
- * interface with provides core abstraction for ingesting data into Kusto.
+ * Interface that provides core abstraction for ingesting data into Kusto.
  *
  * Supports multiple source types:
  * - BlobSourceInfo: Ingest from Azure Blob Storage
