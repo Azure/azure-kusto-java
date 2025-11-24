@@ -75,7 +75,6 @@ class QueuedIngestionClient(
             skipSecurityChecks = skipSecurityChecks,
         )
 
-    // Reusable BlobUploadContainer instance
     private val blobUploadContainer =
         BlobUploadContainer(defaultConfigurationCache)
 

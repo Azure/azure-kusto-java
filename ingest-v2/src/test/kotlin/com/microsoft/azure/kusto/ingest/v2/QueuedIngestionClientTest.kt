@@ -396,6 +396,123 @@ class QueuedIngestionClientTest :
         }
     }
 
+    @Test
+    @ResourceLock("blob-ingestion")
+    fun `test parallel upload with multiple files`() = runBlocking {
+        logger.info("Starting parallel upload test with multiple files")
+        
+        val deviceDataUrl =
+            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json"
+        val deviceData = java.net.URL(deviceDataUrl).readText()
+        val targetFormat = Format.multijson
+        
+        val sources = (1..5).map { index ->
+            StreamSourceInfo(
+                stream = ByteArrayInputStream(deviceData.toByteArray()),
+                format = targetFormat,
+                sourceCompression = CompressionType.NONE,
+                sourceId = UUID.randomUUID(),
+                name = "parallel_test_$index.json",
+            )
+        }
+        
+        val queuedIngestionClient: IngestClient =
+            QueuedIngestionClient(
+                dmUrl = dmEndpoint,
+                tokenCredential = tokenProvider,
+                skipSecurityChecks = true,
+            )
+        
+        val properties =
+            IngestRequestProperties(
+                format = targetFormat,
+                enableTracking = true,
+            )
+        
+        try {
+            val startTime = System.currentTimeMillis()
+            
+            val ingestionResponse =
+                queuedIngestionClient.submitIngestion(
+                    database = database,
+                    table = targetTable,
+                    sources = sources,
+                    format = targetFormat,
+                    ingestProperties = properties,
+                )
+            
+            val uploadTime = System.currentTimeMillis() - startTime
+            
+            logger.info(
+                "Parallel upload test: Submitted {} files in {}ms with operation ID: {}",
+                sources.size,
+                uploadTime,
+                ingestionResponse.ingestionOperationId,
+            )
+            
+            assertNotNull(ingestionResponse, "IngestionOperation should not be null")
+            assertNotNull(ingestionResponse.ingestionOperationId, "Operation ID should not be null")
+            
+            val finalStatus =
+                (queuedIngestionClient as QueuedIngestionClient)
+                    .pollUntilCompletion(
+                        database = database,
+                        table = targetTable,
+                        operationId = ingestionResponse.ingestionOperationId,
+                        pollingInterval = Duration.parse("PT5S"),
+                        timeout = Duration.parse("PT5M"),
+                    )
+            
+            logger.info(
+                "Parallel upload test: Ingestion completed with final status: {}",
+                finalStatus.status,
+            )
+
+            if (finalStatus.details?.isNotEmpty() == true) {
+                val succeededCount =
+                    finalStatus.details.count {
+                        it.status == BlobStatus.Status.Succeeded
+                    }
+                val failedCount =
+                    finalStatus.details.count {
+                        it.status == BlobStatus.Status.Failed
+                    }
+                
+                logger.info(
+                    "Parallel upload results - Total: {}, Succeeded: {}, Failed: {}",
+                    finalStatus.details.size,
+                    succeededCount,
+                    failedCount,
+                )
+                
+                assert(succeededCount > 0) {
+                    "Expected at least some successful uploads in parallel test"
+                }
+                
+                logger.info(
+                    "Parallel upload performance: {} files uploaded in {}ms (avg {}ms per file)",
+                    sources.size,
+                    uploadTime,
+                    uploadTime / sources.size,
+                )
+            }
+        } catch (e: ConnectException) {
+            assumeTrue(
+                false,
+                "Skipping test: Unable to connect to test cluster: ${e.message}",
+            )
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
+                assumeTrue(
+                    false,
+                    "Skipping test: Unable to connect to test cluster: ${e.cause?.message}",
+                )
+            } else {
+                throw e
+            }
+        }
+    }
+
     @ParameterizedTest(
         name =
         "[QueuedIngestion-LocalSource] {index} => SourceType={0}, TestName={1}",

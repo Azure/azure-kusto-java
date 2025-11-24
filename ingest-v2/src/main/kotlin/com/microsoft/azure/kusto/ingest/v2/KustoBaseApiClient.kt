@@ -49,8 +49,7 @@ open class KustoBaseApiClient(
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
             header("Content-Type", "application/json")
-            
-            // Add client details headers if provided
+
             clientDetails?.let { details ->
                 header("x-ms-app", details.getApplicationForTracing())
                 header("x-ms-user", details.getUserNameForTracing())
@@ -60,15 +59,8 @@ open class KustoBaseApiClient(
             // Generate unique client request ID for tracing (format: prefix;uuid)
             val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
             header("x-ms-client-request-id", clientRequestId)
-            
-            // Set Kusto API version
             header("x-ms-version", KUSTO_API_VERSION)
-            
-            // Configure Keep-Alive for connection reuse
             header("Connection", "Keep-Alive")
-            
-            // Accept encoding for compression
-            header("Accept-Encoding", "gzip,deflate")
             header("Accept", "application/json")
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
