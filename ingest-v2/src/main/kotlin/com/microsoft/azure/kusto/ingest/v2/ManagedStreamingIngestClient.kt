@@ -17,7 +17,9 @@ import io.ktor.http.HttpStatusCode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -111,7 +113,7 @@ class ManagedStreamingIngestClient(
 
         // Return a combined response (for now, return success)
         return IngestResponse(
-            ingestionOperationId = "managed-${System.currentTimeMillis()}",
+            ingestionOperationId = "managed-${Instant.now(Clock.systemUTC())}",
         )
     }
 
@@ -146,7 +148,7 @@ class ManagedStreamingIngestClient(
             )
         }
 
-        if (shouldUseQueuedIngestBySize(stream, source)) {
+        if (shouldUseQueuedIngestBySize(source)) {
             logger.info(
                 "Data size exceeds streaming limit, using queued ingestion",
             )
@@ -182,7 +184,6 @@ class ManagedStreamingIngestClient(
     }
 
     private fun shouldUseQueuedIngestBySize(
-        stream: InputStream,
         source: LocalSource,
     ): Boolean {
         val size = source.size()
@@ -231,12 +232,12 @@ class ManagedStreamingIngestClient(
         table: String,
         props: IngestRequestProperties,
     ): IngestResponse {
-        val startTime = System.currentTimeMillis()
+        val startTime = Instant.now(Clock.systemUTC()).toEpochMilli()
 
         val result =
             managedStreamingPolicy.retryPolicy.runWithRetry(
                 action = { attempt ->
-                    val attemptStartTime = System.currentTimeMillis()
+                    val attemptStartTime = Instant.now(Clock.systemUTC()).toEpochMilli()
 
                     try {
                         val response =
@@ -300,7 +301,7 @@ class ManagedStreamingIngestClient(
 
                         val duration =
                             Duration.ofMillis(
-                                System.currentTimeMillis() -
+                                Instant.now(Clock.systemUTC()).toEpochMilli() -
                                     attemptStartTime,
                             )
                         managedStreamingPolicy.streamingSuccessCallback(
@@ -347,7 +348,6 @@ class ManagedStreamingIngestClient(
                         startTime,
                         isPermanent,
                         ex,
-                        attempt,
                     )
                 },
                 throwOnExhaustedRetries = false,
@@ -383,9 +383,8 @@ class ManagedStreamingIngestClient(
         startTime: Long,
         isPermanent: Boolean,
         ex: Exception,
-        attempt: UInt,
     ): Retry {
-        val duration = Duration.ofMillis(System.currentTimeMillis() - startTime)
+        val duration = Duration.ofMillis(Instant.now(Clock.systemUTC()).toEpochMilli() - startTime)
 
         // Handle transient errors
         if (!isPermanent) {
@@ -615,19 +614,6 @@ class ManagedStreamingIngestClient(
         )
     }
 
-    suspend fun getIngestionStatus(
-        database: String,
-        table: String,
-        operationId: String,
-        forceDetails: Boolean = false,
-    ): StatusResponse {
-        return queuedIngestionClient.getIngestionStatus(
-            database,
-            table,
-            operationId,
-            forceDetails,
-        )
-    }
 
     suspend fun pollUntilCompletion(
         database: String,
@@ -644,14 +630,4 @@ class ManagedStreamingIngestClient(
             timeout = timeout,
         )
     }
-
-    fun close() {
-        // Clean up resources if needed
-        logger.info("ManagedStreamingIngestClient closed")
-    }
-}
-
-// Extension function to convert Kotlin Duration to Java Duration
-private fun kotlin.time.Duration.toJavaDuration(): Duration {
-    return Duration.ofMillis(this.inWholeMilliseconds)
 }
