@@ -13,6 +13,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.source.SourceInfo
 import io.ktor.http.HttpStatusCode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -629,5 +630,34 @@ class ManagedStreamingIngestClient(
             pollingInterval = pollingInterval,
             timeout = timeout,
         )
+    }
+
+
+    override suspend fun submitIngestion(
+        database: String,
+        table: String,
+        sources: List<SourceInfo>,
+        format: Format,
+        ingestProperties: IngestRequestProperties?
+    ): IngestResponse {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getIngestionStatus(
+        database: String,
+        table: String,
+        operationId: String,
+        forceDetails: Boolean
+    ): StatusResponse {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getIngestionDetails(
+        database: String,
+        table: String,
+        operationId: String,
+        details: Boolean
+    ): StatusResponse {
+        TODO("Not yet implemented")
     }
 }
