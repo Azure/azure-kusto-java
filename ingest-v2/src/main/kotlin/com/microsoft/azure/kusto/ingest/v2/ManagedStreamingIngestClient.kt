@@ -3,8 +3,8 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.common.Retry
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.common.RetryDecision
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
@@ -12,16 +12,13 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
-import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import io.ktor.http.HttpStatusCode
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.toKotlinDuration
 
 /**
  * ManagedStreamingIngestClient chooses between streaming and queued ingestion
@@ -34,19 +31,23 @@ import kotlin.time.toKotlinDuration
  * - Tracks per-table error patterns to optimize future ingestion attempts
  * - Respects streaming ingestion limits and policies
  *
- * @param clusterUrl The Kusto cluster URL (used for both streaming and queued ingestion)
+ * @param clusterUrl The Kusto cluster URL (used for both streaming and queued
+ *   ingestion)
  * @param tokenCredential Azure credential for authentication
- * @param managedStreamingPolicy Policy controlling fallback behavior and retry logic
+ * @param managedStreamingPolicy Policy controlling fallback behavior and retry
+ *   logic
  * @param skipSecurityChecks Whether to skip security checks (for testing)
  */
 class ManagedStreamingIngestClient(
     private val clusterUrl: String,
     private val tokenCredential: TokenCredential,
-    private val managedStreamingPolicy: ManagedStreamingPolicy = DefaultManagedStreamingPolicy(),
+    private val managedStreamingPolicy: ManagedStreamingPolicy =
+        DefaultManagedStreamingPolicy(),
     private val skipSecurityChecks: Boolean = false,
 ) : IngestClient {
 
-    override val logger: Logger = LoggerFactory.getLogger(ManagedStreamingIngestClient::class.java)
+    override val logger: Logger =
+        LoggerFactory.getLogger(ManagedStreamingIngestClient::class.java)
 
     private val streamingIngestClient =
         StreamingIngestClient(
@@ -63,14 +64,17 @@ class ManagedStreamingIngestClient(
         )
 
     // Maximum size for streaming ingestion (4MB default, can be tuned with dataSizeFactor)
-    private val maxStreamingIngestSize: Long = (4 * 1024 * 1024 * managedStreamingPolicy.dataSizeFactor).toLong()
+    private val maxStreamingIngestSize: Long =
+        (4 * 1024 * 1024 * managedStreamingPolicy.dataSizeFactor).toLong()
 
     /**
-     * Submits an ingestion request, intelligently choosing between streaming and queued ingestion.
+     * Submits an ingestion request, intelligently choosing between streaming
+     * and queued ingestion.
      *
      * @param database The target database name
      * @param table The target table name
-     * @param sources List of SourceInfo objects (BlobSourceInfo, FileSourceInfo, or StreamSourceInfo)
+     * @param sources List of SourceInfo objects (BlobSourceInfo,
+     *   FileSourceInfo, or StreamSourceInfo)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
      * @return IngestResponse for tracking the request
@@ -118,13 +122,14 @@ class ManagedStreamingIngestClient(
         props: IngestRequestProperties,
     ): IngestResponse {
         if (shouldUseQueuedIngestByPolicy(source, database, table, props)) {
-            logger.info("Policy dictates using queued ingestion for blob: ${source.blobPath}")
+            logger.info(
+                "Policy dictates using queued ingestion for blob: ${source.blobPath}",
+            )
             return invokeQueuedIngestion(source, database, table, props)
         }
 
         return invokeStreamingIngestion(source, database, table, props)
     }
-
 
     private suspend fun ingestLocal(
         source: LocalSource,
@@ -142,12 +147,16 @@ class ManagedStreamingIngestClient(
         }
 
         if (shouldUseQueuedIngestBySize(stream, source)) {
-            logger.info("Data size exceeds streaming limit, using queued ingestion")
+            logger.info(
+                "Data size exceeds streaming limit, using queued ingestion",
+            )
             return invokeQueuedIngestion(source, database, table, props)
         }
 
         if (shouldUseQueuedIngestByPolicy(source, database, table, props)) {
-            logger.info("Policy dictates using queued ingestion for local source: ${source.name}")
+            logger.info(
+                "Policy dictates using queued ingestion for local source: ${source.name}",
+            )
             return invokeQueuedIngestion(source, database, table, props)
         }
 
@@ -176,21 +185,16 @@ class ManagedStreamingIngestClient(
         stream: InputStream,
         source: LocalSource,
     ): Boolean {
-        val size =
-            try {
-                when (source) {
-                    is FileSourceInfo -> java.nio.file.Files.size(source.path)
-                    is StreamSourceInfo -> stream.available().toLong()
-                    else -> stream.available().toLong()
-                }
-            } catch (e: Exception) {
-                logger.warn("Could not determine stream size: ${e.message}")
-                return false
-            }
+        val size = source.size()
+
+        if (size == null) {
+            logger.warn("Could not determine data size for ${source::class.simpleName}")
+            return false
+        }
 
         if (size > maxStreamingIngestSize) {
             logger.info(
-                "Blob size '$size' exceeds streaming limit '$maxStreamingIngestSize'. " +
+                "Data size '$size' exceeds streaming limit '$maxStreamingIngestSize'. " +
                     "DataSizeFactor used: ${managedStreamingPolicy.dataSizeFactor}. Using queued ingestion.",
             )
             return true
@@ -205,13 +209,21 @@ class ManagedStreamingIngestClient(
         table: String,
         props: IngestRequestProperties,
     ): Boolean {
-        if (managedStreamingPolicy.shouldDefaultToQueuedIngestion(source, database, table, props)) {
-            logger.info("ManagedStreamingPolicy indicates fallback to queued ingestion")
+        if (
+            managedStreamingPolicy.shouldDefaultToQueuedIngestion(
+                source,
+                database,
+                table,
+                props,
+            )
+        ) {
+            logger.info(
+                "ManagedStreamingPolicy indicates fallback to queued ingestion",
+            )
             return true
         }
         return false
     }
-
 
     private suspend fun invokeStreamingIngestion(
         source: AbstractSourceInfo,
@@ -230,27 +242,53 @@ class ManagedStreamingIngestClient(
                         val response =
                             when (source) {
                                 is BlobSourceInfo -> {
-                                    streamingIngestClient.submitStreamingIngestion(
-                                        database = database,
-                                        table = table,
-                                        data = ByteArray(0), // Not used for blob-based streaming
-                                        format = props.format,
-                                        ingestProperties = props,
-                                        blobUrl = source.blobPath,
+                                    streamingIngestClient
+                                        .submitStreamingIngestion(
+                                            database =
+                                            database,
+                                            table = table,
+                                            // Not used for blob-based streaming
+                                            data =
+                                            ByteArray(
+                                                0,
+                                            ),
+                                            format =
+                                            props
+                                                .format,
+                                            ingestProperties =
+                                            props,
+                                            blobUrl =
+                                            source
+                                                .blobPath,
+                                        )
+                                    IngestResponse(
+                                        ingestionOperationId =
+                                        source.sourceId
+                                            .toString(),
                                     )
-                                    IngestResponse(ingestionOperationId = source.sourceId.toString())
                                 }
 
                                 is LocalSource -> {
-                                    val data = source.data().readBytes()
-                                    streamingIngestClient.submitStreamingIngestion(
-                                        database = database,
-                                        table = table,
-                                        data = data,
-                                        format = props.format,
-                                        ingestProperties = props,
+                                    val data =
+                                        source.data()
+                                            .readBytes()
+                                    streamingIngestClient
+                                        .submitStreamingIngestion(
+                                            database =
+                                            database,
+                                            table = table,
+                                            data = data,
+                                            format =
+                                            props
+                                                .format,
+                                            ingestProperties =
+                                            props,
+                                        )
+                                    IngestResponse(
+                                        ingestionOperationId =
+                                        source.sourceId
+                                            .toString(),
                                     )
-                                    IngestResponse(ingestionOperationId = source.sourceId.toString())
                                 }
 
                                 else ->
@@ -260,13 +298,19 @@ class ManagedStreamingIngestClient(
                                     )
                             }
 
-                        val duration = Duration.ofMillis(System.currentTimeMillis() - attemptStartTime)
+                        val duration =
+                            Duration.ofMillis(
+                                System.currentTimeMillis() -
+                                    attemptStartTime,
+                            )
                         managedStreamingPolicy.streamingSuccessCallback(
                             source,
                             database,
                             table,
                             props,
-                            ManagedStreamingRequestSuccessDetails(duration),
+                            ManagedStreamingRequestSuccessDetails(
+                                duration,
+                            ),
                         )
 
                         logger.info(
@@ -274,22 +318,37 @@ class ManagedStreamingIngestClient(
                         )
                         response
                     } catch (e: Exception) {
-                        logger.warn("Streaming ingestion attempt $attempt failed: ${e.message}")
+                        logger.warn(
+                            "Streaming ingestion attempt $attempt failed: ${e.message}",
+                        )
                         throw e
                     }
                 },
                 onRetry = { attempt, ex, _ ->
-                    logger.debug("Retrying streaming ingestion after attempt $attempt due to: ${ex.message}")
+                    logger.debug(
+                        "Retrying streaming ingestion after attempt $attempt due to: ${ex.message}",
+                    )
                     if (source is LocalSource) {
                         try {
                             source.reset()
                         } catch (e: Exception) {
-                            logger.warn("Failed to reset source stream: ${e.message}")
+                            logger.warn(
+                                "Failed to reset source stream: ${e.message}",
+                            )
                         }
                     }
                 },
                 shouldRetry = { attempt, ex, isPermanent ->
-                    decideOnException(source, database, table, props, startTime, isPermanent, ex, attempt)
+                    decideOnException(
+                        source,
+                        database,
+                        table,
+                        props,
+                        startTime,
+                        isPermanent,
+                        ex,
+                        attempt,
+                    )
                 },
                 throwOnExhaustedRetries = false,
                 tracer = { msg -> logger.debug(msg) },
@@ -304,7 +363,9 @@ class ManagedStreamingIngestClient(
                 try {
                     source.reset()
                 } catch (e: Exception) {
-                    logger.warn("Failed to reset source stream before queued ingestion: ${e.message}")
+                    logger.warn(
+                        "Failed to reset source stream before queued ingestion: ${e.message}",
+                    )
                 }
             }
             return invokeQueuedIngestion(source, database, table, props)
@@ -313,9 +374,7 @@ class ManagedStreamingIngestClient(
         return result
     }
 
-    /**
-     * Decides whether to retry, throw, or break based on the exception
-     */
+    /** Decides whether to retry, throw, or break based on the exception */
     private fun decideOnException(
         source: AbstractSourceInfo,
         database: String,
@@ -325,35 +384,61 @@ class ManagedStreamingIngestClient(
         isPermanent: Boolean,
         ex: Exception,
         attempt: UInt,
-    ): com.microsoft.azure.kusto.ingest.v2.common.Retry {
+    ): Retry {
         val duration = Duration.ofMillis(System.currentTimeMillis() - startTime)
 
         // Handle transient errors
         if (!isPermanent) {
-            reportTransientException(source, database, table, props, ex, duration)
-            return com.microsoft.azure.kusto.ingest.v2.common.Retry(shouldRetry = true, interval = Duration.ZERO)
+            reportTransientException(
+                source,
+                database,
+                table,
+                props,
+                ex,
+                duration,
+            )
+            return Retry(
+                shouldRetry = true,
+                interval = Duration.ZERO,
+            )
         }
 
         // Handle permanent errors
         if (ex !is IngestException) {
             reportUnknownException(source, database, table, props, ex, duration)
-            return com.microsoft.azure.kusto.ingest.v2.common.Retry(shouldRetry = false, interval = Duration.ZERO)
+            return Retry(
+                shouldRetry = false,
+                interval = Duration.ZERO,
+            )
         }
 
         // Check if we should fallback to queued ingestion
-        if (shouldFallbackToQueuedOnPermanentError(ex, source, database, table, props, duration)) {
-            return com.microsoft.azure.kusto.ingest.v2.common.Retry(shouldRetry = false, interval = Duration.ZERO)
+        if (
+            shouldFallbackToQueuedOnPermanentError(
+                ex,
+                source,
+                database,
+                table,
+                props,
+                duration,
+            )
+        ) {
+            return Retry(
+                shouldRetry = false,
+                interval = Duration.ZERO,
+            )
         }
 
         logger.error(
             "Permanent error occurred while trying streaming ingest, not switching to queued according to policy. Error: ${ex.message}",
         )
-        return com.microsoft.azure.kusto.ingest.v2.common.Retry(shouldRetry = false, interval = Duration.ZERO)
+        return Retry(
+            shouldRetry = false,
+            interval = Duration.ZERO,
+        )
     }
 
-    /**
-     * Reports a transient exception to the policy
-     */
+    /** Reports a transient exception to the policy */
     private fun reportTransientException(
         source: AbstractSourceInfo,
         database: String,
@@ -363,13 +448,19 @@ class ManagedStreamingIngestClient(
         duration: Duration,
     ) {
         val errorCategory =
-            if (ex is IngestException && ex.failureCode == HttpStatusCode.TooManyRequests.value) {
+            if (
+                ex is IngestException &&
+                ex.failureCode ==
+                HttpStatusCode.TooManyRequests.value
+            ) {
                 ManagedStreamingErrorCategory.THROTTLED
             } else {
                 ManagedStreamingErrorCategory.OTHER_ERRORS
             }
 
-        logger.warn("Streaming ingestion transient error: ${ex.message}, category: $errorCategory")
+        logger.warn(
+            "Streaming ingestion transient error: ${ex.message}, category: $errorCategory",
+        )
 
         managedStreamingPolicy.streamingErrorCallback(
             source,
@@ -385,7 +476,6 @@ class ManagedStreamingIngestClient(
         )
     }
 
-
     private fun reportUnknownException(
         source: AbstractSourceInfo,
         database: String,
@@ -394,7 +484,10 @@ class ManagedStreamingIngestClient(
         ex: Exception,
         duration: Duration,
     ) {
-        logger.error("Unexpected error occurred during streaming ingestion: ${ex.message}", ex)
+        logger.error(
+            "Unexpected error occurred during streaming ingestion: ${ex.message}",
+            ex,
+        )
 
         managedStreamingPolicy.streamingErrorCallback(
             source,
@@ -404,12 +497,12 @@ class ManagedStreamingIngestClient(
             ManagedStreamingRequestFailureDetails(
                 duration = duration,
                 isPermanent = true,
-                errorCategory = ManagedStreamingErrorCategory.UNKNOWN_ERRORS,
+                errorCategory =
+                ManagedStreamingErrorCategory.UNKNOWN_ERRORS,
                 exception = ex,
             ),
         )
     }
-
 
     private fun shouldFallbackToQueuedOnPermanentError(
         ex: IngestException,
@@ -426,10 +519,19 @@ class ManagedStreamingIngestClient(
 
         when {
             // Streaming ingestion policy turned off
-            failureSubCode?.contains("StreamingIngestionPolicyNotEnabled", ignoreCase = true) == true ||
-                failureSubCode?.contains("StreamingIngestionDisabledForCluster", ignoreCase = true) == true -> {
-                errorCategory = ManagedStreamingErrorCategory.STREAMING_INGESTION_OFF
-                shouldFallback = managedStreamingPolicy.continueWhenStreamingIngestionUnavailable
+            failureSubCode?.contains(
+                "StreamingIngestionPolicyNotEnabled",
+                ignoreCase = true,
+            ) == true ||
+                failureSubCode?.contains(
+                    "StreamingIngestionDisabledForCluster",
+                    ignoreCase = true,
+                ) == true -> {
+                errorCategory =
+                    ManagedStreamingErrorCategory.STREAMING_INGESTION_OFF
+                shouldFallback =
+                    managedStreamingPolicy
+                        .continueWhenStreamingIngestionUnavailable
                 logger.info(
                     "Streaming ingestion is off, fallback to queued ingestion is " +
                         "${if (shouldFallback) "enabled" else "disabled"}. Error: ${ex.message}",
@@ -437,26 +539,46 @@ class ManagedStreamingIngestClient(
             }
 
             // Table configuration prevents streaming
-            failureSubCode?.contains("UpdatePolicyIncompatible", ignoreCase = true) == true ||
-                failureSubCode?.contains("QuerySchemaDoesNotMatchTableSchema", ignoreCase = true) == true -> {
-                errorCategory = ManagedStreamingErrorCategory.TABLE_CONFIGURATION_PREVENTS_STREAMING
+            failureSubCode?.contains(
+                "UpdatePolicyIncompatible",
+                ignoreCase = true,
+            ) == true ||
+                failureSubCode?.contains(
+                    "QuerySchemaDoesNotMatchTableSchema",
+                    ignoreCase = true,
+                ) == true -> {
+                errorCategory =
+                    ManagedStreamingErrorCategory
+                        .TABLE_CONFIGURATION_PREVENTS_STREAMING
                 shouldFallback = true
-                logger.info("Fallback to queued ingestion due to table configuration. Error: ${ex.message}")
+                logger.info(
+                    "Fallback to queued ingestion due to table configuration. Error: ${ex.message}",
+                )
             }
 
             // Request properties prevent streaming (e.g., file too large)
-            failureSubCode?.contains("FileTooLarge", ignoreCase = true) == true ||
-                failureSubCode?.contains("InputStreamTooLarge", ignoreCase = true) == true ||
+            failureSubCode?.contains("FileTooLarge", ignoreCase = true) ==
+                true ||
+                failureSubCode?.contains(
+                    "InputStreamTooLarge",
+                    ignoreCase = true,
+                ) == true ||
                 ex.failureCode == 413 -> { // 413 Payload Too Large
-                errorCategory = ManagedStreamingErrorCategory.REQUEST_PROPERTIES_PREVENT_STREAMING
+                errorCategory =
+                    ManagedStreamingErrorCategory
+                        .REQUEST_PROPERTIES_PREVENT_STREAMING
                 shouldFallback = true
-                logger.info("Fallback to queued ingestion due to request properties. Error: ${ex.message}")
+                logger.info(
+                    "Fallback to queued ingestion due to request properties. Error: ${ex.message}",
+                )
             }
 
             else -> {
                 errorCategory = ManagedStreamingErrorCategory.OTHER_ERRORS
                 shouldFallback = false
-                logger.info("Not falling back to queued ingestion for this exception: ${ex.message}")
+                logger.info(
+                    "Not falling back to queued ingestion for this exception: ${ex.message}",
+                )
             }
         }
 
@@ -499,7 +621,12 @@ class ManagedStreamingIngestClient(
         operationId: String,
         forceDetails: Boolean = false,
     ): StatusResponse {
-        return queuedIngestionClient.getIngestionStatus(database, table, operationId, forceDetails)
+        return queuedIngestionClient.getIngestionStatus(
+            database,
+            table,
+            operationId,
+            forceDetails,
+        )
     }
 
     suspend fun pollUntilCompletion(

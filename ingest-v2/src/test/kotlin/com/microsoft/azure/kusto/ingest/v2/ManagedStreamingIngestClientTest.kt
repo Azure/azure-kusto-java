@@ -29,7 +29,7 @@ import kotlin.time.Duration
 
 /**
  * End-to-end tests for ManagedStreamingIngestClient.
- * 
+ *
  * These tests verify that the client correctly:
  * 1. Attempts streaming ingestion for small data
  * 2. Falls back to queued ingestion for large data or when streaming fails
@@ -49,10 +49,10 @@ class ManagedStreamingIngestClientTest :
         """{"timestamp": "2023-05-02 15:23:50.0000000","deviceId": "$targetUuid","messageId": "7f316225-839a-4593-92b5-1812949279b3","temperature": 31.0301639051317,"humidity": 62.0791099602725}"""
             .trimIndent()
 
-    /**
-     * Test managed streaming ingestion with small blob data
-     */
-    @ParameterizedTest(name = "[ManagedStreaming-SmallData] {index} => TestName={0}")
+    /** Test managed streaming ingestion with small blob data */
+    @ParameterizedTest(
+        name = "[ManagedStreaming-SmallData] {index} => TestName={0}",
+    )
     @CsvSource(
         "ManagedStreaming-SmallBlob,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
         "ManagedStreaming-SmallMultilineBlob,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
@@ -60,131 +60,141 @@ class ManagedStreamingIngestClientTest :
     fun `test managed streaming ingestion with small blob data`(
         testName: String,
         blobUrl: String,
-    ): Unit =
-        runBlocking {
-            logger.info("Starting test: $testName")
-            val managedClient =
-                ManagedStreamingIngestClient(
-                    clusterUrl = engineEndpoint,
-                    tokenCredential = tokenProvider,
-                    managedStreamingPolicy = DefaultManagedStreamingPolicy(),
-                    skipSecurityChecks = true,
-                )
+    ): Unit = runBlocking {
+        logger.info("Starting test: $testName")
+        val managedClient =
+            ManagedStreamingIngestClient(
+                clusterUrl = engineEndpoint,
+                tokenCredential = tokenProvider,
+                managedStreamingPolicy =
+                DefaultManagedStreamingPolicy(),
+                skipSecurityChecks = true,
+            )
 
-            val testSources = listOf(BlobSourceInfo(blobUrl))
-            val properties =
-                IngestRequestProperties(
+        val testSources = listOf(BlobSourceInfo(blobUrl))
+        val properties =
+            IngestRequestProperties(
+                format = targetTestFormat,
+                enableTracking = true,
+            )
+
+        try {
+            // Ingest data - should attempt streaming first
+            val ingestionResponse =
+                managedClient.submitManagedIngestion(
+                    database = database,
+                    table = targetTable,
+                    sources = testSources,
                     format = targetTestFormat,
-                    enableTracking = true,
+                    ingestProperties = properties,
                 )
 
-            try {
-                // Ingest data - should attempt streaming first
-                val ingestionResponse =
-                    managedClient.submitManagedIngestion(
+            logger.info(
+                "E2E: Submitted managed streaming ingestion with operation ID: {}",
+                ingestionResponse.ingestionOperationId,
+            )
+            assertNotNull(
+                ingestionResponse,
+                "IngestionOperation should not be null",
+            )
+            assertNotNull(
+                ingestionResponse.ingestionOperationId,
+                "Operation ID should not be null",
+            )
+
+            // If it fell back to queued ingestion, poll for status
+            if (
+                !ingestionResponse.ingestionOperationId.startsWith(
+                    "managed-",
+                )
+            ) {
+                logger.info(
+                    "Ingestion fell back to queued mode. Polling for completion...",
+                )
+                val finalStatus =
+                    managedClient.pollUntilCompletion(
                         database = database,
                         table = targetTable,
-                        sources = testSources,
-                        format = targetTestFormat,
-                        ingestProperties = properties,
+                        operationId =
+                        ingestionResponse.ingestionOperationId,
+                        pollingInterval = Duration.parse("PT5S"),
+                        timeout = Duration.parse("PT5M"),
                     )
 
                 logger.info(
-                    "E2E: Submitted managed streaming ingestion with operation ID: {}",
-                    ingestionResponse.ingestionOperationId,
-                )
-                assertNotNull(
-                    ingestionResponse,
-                    "IngestionOperation should not be null",
-                )
-                assertNotNull(
-                    ingestionResponse.ingestionOperationId,
-                    "Operation ID should not be null",
+                    "Ingestion completed with final status: {}",
+                    finalStatus.status,
                 )
 
-                // If it fell back to queued ingestion, poll for status
-                if (!ingestionResponse.ingestionOperationId.startsWith("managed-")
+                assert(
+                    finalStatus.details?.any {
+                        it.status == BlobStatus.Status.Succeeded
+                    } == true,
                 ) {
-                    logger.info(
-                        "Ingestion fell back to queued mode. Polling for completion...",
-                    )
-                    val finalStatus =
-                        managedClient.pollUntilCompletion(
-                            database = database,
-                            table = targetTable,
-                            operationId = ingestionResponse.ingestionOperationId,
-                            pollingInterval = Duration.parse("PT5S"),
-                            timeout = Duration.parse("PT5M"),
-                        )
-
-                    logger.info(
-                        "Ingestion completed with final status: {}",
-                        finalStatus.status,
-                    )
-
-                    assert(
-                        finalStatus.details?.any {
-                            it.status == BlobStatus.Status.Succeeded
-                        } == true,
-                    ) {
-                        "Expected at least one successful ingestion"
-                    }
-                } else {
-                    // Streaming ingestion - verify data was ingested
-                    logger.info("Ingestion used streaming mode. Verifying data...")
-                    kotlinx.coroutines.delay(3000)
-
-                    val results =
-                        adminClusterClient
-                            .executeQuery(
-                                database,
-                                "$targetTable | summarize count=count()",
-                            )
-                            .primaryResults
-
-                    assertNotNull(results, "Query results should not be null")
-                    results.next()
-                    val count: Long = results.getLong("count")
-                    assertNotNull(count, "Count should not be null")
-                    assert(count > 0) {
-                        "Expected records in table after streaming ingestion, but got $count"
-                    }
-                    logger.info("Streaming ingestion verified - {} records in table", count)
+                    "Expected at least one successful ingestion"
                 }
-            } catch (e: ConnectException) {
+            } else {
+                // Streaming ingestion - verify data was ingested
+                logger.info("Ingestion used streaming mode. Verifying data...")
+                kotlinx.coroutines.delay(3000)
+
+                val results =
+                    adminClusterClient
+                        .executeQuery(
+                            database,
+                            "$targetTable | summarize count=count()",
+                        )
+                        .primaryResults
+
+                assertNotNull(results, "Query results should not be null")
+                results.next()
+                val count: Long = results.getLong("count")
+                assertNotNull(count, "Count should not be null")
+                assert(count > 0) {
+                    "Expected records in table after streaming ingestion, but got $count"
+                }
+                logger.info(
+                    "Streaming ingestion verified - {} records in table",
+                    count,
+                )
+            }
+        } catch (e: ConnectException) {
+            assumeTrue(
+                false,
+                "Skipping test: Unable to connect to test cluster: ${e.message}",
+            )
+        } catch (e: Exception) {
+            if (e.cause is ConnectException) {
                 assumeTrue(
                     false,
-                    "Skipping test: Unable to connect to test cluster: ${e.message}",
+                    "Skipping test: Unable to connect to test cluster: ${e.cause?.message}",
                 )
-            } catch (e: Exception) {
-                if (e.cause is ConnectException) {
-                    assumeTrue(
-                        false,
-                        "Skipping test: Unable to connect to test cluster: ${e.cause?.message}",
-                    )
-                } else {
-                    throw e
-                }
+            } else {
+                throw e
             }
         }
+    }
 
-    /**
-     * Test managed streaming with small streaming data
-     */
-    @ParameterizedTest(name = "[ManagedStreaming-DirectData] {index} => TestName={0}")
+    /** Test managed streaming with small streaming data */
+    @ParameterizedTest(
+        name = "[ManagedStreaming-DirectData] {index} => TestName={0}",
+    )
     @MethodSource("directDataTestParameters")
     fun `test managed streaming with small stream data`(
         testName: String,
         data: String,
         deviceId: String,
     ) = runBlocking {
-        logger.info("Starting managed streaming with small stream data: $testName")
+        logger.info(
+            "Starting managed streaming with small stream data: $testName",
+        )
 
         val managedClient =
             ManagedStreamingIngestClient(
                 clusterUrl = engineEndpoint,
                 tokenCredential = tokenProvider,
-                managedStreamingPolicy = DefaultManagedStreamingPolicy(),
+                managedStreamingPolicy =
+                DefaultManagedStreamingPolicy(),
                 skipSecurityChecks = true,
             )
 
@@ -213,12 +223,6 @@ class ManagedStreamingIngestClientTest :
                     ingestProperties = properties,
                 )
 
-            logger.info(
-                "{}: Submitted with operation ID: {}",
-                testName,
-                ingestionResponse.ingestionOperationId,
-            )
-
             kotlinx.coroutines.delay(5000)
 
             val results =
@@ -228,7 +232,10 @@ class ManagedStreamingIngestClientTest :
                         "$targetTable | where deviceId == '$deviceId' | summarize count=count() by deviceId",
                     )
                     .primaryResults
-
+            assertNotNull(
+                ingestionResponse,
+                "IngestionOperation should not be null",
+            )
             assertNotNull(results, "Query results should not be null")
             results.next()
             val count: Long = results.getLong("count")
@@ -236,7 +243,7 @@ class ManagedStreamingIngestClientTest :
             assert(count == 1L) {
                 "Expected 1 record for $deviceId, but got $count"
             }
-            logger.info("{} verified successfully", testName)
+            logger.debug("{} verified successfully", testName)
         } catch (e: ConnectException) {
             assumeTrue(
                 false,
@@ -246,19 +253,18 @@ class ManagedStreamingIngestClientTest :
     }
 
     private fun directDataTestParameters(): Stream<Arguments> {
-        val uuid1 = UUID.randomUUID().toString()
-        val data1 =
-            """{"timestamp": "2023-05-02 15:23:50.0000000","deviceId": "$uuid1","messageId": "test-message-1","temperature": 25.5,"humidity": 60.0}"""
+        val directDataId = UUID.randomUUID().toString()
+        val directData =
+            """{"timestamp": "2023-05-02 15:23:50.0000000","deviceId": "$directDataId","messageId": "test-message-1","temperature": 25.5,"humidity": 60.0}"""
         return Stream.of(
-            Arguments.of("DirectData-SingleRow", data1, uuid1),
+            Arguments.of("DirectData-SingleRow", directData, directDataId),
         )
     }
 
-    /**
-     * Test managed streaming with multiple sources (file and stream)
-     */
+    /** Test managed streaming with multiple sources (file and stream) */
     @ParameterizedTest(
-        name = "[ManagedStreaming-LocalSource] {index} => SourceType={0}, TestName={1}",
+        name =
+        "[ManagedStreaming-LocalSource] {index} => SourceType={0}, TestName={1}",
     )
     @CsvSource(
         "file,ManagedStreaming-FileSource,SampleFileSource.json",
@@ -293,14 +299,19 @@ class ManagedStreamingIngestClientTest :
                             Runtime.getRuntime()
                                 .addShutdownHook(
                                     Thread {
-                                        Files.deleteIfExists(tempFile)
+                                        Files.deleteIfExists(
+                                            tempFile,
+                                        )
                                     },
                                 )
                         }
                 }
                 "stream" ->
                     StreamSourceInfo(
-                        stream = ByteArrayInputStream(deviceData.toByteArray()),
+                        stream =
+                        ByteArrayInputStream(
+                            deviceData.toByteArray(),
+                        ),
                         format = targetFormat,
                         sourceCompression = CompressionType.NONE,
                         sourceId = UUID.randomUUID(),
@@ -313,7 +324,8 @@ class ManagedStreamingIngestClientTest :
             ManagedStreamingIngestClient(
                 clusterUrl = engineEndpoint,
                 tokenCredential = tokenProvider,
-                managedStreamingPolicy = DefaultManagedStreamingPolicy(),
+                managedStreamingPolicy =
+                DefaultManagedStreamingPolicy(),
                 skipSecurityChecks = true,
             )
 
@@ -332,22 +344,23 @@ class ManagedStreamingIngestClientTest :
                 ingestProperties = properties,
             )
 
-        logger.info(
-            "{}: Submitted with operation ID: {}",
-            testName,
-            ingestionResponse.ingestionOperationId,
+        assertNotNull(
+            ingestionResponse,
+            "IngestionOperation should not be null",
         )
-        assertNotNull(ingestionResponse, "IngestionOperation should not be null")
-        assertNotNull(ingestionResponse.ingestionOperationId, "Operation ID should not be null")
+        assertNotNull(
+            ingestionResponse.ingestionOperationId,
+            "Operation ID should not be null",
+        )
 
         // If it used queued ingestion, poll for status
-        if (!ingestionResponse.ingestionOperationId.startsWith("managed-")
-        ) {
+        if (!ingestionResponse.ingestionOperationId.startsWith("managed-")) {
             val finalStatus =
                 managedClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId = ingestionResponse.ingestionOperationId,
+                    operationId =
+                    ingestionResponse.ingestionOperationId,
                     pollingInterval = Duration.parse("PT5S"),
                     timeout = Duration.parse("PT5M"),
                 )
@@ -368,10 +381,10 @@ class ManagedStreamingIngestClientTest :
         }
     }
 
-    /**
-     * Test managed streaming with custom policy
-     */
-    @ParameterizedTest(name = "[ManagedStreaming-CustomPolicy] {index} => TestName={0}")
+    /** Test managed streaming with custom policy */
+    @ParameterizedTest(
+        name = "[ManagedStreaming-CustomPolicy] {index} => TestName={0}",
+    )
     @CsvSource(
         "CustomPolicy-ContinueWhenUnavailable,true,1.0",
         "CustomPolicy-ReducedSizeLimit,false,0.5",
@@ -385,7 +398,8 @@ class ManagedStreamingIngestClientTest :
 
         val customPolicy =
             DefaultManagedStreamingPolicy(
-                continueWhenStreamingIngestionUnavailable = continueWhenUnavailable,
+                continueWhenStreamingIngestionUnavailable =
+                continueWhenUnavailable,
                 dataSizeFactor = dataSizeFactor,
             )
 
@@ -423,12 +437,10 @@ class ManagedStreamingIngestClientTest :
                     ingestProperties = properties,
                 )
 
-            logger.info(
-                "{}: Submitted with operation ID: {}",
-                testName,
-                ingestionResponse.ingestionOperationId,
+            assertNotNull(
+                ingestionResponse,
+                "Ingestion response should not be null",
             )
-            assertNotNull(ingestionResponse, "Ingestion response should not be null")
 
             // Verify data was ingested (either via streaming or queued)
             kotlinx.coroutines.delay(5000)

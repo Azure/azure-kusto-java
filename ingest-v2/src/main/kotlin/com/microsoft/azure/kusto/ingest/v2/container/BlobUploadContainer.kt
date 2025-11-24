@@ -9,6 +9,7 @@ import com.azure.storage.blob.models.ParallelTransferOptions
 import com.azure.storage.blob.options.BlobParallelUploadOptions
 import com.azure.storage.common.policy.RequestRetryOptions
 import com.azure.storage.common.policy.RetryPolicyType
+import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_CONCURRENCY
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
@@ -74,7 +75,7 @@ class BlobUploadContainer(val configurationCache: ConfigurationCache) :
         val blobUploadResult =
             blobClient.uploadWithResponse(
                 blobUploadOptions,
-                Duration.ofHours(1),
+                Duration.ofHours(BLOB_UPLOAD_TIMEOUT_HOURS),
                 Context.NONE,
             )
         if (

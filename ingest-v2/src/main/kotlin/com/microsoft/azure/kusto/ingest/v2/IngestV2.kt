@@ -44,5 +44,8 @@ const val INGEST_RETRY_POLICY_DEFAULT_INTERVAL_SECONDS: Long = 10
 // Default total number of retries for SimpleRetryPolicy
 const val INGEST_RETRY_POLICY_DEFAULT_TOTAL_RETRIES: Int = 3
 
+// Default timeout for blob upload operations (1 hour)
+const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
+
 // Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
 val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
