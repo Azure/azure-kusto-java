@@ -14,7 +14,7 @@ sealed class UploadResult {
         override val startedAt: OffsetDateTime,
         override val completedAt: OffsetDateTime,
         val blobUrl: String,
-        val sizeBytes: Long
+        val sizeBytes: Long,
     ) : UploadResult()
 
     data class Failure(
@@ -24,27 +24,36 @@ sealed class UploadResult {
         val errorCode: UploadErrorCode,
         val errorMessage: String,
         val exception: Exception?,
-        val isPermanent: Boolean = false
+        val isPermanent: Boolean = false,
     ) : UploadResult()
 }
 
 data class UploadResults(
     val successes: List<UploadResult.Success>,
-    val failures: List<UploadResult.Failure>
+    val failures: List<UploadResult.Failure>,
 ) {
-    val totalCount: Int get() = successes.size + failures.size
-    val successCount: Int get() = successes.size
-    val failureCount: Int get() = failures.size
-    val hasFailures: Boolean get() = failures.isNotEmpty()
-    val allSucceeded: Boolean get() = failures.isEmpty()
-    
+    val totalCount: Int
+        get() = successes.size + failures.size
+
+    val successCount: Int
+        get() = successes.size
+
+    val failureCount: Int
+        get() = failures.size
+
+    val hasFailures: Boolean
+        get() = failures.isNotEmpty()
+
+    val allSucceeded: Boolean
+        get() = failures.isEmpty()
+
     companion object {
         fun empty() = UploadResults(emptyList(), emptyList())
-        
-        fun singleSuccess(result: UploadResult.Success) = 
+
+        fun singleSuccess(result: UploadResult.Success) =
             UploadResults(listOf(result), emptyList())
-        
-        fun singleFailure(result: UploadResult.Failure) = 
+
+        fun singleFailure(result: UploadResult.Failure) =
             UploadResults(emptyList(), listOf(result))
     }
 }

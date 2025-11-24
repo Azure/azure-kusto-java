@@ -2,14 +2,11 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.builders
 
-import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.QueuedIngestionClient
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 
-
-class QueuedIngestionClientBuilder private constructor(
-    private val dmUrl: String,
-) : BaseIngestClientBuilder<QueuedIngestionClientBuilder>() {
+class QueuedIngestionClientBuilder
+private constructor(private val dmUrl: String) :
+    BaseIngestClientBuilder<QueuedIngestionClientBuilder>() {
 
     private var maxConcurrency: Int? = null
     private var maxDataSize: Long? = null
@@ -18,13 +15,17 @@ class QueuedIngestionClientBuilder private constructor(
     companion object {
         @JvmStatic
         fun create(dmUrl: String): QueuedIngestionClientBuilder {
-            require(dmUrl.isNotBlank()) { "Data management URL cannot be blank" }
+            require(dmUrl.isNotBlank()) {
+                "Data management URL cannot be blank"
+            }
             return QueuedIngestionClientBuilder(dmUrl)
         }
     }
 
     fun withMaxConcurrency(concurrency: Int): QueuedIngestionClientBuilder {
-        require(concurrency > 0) { "Max concurrency must be positive, got: $concurrency" }
+        require(concurrency > 0) {
+            "Max concurrency must be positive, got: $concurrency"
+        }
         this.maxConcurrency = concurrency
         return this
     }
@@ -39,7 +40,7 @@ class QueuedIngestionClientBuilder private constructor(
         this.ignoreFileSize = ignore
         return this
     }
-    
+
     fun build(): QueuedIngestionClient {
         requireNotNull(tokenCredential) {
             "Authentication is required. Call withAuthentication() before build()"

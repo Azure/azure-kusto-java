@@ -18,9 +18,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
-import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -38,7 +36,12 @@ class QueuedIngestionClient(
     private val maxDataSize: kotlin.Long? = null,
     private val ignoreFileSize: Boolean = false,
 ) :
-    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks, clientDetails),
+    KustoBaseApiClient(
+        dmUrl,
+        tokenCredential,
+        skipSecurityChecks,
+        clientDetails,
+    ),
     IngestClient {
 
     override suspend fun submitIngestion(
@@ -98,7 +101,8 @@ class QueuedIngestionClient(
      *   FileSourceInfo, or StreamSourceInfo)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
-     * @param failOnPartialUploadError If true, fails the entire operation if any uploads fail
+     * @param failOnPartialUploadError If true, fails the entire operation if
+     *   any uploads fail
      * @return IngestionOperation for tracking the request
      */
     suspend fun submitQueuedIngestion(
@@ -112,52 +116,63 @@ class QueuedIngestionClient(
         logger.info(
             "Submitting queued ingestion request for database: $database, table: $table, sources: ${sources.size}",
         )
-        
+
         // Separate sources by type
         val blobSources = sources.filterIsInstance<BlobSourceInfo>()
         val localSources = sources.filterIsInstance<LocalSource>()
-        
+
         // Convert local sources to blob sources
-        val allBlobSources = if (localSources.isNotEmpty()) {
-            logger.info("Uploading ${localSources.size} local sources to blob storage in parallel")
-            
-            // Use batch upload for efficiency
-            val batchResult = BlobSourceInfo.fromLocalSourcesBatch(
-                localSources,
-                blobUploadContainer
-            )
-            
-            // Log batch results
-            logger.info(
-                "Batch upload completed: ${batchResult.successes.size} succeeded, " +
-                "${batchResult.failures.size} failed out of ${localSources.size} total"
-            )
-            
-            // Handle failures based on policy
-            if (batchResult.hasFailures) {
-                val failureDetails = batchResult.failures.joinToString("\n") { failure ->
-                    "  - ${failure.source.name}: ${failure.errorCode} - ${failure.errorMessage}"
-                }
-                
-                if (failOnPartialUploadError) {
-                    throw IngestException(
-                        "Failed to upload ${batchResult.failures.size} out of ${localSources.size} sources:\n$failureDetails",
-                        isPermanent = batchResult.failures.all { it.isPermanent }
+        val allBlobSources =
+            if (localSources.isNotEmpty()) {
+                logger.info(
+                    "Uploading ${localSources.size} local sources to blob storage in parallel",
+                )
+
+                // Use batch upload for efficiency
+                val batchResult =
+                    BlobSourceInfo.fromLocalSourcesBatch(
+                        localSources,
+                        blobUploadContainer,
                     )
-                } else {
-                    logger.warn("Some uploads failed but continuing with successful uploads:\n$failureDetails")
+
+                // Log batch results
+                logger.info(
+                    "Batch upload completed: ${batchResult.successes.size} succeeded, " +
+                        "${batchResult.failures.size} failed out of ${localSources.size} total",
+                )
+
+                // Handle failures based on policy
+                if (batchResult.hasFailures) {
+                    val failureDetails =
+                        batchResult.failures.joinToString("\n") {
+                                failure ->
+                            "  - ${failure.source.name}: ${failure.errorCode} - ${failure.errorMessage}"
+                        }
+
+                    if (failOnPartialUploadError) {
+                        throw IngestException(
+                            "Failed to upload ${batchResult.failures.size} out of ${localSources.size} sources:\n$failureDetails",
+                            isPermanent =
+                            batchResult.failures.all {
+                                it.isPermanent
+                            },
+                        )
+                    } else {
+                        logger.warn(
+                            "Some uploads failed but continuing with successful uploads:\n$failureDetails",
+                        )
+                    }
                 }
+
+                blobSources + batchResult.successes
+            } else {
+                blobSources
             }
-            
-            blobSources + batchResult.successes
-        } else {
-            blobSources
-        }
-        
+
         if (allBlobSources.isEmpty()) {
             throw IngestException(
                 "No sources available for ingestion after upload processing",
-                isPermanent = true
+                isPermanent = true,
             )
         }
         // Convert BlobSourceInfo objects to Blob objects

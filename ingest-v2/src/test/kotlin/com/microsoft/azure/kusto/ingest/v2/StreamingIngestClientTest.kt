@@ -80,7 +80,8 @@ class StreamingIngestClientTest :
 
         // Create client using builder
         val client: IngestClient =
-            com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
+            com.microsoft.azure.kusto.ingest.v2.builders
+                .StreamingIngestClientBuilder
                 .create(cluster)
                 .withAuthentication(tokenProvider)
                 .skipSecurityChecks()

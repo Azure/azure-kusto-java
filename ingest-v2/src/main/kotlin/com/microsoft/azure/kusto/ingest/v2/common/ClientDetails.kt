@@ -11,13 +11,13 @@ data class ClientDetails(
 ) {
     companion object {
         const val NONE = "[none]"
-        
+
         // Cache for default values to avoid recomputing on every call
         private val defaultValuesCache = ConcurrentHashMap<String, String>()
 
         /**
-         * Escapes special characters in header field values by wrapping in curly braces
-         * and replacing problematic characters with underscores.
+         * Escapes special characters in header field values by wrapping in
+         * curly braces and replacing problematic characters with underscores.
          */
         private fun escapeField(field: String): String {
             val escaped = field.replace(Regex("[\\r\\n\\s{}|]+"), "_")
@@ -36,14 +36,13 @@ data class ClientDetails(
                 }
         }
 
-        /**
-         * Gets the process name from system properties with caching.
-         */
+        /** Gets the process name from system properties with caching. */
         private fun getProcessName(): String {
             return defaultValuesCache.computeIfAbsent("processName") {
                 val command = System.getProperty("sun.java.command")
                 if (!command.isNullOrBlank()) {
-                    // Strip file name from command line (matches UriUtils.stripFileNameFromCommandLine)
+                    // Strip file name from command line (matches
+                    // UriUtils.stripFileNameFromCommandLine)
                     command.split(" ").firstOrNull() ?: "JavaProcess"
                 } else {
                     "JavaProcess"
@@ -81,40 +80,46 @@ data class ClientDetails(
         }
 
         /**
-         * Gets the default client version string with caching.
-         * Format: "Kusto.Java.Client:{version}|Runtime.{runtime}:{javaVersion}"
+         * Gets the default client version string with caching. Format:
+         * "Kusto.Java.Client:{version}|Runtime.{runtime}:{javaVersion}"
          */
         private fun getDefaultVersion(): String {
             return defaultValuesCache.computeIfAbsent("defaultVersion") {
-                val baseMap = linkedMapOf(
-                    "Kusto.Java.Client" to getPackageVersion(),
-                    "Runtime.${escapeField(getRuntime())}" to getJavaVersion()
-                )
+                val baseMap =
+                    linkedMapOf(
+                        "Kusto.Java.Client" to getPackageVersion(),
+                        "Runtime.${escapeField(getRuntime())}" to
+                            getJavaVersion(),
+                    )
                 formatHeader(baseMap)
             }
         }
 
-        /**
-         * Gets the package version from the manifest or returns a default.
-         */
+        /** Gets the package version from the manifest or returns a default. */
         private fun getPackageVersion(): String {
             return try {
-                ClientDetails::class.java.`package`.implementationVersion ?: "Unknown"
+                ClientDetails::class.java.`package`.implementationVersion
+                    ?: "Unknown"
             } catch (e: Exception) {
                 "Unknown"
             }
         }
 
         /**
-         * Creates a ClientDetails from connector details
-         * Example output: "Kusto.MyConnector:{1.0.0}|App.{MyApp}:{0.5.3}|CustomField:{CustomValue}"
+         * Creates a ClientDetails from connector details Example output:
+         * "Kusto.MyConnector:{1.0.0}|App.{MyApp}:{0.5.3}|CustomField:{CustomValue}"
          *
-         * @param name The name of the connector (will be prefixed with "Kusto.")
+         * @param name The name of the connector (will be prefixed with
+         *   "Kusto.")
          * @param version The version of the connector
-         * @param sendUser True if the user should be sent to Kusto, otherwise "[none]" will be sent
-         * @param overrideUser The user to send to Kusto, or null to use the current user
-         * @param appName The app hosting the connector, or null to use the current process name
-         * @param appVersion The version of the app hosting the connector, or null to use "[none]"
+         * @param sendUser True if the user should be sent to Kusto, otherwise
+         *   "[none]" will be sent
+         * @param overrideUser The user to send to Kusto, or null to use the
+         *   current user
+         * @param appName The app hosting the connector, or null to use the
+         *   current process name
+         * @param appVersion The version of the app hosting the connector, or
+         *   null to use "[none]"
          * @param additionalFields Additional fields to trace as key-value pairs
          * @return ClientDetails instance with formatted connector information
          */
@@ -125,7 +130,7 @@ data class ClientDetails(
             overrideUser: String? = null,
             appName: String? = null,
             appVersion: String? = null,
-            additionalFields: Map<String, String>? = null
+            additionalFields: Map<String, String>? = null,
         ): ClientDetails {
             val fieldsMap = linkedMapOf<String, String>()
             fieldsMap["Kusto.$name"] = version
@@ -138,11 +143,12 @@ data class ClientDetails(
 
             val app = formatHeader(fieldsMap)
 
-            val user = if (sendUser) {
-                overrideUser ?: getUserName()
-            } else {
-                NONE
-            }
+            val user =
+                if (sendUser) {
+                    overrideUser ?: getUserName()
+                } else {
+                    NONE
+                }
 
             return ClientDetails(app, user, null)
         }
@@ -151,7 +157,7 @@ data class ClientDetails(
             return ClientDetails(
                 applicationForTracing = getProcessName(),
                 userNameForTracing = getUserName(),
-                clientVersionForTracing = getDefaultVersion()
+                clientVersionForTracing = getDefaultVersion(),
             )
         }
     }

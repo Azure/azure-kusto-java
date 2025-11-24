@@ -33,11 +33,11 @@ open class KustoBaseApiClient(
     open val clientRequestIdPrefix: String = "KIC.execute",
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
-    
+
     companion object {
         private const val KUSTO_API_VERSION = "2024-12-12"
     }
-    
+
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
     }
@@ -53,9 +53,12 @@ open class KustoBaseApiClient(
             clientDetails?.let { details ->
                 header("x-ms-app", details.getApplicationForTracing())
                 header("x-ms-user", details.getUserNameForTracing())
-                header("x-ms-client-version", details.getClientVersionForTracing())
+                header(
+                    "x-ms-client-version",
+                    details.getClientVersionForTracing(),
+                )
             }
-            
+
             // Generate unique client request ID for tracing (format: prefix;uuid)
             val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
             header("x-ms-client-request-id", clientRequestId)

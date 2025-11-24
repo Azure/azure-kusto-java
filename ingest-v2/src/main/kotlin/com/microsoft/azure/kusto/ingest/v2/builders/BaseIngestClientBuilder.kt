@@ -24,11 +24,13 @@ abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
     }
 
     /**
-     * Sets the client details for tracing purposes, using defaults for any unprovided fields.
+     * Sets the client details for tracing purposes, using defaults for any
+     * unprovided fields.
      *
      * @param applicationName The client application name
-     * @param version The client application version  
-     * @param userName The username for tracing (optional). If null, system default will be used.
+     * @param version The client application version
+     * @param userName The username for tracing (optional). If null, system
+     *   default will be used.
      * @return This builder instance for method chaining
      */
     fun withClientDetails(
@@ -36,28 +38,31 @@ abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
         version: String,
         userName: String? = null,
     ): B {
-        this.clientDetails = ClientDetails(
-            applicationForTracing = applicationName,
-            userNameForTracing = userName,
-            clientVersionForTracing = version
-        )
+        this.clientDetails =
+            ClientDetails(
+                applicationForTracing = applicationName,
+                userNameForTracing = userName,
+                clientVersionForTracing = version,
+            )
         return self()
     }
 
     /**
-     * Sets the client details with the format for connectors.
-     * Example output: "Kusto.MyConnector:{1.0.0}|App.{MyApp}:{0.5.3}|CustomField:{CustomValue}"
+     * Sets the client details with the format for connectors. Example output:
+     * "Kusto.MyConnector:{1.0.0}|App.{MyApp}:{0.5.3}|CustomField:{CustomValue}"
      *
-     * This method is useful for connectors and frameworks that want to identify themselves
-     * in Kusto tracing with additional metadata.
+     * This method is useful for connectors and frameworks that want to identify
+     * themselves in Kusto tracing with additional metadata.
      *
      * @param name Name of the connector (will be prefixed with "Kusto.")
      * @param version Version of the connector
      * @param sendUser Whether to send the username in tracing (default: false)
      * @param overrideUser Override username (used when sendUser is true)
-     * @param appName Name of the application (optional, defaults to process name)
+     * @param appName Name of the application (optional, defaults to process
+     *   name)
      * @param appVersion Version of the application (optional)
-     * @param additionalFields Additional key-value pairs to include in the connector details
+     * @param additionalFields Additional key-value pairs to include in the
+     *   connector details
      * @return This builder instance for method chaining
      */
     fun withConnectorClientDetails(
@@ -67,17 +72,18 @@ abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
         overrideUser: String? = null,
         appName: String? = null,
         appVersion: String? = null,
-        additionalFields: Map<String, String>? = null
+        additionalFields: Map<String, String>? = null,
     ): B {
-        this.clientDetails = ClientDetails.fromConnectorDetails(
-            name = name,
-            version = version,
-            sendUser = sendUser,
-            overrideUser = overrideUser,
-            appName = appName,
-            appVersion = appVersion,
-            additionalFields = additionalFields
-        )
+        this.clientDetails =
+            ClientDetails.fromConnectorDetails(
+                name = name,
+                version = version,
+                sendUser = sendUser,
+                overrideUser = overrideUser,
+                appName = appName,
+                appVersion = appVersion,
+                additionalFields = additionalFields,
+            )
         return self()
     }
 }

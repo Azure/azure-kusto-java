@@ -93,7 +93,7 @@ class BlobSourceInfo : AbstractSourceInfo {
         ): BlobSourceInfo =
             fromLocalSource(streamSourceInfo, blobUploadContainer)
 
-        //batch convert multiple LocalSource objects to BlobSourceInfo using parallel uploads
+        // batch convert multiple LocalSource objects to BlobSourceInfo using parallel uploads
         suspend fun fromLocalSourcesBatch(
             localSources: List<LocalSource>,
             blobUploadContainer: BlobUploadContainer,
@@ -102,40 +102,54 @@ class BlobSourceInfo : AbstractSourceInfo {
                 return BatchConversionResult(emptyList(), emptyList())
             }
 
-            logger.info("Starting batch conversion of {} local sources", localSources.size)
+            logger.info(
+                "Starting batch conversion of {} local sources",
+                localSources.size,
+            )
 
-            val uploadSources = localSources.map { source ->
-                val (inputStream, size, effectiveCompression) = source.prepareForUpload()
-                val blobName = source.generateBlobName()
-                UploadSource(
-                    name = blobName,
-                    stream = inputStream,
-                    sizeBytes = size ?: -1
-                )
-            }
+            val uploadSources =
+                localSources.map { source ->
+                    val (inputStream, size, effectiveCompression) =
+                        source.prepareForUpload()
+                    val blobName = source.generateBlobName()
+                    UploadSource(
+                        name = blobName,
+                        stream = inputStream,
+                        sizeBytes = size ?: -1,
+                    )
+                }
 
-            val uploadResults = blobUploadContainer.uploadManyAsync(uploadSources)
+            val uploadResults =
+                blobUploadContainer.uploadManyAsync(uploadSources)
 
             val blobSources = mutableListOf<BlobSourceInfo>()
             val failures = mutableListOf<SourceConversionFailure>()
 
             val sourceMap = localSources.associateBy { it.generateBlobName() }
-            
+
             uploadResults.successes.forEach { success ->
                 val originalSource = sourceMap[success.sourceName]
                 if (originalSource != null) {
                     blobSources.add(
                         BlobSourceInfo(
                             blobPath = success.blobUrl,
-                            compressionType = if (originalSource.compressionType == CompressionType.NONE) {
-                                CompressionType.GZIP // Auto-compressed during upload
+                            compressionType =
+                            if (
+                                originalSource
+                                    .compressionType ==
+                                CompressionType
+                                    .NONE
+                            ) {
+                                CompressionType
+                                    .GZIP // Auto-compressed during
+                                // upload
                             } else {
-                                originalSource.compressionType
+                                originalSource
+                                    .compressionType
                             },
-                            sourceId = originalSource.sourceId
-                        ).apply {
-                            blobExactSize = success.sizeBytes
-                        }
+                            sourceId = originalSource.sourceId,
+                        )
+                            .apply { blobExactSize = success.sizeBytes },
                     )
                 }
             }
@@ -149,8 +163,8 @@ class BlobSourceInfo : AbstractSourceInfo {
                             errorCode = failure.errorCode,
                             errorMessage = failure.errorMessage,
                             exception = failure.exception,
-                            isPermanent = failure.isPermanent
-                        )
+                            isPermanent = failure.isPermanent,
+                        ),
                     )
                 }
             }
@@ -158,7 +172,7 @@ class BlobSourceInfo : AbstractSourceInfo {
             logger.info(
                 "Batch conversion completed: {} successes, {} failures",
                 blobSources.size,
-                failures.size
+                failures.size,
             )
 
             return BatchConversionResult(blobSources, failures)
@@ -166,25 +180,26 @@ class BlobSourceInfo : AbstractSourceInfo {
     }
 }
 
-/**
- * Represents a failure during source conversion to blob.
- */
+/** Represents a failure during source conversion to blob. */
 data class SourceConversionFailure(
     val source: LocalSource,
     val errorCode: UploadErrorCode,
     val errorMessage: String,
     val exception: Exception?,
-    val isPermanent: Boolean
+    val isPermanent: Boolean,
 )
 
-/**
- * Result of batch conversion operation.
- */
+/** Result of batch conversion operation. */
 data class BatchConversionResult(
     val successes: List<BlobSourceInfo>,
-    val failures: List<SourceConversionFailure>
+    val failures: List<SourceConversionFailure>,
 ) {
-    val hasFailures: Boolean get() = failures.isNotEmpty()
-    val allSucceeded: Boolean get() = failures.isEmpty()
-    val totalCount: Int get() = successes.size + failures.size
+    val hasFailures: Boolean
+        get() = failures.isNotEmpty()
+
+    val allSucceeded: Boolean
+        get() = failures.isEmpty()
+
+    val totalCount: Int
+        get() = successes.size + failures.size
 }

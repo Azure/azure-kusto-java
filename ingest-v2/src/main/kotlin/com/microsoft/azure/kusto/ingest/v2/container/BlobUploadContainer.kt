@@ -39,32 +39,46 @@ private val DEFAULT_RETRY_OPTIONS =
     )
 
 enum class UploadMethod {
-    DEFAULT,    // Use server preference or Storage as fallback
-    STORAGE,    // Use Storage blob
-    LAKE        // Use OneLake
+    // Use server preference or Storage as fallback
+    DEFAULT,
+
+    // Use Storage blob
+    STORAGE,
+
+    // Use OneLake
+    LAKE,
 }
 
 data class UploadSource(
     val name: String,
     val stream: InputStream,
-    val sizeBytes: Long = -1
+    val sizeBytes: Long = -1,
 )
 
 class BlobUploadContainer(
     val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod = UploadMethod.DEFAULT,
     private val maxRetries: Int = 3,
-    private val maxDataSize: Long = 4L * 1024 * 1024 * 1024, // 4GB default
+    // 4GB default
+    private val maxDataSize: Long = 4L * 1024 * 1024 * 1024,
     private val ignoreSizeLimit: Boolean = false,
-    private val maxConcurrency: Int = 4
+    private val maxConcurrency: Int = 4,
 ) : UploadContainerBase {
-    private val logger = LoggerFactory.getLogger(BlobUploadContainer::class.java)
+    private val logger =
+        LoggerFactory.getLogger(BlobUploadContainer::class.java)
     private val containerIndex = AtomicInteger(0)
 
-    override suspend fun uploadAsync(name: String, stream: InputStream): String {
+    override suspend fun uploadAsync(
+        name: String,
+        stream: InputStream,
+    ): String {
         val errorCode = validateStream(stream, name)
         if (errorCode != null) {
-            logger.error("Stream validation failed for {}: {}", name, errorCode.description)
+            logger.error(
+                "Stream validation failed for {}: {}",
+                name,
+                errorCode.description,
+            )
             throw IngestException(errorCode.description, isPermanent = true)
         }
 
@@ -75,27 +89,34 @@ class BlobUploadContainer(
                     "Stream size {} exceeds max allowed size {} for: {}",
                     availableSize,
                     maxDataSize,
-                    name
+                    name,
                 )
                 throw IngestException(
                     "Upload source exceeds maximum allowed size: $availableSize > $maxDataSize",
-                    isPermanent = true
+                    isPermanent = true,
                 )
             }
         }
 
         val containers = selectContainers()
-        require(containers.isNotEmpty()) { "No containers available for upload" }
+        require(containers.isNotEmpty()) {
+            "No containers available for upload"
+        }
 
         var lastException: Exception? = null
 
         repeat(maxRetries) { attempt ->
-            val container = containers[containerIndex.getAndIncrement() % containers.size]
-
+            val container =
+                containers[
+                    containerIndex.getAndIncrement() % containers.size,
+                ]
             try {
                 return uploadToContainer(name, stream, container)
             } catch (e: Exception) {
-                logger.warn("Upload attempt ${attempt + 1} failed for container ${container.path}", e)
+                logger.warn(
+                    "Upload attempt ${attempt + 1} failed for container ${container.path}",
+                    e,
+                )
                 lastException = e
 
                 if (stream.markSupported()) {
@@ -106,7 +127,7 @@ class BlobUploadContainer(
                         throw IngestException(
                             "Upload failed and stream cannot be reset for retry",
                             cause = e,
-                            isPermanent = true
+                            isPermanent = true,
                         )
                     }
                 }
@@ -116,66 +137,113 @@ class BlobUploadContainer(
         throw IngestException(
             "Failed to upload after $maxRetries attempts",
             cause = lastException,
-            isPermanent = false
+            isPermanent = false,
         )
     }
 
-    suspend fun uploadManyAsync(sources: List<UploadSource>): UploadResults = coroutineScope {
-        logger.info("Starting batch upload of {} sources with max concurrency {}", sources.size, maxConcurrency)
+    suspend fun uploadManyAsync(sources: List<UploadSource>): UploadResults =
+        coroutineScope {
+            logger.info(
+                "Starting batch upload of {} sources with max concurrency {}",
+                sources.size,
+                maxConcurrency,
+            )
 
-        // Process sources in chunks to respect maxConcurrency at file level
-        val results = sources.chunked(maxConcurrency).flatMap { chunk ->
-            chunk.map { source ->
-                async {
-                    val startedAt = OffsetDateTime.now()
-                    try {
-                        val blobUrl = uploadAsync(source.name, source.stream)
-                        val completedAt = OffsetDateTime.now()
-                        UploadResult.Success(
-                            sourceName = source.name,
-                            startedAt = startedAt,
-                            completedAt = completedAt,
-                            blobUrl = blobUrl,
-                            sizeBytes = source.sizeBytes
-                        )
-                    } catch (e: Exception) {
-                        val completedAt = OffsetDateTime.now()
-                        val errorCode = when {
-                            e.message?.contains("size") == true -> UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
-                            e.message?.contains("readable") == true -> UploadErrorCode.SOURCE_NOT_READABLE
-                            e.message?.contains("empty") == true -> UploadErrorCode.SOURCE_IS_EMPTY
-                            e.message?.contains("container") == true -> UploadErrorCode.NO_CONTAINERS_AVAILABLE
-                            else -> UploadErrorCode.UPLOAD_FAILED
+            // Process sources in chunks to respect maxConcurrency at file level
+            val results =
+                sources.chunked(maxConcurrency).flatMap { chunk ->
+                    chunk.map { source ->
+                        async {
+                            val startedAt = OffsetDateTime.now()
+                            try {
+                                val blobUrl =
+                                    uploadAsync(
+                                        source.name,
+                                        source.stream,
+                                    )
+                                val completedAt =
+                                    OffsetDateTime.now()
+                                UploadResult.Success(
+                                    sourceName =
+                                    source.name,
+                                    startedAt = startedAt,
+                                    completedAt =
+                                    completedAt,
+                                    blobUrl = blobUrl,
+                                    sizeBytes =
+                                    source.sizeBytes,
+                                )
+                            } catch (e: Exception) {
+                                val completedAt =
+                                    OffsetDateTime.now()
+                                val errorCode =
+                                    when {
+                                        e.message?.contains(
+                                            "size",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_SIZE_LIMIT_EXCEEDED
+                                        e.message?.contains(
+                                            "readable",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_NOT_READABLE
+                                        e.message?.contains(
+                                            "empty",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_IS_EMPTY
+                                        e.message?.contains(
+                                            "container",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .NO_CONTAINERS_AVAILABLE
+                                        else ->
+                                            UploadErrorCode
+                                                .UPLOAD_FAILED
+                                    }
+
+                                UploadResult.Failure(
+                                    sourceName =
+                                    source.name,
+                                    startedAt = startedAt,
+                                    completedAt =
+                                    completedAt,
+                                    errorCode = errorCode,
+                                    errorMessage =
+                                    e.message
+                                        ?: "Upload failed",
+                                    exception = e,
+                                    isPermanent =
+                                    e is
+                                        IngestException &&
+                                        e
+                                            .isPermanent ==
+                                        true,
+                                )
+                            }
                         }
-
-                        UploadResult.Failure(
-                            sourceName = source.name,
-                            startedAt = startedAt,
-                            completedAt = completedAt,
-                            errorCode = errorCode,
-                            errorMessage = e.message ?: "Upload failed",
-                            exception = e,
-                            isPermanent = e is IngestException && e.isPermanent == true
-                        )
                     }
+                        .awaitAll()
                 }
-            }.awaitAll()
+
+            val successes = results.filterIsInstance<UploadResult.Success>()
+            val failures = results.filterIsInstance<UploadResult.Failure>()
+
+            logger.info(
+                "Batch upload completed: {} successes, {} failures out of {} total",
+                successes.size,
+                failures.size,
+                sources.size,
+            )
+
+            UploadResults(successes, failures)
         }
 
-        val successes = results.filterIsInstance<UploadResult.Success>()
-        val failures = results.filterIsInstance<UploadResult.Failure>()
-
-        logger.info(
-            "Batch upload completed: {} successes, {} failures out of {} total",
-            successes.size,
-            failures.size,
-            sources.size
-        )
-
-        UploadResults(successes, failures)
-    }
-
-    private fun validateStream(stream: InputStream, name: String): UploadErrorCode? {
+    private fun validateStream(
+        stream: InputStream,
+        name: String,
+    ): UploadErrorCode? {
         return try {
             if (stream.available() < 0) {
                 UploadErrorCode.SOURCE_NOT_READABLE
@@ -193,32 +261,45 @@ class BlobUploadContainer(
     private suspend fun uploadToContainer(
         name: String,
         stream: InputStream,
-        container: ContainerInfo
+        container: ContainerInfo,
     ): String {
         val (url, sas) = container.path!!.split("?", limit = 2)
 
-        val blobClient = BlobClientBuilder()
-            .endpoint(container.path)
-            .blobName(name)
-            .buildClient()
+        val blobClient =
+            BlobClientBuilder()
+                .endpoint(container.path)
+                .blobName(name)
+                .buildClient()
 
-        logger.debug("Uploading stream to blob url: {} to container {}", url, name)
+        logger.debug(
+            "Uploading stream to blob url: {} to container {}",
+            url,
+            name,
+)
 
-        val parallelTransferOptions = ParallelTransferOptions()
-            .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)
-            .setMaxConcurrency(maxConcurrency)
-            .setMaxSingleUploadSizeLong(UPLOAD_MAX_SINGLE_SIZE_BYTES)
+        val parallelTransferOptions =
+            ParallelTransferOptions()
+                .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)
+                .setMaxConcurrency(maxConcurrency)
+                .setMaxSingleUploadSizeLong(
+                    UPLOAD_MAX_SINGLE_SIZE_BYTES,
+                )
 
-        val blobUploadOptions = BlobParallelUploadOptions(stream)
-            .setParallelTransferOptions(parallelTransferOptions)
+        val blobUploadOptions =
+            BlobParallelUploadOptions(stream)
+                .setParallelTransferOptions(parallelTransferOptions)
 
-        val blobUploadResult = blobClient.uploadWithResponse(
-            blobUploadOptions,
-            Duration.ofHours(BLOB_UPLOAD_TIMEOUT_HOURS),
-            Context.NONE,
-        )
+        val blobUploadResult =
+            blobClient.uploadWithResponse(
+                blobUploadOptions,
+                Duration.ofHours(BLOB_UPLOAD_TIMEOUT_HOURS),
+                Context.NONE,
+            )
 
-        return if (blobUploadResult.statusCode in 200..299 && blobUploadResult.value != null) {
+        return if (
+            blobUploadResult.statusCode in 200..299 &&
+            blobUploadResult.value != null
+        ) {
             val blockBlobItem: BlockBlobItem = blobUploadResult.value
             logger.debug(
                 "Upload succeeded to blob url: {} with eTag: {}",
@@ -229,16 +310,19 @@ class BlobUploadContainer(
         } else {
             throw IngestException(
                 "Upload failed with status: ${blobUploadResult.statusCode}",
-                isPermanent = blobUploadResult.statusCode >= 400 && blobUploadResult.statusCode < 500
+                isPermanent = blobUploadResult.statusCode in 400..<500,
             )
         }
     }
 
     private suspend fun selectContainers(): List<ContainerInfo> {
         val configResponse = configurationCache.getConfiguration()
-        val containerSettings = configResponse.containerSettings
-            ?: throw IngestException("No container settings available", isPermanent = true)
-
+        val containerSettings =
+            configResponse.containerSettings
+                ?: throw IngestException(
+                    "No container settings available",
+                    isPermanent = true,
+                )
         val hasStorage = !containerSettings.containers.isNullOrEmpty()
         val hasLake = !containerSettings.lakeFolders.isNullOrEmpty()
 
@@ -247,37 +331,64 @@ class BlobUploadContainer(
         }
 
         // Determine effective upload method
-        val effectiveMethod = when (uploadMethod) {
-            UploadMethod.DEFAULT -> {
-                // Use server's preferred upload method if available
-                val serverPreference = containerSettings.preferredUploadMethod
-                when {
-                    serverPreference.equals("Storage", ignoreCase = true) && hasStorage -> {
-                        logger.debug("Using server preferred upload method: Storage")
-                        UploadMethod.STORAGE
-                    }
-                    serverPreference.equals("Lake", ignoreCase = true) && hasLake -> {
-                        logger.debug("Using server preferred upload method: Lake")
-                        UploadMethod.LAKE
-                    }
-                    // Fallback: prefer Storage if available, otherwise Lake
-                    hasStorage -> {
-                        logger.debug("No server preference or unavailable, defaulting to Storage")
-                        UploadMethod.STORAGE
-                    }
-                    else -> {
-                        logger.debug("No server preference or unavailable, defaulting to Lake")
-                        UploadMethod.LAKE
+        val effectiveMethod =
+            when (uploadMethod) {
+                UploadMethod.DEFAULT -> {
+                    // Use server's preferred upload method if available
+                    val serverPreference =
+                        containerSettings.preferredUploadMethod
+                    when {
+                        serverPreference.equals(
+                            "Storage",
+                            ignoreCase = true,
+                        ) && hasStorage -> {
+                            logger.debug(
+                                "Using server preferred upload method: Storage",
+                            )
+                            UploadMethod.STORAGE
+                        }
+                        serverPreference.equals(
+                            "Lake",
+                            ignoreCase = true,
+                        ) && hasLake -> {
+                            logger.debug(
+                                "Using server preferred upload method: Lake",
+                            )
+                            UploadMethod.LAKE
+                        }
+                        // Fallback: prefer Storage if available, otherwise Lake
+                        hasStorage -> {
+                            logger.debug(
+                                "No server preference or unavailable, defaulting to Storage",
+                            )
+                            UploadMethod.STORAGE
+                        }
+                        else -> {
+                            logger.debug(
+                                "No server preference or unavailable, defaulting to Lake",
+                            )
+                            UploadMethod.LAKE
+                        }
                     }
                 }
+                UploadMethod.LAKE ->
+                    if (hasLake) {
+                        UploadMethod.LAKE
+                    } else {
+                        UploadMethod.STORAGE
+                    }
+                UploadMethod.STORAGE ->
+                    if (hasStorage) {
+                        UploadMethod.STORAGE
+                    } else {
+                        UploadMethod.LAKE
+                    }
             }
-            UploadMethod.LAKE -> if (hasLake) UploadMethod.LAKE else UploadMethod.STORAGE
-            UploadMethod.STORAGE -> if (hasStorage) UploadMethod.STORAGE else UploadMethod.LAKE
-        }
-
         return when {
-            effectiveMethod == UploadMethod.LAKE && hasLake -> containerSettings.lakeFolders!!
-            effectiveMethod == UploadMethod.STORAGE && hasStorage -> containerSettings.containers!!
+            effectiveMethod == UploadMethod.LAKE && hasLake ->
+                containerSettings.lakeFolders!!
+            effectiveMethod == UploadMethod.STORAGE && hasStorage ->
+                containerSettings.containers!!
             hasStorage -> containerSettings.containers!!
             else -> containerSettings.lakeFolders!!
         }

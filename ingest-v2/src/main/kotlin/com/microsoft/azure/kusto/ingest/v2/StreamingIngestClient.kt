@@ -33,7 +33,12 @@ class StreamingIngestClient(
     override val skipSecurityChecks: Boolean = false,
     override val clientDetails: ClientDetails? = null,
 ) :
-    KustoBaseApiClient(engineUrl, tokenCredential, skipSecurityChecks, clientDetails),
+    KustoBaseApiClient(
+        engineUrl,
+        tokenCredential,
+        skipSecurityChecks,
+        clientDetails,
+    ),
     IngestClient {
 
     /** Handles multiple source types for streaming ingestion. */
