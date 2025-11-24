@@ -35,6 +35,15 @@ class BlobSourceInfo : AbstractSourceInfo {
         require(blobPath.isNotBlank()) { "blobPath cannot be blank" }
     }
 
+    /**
+     * Returns the exact size of the blob in bytes if available.
+     * This is only set when the blob was created by uploading a local source.
+     * Returns null if size is not available (e.g., for external blob URLs).
+     */
+    fun size(): Long? {
+        return blobExactSize
+    }
+
     companion object {
         /**
          * Create BlobSourceInfo from LocalSource (FileSourceInfo or

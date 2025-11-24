@@ -37,6 +37,14 @@ abstract class LocalSource(
     // Indicates whether the stream should be left open after ingestion.
     abstract fun data(): InputStream
 
+    /**
+     * Returns the approximate size of the data in bytes.
+     * For files, returns the exact file size.
+     * For streams, attempts to determine available bytes (may not be accurate for all stream types).
+     * Returns null if size cannot be determined.
+     */
+    abstract fun size(): Long?
+
     fun reset() {
         data().reset()
     }
@@ -115,6 +123,15 @@ class StreamSourceInfo(
     override fun data(): InputStream {
         return mStream
     }
+
+    override fun size(): Long? {
+        return try {
+            mStream.available().toLong()
+        } catch (e: Exception) {
+            logger.warn("Could not determine stream size: ${e.message}")
+            null
+        }
+    }
 }
 
 class FileSourceInfo(
@@ -146,6 +163,15 @@ class FileSourceInfo(
 
     override fun data(): InputStream {
         return mStream
+    }
+
+    override fun size(): Long? {
+        return try {
+            Files.size(path)
+        } catch (e: Exception) {
+            logger.warn("Could not determine file size for ${path}: ${e.message}")
+            null
+        }
     }
 
     override fun close() {
