@@ -141,7 +141,10 @@ class BlobUploadContainer(
                 sources.chunked(maxConcurrency).flatMap { chunk ->
                     chunk.map { source ->
                         async {
-                            val startedAt = Instant.now(Clock.systemUTC())
+                            val startedAt =
+                                Instant.now(
+                                    Clock.systemUTC(),
+                                )
                             try {
                                 val blobUrl =
                                     uploadAsync(
@@ -149,7 +152,10 @@ class BlobUploadContainer(
                                         source.stream,
                                     )
                                 val completedAt =
-                                    Instant.now(Clock.systemUTC())
+                                    Instant.now(
+                                        Clock
+                                            .systemUTC(),
+                                    )
                                 UploadResult.Success(
                                     sourceName =
                                     source.name,
@@ -162,7 +168,10 @@ class BlobUploadContainer(
                                 )
                             } catch (e: Exception) {
                                 val completedAt =
-                                    Instant.now(Clock.systemUTC())
+                                    Instant.now(
+                                        Clock
+                                            .systemUTC(),
+                                    )
                                 val errorCode =
                                     when {
                                         e.message?.contains(
@@ -262,7 +271,7 @@ class BlobUploadContainer(
             "Uploading stream to blob url: {} to container {}",
             url,
             name,
-)
+        )
 
         val parallelTransferOptions =
             ParallelTransferOptions()

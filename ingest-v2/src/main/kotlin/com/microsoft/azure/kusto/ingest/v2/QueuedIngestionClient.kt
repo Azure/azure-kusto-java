@@ -105,8 +105,10 @@ class QueuedIngestionClient(
     private val blobUploadContainer =
         BlobUploadContainer(
             configurationCache = defaultConfigurationCache,
-            maxConcurrency = maxConcurrency ?: UPLOAD_CONTAINER_MAX_CONCURRENCY,
-            maxDataSize = maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
+            maxConcurrency =
+            maxConcurrency ?: UPLOAD_CONTAINER_MAX_CONCURRENCY,
+            maxDataSize =
+            maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
             ignoreSizeLimit = ignoreFileSize,
         )
 
@@ -360,7 +362,6 @@ class QueuedIngestionClient(
                 "FailureStatus ${failureStatus?.value}. Is transient failure: $isTransientFailure"
         }
     }
-
 
     /**
      * Polls the ingestion status until completion or timeout.

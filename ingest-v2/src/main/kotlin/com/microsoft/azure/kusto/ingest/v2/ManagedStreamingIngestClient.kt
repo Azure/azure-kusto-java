@@ -114,7 +114,8 @@ class ManagedStreamingIngestClient(
 
         // Return a combined response (for now, return success)
         return IngestResponse(
-            ingestionOperationId = "managed-${Instant.now(Clock.systemUTC())}",
+            ingestionOperationId =
+            "managed-${Instant.now(Clock.systemUTC())}",
         )
     }
 
@@ -184,13 +185,13 @@ class ManagedStreamingIngestClient(
         }
     }
 
-    private fun shouldUseQueuedIngestBySize(
-        source: LocalSource,
-    ): Boolean {
+    private fun shouldUseQueuedIngestBySize(source: LocalSource): Boolean {
         val size = source.size()
 
         if (size == null) {
-            logger.warn("Could not determine data size for ${source::class.simpleName}")
+            logger.warn(
+                "Could not determine data size for ${source::class.simpleName}",
+            )
             return false
         }
 
@@ -238,7 +239,9 @@ class ManagedStreamingIngestClient(
         val result =
             managedStreamingPolicy.retryPolicy.runWithRetry(
                 action = { attempt ->
-                    val attemptStartTime = Instant.now(Clock.systemUTC()).toEpochMilli()
+                    val attemptStartTime =
+                        Instant.now(Clock.systemUTC())
+                            .toEpochMilli()
 
                     try {
                         val response =
@@ -302,7 +305,8 @@ class ManagedStreamingIngestClient(
 
                         val duration =
                             Duration.ofMillis(
-                                Instant.now(Clock.systemUTC()).toEpochMilli() -
+                                Instant.now(Clock.systemUTC())
+                                    .toEpochMilli() -
                                     attemptStartTime,
                             )
                         managedStreamingPolicy.streamingSuccessCallback(
@@ -385,7 +389,11 @@ class ManagedStreamingIngestClient(
         isPermanent: Boolean,
         ex: Exception,
     ): Retry {
-        val duration = Duration.ofMillis(Instant.now(Clock.systemUTC()).toEpochMilli() - startTime)
+        val duration =
+            Duration.ofMillis(
+                Instant.now(Clock.systemUTC()).toEpochMilli() -
+                    startTime,
+            )
 
         // Handle transient errors
         if (!isPermanent) {
@@ -397,19 +405,13 @@ class ManagedStreamingIngestClient(
                 ex,
                 duration,
             )
-            return Retry(
-                shouldRetry = true,
-                interval = Duration.ZERO,
-            )
+            return Retry(shouldRetry = true, interval = Duration.ZERO)
         }
 
         // Handle permanent errors
         if (ex !is IngestException) {
             reportUnknownException(source, database, table, props, ex, duration)
-            return Retry(
-                shouldRetry = false,
-                interval = Duration.ZERO,
-            )
+            return Retry(shouldRetry = false, interval = Duration.ZERO)
         }
 
         // Check if we should fallback to queued ingestion
@@ -423,19 +425,13 @@ class ManagedStreamingIngestClient(
                 duration,
             )
         ) {
-            return Retry(
-                shouldRetry = false,
-                interval = Duration.ZERO,
-            )
+            return Retry(shouldRetry = false, interval = Duration.ZERO)
         }
 
         logger.error(
             "Permanent error occurred while trying streaming ingest, not switching to queued according to policy. Error: ${ex.message}",
         )
-        return Retry(
-            shouldRetry = false,
-            interval = Duration.ZERO,
-        )
+        return Retry(shouldRetry = false, interval = Duration.ZERO)
     }
 
     /** Reports a transient exception to the policy */
@@ -615,7 +611,6 @@ class ManagedStreamingIngestClient(
         )
     }
 
-
     suspend fun pollUntilCompletion(
         database: String,
         table: String,
@@ -632,13 +627,12 @@ class ManagedStreamingIngestClient(
         )
     }
 
-
     override suspend fun submitIngestion(
         database: String,
         table: String,
         sources: List<SourceInfo>,
         format: Format,
-        ingestProperties: IngestRequestProperties?
+        ingestProperties: IngestRequestProperties?,
     ): IngestResponse {
         TODO("Not yet implemented")
     }
@@ -647,7 +641,7 @@ class ManagedStreamingIngestClient(
         database: String,
         table: String,
         operationId: String,
-        forceDetails: Boolean
+        forceDetails: Boolean,
     ): StatusResponse {
         TODO("Not yet implemented")
     }
@@ -656,7 +650,7 @@ class ManagedStreamingIngestClient(
         database: String,
         table: String,
         operationId: String,
-        details: Boolean
+        details: Boolean,
     ): StatusResponse {
         TODO("Not yet implemented")
     }

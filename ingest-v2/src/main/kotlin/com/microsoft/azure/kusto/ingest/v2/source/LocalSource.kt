@@ -38,10 +38,10 @@ abstract class LocalSource(
     abstract fun data(): InputStream
 
     /**
-     * Returns the approximate size of the data in bytes.
-     * For files, returns the exact file size.
-     * For streams, attempts to determine available bytes (may not be accurate for all stream types).
-     * Returns null if size cannot be determined.
+     * Returns the approximate size of the data in bytes. For files, returns the
+     * exact file size. For streams, attempts to determine available bytes (may
+     * not be accurate for all stream types). Returns null if size cannot be
+     * determined.
      */
     abstract fun size(): Long?
 
@@ -62,9 +62,12 @@ abstract class LocalSource(
      * Returns a pair of (InputStream, size, effectiveCompressionType)
      */
     fun prepareForUpload(): Triple<InputStream, Long?, CompressionType> {
-        // Binary formats (Parquet, AVRO, ORC) already have internal compression and should not be compressed again
-        val shouldCompress = (compressionType == CompressionType.NONE) && !FormatUtil.isBinaryFormat(format)
-        
+        // Binary formats (Parquet, AVRO, ORC) already have internal compression and should not be
+        // compressed again
+        val shouldCompress =
+            (compressionType == CompressionType.NONE) &&
+                !FormatUtil.isBinaryFormat(format)
+
         return if (shouldCompress) {
             // Compress using GZIP for non-binary formats
             val byteStream = ByteArrayOutputStream()
@@ -97,7 +100,9 @@ abstract class LocalSource(
     /** Generates a unique blob name for upload */
     fun generateBlobName(): String {
         // Binary formats should not be compressed, so effective compression stays NONE
-        val shouldCompress = (compressionType == CompressionType.NONE) && !FormatUtil.isBinaryFormat(format)
+        val shouldCompress =
+            (compressionType == CompressionType.NONE) &&
+                !FormatUtil.isBinaryFormat(format)
         val effectiveCompression =
             if (shouldCompress) {
                 CompressionType.GZIP
@@ -174,7 +179,7 @@ class FileSourceInfo(
         return try {
             Files.size(path)
         } catch (e: Exception) {
-            logger.warn("Could not determine file size for ${path}: ${e.message}")
+            logger.warn("Could not determine file size for $path: ${e.message}")
             null
         }
     }
