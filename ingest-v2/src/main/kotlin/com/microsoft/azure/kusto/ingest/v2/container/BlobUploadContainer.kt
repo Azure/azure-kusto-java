@@ -254,7 +254,7 @@ class BlobUploadContainer(
         }
     }
 
-    private suspend fun uploadToContainer(
+    private fun uploadToContainer(
         name: String,
         stream: InputStream,
         container: ContainerInfo,
@@ -382,10 +382,10 @@ class BlobUploadContainer(
             }
         return when {
             effectiveMethod == UploadMethod.LAKE && hasLake ->
-                containerSettings.lakeFolders!!
+                containerSettings.lakeFolders
             effectiveMethod == UploadMethod.STORAGE && hasStorage ->
-                containerSettings.containers!!
-            hasStorage -> containerSettings.containers!!
+                containerSettings.containers
+            hasStorage -> containerSettings.containers
             else -> containerSettings.lakeFolders!!
         }
     }
