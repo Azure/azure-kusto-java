@@ -7,15 +7,12 @@ import com.azure.storage.blob.BlobClientBuilder
 import com.azure.storage.blob.models.BlockBlobItem
 import com.azure.storage.blob.models.ParallelTransferOptions
 import com.azure.storage.blob.options.BlobParallelUploadOptions
-import com.azure.storage.common.policy.RequestRetryOptions
-import com.azure.storage.common.policy.RetryPolicyType
 import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_RETRIES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_DELAY_MS
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_MAX_DELAY_MS
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_MAX_TRIES
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_RETRY_TIMEOUT_SECONDS
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
@@ -24,19 +21,10 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.time.Clock
 import java.time.Duration
-import java.time.OffsetDateTime
+import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
-
-private val DEFAULT_RETRY_OPTIONS =
-    RequestRetryOptions(
-        RetryPolicyType.EXPONENTIAL,
-        UPLOAD_RETRY_MAX_TRIES,
-        UPLOAD_RETRY_TIMEOUT_SECONDS,
-        UPLOAD_RETRY_DELAY_MS,
-        UPLOAD_RETRY_MAX_DELAY_MS,
-        null,
-    )
 
 enum class UploadMethod {
     // Use server preference or Storage as fallback
@@ -58,11 +46,10 @@ data class UploadSource(
 class BlobUploadContainer(
     val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod = UploadMethod.DEFAULT,
-    private val maxRetries: Int = 3,
-    // 4GB default
-    private val maxDataSize: Long = 4L * 1024 * 1024 * 1024,
+    private val maxRetries: Int = UPLOAD_CONTAINER_MAX_RETRIES,
+    private val maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
     private val ignoreSizeLimit: Boolean = false,
-    private val maxConcurrency: Int = 4,
+    private val maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY,
 ) : UploadContainerBase {
     private val logger =
         LoggerFactory.getLogger(BlobUploadContainer::class.java)
@@ -154,7 +141,7 @@ class BlobUploadContainer(
                 sources.chunked(maxConcurrency).flatMap { chunk ->
                     chunk.map { source ->
                         async {
-                            val startedAt = OffsetDateTime.now()
+                            val startedAt = Instant.now(Clock.systemUTC())
                             try {
                                 val blobUrl =
                                     uploadAsync(
@@ -162,7 +149,7 @@ class BlobUploadContainer(
                                         source.stream,
                                     )
                                 val completedAt =
-                                    OffsetDateTime.now()
+                                    Instant.now(Clock.systemUTC())
                                 UploadResult.Success(
                                     sourceName =
                                     source.name,
@@ -175,7 +162,7 @@ class BlobUploadContainer(
                                 )
                             } catch (e: Exception) {
                                 val completedAt =
-                                    OffsetDateTime.now()
+                                    Instant.now(Clock.systemUTC())
                                 val errorCode =
                                     when {
                                         e.message?.contains(

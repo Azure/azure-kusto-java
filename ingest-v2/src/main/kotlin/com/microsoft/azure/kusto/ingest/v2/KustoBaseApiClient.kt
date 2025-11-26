@@ -29,14 +29,10 @@ open class KustoBaseApiClient(
     open val dmUrl: String,
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
-    open val clientDetails: ClientDetails? = null,
+    open val clientDetails: ClientDetails? = ClientDetails.createDefault(),
     open val clientRequestIdPrefix: String = "KIC.execute",
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
-
-    companion object {
-        private const val KUSTO_API_VERSION = "2024-12-12"
-    }
 
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)

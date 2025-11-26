@@ -62,8 +62,11 @@ abstract class LocalSource(
      * Returns a pair of (InputStream, size, effectiveCompressionType)
      */
     fun prepareForUpload(): Triple<InputStream, Long?, CompressionType> {
-        return if (compressionType == CompressionType.NONE) {
-            // Compress using GZIP
+        // Binary formats (Parquet, AVRO, ORC) already have internal compression and should not be compressed again
+        val shouldCompress = (compressionType == CompressionType.NONE) && !FormatUtil.isBinaryFormat(format)
+        
+        return if (shouldCompress) {
+            // Compress using GZIP for non-binary formats
             val byteStream = ByteArrayOutputStream()
             GZIPOutputStream(byteStream).use { gzipOut ->
                 data().copyTo(gzipOut)
@@ -93,8 +96,10 @@ abstract class LocalSource(
 
     /** Generates a unique blob name for upload */
     fun generateBlobName(): String {
+        // Binary formats should not be compressed, so effective compression stays NONE
+        val shouldCompress = (compressionType == CompressionType.NONE) && !FormatUtil.isBinaryFormat(format)
         val effectiveCompression =
-            if (compressionType == CompressionType.NONE) {
+            if (shouldCompress) {
                 CompressionType.GZIP
             } else {
                 compressionType

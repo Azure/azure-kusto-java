@@ -16,9 +16,9 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
-import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.source.SourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -51,13 +51,13 @@ class QueuedIngestionClient(
         format: Format,
         ingestProperties: IngestRequestProperties?,
     ): IngestResponse {
-        val abstractSources = sources.map { it as AbstractSourceInfo }
         return submitQueuedIngestion(
-            database,
-            table,
-            abstractSources,
-            format,
-            ingestProperties,
+            database = database,
+            table = table,
+            sources = sources,
+            format = format,
+            ingestProperties = ingestProperties,
+            failOnPartialUploadError = true,
         )
     }
 
@@ -67,12 +67,32 @@ class QueuedIngestionClient(
         operationId: String,
         forceDetails: Boolean,
     ): StatusResponse {
-        return getIngestionStatusInternal(
-            database,
-            table,
-            operationId,
-            forceDetails,
-        )
+        // If details are explicitly requested, use the details API
+        if (forceDetails) {
+            val statusResponse =
+                getIngestionDetails(database, table, operationId, true)
+            logger.debug(
+                "Forcing detailed status retrieval for operation: {} returning {}",
+                operationId,
+                statusResponse,
+            )
+            return statusResponse
+        }
+        // Start with summary for efficiency
+        val statusResponse =
+            getIngestionDetails(database, table, operationId, false)
+        // If operation has failures or is completed, get detailed information
+        return if (
+            statusResponse.status?.failed?.let { it > 0 } == true ||
+            IngestionResultUtils.isCompleted(statusResponse.details)
+        ) {
+            logger.debug(
+                "Operation $operationId has failures or is completed, retrieving details",
+            )
+            getIngestionDetails(database, table, operationId, true)
+        } else {
+            statusResponse
+        }
     }
 
     private val defaultConfigurationCache =
@@ -85,8 +105,8 @@ class QueuedIngestionClient(
     private val blobUploadContainer =
         BlobUploadContainer(
             configurationCache = defaultConfigurationCache,
-            maxConcurrency = maxConcurrency ?: 4,
-            maxDataSize = maxDataSize ?: (4L * 1024 * 1024 * 1024),
+            maxConcurrency = maxConcurrency ?: UPLOAD_CONTAINER_MAX_CONCURRENCY,
+            maxDataSize = maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
             ignoreSizeLimit = ignoreFileSize,
         )
 
@@ -108,7 +128,7 @@ class QueuedIngestionClient(
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        sources: List<AbstractSourceInfo>,
+        sources: List<SourceInfo>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
         failOnPartialUploadError: Boolean = true,
@@ -341,52 +361,6 @@ class QueuedIngestionClient(
         }
     }
 
-    /**
-     * Gets the status of a queued ingestion operation with intelligent API
-     * selection. For completed operations or when details are explicitly
-     * requested, uses the details API. For in-progress operations, uses the
-     * summary API for efficiency.
-     *
-     * @param database The target database name
-     * @param table The target table name
-     * @param operationId The operation ID returned from the ingestion request
-     * @param forceDetails Force retrieval of detailed information regardless of
-     *   operation status
-     * @return Updated IngestionOperation with current status
-     */
-    private suspend fun getIngestionStatusInternal(
-        database: String,
-        table: String,
-        operationId: String,
-        forceDetails: Boolean = false,
-    ): StatusResponse {
-        // If details are explicitly requested, use the details API
-        if (forceDetails) {
-            val statusResponse =
-                getIngestionDetails(database, table, operationId, true)
-            logger.debug(
-                "Forcing detailed status retrieval for operation: {} returning {}",
-                operationId,
-                statusResponse,
-            )
-            return statusResponse
-        }
-        // Start with summary for efficiency
-        val statusResponse =
-            getIngestionDetails(database, table, operationId, false)
-        // If operation has failures or is completed, get detailed information
-        return if (
-            statusResponse.status?.failed?.let { it > 0 } == true ||
-            IngestionResultUtils.isCompleted(statusResponse.details)
-        ) {
-            logger.debug(
-                "Operation $operationId has failures or is completed, retrieving details",
-            )
-            getIngestionDetails(database, table, operationId, true)
-        } else {
-            statusResponse
-        }
-    }
 
     /**
      * Polls the ingestion status until completion or timeout.

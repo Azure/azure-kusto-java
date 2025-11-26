@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.source
 
+import com.microsoft.azure.kusto.ingest.v2.common.BatchOperationResult
 import com.microsoft.azure.kusto.ingest.v2.container.BlobUploadContainer
 import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.container.UploadSource
@@ -189,17 +190,7 @@ data class SourceConversionFailure(
     val isPermanent: Boolean,
 )
 
-/** Result of batch conversion operation. */
 data class BatchConversionResult(
-    val successes: List<BlobSourceInfo>,
-    val failures: List<SourceConversionFailure>,
-) {
-    val hasFailures: Boolean
-        get() = failures.isNotEmpty()
-
-    val allSucceeded: Boolean
-        get() = failures.isEmpty()
-
-    val totalCount: Int
-        get() = successes.size + failures.size
-}
+    override val successes: List<BlobSourceInfo>,
+    override val failures: List<SourceConversionFailure>,
+) : BatchOperationResult<BlobSourceInfo, SourceConversionFailure>
