@@ -53,6 +53,11 @@
             <version>${ktor.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-serialization-jackson</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
@@ -80,6 +85,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
@@ -90,6 +101,10 @@
             <artifactId>kusto-data</artifactId>
             <version>${project.parent.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-blob</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -265,6 +280,32 @@
                         <version>${kotlin.version}</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Enable parallel execution -->
+                    <parallel>methods</parallel>
+                    <threadCount>4</threadCount>
+                    <forkCount>1</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <!-- Configure JUnit 5 parallel execution -->
+                    <properties>
+                        <configurationParameters>
+                            junit.jupiter.execution.parallel.enabled=true
+                            junit.jupiter.execution.parallel.mode.default=concurrent
+                            junit.jupiter.execution.parallel.mode.classes.default=concurrent
+                            junit.jupiter.execution.parallel.config.strategy=dynamic
+                            junit.jupiter.execution.parallel.config.dynamic.factor=2
+                        </configurationParameters>
+                    </properties>
+                    <!-- Include specific test -->
+                    <includes>
+                        <include>**/*Test.kt</include>
+                        <include>**/*Test.java</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

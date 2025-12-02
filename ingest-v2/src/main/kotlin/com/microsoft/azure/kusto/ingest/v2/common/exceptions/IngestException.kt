@@ -15,7 +15,7 @@ open class IngestException(
     override val message: String
         get() =
             creationMessage
-                ?: "Something went wrong calling into a Kusto client library (fallback message)."
+                ?: "Something went wrong calling Kusto client library (fallback message)."
 
     override fun toString(): String = message
 }

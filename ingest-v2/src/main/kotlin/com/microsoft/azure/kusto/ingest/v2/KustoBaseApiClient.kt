@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
@@ -20,6 +21,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
+import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -27,8 +29,11 @@ open class KustoBaseApiClient(
     open val dmUrl: String,
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
+    open val clientDetails: ClientDetails? = ClientDetails.createDefault(),
+    open val clientRequestIdPrefix: String = "KIC.execute",
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
+
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
     }
@@ -40,6 +45,22 @@ open class KustoBaseApiClient(
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
             header("Content-Type", "application/json")
+
+            clientDetails?.let { details ->
+                header("x-ms-app", details.getApplicationForTracing())
+                header("x-ms-user", details.getUserNameForTracing())
+                header(
+                    "x-ms-client-version",
+                    details.getClientVersionForTracing(),
+                )
+            }
+
+            // Generate unique client request ID for tracing (format: prefix;uuid)
+            val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
+            header("x-ms-client-request-id", clientRequestId)
+            header("x-ms-version", KUSTO_API_VERSION)
+            header("Connection", "Keep-Alive")
+            header("Accept", "application/json")
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {
@@ -106,9 +127,9 @@ open class KustoBaseApiClient(
         }
         /* TODO Check what these settings should be */
         config.install(HttpTimeout) {
-            requestTimeoutMillis = 60_000
-            connectTimeoutMillis = 60_000
-            socketTimeoutMillis = 60_000
+            requestTimeoutMillis = KUSTO_API_REQUEST_TIMEOUT_MS
+            connectTimeoutMillis = KUSTO_API_CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = KUSTO_API_SOCKET_TIMEOUT_MS
         }
     }
 }

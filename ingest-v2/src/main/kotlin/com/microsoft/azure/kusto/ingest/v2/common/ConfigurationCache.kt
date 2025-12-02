@@ -2,10 +2,13 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common
 
+import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS
+import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS
+import com.microsoft.azure.kusto.ingest.v2.ConfigurationClient
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
-import kotlin.text.compareTo
 
 interface ConfigurationCache : AutoCloseable {
     val refreshInterval: Duration
@@ -16,9 +19,41 @@ interface ConfigurationCache : AutoCloseable {
 }
 
 class DefaultConfigurationCache(
-    override val refreshInterval: Duration = Duration.ofHours(1),
-    private val configurationProvider: suspend () -> ConfigurationResponse,
+    override val refreshInterval: Duration =
+        Duration.ofHours(CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS),
+    val dmUrl: String? = null,
+    val tokenCredential: TokenCredential? = null,
+    val skipSecurityChecks: Boolean? =
+        CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS,
+    val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
+
+    init {
+        if (
+            configurationProvider == null &&
+            (
+                dmUrl == null ||
+                    tokenCredential == null ||
+                    skipSecurityChecks == null
+                )
+        ) {
+            throw IllegalArgumentException(
+                "Either configurationProvider or all of dmUrl, tokenCredential, and skipSecurityChecks must be provided",
+            )
+        }
+    }
+
+    private val provider: suspend () -> ConfigurationResponse =
+        configurationProvider
+            ?: {
+                ConfigurationClient(
+                    dmUrl!!,
+                    tokenCredential!!,
+                    skipSecurityChecks!!,
+                )
+                    .getConfigurationDetails()
+            }
+
     @Volatile private var cachedConfiguration: ConfigurationResponse? = null
     private var lastRefreshTime: Long = 0
 
@@ -30,7 +65,7 @@ class DefaultConfigurationCache(
                 refreshInterval.toMillis()
         if (needsRefresh) {
             val newConfig =
-                runCatching { configurationProvider() }
+                runCatching { provider() }
                     .getOrElse { cachedConfiguration ?: throw it }
             synchronized(this) {
                 // Double-check in case another thread refreshed while we were waiting
