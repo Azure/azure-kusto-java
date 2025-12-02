@@ -51,12 +51,15 @@ class QueuedIngestionClient(
         // Convert BlobSourceInfo objects to Blob objects
         val blobs =
             blobSources.mapIndexed { index, blobSource ->
-                val sourceId = blobSource.sourceId?.toString() ?: UUID.randomUUID().toString()
-                logger.debug("Preparing blob {} with sourceId {} for ingestion.", index, sourceId)
-                Blob(
-                    url = blobSource.blobPath,
-                    sourceId = sourceId,
+                val sourceId =
+                    blobSource.sourceId?.toString()
+                        ?: UUID.randomUUID().toString()
+                logger.debug(
+                    "Preparing blob {} with sourceId {} for ingestion.",
+                    index,
+                    sourceId,
                 )
+                Blob(url = blobSource.blobPath, sourceId = sourceId)
             }
 
         val requestProperties =

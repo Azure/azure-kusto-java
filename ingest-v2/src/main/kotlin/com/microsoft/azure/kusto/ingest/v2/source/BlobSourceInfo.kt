@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import java.io.File
@@ -25,7 +24,11 @@ class BlobSourceInfo : AbstractSourceInfo {
         this.compressionType = compressionType
     }
 
-    constructor(blobPath: String, compressionType: CompressionType?, sourceId: UUID?) {
+    constructor(
+        blobPath: String,
+        compressionType: CompressionType?,
+        sourceId: UUID?,
+    ) {
         this.blobPath = blobPath
         this.compressionType = compressionType
         this.sourceId = sourceId
@@ -36,37 +39,39 @@ class BlobSourceInfo : AbstractSourceInfo {
     }
 
     companion object {
-        /**
-         * For internal usage, adding blobExactSize
-         */
+        /** For internal usage, adding blobExactSize */
         fun fromFile(
             blobPath: String,
             filePath: String,
             sourceId: UUID?,
             sourceCompressionType: CompressionType?,
-            gotCompressed: Boolean
+            gotCompressed: Boolean,
         ): BlobSourceInfo {
-            val blobSourceInfo = BlobSourceInfo(
-                blobPath,
-                if (gotCompressed) CompressionType.GZIP else sourceCompressionType,
-                sourceId
-            )
+            val blobSourceInfo =
+                BlobSourceInfo(
+                    blobPath,
+                    if (gotCompressed) {
+                        CompressionType.GZIP
+                    } else {
+                        sourceCompressionType
+                    },
+                    sourceId,
+                )
             if (sourceCompressionType == null) {
                 blobSourceInfo.blobExactSize = File(filePath).length()
             }
             return blobSourceInfo
         }
 
-        /**
-         * For internal usage, adding blobExactSize
-         */
+        /** For internal usage, adding blobExactSize */
         fun fromStream(
             blobPath: String,
             size: Int,
             sourceId: UUID?,
-            compressionType: CompressionType?
+            compressionType: CompressionType?,
         ): BlobSourceInfo {
-            val blobSourceInfo = BlobSourceInfo(blobPath, compressionType, sourceId)
+            val blobSourceInfo =
+                BlobSourceInfo(blobPath, compressionType, sourceId)
             blobSourceInfo.blobExactSize = size.toLong()
             return blobSourceInfo
         }
