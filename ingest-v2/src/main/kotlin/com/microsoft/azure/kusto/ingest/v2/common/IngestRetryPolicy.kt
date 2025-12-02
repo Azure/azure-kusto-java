@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common
 
+import com.microsoft.azure.kusto.ingest.v2.INGEST_RETRY_POLICY_CUSTOM_INTERVALS
+import com.microsoft.azure.kusto.ingest.v2.INGEST_RETRY_POLICY_DEFAULT_INTERVAL_SECONDS
+import com.microsoft.azure.kusto.ingest.v2.INGEST_RETRY_POLICY_DEFAULT_TOTAL_RETRIES
 import java.time.Duration
 
 data class Retry(val shouldRetry: Boolean, val interval: Duration)
@@ -22,8 +25,11 @@ object NoRetryPolicy : IngestRetryPolicy {
 }
 
 class SimpleRetryPolicy(
-    val intervalDuration: Duration = Duration.ofSeconds(10),
-    val totalRetries: Int = 3,
+    val intervalDuration: Duration =
+        Duration.ofSeconds(
+            INGEST_RETRY_POLICY_DEFAULT_INTERVAL_SECONDS,
+        ),
+    val totalRetries: Int = INGEST_RETRY_POLICY_DEFAULT_TOTAL_RETRIES,
 ) : IngestRetryPolicy {
     init {
         require(totalRetries > 0) { "totalRetries must be positive" }
@@ -42,11 +48,10 @@ class CustomRetryPolicy(intervalDurations: Array<Duration>? = null) :
     IngestRetryPolicy {
     private val intervalDurations: Array<Duration> =
         intervalDurations
-            ?: arrayOf(
-                Duration.ofSeconds(1),
-                Duration.ofSeconds(3),
-                Duration.ofSeconds(7),
-            )
+            ?: INGEST_RETRY_POLICY_CUSTOM_INTERVALS.map {
+                Duration.ofSeconds(it)
+            }
+                .toTypedArray()
 
     val intervals: List<Duration>
         get() = intervalDurations.toList()

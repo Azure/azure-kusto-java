@@ -9,6 +9,8 @@ enum class CompressionType {
     ;
 
     override fun toString(): String {
-        return if (this == NONE) "" else name
+        return if (this == NONE) {
+            ""
+        } else if (this == GZIP) "gz" else this.name.lowercase()
     }
 }
