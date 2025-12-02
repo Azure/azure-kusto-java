@@ -2,53 +2,73 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
-import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
-import org.slf4j.LoggerFactory
 import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ConfigurationApiWrapperTest {
-
-    private val logger =
-        LoggerFactory.getLogger(ConfigurationApiWrapperTest::class.java)
-
+@Execution(ExecutionMode.CONCURRENT)
+class ConfigurationClientTest :
+    IngestV2TestBase(ConfigurationClientTest::class.java) {
     private fun endpointAndExceptionClause(): Stream<Arguments?> {
         return Stream.of(
-            Arguments.of(System.getenv("DM_CONNECTION_STRING"), false),
-            Arguments.of("https://help.kusto.windows.net", true),
+            Arguments.of(
+                "Success Scenario",
+                System.getenv("DM_CONNECTION_STRING"),
+                false,
+                false,
+            ),
+            // Note on the arg below when this is rolled out to all clusters, this test will
+            // start failing
+            Arguments.of(
+                "Cluster without ingest-v2",
+                "https://help.kusto.windows.net",
+                true,
+                false,
+            ),
         )
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "{0}")
     @MethodSource("endpointAndExceptionClause")
     fun `run e2e test with an actual cluster`(
+        testName: String,
         cluster: String,
         isException: Boolean,
+        isUnreachableHost: Boolean,
     ): Unit = runBlocking {
-        val actualTokenProvider =
-            AzureCliCredentialBuilder()
-                .build() // Replace with a real token provider
+        logger.info("Running configuration test {}", testName)
         // val cluster = System.getenv("DM_CONNECTION_STRING")
-        val actualWrapper =
-            ConfigurationApiWrapper(cluster, actualTokenProvider, true)
+        val actualWrapper = ConfigurationClient(cluster, tokenProvider, true)
         if (isException) {
             // assert the call to DefaultConfigurationCache throws
-            assertThrows<IngestException> {
-                DefaultConfigurationCache(
-                    configurationProvider = {
-                        actualWrapper.getConfigurationDetails()
-                    },
-                )
-                    .getConfiguration()
+            val exception =
+                assertThrows<IngestException> {
+                    DefaultConfigurationCache(
+                        configurationProvider = {
+                            actualWrapper
+                                .getConfigurationDetails()
+                        },
+                    )
+                        .getConfiguration()
+                }
+            assertNotNull(exception, "Exception should not be null")
+            if (isUnreachableHost) {
+                assert(exception.cause is java.net.ConnectException)
+                assert(exception.isPermanent == false)
+            } else {
+                // if the host is reachable, we expect a 404
+                assert(exception.failureCode == 404)
+                assert(exception.isPermanent == false)
             }
         } else {
             val defaultCachedConfig =
