@@ -8,7 +8,7 @@
     <description>ingest-v2</description>
     <properties>
         <kotlin.code.style>official</kotlin.code.style>
-        <kotlin.version>2.2.20</kotlin.version>
+        <kotlin.version>2.2.10</kotlin.version>
         <ktor.version>3.3.0</ktor.version>
         <ktor.async.api.version>3.1.1</ktor.async.api.version>
         <kotlinx.coroutines.debug.version>1.10.2</kotlinx.coroutines.debug.version>
@@ -48,6 +48,11 @@
             <version>${ktor.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-serialization-jackson</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
@@ -69,15 +74,21 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.version}</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>kusto-data</artifactId>
+            <version>${project.parent.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -89,10 +100,11 @@
                 <directory>${project.basedir}/src/main/resources</directory>
             </resource>
         </resources>
+
         <plugins>
             <plugin>
-                <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+                <groupId>org.jetbrains.kotlin</groupId>
                 <version>${kotlin.version}</version>
                 <executions>
                     <execution>
@@ -120,8 +132,26 @@
                     <compilerPlugins>
                         <plugin>kotlinx-serialization</plugin>
                     </compilerPlugins>
-                    <jvmTarget>1.8</jvmTarget>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <dependencies>
                     <dependency>
                         <groupId>org.jetbrains.kotlin</groupId>
@@ -169,6 +199,25 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>add-openapi-generated-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/openapi/src/main/kotlin</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
                 <version>${spotless.version}</version>
@@ -209,6 +258,13 @@
                         </licenseHeader>
                     </kotlin>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-serialization</artifactId>
+                        <version>${kotlin.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
