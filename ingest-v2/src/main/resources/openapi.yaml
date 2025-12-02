@@ -134,7 +134,7 @@ paths:
           required: true
           schema:
             type: string
-          example: "ingest-mycluster.swedencentral.kusto.windows.net"
+          example: "gzip"
         - name: Accept-Encoding
           in: header
           required: false

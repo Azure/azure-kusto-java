@@ -8,5 +8,5 @@ interface SourceInfo {
     /** Checks that this SourceInfo is defined appropriately. */
     fun validate()
 
-    var sourceId: UUID?
+    val sourceId: UUID
 }
