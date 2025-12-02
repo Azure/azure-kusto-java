@@ -3,21 +3,21 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.microsoft.azure.kusto.ingest.v2.QueuedIngestionClient
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 
 class QueuedIngestionClientBuilder
 private constructor(private val dmUrl: String) :
     BaseIngestClientBuilder<QueuedIngestionClientBuilder>() {
 
-    private var maxConcurrency: Int? = null
-    private var maxDataSize: Long? = null
+    private var maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY
+    private var maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
     private var ignoreFileSize: Boolean = false
 
     companion object {
         @JvmStatic
         fun create(dmUrl: String): QueuedIngestionClientBuilder {
-            require(dmUrl.isNotBlank()) {
-                "Data management URL cannot be blank"
-            }
+            require(dmUrl.isNotBlank()) { "Data Ingestion URI cannot be blank" }
             return QueuedIngestionClientBuilder(dmUrl)
         }
     }
