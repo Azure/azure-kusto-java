@@ -205,7 +205,7 @@ class StreamingIngestClientTest :
                     "Failure code: {}, isPermanent: {}",
                     exception.failureCode,
                     exception.isPermanent,
-)
+                )
                 assert(exception.failureCode != 0) {
                     "Expected non-zero failure code for invalid blob URL"
                 }
@@ -248,7 +248,7 @@ class StreamingIngestClientTest :
                 logger.info(
                     "Blob-based streaming ingestion with URL: {}",
                     blobUrl,
-)
+                )
                 val sources = listOf(BlobSourceInfo(blobUrl))
                 client.submitIngestion(
                     database = database,
@@ -260,7 +260,7 @@ class StreamingIngestClientTest :
 
                 logger.info(
                     "Blob-based streaming ingestion submitted successfully",
-)
+                )
                 kotlinx.coroutines.delay(3000)
                 val results =
                     adminClusterClient
