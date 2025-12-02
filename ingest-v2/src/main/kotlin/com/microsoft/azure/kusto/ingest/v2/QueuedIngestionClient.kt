@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
@@ -15,10 +16,9 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
-import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.source.SourceInfo
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -31,9 +31,69 @@ class QueuedIngestionClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
+    override val clientDetails: ClientDetails? = null,
+    private val maxConcurrency: Int? = null,
+    private val maxDataSize: kotlin.Long? = null,
+    private val ignoreFileSize: Boolean = false,
 ) :
-    KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks),
+    KustoBaseApiClient(
+        dmUrl,
+        tokenCredential,
+        skipSecurityChecks,
+        clientDetails,
+    ),
     IngestClient {
+
+    override suspend fun submitIngestion(
+        database: String,
+        table: String,
+        sources: List<com.microsoft.azure.kusto.ingest.v2.source.SourceInfo>,
+        format: Format,
+        ingestProperties: IngestRequestProperties?,
+    ): IngestResponse {
+        return submitQueuedIngestion(
+            database = database,
+            table = table,
+            sources = sources,
+            format = format,
+            ingestProperties = ingestProperties,
+            failOnPartialUploadError = true,
+        )
+    }
+
+    override suspend fun getIngestionStatus(
+        database: String,
+        table: String,
+        operationId: String,
+        forceDetails: Boolean,
+    ): StatusResponse {
+        // If details are explicitly requested, use the details API
+        if (forceDetails) {
+            val statusResponse =
+                getIngestionDetails(database, table, operationId, true)
+            logger.debug(
+                "Forcing detailed status retrieval for operation: {} returning {}",
+                operationId,
+                statusResponse,
+            )
+            return statusResponse
+        }
+        // Start with summary for efficiency
+        val statusResponse =
+            getIngestionDetails(database, table, operationId, false)
+        // If operation has failures or is completed, get detailed information
+        return if (
+            statusResponse.status?.failed?.let { it > 0 } == true ||
+            IngestionResultUtils.isCompleted(statusResponse.details)
+        ) {
+            logger.debug(
+                "Operation $operationId has failures or is completed, retrieving details",
+            )
+            getIngestionDetails(database, table, operationId, true)
+        } else {
+            statusResponse
+        }
+    }
 
     private val defaultConfigurationCache =
         DefaultConfigurationCache(
@@ -42,14 +102,20 @@ class QueuedIngestionClient(
             skipSecurityChecks = skipSecurityChecks,
         )
 
-    // Reusable BlobUploadContainer instance
     private val blobUploadContainer =
-        BlobUploadContainer(defaultConfigurationCache)
+        BlobUploadContainer(
+            configurationCache = defaultConfigurationCache,
+            maxConcurrency =
+            maxConcurrency ?: UPLOAD_CONTAINER_MAX_CONCURRENCY,
+            maxDataSize =
+            maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
+            ignoreSizeLimit = ignoreFileSize,
+        )
 
     /**
      * Submits a queued ingestion request with support for all source types.
      * Local sources (FileSourceInfo, StreamSourceInfo) will be automatically
-     * uploaded to blob storage before ingestion.
+     * uploaded to blob storage before ingestion using parallel batch uploads.
      *
      * @param database The target database name
      * @param table The target table name
@@ -57,51 +123,83 @@ class QueuedIngestionClient(
      *   FileSourceInfo, or StreamSourceInfo)
      * @param format The data format
      * @param ingestProperties Optional ingestion properties
+     * @param failOnPartialUploadError If true, fails the entire operation if
+     *   any uploads fail
      * @return IngestionOperation for tracking the request
      */
     suspend fun submitQueuedIngestion(
         database: String,
         table: String,
-        sources: List<AbstractSourceInfo>,
+        sources: List<SourceInfo>,
         format: Format = Format.csv,
         ingestProperties: IngestRequestProperties? = null,
+        failOnPartialUploadError: Boolean = true,
     ): IngestResponse {
         logger.info(
             "Submitting queued ingestion request for database: $database, table: $table, sources: ${sources.size}",
         )
-        // Convert all sources to BlobSourceInfo
-        val blobSources =
-            sources.map { source ->
-                when (source) {
-                    is BlobSourceInfo -> source
-                    is FileSourceInfo -> {
-                        logger.debug(
-                            "Uploading FileSourceInfo to blob storage: ${source.name}",
-                        )
-                        BlobSourceInfo.fromFileSourceInfo(
-                            source,
-                            blobUploadContainer,
-                        )
-                    }
-                    is StreamSourceInfo -> {
-                        logger.debug(
-                            "Uploading StreamSourceInfo to blob storage: ${source.name}",
-                        )
-                        BlobSourceInfo.fromStreamSourceInfo(
-                            source,
-                            blobUploadContainer,
-                        )
-                    }
-                    else ->
+
+        // Separate sources by type
+        val blobSources = sources.filterIsInstance<BlobSourceInfo>()
+        val localSources = sources.filterIsInstance<LocalSource>()
+
+        // Convert local sources to blob sources
+        val allBlobSources =
+            if (localSources.isNotEmpty()) {
+                logger.info(
+                    "Uploading ${localSources.size} local sources to blob storage in parallel",
+                )
+
+                // Use batch upload for efficiency
+                val batchResult =
+                    BlobSourceInfo.fromLocalSourcesBatch(
+                        localSources,
+                        blobUploadContainer,
+                    )
+
+                // Log batch results
+                logger.info(
+                    "Batch upload completed: ${batchResult.successes.size} succeeded, " +
+                        "${batchResult.failures.size} failed out of ${localSources.size} total",
+                )
+
+                // Handle failures based on policy
+                if (batchResult.hasFailures) {
+                    val failureDetails =
+                        batchResult.failures.joinToString("\n") {
+                                failure ->
+                            "  - ${failure.source.name}: ${failure.errorCode} - ${failure.errorMessage}"
+                        }
+
+                    if (failOnPartialUploadError) {
                         throw IngestException(
-                            "Unsupported source type: ${source::class.simpleName}",
-                            isPermanent = true,
+                            "Failed to upload ${batchResult.failures.size} out of ${localSources.size} sources:\n$failureDetails",
+                            isPermanent =
+                            batchResult.failures.all {
+                                it.isPermanent
+                            },
                         )
+                    } else {
+                        logger.warn(
+                            "Some uploads failed but continuing with successful uploads:\n$failureDetails",
+                        )
+                    }
                 }
+
+                blobSources + batchResult.successes
+            } else {
+                blobSources
             }
+
+        if (allBlobSources.isEmpty()) {
+            throw IngestException(
+                "No sources available for ingestion after upload processing",
+                isPermanent = true,
+            )
+        }
         // Convert BlobSourceInfo objects to Blob objects
         val blobs =
-            blobSources.map { blobSource ->
+            allBlobSources.map { blobSource ->
                 val sourceId = blobSource.sourceId.toString()
                 Blob(
                     url = blobSource.blobPath,
@@ -159,16 +257,15 @@ class QueuedIngestionClient(
     }
 
     /**
-     * Gets a summary of the ingestion operation status (lightweight, fast).
-     * This method provides overall status counters without detailed blob
-     * information. Use this for quick status checks and polling scenarios.
+     * Gets detailed information about an ingestion operation.
      *
      * @param database The target database name
      * @param table The target table name
      * @param operationId The operation ID returned from the ingestion request
-     * @return Updated IngestionOperation with status summary
+     * @param details Whether to retrieve detailed blob-level information
+     * @return StatusResponse with operation details
      */
-    private suspend fun getIngestionDetails(
+    override suspend fun getIngestionDetails(
         database: String,
         table: String,
         operationId: String,
@@ -264,53 +361,6 @@ class QueuedIngestionClient(
             "Error ingesting blob with $sourceId. ErrorDetails $details, ErrorCode $errorCode " +
                 ", Status ${status?.value}. Ingestion lastUpdated at $lastUpdateTime & started at $startedAt. " +
                 "FailureStatus ${failureStatus?.value}. Is transient failure: $isTransientFailure"
-        }
-    }
-
-    /**
-     * Gets the status of a queued ingestion operation with intelligent API
-     * selection. For completed operations or when details are explicitly
-     * requested, uses the details API. For in-progress operations, uses the
-     * summary API for efficiency.
-     *
-     * @param database The target database name
-     * @param table The target table name
-     * @param operationId The operation ID returned from the ingestion request
-     * @param forceDetails Force retrieval of detailed information regardless of
-     *   operation status
-     * @return Updated IngestionOperation with current status
-     */
-    suspend fun getIngestionStatus(
-        database: String,
-        table: String,
-        operationId: String,
-        forceDetails: Boolean = false,
-    ): StatusResponse {
-        // If details are explicitly requested, use the details API
-        if (forceDetails) {
-            val statusResponse =
-                getIngestionDetails(database, table, operationId, true)
-            logger.debug(
-                "Forcing detailed status retrieval for operation: {} returning {}",
-                operationId,
-                statusResponse,
-            )
-            return statusResponse
-        }
-        // Start with summary for efficiency
-        val statusResponse =
-            getIngestionDetails(database, table, operationId, false)
-        // If operation has failures or is completed, get detailed information
-        return if (
-            statusResponse.status?.failed?.let { it > 0 } == true ||
-            IngestionResultUtils.isCompleted(statusResponse.details)
-        ) {
-            logger.debug(
-                "Operation $operationId has failures or is completed, retrieving details",
-            )
-            getIngestionDetails(database, table, operationId, true)
-        } else {
-            statusResponse
         }
     }
 

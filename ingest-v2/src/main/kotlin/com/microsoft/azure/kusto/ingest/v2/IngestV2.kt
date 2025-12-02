@@ -32,6 +32,9 @@ const val KUSTO_API_CONNECT_TIMEOUT_MS: Long = 60_000
 // Socket timeout in milliseconds for Kusto API HTTP requests
 const val KUSTO_API_SOCKET_TIMEOUT_MS: Long = 60_000
 
+// Kusto API version used in HTTP requests
+const val KUSTO_API_VERSION = "2024-12-12"
+
 // Default refresh interval for configuration cache (1 hour)
 const val CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS: Long = 1
 
@@ -49,3 +52,12 @@ const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
 
 // Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
 val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
+
+// Default maximum number of retry attempts for container upload operations
+const val UPLOAD_CONTAINER_MAX_RETRIES: Int = 3
+
+// Default maximum data size for blob upload operations (4GB)
+const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
+
+// Default maximum concurrency for blob upload operations
+const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4

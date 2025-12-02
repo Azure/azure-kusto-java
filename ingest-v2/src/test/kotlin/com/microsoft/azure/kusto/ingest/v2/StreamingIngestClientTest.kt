@@ -4,6 +4,9 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
@@ -12,6 +15,8 @@ import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import java.io.ByteArrayInputStream
+import java.net.ConnectException
 import java.util.UUID
 import java.util.stream.Stream
 import kotlin.test.assertNotNull
@@ -50,7 +55,6 @@ class StreamingIngestClientTest :
                 false,
                 publicBlobUrl,
             ),
-            // Blob-based streaming - error case
             Arguments.of(
                 "Blob based ingest- Invalid blob URL",
                 engineEndpoint,
@@ -65,6 +69,102 @@ class StreamingIngestClientTest :
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("testParameters")
+    fun `run streaming ingest test using builder pattern`(
+        testName: String,
+        cluster: String,
+        isException: Boolean,
+        isUnreachableHost: Boolean,
+        blobUrl: String?,
+    ) = runBlocking {
+        logger.info("Running streaming ingest builder test {}", testName)
+
+        // Create client using builder
+        val client: IngestClient =
+            com.microsoft.azure.kusto.ingest.v2.builders
+                .StreamingIngestClientBuilder
+                .create(cluster)
+                .withAuthentication(tokenProvider)
+                .skipSecurityChecks()
+                .withClientDetails("BuilderStreamingE2ETest", "1.0")
+                .build()
+
+        val ingestProps = IngestRequestProperties(format = targetTestFormat)
+        if (isException) {
+            if (blobUrl != null) {
+                logger.info(
+                    "Testing error handling for invalid blob URL with builder: {}",
+                    blobUrl,
+                )
+                val exception =
+                    assertThrows<IngestException> {
+                        val sources = listOf(BlobSourceInfo(blobUrl))
+                        client.submitIngestion(
+                            database = database,
+                            table = targetTable,
+                            sources = sources,
+                            format = targetTestFormat,
+                            ingestProperties = ingestProps,
+                        )
+                    }
+                assertNotNull(
+                    exception,
+                    "Exception should not be null for invalid blob URL",
+                )
+                logger.info(
+                    "Expected exception caught (builder test): {}",
+                    exception.message,
+                )
+                assert(exception.failureCode != 0) {
+                    "Expected non-zero failure code for invalid blob URL"
+                }
+            }
+        } else {
+            if (blobUrl != null) {
+                logger.info(
+                    "Blob-based streaming ingestion with builder: {}",
+                    blobUrl,
+                )
+
+                val sources = listOf(BlobSourceInfo(blobUrl))
+                client.submitIngestion(
+                    database = database,
+                    table = targetTable,
+                    sources = sources,
+                    format = targetTestFormat,
+                    ingestProperties = ingestProps,
+                )
+
+                logger.info(
+                    "Blob-based streaming ingestion submitted successfully (builder)",
+                )
+
+                kotlinx.coroutines.delay(3000)
+                val results =
+                    adminClusterClient
+                        .executeQuery(
+                            database,
+                            "$targetTable | summarize count=count()",
+                        )
+                        .primaryResults
+
+                assertNotNull(results, "Query results should not be null")
+                results.next()
+                val count: Long = results.getLong("count")
+                assertNotNull(count, "Count should not be null")
+                assert(count > 0) {
+                    "Expected records in table after builder streaming ingestion"
+                }
+
+                logger.info(
+                    "Builder streaming ingestion verified - {} records",
+                    count,
+                )
+            }
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("testParameters")
     fun `run streaming ingest test with various clusters`(
         testName: String,
         cluster: String,
@@ -73,23 +173,24 @@ class StreamingIngestClientTest :
         blobUrl: String?,
     ) = runBlocking {
         logger.info("Running streaming ingest test {}", testName)
-        val client = StreamingIngestClient(cluster, tokenProvider, true)
+        val client: IngestClient =
+            StreamingIngestClient(cluster, tokenProvider, true)
         val ingestProps = IngestRequestProperties(format = targetTestFormat)
         if (isException) {
             if (blobUrl != null) {
                 logger.info(
-                    "Testing error handling for invalid blob URL: {}",
+                    "Testing error handling for invalid blob URL: {} (using interface method)",
                     blobUrl,
                 )
                 val exception =
                     assertThrows<IngestException> {
-                        client.submitStreamingIngestion(
+                        val sources = listOf(BlobSourceInfo(blobUrl))
+                        client.submitIngestion(
                             database = database,
                             table = targetTable,
-                            data = ByteArray(0),
+                            sources = sources,
                             format = targetTestFormat,
                             ingestProperties = ingestProps,
-                            blobUrl = blobUrl,
                         )
                     }
                 assertNotNull(
@@ -116,12 +217,21 @@ class StreamingIngestClientTest :
                 val data = "col1,col2\nval1,val2".toByteArray()
                 val exception =
                     assertThrows<IngestException> {
-                        client.submitStreamingIngestion(
-                            database,
-                            table,
-                            data,
-                            targetTestFormat,
-                            ingestProps,
+                        val streamSource =
+                            StreamSourceInfo(
+                                stream = ByteArrayInputStream(data),
+                                format = targetTestFormat,
+                                sourceCompression =
+                                CompressionType.NONE,
+                                sourceId = UUID.randomUUID(),
+                                name = "error-test-stream",
+                            )
+                        client.submitIngestion(
+                            database = database,
+                            table = table,
+                            sources = listOf(streamSource),
+                            format = targetTestFormat,
+                            ingestProperties = ingestProps,
                         )
                     }
                 assertNotNull(exception, "Exception should not be null")
@@ -139,14 +249,13 @@ class StreamingIngestClientTest :
                     "Blob-based streaming ingestion with URL: {}",
                     blobUrl,
 )
-                client.submitStreamingIngestion(
+                val sources = listOf(BlobSourceInfo(blobUrl))
+                client.submitIngestion(
                     database = database,
                     table = targetTable,
-                    // Ignored when blobUrl is provided
-                    data = ByteArray(0),
+                    sources = sources,
                     format = targetTestFormat,
                     ingestProperties = ingestProps,
-                    blobUrl = blobUrl,
                 )
 
                 logger.info(
@@ -174,13 +283,24 @@ class StreamingIngestClientTest :
                 )
             } else {
                 logger.info("Direct streaming ingestion - success case")
-                client.submitStreamingIngestion(
+                val streamSource =
+                    StreamSourceInfo(
+                        stream =
+                        ByteArrayInputStream(
+                            randomRow.toByteArray(),
+                        ),
+                        format = targetTestFormat,
+                        sourceCompression = CompressionType.NONE,
+                        sourceId = UUID.randomUUID(),
+                        name = "direct-stream-$targetUuid",
+                    )
+
+                client.submitIngestion(
                     database = database,
                     table = targetTable,
-                    data = randomRow.toByteArray(),
+                    sources = listOf(streamSource),
                     format = targetTestFormat,
                     ingestProperties = ingestProps,
-                    blobUrl = null,
                 )
 
                 val results =
