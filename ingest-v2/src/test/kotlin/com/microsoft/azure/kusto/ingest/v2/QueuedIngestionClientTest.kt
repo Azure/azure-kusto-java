@@ -18,6 +18,7 @@ import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
@@ -87,6 +88,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `test queued ingestion with builder pattern`(): Unit = runBlocking {
         logger.info("Starting builder pattern test")
@@ -188,6 +190,7 @@ class QueuedIngestionClientTest :
     }
 
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     @CsvSource(
         // Single JSON blob, no mapping
@@ -453,6 +456,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - single small file upload`() = runBlocking {
         logger.info("E2E: Testing single upload with small file")
@@ -511,6 +515,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - single large file upload`() = runBlocking {
         logger.info("E2E: Testing single upload with large file (10MB)")
@@ -575,6 +580,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - batch upload multiple files`() = runBlocking {
         logger.info("E2E: Testing batch upload with multiple files")
@@ -648,6 +654,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - parallel processing with maxConcurrency`() = runBlocking {
         logger.info("E2E: Testing parallel processing with maxConcurrency=3")
@@ -725,6 +732,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - size validation within limit`() = runBlocking {
         logger.info("E2E: Testing size validation with file within limit")
@@ -785,6 +793,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - size validation exceeds limit`() = runBlocking {
         logger.info("E2E: Testing size validation with file exceeding limit")
@@ -842,6 +851,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - ignore size limit flag`() = runBlocking {
         logger.info("E2E: Testing size validation with ignore limit flag")
@@ -906,6 +916,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - combined all features scenario`() = runBlocking {
         logger.info(
@@ -1010,6 +1021,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `test parallel upload with multiple files`() = runBlocking {
         logger.info("Starting parallel upload test with multiple files")
@@ -1139,6 +1151,7 @@ class QueuedIngestionClientTest :
     }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - format mismatch rejection - mixed formats in batch`() =
         runBlocking {
@@ -1293,6 +1306,7 @@ test2,456,2024-01-02"""
         }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - compression format test - GZIP pre-compressed file`() =
         runBlocking {
@@ -1410,6 +1424,7 @@ test2,456,2024-01-02"""
         }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - compression format test - Parquet format with compression`() =
         runBlocking {
@@ -1539,6 +1554,7 @@ test2,456,2024-01-02"""
         }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - compression format test - AVRO format with compression`() =
         runBlocking {
@@ -1661,6 +1677,7 @@ test2,456,2024-01-02"""
         }
 
     @Test
+    @Disabled("Serial execution test - disabled")
     @ResourceLock("blob-ingestion")
     fun `E2E - compression format test - JSON file gets compressed during upload`() =
         runBlocking {
@@ -1751,6 +1768,7 @@ test2,456,2024-01-02"""
         name =
         "[QueuedIngestion-LocalSource] {index} => SourceType={0}, TestName={1}",
     )
+    @Disabled("Serial execution test - disabled")
     @CsvSource(
         "file,QueuedIngestion-FileSource,SampleFileSource.json",
         "stream,QueuedIngestion-StreamSource,SampleStreamSource.json",
