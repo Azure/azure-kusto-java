@@ -15,7 +15,7 @@ class ManagedUploader(
     maxDataSize: Long? = null,
     configurationCache: ConfigurationCache,
     uploadMethod: UploadMethod = UploadMethod.DEFAULT,
-    ingestRetryPolicy: IngestRetryPolicy = SimpleRetryPolicy()
+    ingestRetryPolicy: IngestRetryPolicy = SimpleRetryPolicy(),
 ) :
     ContainerUploaderBase(
         maxConcurrency = maxConcurrency,
@@ -23,7 +23,7 @@ class ManagedUploader(
         maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
         configurationCache = configurationCache,
         uploadMethod = uploadMethod,
-        retryPolicy = ingestRetryPolicy
+        retryPolicy = ingestRetryPolicy,
     ) {
     override suspend fun selectContainers(
         configurationCache: ConfigurationCache,

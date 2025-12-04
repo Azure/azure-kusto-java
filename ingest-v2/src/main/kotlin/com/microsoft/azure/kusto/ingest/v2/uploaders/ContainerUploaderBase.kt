@@ -103,9 +103,9 @@ abstract class ContainerUploaderBase(
     }
 
     /**
-     * Uploads a stream with retry logic and container cycling.
-     * Randomly selects a starting container and cycles through containers on each retry.
-     * For example, with 2 containers and 3 retries: 1->2->1 or 2->1->2
+     * Uploads a stream with retry logic and container cycling. Randomly selects
+     * a starting container and cycles through containers on each retry. For
+     * example, with 2 containers and 3 retries: 1->2->1 or 2->1->2
      */
     private suspend fun uploadWithRetries(
         local: LocalSource,
@@ -138,12 +138,13 @@ abstract class ContainerUploaderBase(
                 )
 
                 // Perform the actual blob upload
-                val blobUrl = uploadToContainer(
-                    name = name,
-                    stream = stream,
-                    container = container,
-                    maxConcurrency = effectiveMaxConcurrency,
-                )
+                val blobUrl =
+                    uploadToContainer(
+                        name = name,
+                        stream = stream,
+                        container = container,
+                        maxConcurrency = effectiveMaxConcurrency,
+                    )
 
                 logger.info(
                     "Successfully uploaded {} to container index {} on attempt {}",
@@ -158,8 +159,8 @@ abstract class ContainerUploaderBase(
                     format = local.format,
                     compressionType = local.compressionType,
                     sourceId = local.sourceId,
-                ).apply { blobExactSize = local.size() }
-
+                )
+                    .apply { blobExactSize = local.size() }
             } catch (e: Exception) {
                 lastException = e
 
@@ -205,27 +206,6 @@ abstract class ContainerUploaderBase(
                     containerIndex,
                     retryDecision.interval.toMillis(),
                 )
-
-                // Reset stream for next attempt if possible
-                if (stream.markSupported()) {
-                    try {
-                        stream.reset()
-                        logger.debug("Stream reset successful for retry")
-                    } catch (resetException: Exception) {
-                        logger.error(
-                            "Failed to reset stream for retry: {}",
-                            resetException.message,
-                        )
-                        throw IngestException(
-                            "Upload failed and stream cannot be reset for retry",
-                            isPermanent = false,
-                            cause = e,
-                        )
-                    }
-                } else {
-                    logger.warn("Stream does not support mark/reset, upload may fail on retry")
-                }
-
                 // Wait before retrying
                 if (retryDecision.interval.toMillis() > 0) {
                     kotlinx.coroutines.delay(retryDecision.interval.toMillis())
