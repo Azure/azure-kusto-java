@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.exceptions
 
+import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
+
 open class IngestException(
     message: String? = null,
     cause: Throwable? = null,
@@ -33,7 +35,14 @@ class IngestRequestException(
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
-) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
+) :
+    IngestException(
+        message,
+        cause,
+        failureCode,
+        failureSubCode.toString(),
+        isPermanent,
+    ) {
     override val message: String
         get() =
             creationMessage
@@ -159,11 +168,18 @@ open class UploadFailedException(
     val fileName: String? = null,
     val blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = null,
     message: String? = null,
     cause: Throwable? = null,
-) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
+) :
+    IngestException(
+        message,
+        cause,
+        failureCode,
+        failureSubCode.toString(),
+        isPermanent,
+    ) {
     override val message: String
         get() =
             creationMessage
@@ -174,7 +190,7 @@ class NoAvailableIngestContainersException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = 500,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = false,
     message: String? = null,
     cause: Throwable? = null,
@@ -196,7 +212,7 @@ class InvalidUploadStreamException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
@@ -222,7 +238,7 @@ class UploadSizeLimitExceededException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.builders
 
-import com.microsoft.azure.kusto.ingest.v2.StreamingIngestClient
+import com.microsoft.azure.kusto.ingest.v2.client.StreamingIngestClient
 
 class StreamingIngestClientBuilder
 private constructor(private val engineUrl: String) :

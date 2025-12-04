@@ -2,9 +2,10 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.microsoft.azure.kusto.ingest.v2.client.IngestClient
+import com.microsoft.azure.kusto.ingest.v2.client.StreamingIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
-import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
 import kotlinx.coroutines.runBlocking
@@ -16,7 +17,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.ByteArrayInputStream
-import java.net.ConnectException
 import java.util.UUID
 import java.util.stream.Stream
 import kotlin.test.assertNotNull

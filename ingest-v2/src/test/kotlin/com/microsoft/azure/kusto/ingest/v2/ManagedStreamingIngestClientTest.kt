@@ -2,14 +2,17 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
+import com.microsoft.azure.kusto.ingest.v2.client.DefaultManagedStreamingPolicy
+import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
-import com.microsoft.azure.kusto.ingest.v2.source.AbstractSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.BlobSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
-import com.microsoft.azure.kusto.ingest.v2.source.FileSourceInfo
-import com.microsoft.azure.kusto.ingest.v2.source.StreamSourceInfo
+import com.microsoft.azure.kusto.ingest.v2.source.FileSource
+import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.TestInstance
@@ -21,6 +24,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.ByteArrayInputStream
 import java.net.ConnectException
+import java.net.URL
 import java.nio.file.Files
 import java.util.UUID
 import java.util.stream.Stream
@@ -70,8 +74,14 @@ class ManagedStreamingIngestClientTest :
                 DefaultManagedStreamingPolicy(),
                 skipSecurityChecks = true,
             )
-
-        val testSources = listOf(BlobSourceInfo(blobUrl))
+        val testSources =
+            listOf(
+                BlobSource(
+                    blobUrl,
+                    format = Format.multijson,
+                    compressionType = CompressionType.NONE,
+                ),
+            )
         val properties =
             IngestRequestProperties(
                 format = targetTestFormat,
@@ -136,7 +146,7 @@ class ManagedStreamingIngestClientTest :
             } else {
                 // Streaming ingestion - verify data was ingested
                 logger.info("Ingestion used streaming mode. Verifying data...")
-                kotlinx.coroutines.delay(3000)
+                delay(3000)
 
                 val results =
                     adminClusterClient
@@ -199,7 +209,7 @@ class ManagedStreamingIngestClientTest :
             )
 
         val source =
-            StreamSourceInfo(
+            StreamSource(
                 stream = ByteArrayInputStream(data.toByteArray()),
                 format = targetTestFormat,
                 sourceCompression = CompressionType.NONE,
@@ -223,7 +233,7 @@ class ManagedStreamingIngestClientTest :
                     ingestProperties = properties,
                 )
 
-            kotlinx.coroutines.delay(5000)
+            delay(5000)
 
             val results =
                 adminClusterClient
@@ -280,19 +290,18 @@ class ManagedStreamingIngestClientTest :
         // Download test data
         val deviceDataUrl =
             "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json"
-        val deviceData = java.net.URL(deviceDataUrl).readText()
+        val deviceData = URL(deviceDataUrl).readText()
         val targetFormat = Format.multijson
 
-        val source: AbstractSourceInfo =
+        val source: IngestionSource =
             when (sourceType) {
                 "file" -> {
                     val tempFile = Files.createTempFile(fileName, null)
                     Files.write(tempFile, deviceData.toByteArray())
-                    FileSourceInfo(
+                    FileSource(
                         path = tempFile,
                         format = targetFormat,
                         compressionType = CompressionType.NONE,
-                        name = fileName,
                         sourceId = UUID.randomUUID(),
                     )
                         .also {
@@ -307,7 +316,7 @@ class ManagedStreamingIngestClientTest :
                         }
                 }
                 "stream" ->
-                    StreamSourceInfo(
+                    StreamSource(
                         stream =
                         ByteArrayInputStream(
                             deviceData.toByteArray(),
@@ -413,7 +422,7 @@ class ManagedStreamingIngestClientTest :
 
         val testData = randomRow
         val source =
-            StreamSourceInfo(
+            StreamSource(
                 stream = ByteArrayInputStream(testData.toByteArray()),
                 format = targetTestFormat,
                 sourceCompression = CompressionType.NONE,
@@ -443,7 +452,7 @@ class ManagedStreamingIngestClientTest :
             )
 
             // Verify data was ingested (either via streaming or queued)
-            kotlinx.coroutines.delay(5000)
+            delay(5000)
 
             val results =
                 adminClusterClient

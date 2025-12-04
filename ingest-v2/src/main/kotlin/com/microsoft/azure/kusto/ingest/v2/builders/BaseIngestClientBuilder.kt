@@ -5,20 +5,21 @@ package com.microsoft.azure.kusto.ingest.v2.builders
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 
-abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
+abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var tokenCredential: TokenCredential? = null
     protected var skipSecurityChecks: Boolean = false
     protected var clientDetails: ClientDetails? = null
 
-    @Suppress("UNCHECKED_CAST")
-    protected fun self(): B = this as B
+    protected abstract fun self(): T
 
-    fun withAuthentication(credential: TokenCredential): B {
+    fun withAuthentication(credential: TokenCredential): T {
         this.tokenCredential = credential
+        // Something to ponder about in AadAzureCoreTokenCredentialProvider. This has caching and
+        // return as well
         return self()
     }
 
-    fun skipSecurityChecks(): B {
+    fun skipSecurityChecks(): T {
         this.skipSecurityChecks = true
         return self()
     }
@@ -37,7 +38,7 @@ abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
         applicationName: String,
         version: String,
         userName: String? = null,
-    ): B {
+    ): T {
         this.clientDetails =
             ClientDetails(
                 applicationForTracing = applicationName,
@@ -73,7 +74,7 @@ abstract class BaseIngestClientBuilder<B : BaseIngestClientBuilder<B>> {
         appName: String? = null,
         appVersion: String? = null,
         additionalFields: Map<String, String>? = null,
-    ): B {
+    ): T {
         this.clientDetails =
             ClientDetails.fromConnectorDetails(
                 name = name,

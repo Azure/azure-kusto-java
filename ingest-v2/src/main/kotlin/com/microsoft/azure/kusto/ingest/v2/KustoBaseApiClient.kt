@@ -29,7 +29,7 @@ open class KustoBaseApiClient(
     open val dmUrl: String,
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
-    open val clientDetails: ClientDetails? = ClientDetails.createDefault(),
+    open val clientDetails: ClientDetails,
     open val clientRequestIdPrefix: String = "KIC.execute",
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
@@ -38,7 +38,7 @@ open class KustoBaseApiClient(
         getClientConfig(config)
     }
 
-    protected val api: DefaultApi by lazy {
+    val api: DefaultApi by lazy {
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }
 

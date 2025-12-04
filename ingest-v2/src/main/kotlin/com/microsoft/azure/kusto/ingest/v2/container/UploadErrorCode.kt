@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2.container
 enum class UploadErrorCode(val code: String, val description: String) {
     // Stream validation errors
     SOURCE_IS_NULL("UploadError_SourceIsNull", "Upload source is null"),
+    SOURCE_NOT_FOUND("UploadError_SourceNotFound", "Upload source not found"),
     SOURCE_NOT_READABLE(
         "UploadError_SourceNotReadable",
         "Upload source is not readable",

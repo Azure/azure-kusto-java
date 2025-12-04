@@ -61,3 +61,7 @@ const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
 
 // Default maximum concurrency for blob upload operations
 const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4
+
+const val DEFAULT_MAX_BYTES_PER_FRAGMENT: Long = 250 * 1024 * 1024 // 250 MB
+
+const val DEFAULT_MAX_RECORDS_PER_FRAGMENT: Long = 1_000_000
