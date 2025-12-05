@@ -620,20 +620,21 @@ class QueuedIngestClientTest :
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
                 )
-//                val results =
-//                    adminClusterClient
-//                        .executeQuery(
-//                            database,
-//                            "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",
-//                        )
-//                        .primaryResults
-//                assertNotNull(results, "Query results should not be null")
-//                results.next()
-//                val count: Long = results.getLong("count")
-//                assertNotNull(count, "Count should not be null")
-//                assert(count > 0) {
-//                    "Expected some records in the table after ingestion"
-//                }
+                //                val results =
+                //                    adminClusterClient
+                //                        .executeQuery(
+                //                            database,
+                //                            "$targetTable | where Type == '$filterType' |
+                // summarize count=count() by SourceLocation",
+                //                        )
+                //                        .primaryResults
+                //                assertNotNull(results, "Query results should not be null")
+                //                results.next()
+                //                val count: Long = results.getLong("count")
+                //                assertNotNull(count, "Count should not be null")
+                //                assert(count > 0) {
+                //                    "Expected some records in the table after ingestion"
+                //                }
             } catch (e: Exception) {
                 fail("Ingestion failed for $formatName: ${e.message}")
             } finally {
