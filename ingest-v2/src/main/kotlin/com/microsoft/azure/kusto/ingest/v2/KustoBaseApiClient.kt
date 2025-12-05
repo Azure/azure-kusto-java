@@ -42,7 +42,6 @@ open class KustoBaseApiClient(
     val engineUrl: String
         get() = dmUrl.replace(Regex("https://ingest-"), "https://")
 
-
     val api: DefaultApi by lazy {
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }

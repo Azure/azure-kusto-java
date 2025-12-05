@@ -56,6 +56,7 @@ class DefaultConfigurationCacheTest {
             val refreshInterval = Duration.ofMillis(500) // 0.5 seconds
             val cache =
                 DefaultConfigurationCache(
+                    clientDetails = ClientDetails.createDefault(),
                     refreshInterval = refreshInterval,
                     configurationProvider =
                     ::mockConfigurationProvider,

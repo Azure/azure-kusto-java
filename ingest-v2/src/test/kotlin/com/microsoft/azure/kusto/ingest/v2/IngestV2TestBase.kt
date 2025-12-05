@@ -8,14 +8,12 @@ import com.microsoft.azure.kusto.data.Client
 import com.microsoft.azure.kusto.data.ClientFactory
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val logger: Logger = LoggerFactory.getLogger(testClass)
     protected val tokenProvider: TokenCredential =
@@ -29,7 +27,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val targetTestFormat = Format.json
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")
-    protected open val targetTable: String =
+    protected val targetTable: String =
         "Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
     protected val columnNamesToTypes: Map<String, String> =
         mapOf(
@@ -38,12 +36,13 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
             "messageId" to "guid",
             "temperature" to "real",
             "humidity" to "real",
+            "format" to "string",
             "SourceLocation" to "string",
             "Type" to "string",
         )
     protected lateinit var adminClusterClient: Client
 
-    @BeforeAll
+    @BeforeEach
     fun createTables() {
         val createTableScript =
             """
@@ -81,10 +80,10 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         )
     }
 
-    @AfterAll
+    @AfterEach
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
-        logger.error("Dropping table $targetTable")
-        adminClusterClient.executeMgmt(database, dropTableScript)
+        logger.info("Dropping table $targetTable")
+       // adminClusterClient.executeMgmt(database, dropTableScript)
     }
 }

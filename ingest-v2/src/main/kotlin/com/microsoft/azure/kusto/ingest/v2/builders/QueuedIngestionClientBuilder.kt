@@ -83,24 +83,33 @@ private constructor(private val dmUrl: String) :
         requireNotNull(tokenCredential) {
             "Authentication is required. Call withAuthentication() before build()"
         }
-        // TODO: Construct KustoBaseApiClient and ConfigurationCache as needed
         val effectiveClientDetails =
             clientDetails ?: ClientDetails.createDefault()
-        val effectiveConfiguration = configuration ?: DefaultConfigurationCache(
-            clientDetails = effectiveClientDetails,
-        )
+        val effectiveConfiguration =
+            configuration
+                ?: DefaultConfigurationCache(
+                    dmUrl = this.dmUrl,
+                    tokenCredential = this.tokenCredential,
+                    skipSecurityChecks = this.skipSecurityChecks,
+                    clientDetails = effectiveClientDetails,
+                )
         val apiClient =
             createApiClient(
-                dmUrl,
-                tokenCredential!!,
+                this.dmUrl,
+                this.tokenCredential!!,
                 effectiveClientDetails,
-                skipSecurityChecks,
+                this.skipSecurityChecks,
             )
         return QueuedIngestClient(
             apiClient = apiClient,
-            // TODO Question if this is redundant. ConfigurationCache is already held by uploader
+            // TODO Question if this is redundant. ConfigurationCache is already held by
+            // uploader
             cachedConfiguration = effectiveConfiguration,
-            uploader = uploader ?: createDefaultUploader(effectiveConfiguration),
+            uploader =
+            uploader
+                ?: createDefaultUploader(
+                    effectiveConfiguration,
+                ),
             shouldDisposeUploader = closeUploader,
         )
     }
@@ -119,7 +128,9 @@ private constructor(private val dmUrl: String) :
         )
     }
 
-    private fun createDefaultUploader(configuration: ConfigurationCache): IUploader {
+    private fun createDefaultUploader(
+        configuration: ConfigurationCache,
+    ): IUploader {
         val managedUploader =
             ManagedUploader(
                 ignoreSizeLimit = ignoreFileSize,

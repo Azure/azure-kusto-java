@@ -53,8 +53,8 @@ const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
 // Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
 val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
 
-// Default maximum number of retry attempts for container upload operations
-const val UPLOAD_CONTAINER_MAX_RETRIES: Int = 3
+// Number of blobs to upload in a single batch
+const val MAX_BLOBS_PER_BATCH: Int = 4
 
 // Default maximum data size for blob upload operations (4GB)
 const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
@@ -62,6 +62,4 @@ const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
 // Default maximum concurrency for blob upload operations
 const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4
 
-const val DEFAULT_MAX_BYTES_PER_FRAGMENT: Long = 250 * 1024 * 1024 // 250 MB
-
-const val DEFAULT_MAX_RECORDS_PER_FRAGMENT: Long = 1_000_000
+const val STREAMING_MAX_REQ_BODY_SIZE = 10 * 1024 * 1024 // 10 MB;

@@ -1,8 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.client
 
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
-import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
+import com.microsoft.azure.kusto.ingest.v2.STREAMING_MAX_REQ_BODY_SIZE
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
@@ -14,7 +17,7 @@ import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
-import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -24,35 +27,71 @@ import java.net.ConnectException
 import java.net.URI
 import java.util.UUID
 
-class StreamingIngestClient : IIngestClient {
-    private val logger = LoggerFactory.getLogger(StreamingIngestClient::class.java)
+/**
+ * Streaming ingestion client for Azure Data Explorer (Kusto).
+ *
+ * This client handles ingestion through the streaming ingestion path, which
+ * provides direct, synchronous data ingestion suitable for low-latency
+ * scenarios.
+ *
+ * **Important:** This class cannot be instantiated directly. Use
+ * [com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder]
+ * to create instances of this client. The internal constructor ensures that
+ * only the builder can create properly configured instances.
+ *
+ * **Note:** Streaming ingestion does not support operation tracking. The
+ * methods [getOperationSummaryAsync] and [getOperationDetailsAsync] will return
+ * empty responses with warnings logged.
+ *
+ * Example usage:
+ * ```
+ * val client = StreamingIngestClientBuilder.create(engineEndpoint)
+ *     .withAuthentication(tokenProvider)
+ *     .build()
+ * ```
+ *
+ * @see
+ *   com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
+ */
+class StreamingIngestClient : IngestClient {
+    private val logger =
+        LoggerFactory.getLogger(StreamingIngestClient::class.java)
     val apiClient: KustoBaseApiClient
-    val cachedConfiguration: ConfigurationCache
-    val uploader: IUploader
-    val shouldDisposeUploader: Boolean
 
-    internal constructor(
-        apiClient: KustoBaseApiClient,
-        cachedConfiguration: ConfigurationCache,
-        uploader: IUploader,
-        shouldDisposeUploader: Boolean = false,
-    ) {
+    internal constructor(apiClient: KustoBaseApiClient) {
         this.apiClient = apiClient
-        this.cachedConfiguration = cachedConfiguration
-        this.uploader = uploader
-        this.shouldDisposeUploader = shouldDisposeUploader
+    }
+
+    companion object {
+        private val EMPTY_STATUS =
+            Status(
+                succeeded = 0L,
+                failed = 0L,
+                inProgress = 0L,
+                canceled = 0L,
+            )
+
+        private val EMPTY_STATUS_RESPONSE =
+            StatusResponse(
+                status = EMPTY_STATUS,
+                details = emptyList(),
+                startTime = null,
+            )
     }
 
     override suspend fun ingestAsync(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties?
+        ingestRequestProperties: IngestRequestProperties?,
     ): IngestResponse {
         // Streaming ingestion processes one source at a time
+
+        val maxSize = getMaxStreamingIngestSize(source = source)
         val operationId = UUID.randomUUID().toString()
         val effectiveIngestionProperties =
-            props ?: IngestRequestProperties(format = Format.csv)
+            ingestRequestProperties
+                ?: IngestRequestProperties(format = Format.csv)
         when (source) {
             is BlobSource -> {
                 logger.info(
@@ -67,25 +106,26 @@ class StreamingIngestClient : IIngestClient {
                     blobUrl = source.blobPath,
                 )
             }
-            is FileSource -> {
+            is FileSource,
+            is StreamSource,
+            -> {
+                val name =
+                    when (source) {
+                        is FileSource -> source.name
+                        is StreamSource -> source.name
+                        else -> "UnknownSource"
+                    }
                 logger.info(
-                    "Streaming ingestion from FileSource: ${source.name}",
+                    "Streaming ingestion from ${source::class.simpleName}: $name",
                 )
                 val data = source.data().readBytes()
-                submitStreamingIngestion(
-                    database = database,
-                    table = table,
-                    data = data,
-                    ingestProperties = effectiveIngestionProperties,
-                    blobUrl = null,
-                )
-                source.close()
-            }
-            is StreamSource -> {
-                logger.info(
-                    "Streaming ingestion from StreamSource: ${source.name}",
-                )
-                val data = source.data().readBytes()
+                val contentSize = data.size
+                if (contentSize > maxSize) {
+                    val message =
+                        "Request content size $contentSize exceeds the maximum allowed size of $STREAMING_MAX_REQ_BODY_SIZE bytes."
+
+                    throw IngestException(message = message, isPermanent = true)
+                }
                 submitStreamingIngestion(
                     database = database,
                     table = table,
@@ -98,7 +138,7 @@ class StreamingIngestClient : IIngestClient {
             else -> {
                 throw IngestException(
                     message =
-                        "Unsupported source type for streaming ingestion: ${source::class.simpleName}",
+                    "Unsupported source type for streaming ingestion: ${source::class.simpleName}",
                     isPermanent = true,
                 )
             }
@@ -107,7 +147,6 @@ class StreamingIngestClient : IIngestClient {
         // We generate one locally for consistency with the IngestClient interface
         return IngestResponse(ingestionOperationId = operationId)
     }
-
 
     /**
      * Submits a streaming ingestion request.
@@ -139,7 +178,7 @@ class StreamingIngestClient : IIngestClient {
             val requestBody = StreamFromBlobRequestBody(sourceUri = blobUrl)
             bodyContent = Json.encodeToString(requestBody).toByteArray()
             sourceKind = "uri"
-            contentType = "application/json"
+            contentType = ContentType.Application.Json.toString()
             logger.info(
                 "Submitting streaming ingestion from blob for database: {}, table: {}, blob: {}. Host {}",
                 database,
@@ -151,7 +190,7 @@ class StreamingIngestClient : IIngestClient {
             // Direct streaming using raw data
             bodyContent = data
             sourceKind = null
-            contentType = "application/octet-stream"
+            contentType = ContentType.Application.OctetStream.toString()
             logger.info(
                 "Submitting streaming ingestion request for database: {}, table: {}, data size: {}. Host {}",
                 database,
@@ -169,7 +208,7 @@ class StreamingIngestClient : IIngestClient {
                     streamFormat = ingestProperties.format,
                     body = bodyContent,
                     mappingName =
-                        ingestProperties.ingestionMappingReference,
+                    ingestProperties.ingestionMappingReference,
                     sourceKind = sourceKind,
                     host = host,
                     acceptEncoding = "gzip",
@@ -201,25 +240,32 @@ class StreamingIngestClient : IIngestClient {
             if (e is IngestException) throw e
             throw IngestException(
                 message =
-                    "Error submitting streaming ingest request to ${this.apiClient.engineUrl}",
+                "Error submitting streaming ingest request to ${this.apiClient.engineUrl}",
                 cause = e,
+                failureSubCode =
+                UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
+                    .toString(),
                 isPermanent = true,
             )
         }
     }
 
-    override suspend fun getOperationSummaryAsync(operation: IngestionOperation): Status {
-        throw UnsupportedOperationException(
-            "Streaming ingestion does not support detailed operation tracking. " +
-                    "Operation ID: ${operation.operationId} cannot be tracked. ",
+    override suspend fun getOperationSummaryAsync(
+        operation: IngestionOperation,
+    ): Status {
+        logger.warn(
+            "Streaming ingestion does not support operation status tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status.",
         )
+        return EMPTY_STATUS
     }
 
-    override suspend fun getOperationDetailsAsync(operation: IngestionOperation): StatusResponse {
-        throw UnsupportedOperationException(
-            "Streaming ingestion does not support operation status tracking. " +
-                    "Operation ID: ${operation.operationId} cannot be tracked. ",
+    override suspend fun getOperationDetailsAsync(
+        operation: IngestionOperation,
+    ): StatusResponse {
+        logger.warn(
+            "Streaming ingestion does not support detailed operation tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status response.",
         )
+        return EMPTY_STATUS_RESPONSE
     }
 
     suspend fun <T : Any> handleIngestResponse(
@@ -237,13 +283,14 @@ class StreamingIngestClient : IIngestClient {
                     "Endpoint $engineUrl not found. Please ensure the cluster is reachable and supports streaming ingestion."
                 logger.error(
                     "$engineUrl streaming endpoint not found. Please ensure that the target cluster supports " +
-                            "streaming ingestion and that the endpoint URL is correct.",
+                        "streaming ingestion and that the endpoint URL is correct.",
                 )
                 throw IngestException(
                     message = message,
                     cause = ConnectException(message),
                     failureCode = response.status,
-                    failureSubCode = UploadErrorCode.NETWORK_ERROR.toString(),
+                    failureSubCode =
+                    UploadErrorCode.NETWORK_ERROR.toString(),
                     isPermanent = false,
                 )
             }
@@ -266,8 +313,8 @@ class StreamingIngestClient : IIngestClient {
                 }
             val errorMessage =
                 "Failed to submit streaming ingestion to $database.$table. " +
-                        "Status: ${response.status}, Body: $nonSuccessResponseBody. " +
-                        "OperationId $ingestResponseOperationId"
+                    "Status: ${response.status}, Body: $nonSuccessResponseBody. " +
+                    "OperationId $ingestResponseOperationId"
             logger.error(errorMessage)
             throw IngestException(
                 message = errorMessage,
@@ -277,9 +324,16 @@ class StreamingIngestClient : IIngestClient {
         }
     }
 
-    override fun close() {
-        TODO("Not yet implemented")
+    private fun getMaxStreamingIngestSize(source: IngestionSource): Long {
+        val compressionFactor =
+            IngestionUtils.getRowStoreEstimatedFactor(
+                source.format,
+                source.compressionType,
+            )
+        return (STREAMING_MAX_REQ_BODY_SIZE * compressionFactor).toLong()
     }
+
+    override fun close() {}
 }
 
 @Serializable

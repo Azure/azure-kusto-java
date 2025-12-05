@@ -86,7 +86,7 @@ open class IngestClientException(
 
 class IngestSizeLimitExceededException(
     val size: Long,
-    val maxSize: Long,
+    val maxNumberOfBlobs: Int,
     ingestionSourceId: String? = null,
     ingestionSource: String? = null,
     error: String? = null,
@@ -109,7 +109,7 @@ class IngestSizeLimitExceededException(
     override val message: String
         get() =
             creationMessage
-                ?: "Size too large to ingest: Source: '${ingestionSource ?: ""}' size in bytes is '$size' which exceeds the maximal size of '$maxSize'"
+                ?: "Size too large to ingest: Source: '${ingestionSource ?: ""}' size in bytes is '$size' which exceeds the maximal size of '$maxNumberOfBlobs'"
 }
 
 class InvalidIngestionMappingException(

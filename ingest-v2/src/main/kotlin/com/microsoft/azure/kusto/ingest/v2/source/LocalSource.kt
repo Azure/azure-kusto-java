@@ -3,10 +3,8 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.util.UUID
-import java.util.zip.GZIPOutputStream
 
 /** Abstract base class for local ingestion sources (file or stream). */
 abstract class LocalSource(
@@ -47,33 +45,6 @@ abstract class LocalSource(
     override fun close() {
         if (!leaveOpen) {
             mStream?.close()
-        }
-    }
-
-    /**
-     * Prepares the source data for blob upload, handling compression if needed.
-     * Returns a triple of (InputStream, size, effectiveCompressionType)
-     */
-    fun prepareForUpload(): Triple<InputStream, Long?, CompressionType> {
-        // Binary formats (Parquet, AVRO, ORC) already have internal compression and should not be
-        // compressed again
-        val shouldCompressData = shouldCompress
-        return if (shouldCompressData) {
-            // Compress using GZIP for non-binary formats
-            val byteStream = ByteArrayOutputStream()
-            GZIPOutputStream(byteStream).use { gzipOut ->
-                data().copyTo(gzipOut)
-            }
-            val bytes = byteStream.toByteArray()
-            Triple(
-                bytes.inputStream(),
-                bytes.size.toLong(),
-                CompressionType.GZIP,
-            )
-        } else {
-            val stream = data()
-            val dataSize = size()
-            Triple(stream, dataSize, compressionType)
         }
     }
 

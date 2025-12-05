@@ -23,7 +23,7 @@ import java.io.Closeable
  * [getOperationDetailsAsync] methods to get the status of the ingestion
  * operation.
  */
-interface IIngestClient : Closeable {
+interface IngestClient : Closeable {
 
     /**
      * Ingests data from the specified source into the specified database and
@@ -32,7 +32,7 @@ interface IIngestClient : Closeable {
      * @param source The source to ingest.
      * @param database The name of the database to ingest to.
      * @param table The name of the table to ingest to.
-     * @param props Optional ingestion properties.
+     * @param ingestRequestProperties Optional ingestion properties.
      * @return An [IngestionOperation] object that can be used to track the
      *   status of the ingestion.
      */
@@ -40,7 +40,7 @@ interface IIngestClient : Closeable {
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties? = null,
+        ingestRequestProperties: IngestRequestProperties? = null,
     ): IngestResponse
 
     /**
@@ -50,12 +50,12 @@ interface IIngestClient : Closeable {
      * of the operation - statistics on the blobs ingested, and the operation
      * status.
      *
-     * To use this method, the [IngestProperties.enableTracking] property must
-     * be set to true when ingesting the data.
+     * To use this method, the [IngestRequestProperties.enableTracking] property
+     * must be set to true when ingesting the data.
      *
      * @param operation The ingestion operation to get the status for.
-     * @return An [OperationSummary] object that provides a summary of the
-     *   ingestion operation.
+     * @return An [Status] object that provides a summary of the ingestion
+     *   operation.
      */
     suspend fun getOperationSummaryAsync(operation: IngestionOperation): Status
 
@@ -70,7 +70,7 @@ interface IIngestClient : Closeable {
      * must be set to true when ingesting the data.
      *
      * @param operation The ingestion operation to get the status for.
-     * @return An [OperationDetails] object that provides detailed information
+     * @return An [StatusResponse] object that provides detailed information
      *   about the ingestion operation.
      */
     suspend fun getOperationDetailsAsync(
@@ -79,7 +79,7 @@ interface IIngestClient : Closeable {
 }
 
 /** Interface for ingesting from multiple data sources into Kusto. */
-interface IMultiIngestClient : IIngestClient {
+interface MultiIngestClient : IngestClient {
 
     /**
      * Ingest data from multiple sources.
@@ -87,15 +87,15 @@ interface IMultiIngestClient : IIngestClient {
      * @param sources The sources to ingest.
      * @param database The name of the database to ingest to.
      * @param table The name of the table to ingest to.
-     * @param props Optional ingestion properties.
+     * @param ingestRequestProperties Optional ingestion properties.
      * @return An [IngestionOperation] object that can be used to track the
      *   status of the ingestion.
      */
     suspend fun ingestAsync(
-        sources: List<BlobSource>,
+        sources: List<IngestionSource>,
         database: String,
         table: String,
-        props: IngestRequestProperties? = null,
+        ingestRequestProperties: IngestRequestProperties? = null,
     ): IngestResponse
 
     /**
@@ -108,5 +108,5 @@ interface IMultiIngestClient : IIngestClient {
      * @return The maximum number of sources allowed in a single ingestion
      *   request.
      */
-    fun getMaxSourcesPerMultiIngest(): Int
+    suspend fun getMaxSourcesPerMultiIngest(): Int
 }

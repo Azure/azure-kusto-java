@@ -18,6 +18,7 @@ interface ConfigurationCache : AutoCloseable {
     override fun close()
 }
 
+// TODO check for the refresh once the Default is created
 class DefaultConfigurationCache(
     override val refreshInterval: Duration =
         Duration.ofHours(CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS),
@@ -28,7 +29,6 @@ class DefaultConfigurationCache(
     val clientDetails: ClientDetails,
     val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
-
     init {
         if (
             configurationProvider == null &&
