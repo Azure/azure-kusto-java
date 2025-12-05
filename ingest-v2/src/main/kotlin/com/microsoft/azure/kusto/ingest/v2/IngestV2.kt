@@ -5,23 +5,8 @@ package com.microsoft.azure.kusto.ingest.v2
 // Size of each block to upload to Azure Blob Storage (4 MB)
 const val UPLOAD_BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024
 
-// Maximum number of concurrent upload operations for blob upload
-const val UPLOAD_MAX_CONCURRENCY: Int = 8
-
 // Maximum size for a single upload operation to Azure Blob Storage (256 MB)
 const val UPLOAD_MAX_SINGLE_SIZE_BYTES: Long = 256 * 1024 * 1024
-
-// Maximum number of retry attempts for blob upload operations
-const val UPLOAD_RETRY_MAX_TRIES: Int = 3
-
-// Timeout in seconds for each blob upload attempt
-const val UPLOAD_RETRY_TIMEOUT_SECONDS: Int = 60
-
-// Initial delay in milliseconds between blob upload retry attempts
-const val UPLOAD_RETRY_DELAY_MS: Long = 100
-
-// Maximum delay in milliseconds between blob upload retry attempts
-const val UPLOAD_RETRY_MAX_DELAY_MS: Long = 300
 
 // Request timeout in milliseconds for Kusto API HTTP requests
 const val KUSTO_API_REQUEST_TIMEOUT_MS: Long = 60_000

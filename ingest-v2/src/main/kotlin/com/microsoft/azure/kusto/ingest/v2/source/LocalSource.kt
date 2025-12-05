@@ -37,11 +37,6 @@ abstract class LocalSource(
      */
     abstract fun size(): Long?
 
-    /** Resets the stream position to the beginning. */
-    fun reset() {
-        data().apply { reset() }
-    }
-
     override fun close() {
         if (!leaveOpen) {
             mStream?.close()
