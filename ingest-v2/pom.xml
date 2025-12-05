@@ -178,7 +178,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <typeMappings>integer=java.lang.Long,int=java.lang.Long</typeMappings>
+                            <typeMappings>integer=kotlin.Long,int=kotlin.Long</typeMappings>
                             <globalProperties>
                                 <authMethods>bearer</authMethods>
                             </globalProperties>

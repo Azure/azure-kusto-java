@@ -25,6 +25,7 @@ class DefaultConfigurationCache(
     val tokenCredential: TokenCredential? = null,
     val skipSecurityChecks: Boolean? =
         CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS,
+    val clientDetails: ClientDetails,
     val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
 
@@ -50,6 +51,7 @@ class DefaultConfigurationCache(
                     dmUrl!!,
                     tokenCredential!!,
                     skipSecurityChecks!!,
+                    clientDetails,
                 )
                     .getConfigurationDetails()
             }

@@ -26,11 +26,10 @@ import java.time.OffsetDateTime
 
 class QueuedIngestClient : IMultiIngestClient {
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
-
-    val apiClient: KustoBaseApiClient
-    val cachedConfiguration: ConfigurationCache
-    val uploader: IUploader
-    val shouldDisposeUploader: Boolean
+    private val apiClient: KustoBaseApiClient
+    private val cachedConfiguration: ConfigurationCache
+    private val uploader: IUploader
+    private val shouldDisposeUploader: Boolean
 
     internal constructor(
         apiClient: KustoBaseApiClient,
@@ -96,18 +95,20 @@ class QueuedIngestClient : IMultiIngestClient {
                 "Duplicate blob sources detected in the request: [$duplicateInfo]",
             )
         }
+
         val blobs =
             sources.map {
                 Blob(
                     it.blobPath,
                     sourceId = it.sourceId.toString(),
-                    rawSize = it.blobExactSize ?: 0L,
+                    rawSize = it.blobExactSize,
                 )
             }
         val ingestRequest =
             IngestRequest(
                 timestamp = OffsetDateTime.now(Clock.systemUTC()),
                 blobs = blobs,
+                properties = props,
             )
         val response: HttpResponse<IngestResponse> =
             this.apiClient.api.postQueuedIngest(

@@ -34,8 +34,7 @@ class FileSource(
                     throw InvalidUploadStreamException(
                         fileName = path.toString(),
                         blobName = null,
-                        failureSubCode =
-                        UploadErrorCode.SOURCE_NOT_FOUND.toString(),
+                        failureSubCode = UploadErrorCode.SOURCE_NOT_FOUND,
                         isPermanent = true,
                         cause =
                         FileNotFoundException(
@@ -48,8 +47,7 @@ class FileSource(
                 throw InvalidUploadStreamException(
                     fileName = path.toString(),
                     blobName = null,
-                    failureSubCode =
-                    UploadErrorCode.SOURCE_NOT_FOUND.toString(),
+                    failureSubCode = UploadErrorCode.SOURCE_NOT_FOUND,
                     isPermanent = true,
                     cause = e,
                 )
@@ -57,8 +55,7 @@ class FileSource(
                 throw InvalidUploadStreamException(
                     fileName = path.toString(),
                     blobName = null,
-                    failureSubCode =
-                    UploadErrorCode.SOURCE_NOT_READABLE.toString(),
+                    failureSubCode = UploadErrorCode.SOURCE_NOT_READABLE,
                     isPermanent = false,
                     cause = e,
                 )
@@ -67,8 +64,7 @@ class FileSource(
                 throw InvalidUploadStreamException(
                     fileName = path.toString(),
                     blobName = null,
-                    failureSubCode =
-                    UploadErrorCode.SOURCE_IS_EMPTY.toString(),
+                    failureSubCode = UploadErrorCode.SOURCE_IS_EMPTY,
                     isPermanent = true,
                 )
             }

@@ -15,6 +15,7 @@ import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
+import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
@@ -38,15 +39,18 @@ open class KustoBaseApiClient(
         getClientConfig(config)
     }
 
+    val engineUrl: String
+        get() = dmUrl.replace(Regex("https://ingest-"), "https://")
+
+
     val api: DefaultApi by lazy {
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }
 
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
-            header("Content-Type", "application/json")
-
-            clientDetails?.let { details ->
+            header("Content-Type", ContentType.Application.Json.toString())
+            clientDetails.let { details ->
                 header("x-ms-app", details.getApplicationForTracing())
                 header("x-ms-user", details.getUserNameForTracing())
                 header(
@@ -59,8 +63,8 @@ open class KustoBaseApiClient(
             val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
             header("x-ms-client-request-id", clientRequestId)
             header("x-ms-version", KUSTO_API_VERSION)
-            header("Connection", "Keep-Alive")
-            header("Accept", "application/json")
+            header("Connection", "keep-alive")
+            header("Accept", ContentType.Application.Json.toString())
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {

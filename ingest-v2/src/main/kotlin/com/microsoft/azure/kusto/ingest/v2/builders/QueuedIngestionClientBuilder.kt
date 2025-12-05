@@ -84,18 +84,23 @@ private constructor(private val dmUrl: String) :
             "Authentication is required. Call withAuthentication() before build()"
         }
         // TODO: Construct KustoBaseApiClient and ConfigurationCache as needed
+        val effectiveClientDetails =
+            clientDetails ?: ClientDetails.createDefault()
+        val effectiveConfiguration = configuration ?: DefaultConfigurationCache(
+            clientDetails = effectiveClientDetails,
+        )
         val apiClient =
             createApiClient(
                 dmUrl,
                 tokenCredential!!,
-                clientDetails ?: ClientDetails.createDefault(),
+                effectiveClientDetails,
                 skipSecurityChecks,
             )
         return QueuedIngestClient(
             apiClient = apiClient,
-            cachedConfiguration =
-            configuration ?: DefaultConfigurationCache(),
-            uploader = uploader ?: createDefaultUploader(),
+            // TODO Question if this is redundant. ConfigurationCache is already held by uploader
+            cachedConfiguration = effectiveConfiguration,
+            uploader = uploader ?: createDefaultUploader(effectiveConfiguration),
             shouldDisposeUploader = closeUploader,
         )
     }
@@ -114,14 +119,13 @@ private constructor(private val dmUrl: String) :
         )
     }
 
-    private fun createDefaultUploader(): IUploader {
+    private fun createDefaultUploader(configuration: ConfigurationCache): IUploader {
         val managedUploader =
             ManagedUploader(
                 ignoreSizeLimit = ignoreFileSize,
                 maxConcurrency = maxConcurrency,
                 maxDataSize = maxDataSize,
-                configurationCache =
-                configuration ?: DefaultConfigurationCache(),
+                configurationCache = configuration,
             )
         return managedUploader
     }
