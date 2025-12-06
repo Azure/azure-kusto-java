@@ -31,6 +31,7 @@ import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.UUID
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
@@ -124,18 +125,17 @@ class QueuedIngestClientTest :
     @ParameterizedTest(name = "[QueuedIngestion] {index} => TestName ={0}")
     @CsvSource(
         // Single JSON blob, no mapping
-        "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false,0",
+        "QueuedIngestion-NoMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,false",
         // Single JSON blob, with mapping reference
-        "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false,0",
+        "QueuedIngestion-WithMappingReference,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,true,false",
         // Single JSON blob, with inline mapping
-        "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true,0",
+        "QueuedIngestion-WithInlineMapping,https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json,false,true",
     )
     fun `test queued ingestion with blob variations`(
         testName: String,
         blobUrl: String,
         useMappingReference: Boolean,
         useInlineIngestionMapping: Boolean,
-        numberOfFailures: Int,
     ): Unit = runBlocking {
         logger.info("Starting test: $testName")
         val ingestClient = createTestClient()
@@ -253,8 +253,8 @@ class QueuedIngestClientTest :
                 assert(succeededCount > 0 || failedCount > 0) {
                     "Expected at least some blobs to be processed"
                 }
-                assert(failedCount == numberOfFailures) {
-                    "Expected $numberOfFailures failed ingestions, but got $failedCount"
+                assert(failedCount == 0) {
+                    "Expected 0 failed ingestions, but got $failedCount"
                 }
 
                 if (failedCount > 0) {
@@ -283,10 +283,10 @@ class QueuedIngestClientTest :
                             .primaryResults
                     assertNotNull(results, "Query results should not be null")
                     results.next()
-                    val count: Long = results.getLong("count")
+                    val count: Int = results.getInt("count")
                     assertNotNull(count, "Count should not be null")
-                    assert(count > 0) {
-                        "Expected some records in the table after ingestion"
+                    assert(count == 5) {
+                        "Expected 5 records in the table after ingestion"
                     }
                 }
             }
@@ -532,17 +532,18 @@ class QueuedIngestClientTest :
     )
     @CsvSource(
         // Format, Resource file path, Compression type, Expected success
-        "multijson,compression/sample.multijson,NONE",
-        "multijson,compression/sample.multijson.gz,GZIP",
-        "multijson,compression/sample.multijson.zip,ZIP",
-        "multijson,compression/sample.json,NONE",
-        "parquet,compression/sample.parquet,NONE",
-        "avro,compression/sample.avro,NONE",
+        "multijson,compression/sample.multijson,NONE,1",
+        "multijson,compression/sample.multijson.gz,GZIP,1",
+        "multijson,compression/sample.multijson.zip,ZIP,1",
+        "json,compression/sample.json,NONE,3",
+        "parquet,compression/sample.parquet,NONE,1",
+        "avro,compression/sample.avro,NONE,1",
     )
     fun `E2E - compression format tests`(
         formatName: String,
         resourcePath: String,
         compressionTypeName: String,
+        expectedRecordCount:Int
     ): Unit = runBlocking {
         logger.info(
             "E2E: Testing format=$formatName, compression=$compressionTypeName, file=$resourcePath",
@@ -620,21 +621,21 @@ class QueuedIngestClientTest :
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
                 )
-                //                val results =
-                //                    adminClusterClient
-                //                        .executeQuery(
-                //                            database,
-                //                            "$targetTable | where Type == '$filterType' |
-                // summarize count=count() by SourceLocation",
-                //                        )
-                //                        .primaryResults
-                //                assertNotNull(results, "Query results should not be null")
-                //                results.next()
-                //                val count: Long = results.getLong("count")
-                //                assertNotNull(count, "Count should not be null")
-                //                assert(count > 0) {
-                //                    "Expected some records in the table after ingestion"
-                //                }
+                val results =
+                    adminClusterClient
+                        .executeQuery(
+                            database,
+                            "$targetTable | where format == '$format' |summarize count=count() by format",
+                        )
+                        .primaryResults
+                assertNotNull(results, "Query results should not be null")
+                results.next()
+                val actualCount: Int = results.getInt("count")
+                assertNotNull(actualCount, "Count should not be null")
+                assert(actualCount > 0) {
+                    "Expected some records in the table after ingestion"
+                }
+                assertEquals(expectedRecordCount,actualCount,"Record count mismatch for format $formatName")
             } catch (e: Exception) {
                 fail("Ingestion failed for $formatName: ${e.message}")
             } finally {

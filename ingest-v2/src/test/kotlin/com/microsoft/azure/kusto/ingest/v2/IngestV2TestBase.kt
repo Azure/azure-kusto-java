@@ -28,7 +28,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")
     protected val targetTable: String =
-        "Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
+        "V2_Java_Tests_Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
     protected val columnNamesToTypes: Map<String, String> =
         mapOf(
             "timestamp" to "datetime",
