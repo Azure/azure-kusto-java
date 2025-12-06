@@ -41,9 +41,9 @@ import kotlin.time.Duration
  * capabilities.
  *
  * **Important:** This class cannot be instantiated directly. Use
- * [com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestionClientBuilder]
- * to create instances of this client. The internal constructor ensures that
- * only the builder can create properly configured instances.
+ * [com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder] to
+ * create instances of this client. The internal constructor ensures that only
+ * the builder can create properly configured instances.
  *
  * Example usage:
  * ```

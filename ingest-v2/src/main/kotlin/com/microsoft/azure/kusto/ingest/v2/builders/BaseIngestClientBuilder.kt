@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 
 abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
@@ -10,12 +11,16 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var skipSecurityChecks: Boolean = false
     protected var clientDetails: ClientDetails? = null
 
+    // Added properties for ingestion endpoint and authentication
+    protected var ingestionEndpoint: String? = null
+    protected var clusterEndpoint: String? = null
+    protected var authentication: TokenCredential? = null
+
     protected abstract fun self(): T
 
     fun withAuthentication(credential: TokenCredential): T {
         this.tokenCredential = credential
-        // Something to ponder about in AadAzureCoreTokenCredentialProvider. This has caching and
-        // return as well
+        this.authentication = credential // Set authentication
         return self()
     }
 
@@ -86,5 +91,49 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
                 additionalFields = additionalFields,
             )
         return self()
+    }
+
+    protected fun createApiClient(
+        dmUrl: String,
+        tokenCredential: TokenCredential,
+        clientDetails: ClientDetails,
+        skipSecurityChecks: Boolean,
+    ): KustoBaseApiClient {
+        return KustoBaseApiClient(
+            dmUrl = dmUrl,
+            tokenCredential = tokenCredential,
+            skipSecurityChecks = skipSecurityChecks,
+            clientDetails = clientDetails,
+        )
+    }
+
+    protected fun setEndpoint(endpoint: String) {
+        this.ingestionEndpoint = normalizeAndCheckDmUrl(endpoint)
+        this.clusterEndpoint = normalizeAndCheckEngineUrl(endpoint)
+    }
+
+    protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
+        val normalizedUrl =
+            if (clusterUrl.matches(Regex("https://ingest-[^/]+.*"))) {
+                // If the URL starts with https://ingest-, remove ingest-
+                clusterUrl.replace(
+                    Regex("https://ingest-([^/]+)"),
+                    "https://$1",
+                )
+            } else {
+                clusterUrl
+            }
+        return normalizedUrl
+    }
+
+    protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
+        val normalizedUrl =
+            if (dmUrl.matches(Regex("https://(?!ingest-)[^/]+.*"))) {
+                // If the URL starts with https:// and does not already have ingest-, add it
+                dmUrl.replace(Regex("https://([^/]+)"), "https://ingest-$1")
+            } else {
+                dmUrl
+            }
+        return normalizedUrl
     }
 }

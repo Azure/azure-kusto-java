@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
-import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestionClientBuilder
+import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
@@ -48,7 +48,7 @@ class QueuedIngestClientTest :
         ignoreFileSize: Boolean = false,
     ): QueuedIngestClient {
         val builder =
-            QueuedIngestionClientBuilder.create(dmEndpoint)
+            QueuedIngestClientBuilder.create(dmEndpoint)
                 .withAuthentication(tokenProvider)
                 .skipSecurityChecks()
 
@@ -84,7 +84,7 @@ class QueuedIngestClientTest :
 
         // builder with connector client details (uses custom configuration)
         val client2 =
-            QueuedIngestionClientBuilder.create(dmEndpoint)
+            QueuedIngestClientBuilder.create(dmEndpoint)
                 .withAuthentication(tokenProvider)
                 .withConnectorClientDetails(
                     name = "TestConnector",
@@ -106,7 +106,7 @@ class QueuedIngestClientTest :
 
         // builder with connector client details and user (uses custom configuration)
         val client3 =
-            QueuedIngestionClientBuilder.create(dmEndpoint)
+            QueuedIngestClientBuilder.create(dmEndpoint)
                 .withAuthentication(tokenProvider)
                 .withConnectorClientDetails(
                     name = "TestConnector",
@@ -543,7 +543,7 @@ class QueuedIngestClientTest :
         formatName: String,
         resourcePath: String,
         compressionTypeName: String,
-        expectedRecordCount:Int
+        expectedRecordCount: Int,
     ): Unit = runBlocking {
         logger.info(
             "E2E: Testing format=$formatName, compression=$compressionTypeName, file=$resourcePath",
@@ -635,7 +635,11 @@ class QueuedIngestClientTest :
                 assert(actualCount > 0) {
                     "Expected some records in the table after ingestion"
                 }
-                assertEquals(expectedRecordCount,actualCount,"Record count mismatch for format $formatName")
+                assertEquals(
+                    expectedRecordCount,
+                    actualCount,
+                    "Record count mismatch for format $formatName",
+                )
             } catch (e: Exception) {
                 fail("Ingestion failed for $formatName: ${e.message}")
             } finally {
