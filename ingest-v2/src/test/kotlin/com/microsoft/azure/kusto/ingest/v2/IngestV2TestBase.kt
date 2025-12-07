@@ -84,6 +84,6 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
         logger.info("Dropping table $targetTable")
-        //adminClusterClient.executeMgmt(database, dropTableScript)
+        adminClusterClient.executeMgmt(database, dropTableScript)
     }
 }
