@@ -5,12 +5,12 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
@@ -30,6 +30,10 @@ import java.io.ByteArrayInputStream
 import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.Clock
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -143,12 +147,12 @@ class QueuedIngestClientTest :
 
         val properties =
             if (useMappingReference) {
-                IngestRequestProperties(
-                    format = targetTestFormat,
-                    ingestionMappingReference =
-                    "${targetTable}_mapping",
-                    enableTracking = true,
-                )
+                IngestRequestPropertiesBuilder(format = targetTestFormat)
+                    .withIngestionMappingReference(
+                        "${targetTable}_mapping",
+                    )
+                    .withEnableTracking(true)
+                    .build()
             } else if (useInlineIngestionMapping) {
                 val ingestionColumnMappings =
                     columnNamesToTypes.keys.map { col ->
@@ -199,16 +203,14 @@ class QueuedIngestClientTest :
                     Json.encodeToString(
                         inlineIngestionMappingInline.columnMappings,
                     )
-                IngestRequestProperties(
-                    format = targetTestFormat,
-                    ingestionMapping = ingestionMappingString,
-                    enableTracking = true,
-                )
+                IngestRequestPropertiesBuilder(format = targetTestFormat)
+                    .withIngestionMapping(ingestionMappingString)
+                    .withEnableTracking(true)
+                    .build()
             } else {
-                IngestRequestProperties(
-                    format = targetTestFormat,
-                    enableTracking = true,
-                )
+                IngestRequestPropertiesBuilder(format = targetTestFormat)
+                    .withEnableTracking(true)
+                    .build()
             }
 
         try {
@@ -348,10 +350,11 @@ class QueuedIngestClientTest :
                     database = database,
                     table = targetTable,
                     ingestRequestProperties =
-                    IngestRequestProperties(
+                    IngestRequestPropertiesBuilder(
                         format = Format.multijson,
-                        enableTracking = true,
-                    ),
+                    )
+                        .withEnableTracking(true)
+                        .build(),
                 )
             assertNotNull(smallResponse.ingestionOperationId)
             val smallStatus =
@@ -386,10 +389,11 @@ class QueuedIngestClientTest :
                     table = targetTable,
                     source = largeSource,
                     ingestRequestProperties =
-                    IngestRequestProperties(
+                    IngestRequestPropertiesBuilder(
                         format = Format.multijson,
-                        enableTracking = true,
-                    ),
+                    )
+                        .withEnableTracking(true)
+                        .build(),
                 )
             assertNotNull(largeResponse.ingestionOperationId)
             val largeStatus =
@@ -426,10 +430,11 @@ class QueuedIngestClientTest :
                     table = targetTable,
                     sources = batchSources,
                     ingestRequestProperties =
-                    IngestRequestProperties(
+                    IngestRequestPropertiesBuilder(
                         format = Format.multijson,
-                        enableTracking = true,
-                    ),
+                    )
+                        .withEnableTracking(true)
+                        .build(),
                 )
             assertNotNull(batchResponse.ingestionOperationId)
             val batchStatus =
@@ -480,10 +485,11 @@ class QueuedIngestClientTest :
                     table = targetTable,
                     sources = sources,
                     ingestRequestProperties =
-                    IngestRequestProperties(
+                    IngestRequestPropertiesBuilder(
                         format = Format.multijson,
-                        enableTracking = true,
-                    ),
+                    )
+                        .withEnableTracking(true)
+                        .build(),
                 )
             val uploadDuration = System.currentTimeMillis() - startTime
 
@@ -582,16 +588,29 @@ class QueuedIngestClientTest :
                 )
 
             try {
+                val createdTimeTag =
+                    OffsetDateTime.now(Clock.systemUTC())
+                        .minusDays((1L..10L).random())
+                val extentTags =
+                    listOf("ingest-by:i-tag") + listOf("drop-by:d-tag")
                 val response =
                     queuedIngestClient.ingestAsync(
                         sources = listOf(source),
                         database = database,
                         table = targetTable,
                         ingestRequestProperties =
-                        IngestRequestProperties(
+                        IngestRequestPropertiesBuilder(
                             format = format,
-                            enableTracking = true,
-                        ),
+                        )
+                            .withEnableTracking(true)
+                            .withIngestByTags(
+                                listOf("i-tag"),
+                            )
+                            .withDropByTags(listOf("d-tag"))
+                            .withCreationTime(
+                                createdTimeTag,
+                            )
+                            .build(),
                     )
 
                 val operationId =
@@ -640,7 +659,48 @@ class QueuedIngestClientTest :
                     actualCount,
                     "Record count mismatch for format $formatName",
                 )
+                val extentDetailsResults =
+                    adminClusterClient
+                        .executeMgmt(
+                            database,
+                            ".show table $targetTable extents | project MinCreatedOn,Tags",
+                        )
+                        .primaryResults
+                assertNotNull(
+                    extentDetailsResults,
+                    "Query results should not be null",
+                )
+                extentDetailsResults.next()
+                val actualCreatedOnTime: Instant =
+                    Instant.parse(
+                        extentDetailsResults.getString("MinCreatedOn"),
+                    )
+                val actualTags: String = extentDetailsResults.getString("Tags")
+                assertNotNull(
+                    actualCreatedOnTime,
+                    "Extent timestamp should not be null",
+                )
+                assertNotNull(actualTags, "Extent timestamp should not be null")
+                /* TODO : This is being checked in the ingestion service side now. Uncomment when confirmed
+                val actualCreatedOnInstant =
+                    actualCreatedOnTime.truncatedTo(ChronoUnit.MINUTES)
+                val expectedCreatedOnInstant =
+                    createdTimeTag
+                        .toInstant()
+                        .truncatedTo(ChronoUnit.MINUTES)
+                assert(actualCreatedOnInstant == expectedCreatedOnInstant) {
+                    "Extent creation time $actualCreatedOnInstant is <> expected $expectedCreatedOnInstant (rounded to minutes)"
+                }
+                */
+                extentTags.forEach { tag ->
+                    assert(
+                        actualTags.contains(tag),
+                    ) {
+                        "Extent tags $actualTags does not contain expected tag $tag"
+                    }
+                }
             } catch (e: Exception) {
+                e.printStackTrace()
                 fail("Ingestion failed for $formatName: ${e.message}")
             } finally {
                 Files.deleteIfExists(tempFile)
@@ -714,10 +774,11 @@ test2,456,2024-01-02"""
                         table = targetTable,
                         sources = sources,
                         ingestRequestProperties =
-                        IngestRequestProperties(
+                        IngestRequestPropertiesBuilder(
                             format = Format.json,
-                            enableTracking = true,
-                        ),
+                        )
+                            .withEnableTracking(true)
+                            .build(),
                     )
                 }
             }
@@ -782,10 +843,9 @@ test2,456,2024-01-02"""
 
         val queuedIngestClient = createTestClient()
         val properties =
-            IngestRequestProperties(
-                format = targetFormat,
-                enableTracking = true,
-            )
+            IngestRequestPropertiesBuilder(format = targetFormat)
+                .withEnableTracking(true)
+                .build()
 
         val ingestionResponse =
             queuedIngestClient.ingestAsync(

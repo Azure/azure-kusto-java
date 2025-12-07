@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2.client
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.STREAMING_MAX_REQ_BODY_SIZE
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -91,7 +92,8 @@ class StreamingIngestClient : IngestClient {
         val operationId = UUID.randomUUID().toString()
         val effectiveIngestionProperties =
             ingestRequestProperties
-                ?: IngestRequestProperties(format = Format.csv)
+                ?: IngestRequestPropertiesBuilder(format = Format.csv)
+                    .build()
         when (source) {
             is BlobSource -> {
                 logger.info(

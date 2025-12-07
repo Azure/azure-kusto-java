@@ -8,10 +8,12 @@ import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
@@ -181,13 +183,19 @@ class QueuedIngestClient : MultiIngestClient {
         table: String,
         ingestRequestProperties: IngestRequestProperties?,
     ): IngestResponse {
+        // Add this as a fallback because the format is mandatory and if that is not present it may
+        // cause a failure
+        val effectiveIngestionProperties =
+            ingestRequestProperties
+                ?: IngestRequestPropertiesBuilder(format = Format.csv)
+                    .build()
         when (source) {
             is BlobSource -> {
                 return ingestAsync(
                     listOf(source),
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveIngestionProperties,
                 )
             }
             is LocalSource -> {
@@ -197,7 +205,7 @@ class QueuedIngestClient : MultiIngestClient {
                     listOf(blobSource),
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveIngestionProperties,
                 )
             }
             else -> {
