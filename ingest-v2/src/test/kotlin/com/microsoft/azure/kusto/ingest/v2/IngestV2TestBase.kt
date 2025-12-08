@@ -74,6 +74,17 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
             )
         adminClusterClient.executeMgmt(database, createTableScript)
         adminClusterClient.executeMgmt(database, mappingReference)
+        clearDatabaseSchemaCache()
+    }
+
+    protected fun alterTableToEnableStreaming() {
+        adminClusterClient.executeMgmt(
+            database,
+            ".alter table $targetTable policy streamingingestion enable",
+        )
+    }
+
+    protected fun clearDatabaseSchemaCache() {
         adminClusterClient.executeMgmt(
             database,
             ".clear database cache streamingingestion schema",
@@ -84,6 +95,6 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     fun dropTables() {
         val dropTableScript = ".drop table $targetTable ifexists"
         logger.info("Dropping table $targetTable")
-        adminClusterClient.executeMgmt(database, dropTableScript)
+        //adminClusterClient.executeMgmt(database, dropTableScript)
     }
 }

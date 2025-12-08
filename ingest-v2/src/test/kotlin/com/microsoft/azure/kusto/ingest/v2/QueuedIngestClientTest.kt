@@ -33,7 +33,6 @@ import java.nio.file.StandardCopyOption
 import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -691,11 +690,9 @@ class QueuedIngestClientTest :
                 assert(actualCreatedOnInstant == expectedCreatedOnInstant) {
                     "Extent creation time $actualCreatedOnInstant is <> expected $expectedCreatedOnInstant (rounded to minutes)"
                 }
-                */
+                 */
                 extentTags.forEach { tag ->
-                    assert(
-                        actualTags.contains(tag),
-                    ) {
+                    assert(actualTags.contains(tag)) {
                         "Extent tags $actualTags does not contain expected tag $tag"
                     }
                 }
