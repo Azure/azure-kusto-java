@@ -3,8 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
-import com.microsoft.azure.kusto.ingest.v2.models.Status
-import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 
 enum class IngestKind {
     STREAMING,

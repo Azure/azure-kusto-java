@@ -3,8 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2.client
 
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
