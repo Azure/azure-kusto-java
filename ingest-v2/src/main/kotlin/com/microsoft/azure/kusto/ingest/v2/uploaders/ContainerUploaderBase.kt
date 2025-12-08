@@ -315,6 +315,9 @@ abstract class ContainerUploaderBase(
         if (length == 0L) {
             return UploadErrorCode.SOURCE_IS_EMPTY
         }
+        if (length > maxDataSize && !ignoreSizeLimit) {
+            return UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
+        }
         return null
     }
 

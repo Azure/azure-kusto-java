@@ -5,6 +5,10 @@ package com.microsoft.azure.kusto.ingest.v2.client
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.STREAMING_MAX_REQ_BODY_SIZE
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
@@ -54,29 +58,31 @@ import java.util.UUID
  * @see
  *   com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
  */
-class StreamingIngestClient : IngestClient {
+class StreamingIngestClient
+internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
     private val logger =
         LoggerFactory.getLogger(StreamingIngestClient::class.java)
-    val apiClient: KustoBaseApiClient
-
-    internal constructor(apiClient: KustoBaseApiClient) {
-        this.apiClient = apiClient
-    }
 
     companion object {
         private val EMPTY_STATUS =
-            Status(
-                succeeded = 0L,
-                failed = 0L,
-                inProgress = 0L,
-                canceled = 0L,
+            ExtendedStatus(
+                Status(
+                    succeeded = 0L,
+                    failed = 0L,
+                    inProgress = 0L,
+                    canceled = 0L,
+                ),
+                IngestKind.STREAMING,
             )
 
         private val EMPTY_STATUS_RESPONSE =
-            StatusResponse(
-                status = EMPTY_STATUS,
-                details = emptyList(),
-                startTime = null,
+            ExtendedStatusResponse(
+                StatusResponse(
+                    status = EMPTY_STATUS.status,
+                    details = emptyList(),
+                    startTime = null,
+                ),
+                IngestKind.STREAMING,
             )
     }
 
@@ -85,9 +91,8 @@ class StreamingIngestClient : IngestClient {
         database: String,
         table: String,
         ingestRequestProperties: IngestRequestProperties?,
-    ): IngestResponse {
+    ): ExtendedIngestResponse {
         // Streaming ingestion processes one source at a time
-
         val maxSize = getMaxStreamingIngestSize(source = source)
         val operationId = UUID.randomUUID().toString()
         val effectiveIngestionProperties =
@@ -125,7 +130,6 @@ class StreamingIngestClient : IngestClient {
                 if (contentSize > maxSize) {
                     val message =
                         "Request content size $contentSize exceeds the maximum allowed size of $STREAMING_MAX_REQ_BODY_SIZE bytes."
-
                     throw IngestException(message = message, isPermanent = true)
                 }
                 submitStreamingIngestion(
@@ -147,7 +151,10 @@ class StreamingIngestClient : IngestClient {
         }
         // Streaming ingestion doesn't return an operation ID from the server
         // We generate one locally for consistency with the IngestClient interface
-        return IngestResponse(ingestionOperationId = operationId)
+        return ExtendedIngestResponse(
+            IngestResponse(ingestionOperationId = operationId),
+            IngestKind.STREAMING,
+        )
     }
 
     /**
@@ -254,7 +261,7 @@ class StreamingIngestClient : IngestClient {
 
     override suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): Status {
+    ): ExtendedStatus {
         logger.warn(
             "Streaming ingestion does not support operation status tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status.",
         )
@@ -263,7 +270,7 @@ class StreamingIngestClient : IngestClient {
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): StatusResponse {
+    ): ExtendedStatusResponse {
         logger.warn(
             "Streaming ingestion does not support detailed operation tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status response.",
         )

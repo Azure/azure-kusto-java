@@ -29,9 +29,11 @@ class ManagedUploader(
         configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
     ): List<ContainerInfo> {
-        val configResponse = configurationCache.getConfiguration()
+        // This method is delegated to and this calls getConfiguration again to ensure fresh data is
+        // retrieved
+        // or cached data is used as appropriate.
         val containerSettings =
-            configResponse.containerSettings
+            configurationCache.getConfiguration().containerSettings
                 ?: throw IngestException(
                     "No container settings available",
                     isPermanent = true,

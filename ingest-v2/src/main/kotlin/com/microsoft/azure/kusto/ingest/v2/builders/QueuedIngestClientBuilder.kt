@@ -2,24 +2,14 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.builders
 
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
-import com.microsoft.azure.kusto.ingest.v2.uploaders.ManagedUploader
 
 class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
     BaseIngestClientBuilder<QueuedIngestClientBuilder>() {
-
-    private var maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY
-    private var maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
-    private var ignoreFileSize: Boolean = false
-    private var uploader: IUploader? = null
-    private var closeUploader: Boolean = false
-    private var configuration: ConfigurationCache? = null
 
     override fun self(): QueuedIngestClientBuilder = this
 
@@ -89,30 +79,21 @@ class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
                 this.skipSecurityChecks,
             )
 
+        val effectiveUploader =
+            uploader
+                ?: createDefaultUploader(
+                    configuration = effectiveConfiguration,
+                    ignoreFileSize = this.ignoreFileSize,
+                    maxConcurrency = this.maxConcurrency,
+                    maxDataSize = this.maxDataSize,
+                )
         return QueuedIngestClient(
             apiClient = apiClient,
             // TODO Question if this is redundant. ConfigurationCache is already held by
             // uploader
             cachedConfiguration = effectiveConfiguration,
-            uploader =
-            uploader
-                ?: createDefaultUploader(
-                    effectiveConfiguration,
-                ),
+            uploader = effectiveUploader,
             shouldDisposeUploader = closeUploader,
         )
-    }
-
-    private fun createDefaultUploader(
-        configuration: ConfigurationCache,
-    ): IUploader {
-        val managedUploader =
-            ManagedUploader(
-                ignoreSizeLimit = ignoreFileSize,
-                maxConcurrency = maxConcurrency,
-                maxDataSize = maxDataSize,
-                configurationCache = configuration,
-            )
-        return managedUploader
     }
 }

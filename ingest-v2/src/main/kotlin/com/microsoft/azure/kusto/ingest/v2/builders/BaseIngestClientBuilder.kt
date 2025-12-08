@@ -4,7 +4,12 @@ package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
+import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
+import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
+import com.microsoft.azure.kusto.ingest.v2.uploaders.ManagedUploader
 
 abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var tokenCredential: TokenCredential? = null
@@ -15,6 +20,13 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var ingestionEndpoint: String? = null
     protected var clusterEndpoint: String? = null
     protected var authentication: TokenCredential? = null
+
+    protected var maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY
+    protected var maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
+    protected var ignoreFileSize: Boolean = false
+    protected var uploader: IUploader? = null
+    protected var closeUploader: Boolean = false
+    protected var configuration: ConfigurationCache? = null
 
     protected abstract fun self(): T
 
@@ -105,6 +117,22 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             skipSecurityChecks = skipSecurityChecks,
             clientDetails = clientDetails,
         )
+    }
+
+    protected fun createDefaultUploader(
+        configuration: ConfigurationCache,
+        ignoreFileSize: Boolean,
+        maxConcurrency: Int,
+        maxDataSize: Long,
+    ): IUploader {
+        val managedUploader =
+            ManagedUploader(
+                ignoreSizeLimit = ignoreFileSize,
+                maxConcurrency = maxConcurrency,
+                maxDataSize = maxDataSize,
+                configurationCache = configuration,
+            )
+        return managedUploader
     }
 
     protected fun setEndpoint(endpoint: String) {

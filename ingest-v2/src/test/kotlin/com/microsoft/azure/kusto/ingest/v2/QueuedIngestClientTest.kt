@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
@@ -65,15 +66,15 @@ class QueuedIngestClientTest :
     }
 
     private fun assertValidIngestionResponse(
-        response: com.microsoft.azure.kusto.ingest.v2.models.IngestResponse,
+        response: ExtendedIngestResponse,
         testName: String,
     ): String {
         assertNotNull(response, "$testName: IngestResponse should not be null")
         assertNotNull(
-            response.ingestionOperationId,
+            response.ingestResponse.ingestionOperationId,
             "$testName: Operation ID should not be null",
         )
-        return response.ingestionOperationId
+        return response.ingestResponse.ingestionOperationId
     }
 
     @Test
@@ -355,12 +356,14 @@ class QueuedIngestClientTest :
                         .withEnableTracking(true)
                         .build(),
                 )
-            assertNotNull(smallResponse.ingestionOperationId)
+            assertNotNull(smallResponse.ingestResponse.ingestionOperationId)
             val smallStatus =
                 queuedIngestClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId = smallResponse.ingestionOperationId,
+                    operationId =
+                    smallResponse.ingestResponse
+                        .ingestionOperationId,
                     pollingInterval = pollInterval,
                     timeout = pollTimeout,
                 )
@@ -394,12 +397,14 @@ class QueuedIngestClientTest :
                         .withEnableTracking(true)
                         .build(),
                 )
-            assertNotNull(largeResponse.ingestionOperationId)
+            assertNotNull(largeResponse.ingestResponse.ingestionOperationId)
             val largeStatus =
                 queuedIngestClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId = largeResponse.ingestionOperationId,
+                    operationId =
+                    largeResponse.ingestResponse
+                        .ingestionOperationId,
                     pollingInterval = pollInterval,
                     timeout = pollTimeout,
                 )
@@ -435,12 +440,14 @@ class QueuedIngestClientTest :
                         .withEnableTracking(true)
                         .build(),
                 )
-            assertNotNull(batchResponse.ingestionOperationId)
+            assertNotNull(batchResponse.ingestResponse.ingestionOperationId)
             val batchStatus =
                 queuedIngestClient.pollUntilCompletion(
                     database = database,
                     table = targetTable,
-                    operationId = batchResponse.ingestionOperationId,
+                    operationId =
+                    batchResponse.ingestResponse
+                        .ingestionOperationId,
                     pollingInterval = pollInterval,
                     timeout = pollTimeout,
                 )

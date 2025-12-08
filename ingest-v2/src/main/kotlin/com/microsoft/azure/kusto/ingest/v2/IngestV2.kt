@@ -47,4 +47,28 @@ const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
 // Default maximum concurrency for blob upload operations
 const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4
 
-const val STREAMING_MAX_REQ_BODY_SIZE = 10 * 1024 * 1024 // 10 MB;
+const val STREAMING_MAX_REQ_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
+
+// Managed Streaming Policy Defaults
+
+// Default value for continueWhenStreamingIngestionUnavailable in ManagedStreamingPolicy
+// When false, the client will fail if streaming ingestion is unavailable
+const val MANAGED_STREAMING_CONTINUE_WHEN_UNAVAILABLE_DEFAULT: Boolean = false
+
+// Default data size factor for ManagedStreamingPolicy
+// Factor used to determine size threshold for queued ingestion (1.0 = no adjustment)
+const val MANAGED_STREAMING_DATA_SIZE_FACTOR_DEFAULT: Double = 1.0
+
+// Default throttle backoff period in seconds for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming is throttled
+const val MANAGED_STREAMING_THROTTLE_BACKOFF_SECONDS: Long = 10
+
+// Default time until resuming streaming ingestion in minutes for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming becomes unavailable
+const val MANAGED_STREAMING_RESUME_TIME_MINUTES: Long = 15
+
+// Default retry delays for ManagedStreamingPolicy (in seconds): 1s, 2s, 4s
+val MANAGED_STREAMING_RETRY_DELAYS_SECONDS: Array<Long> = arrayOf(1, 2, 4)
+
+// Maximum jitter to add to retry delays in milliseconds
+const val MANAGED_STREAMING_RETRY_JITTER_MS: Long = 1000

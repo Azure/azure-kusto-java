@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.client
 
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
-import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Status
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
@@ -41,7 +43,7 @@ interface IngestClient : Closeable {
         database: String,
         table: String,
         ingestRequestProperties: IngestRequestProperties? = null,
-    ): IngestResponse
+    ): ExtendedIngestResponse
 
     /**
      * Get the current status of an ingestion operation.
@@ -57,7 +59,9 @@ interface IngestClient : Closeable {
      * @return An [Status] object that provides a summary of the ingestion
      *   operation.
      */
-    suspend fun getOperationSummaryAsync(operation: IngestionOperation): Status
+    suspend fun getOperationSummaryAsync(
+        operation: IngestionOperation,
+    ): ExtendedStatus
 
     /**
      * Get the current status of an ingestion operation.
@@ -75,7 +79,7 @@ interface IngestClient : Closeable {
      */
     suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): StatusResponse
+    ): ExtendedStatusResponse
 }
 
 /** Interface for ingesting from multiple data sources into Kusto. */
@@ -96,7 +100,7 @@ interface MultiIngestClient : IngestClient {
         database: String,
         table: String,
         ingestRequestProperties: IngestRequestProperties? = null,
-    ): IngestResponse
+    ): ExtendedIngestResponse
 
     /**
      * Returns the maximum number of sources that can be ingested in a single

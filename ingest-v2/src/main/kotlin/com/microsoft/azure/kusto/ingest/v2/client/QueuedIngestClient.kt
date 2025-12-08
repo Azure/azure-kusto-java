@@ -8,6 +8,10 @@ import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -58,31 +62,21 @@ import kotlin.time.Duration
  * @see
  *   com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestionClientBuilder
  */
-class QueuedIngestClient : MultiIngestClient {
+class QueuedIngestClient
+internal constructor(
+    private val apiClient: KustoBaseApiClient,
+    private val cachedConfiguration: ConfigurationCache,
+    private val uploader: IUploader,
+    private val shouldDisposeUploader: Boolean = false,
+) : MultiIngestClient {
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
-    private val apiClient: KustoBaseApiClient
-    private val cachedConfiguration: ConfigurationCache
-    private val uploader: IUploader
-    private val shouldDisposeUploader: Boolean
-
-    internal constructor(
-        apiClient: KustoBaseApiClient,
-        cachedConfiguration: ConfigurationCache,
-        uploader: IUploader,
-        shouldDisposeUploader: Boolean = false,
-    ) {
-        this.apiClient = apiClient
-        this.cachedConfiguration = cachedConfiguration
-        this.uploader = uploader
-        this.shouldDisposeUploader = shouldDisposeUploader
-    }
 
     override suspend fun ingestAsync(
         sources: List<IngestionSource>,
         database: String,
         table: String,
         ingestRequestProperties: IngestRequestProperties?,
-    ): IngestResponse {
+    ): ExtendedIngestResponse {
         // Validate sources list is not empty
         require(sources.isNotEmpty()) { "sources list cannot be empty" }
         val maxBlobsPerBatch = getMaxSourcesPerMultiIngest()
@@ -153,11 +147,13 @@ class QueuedIngestClient : MultiIngestClient {
                 table = table,
                 ingestRequest = ingestRequest,
             )
-        return handleIngestResponse(
-            response = response,
-            database = database,
-            table = table,
-        )
+        val ingestResponse =
+            handleIngestResponse(
+                response = response,
+                database = database,
+                table = table,
+            )
+        return ExtendedIngestResponse(ingestResponse, IngestKind.QUEUED)
     }
 
     override suspend fun getMaxSourcesPerMultiIngest(): Int {
@@ -182,7 +178,7 @@ class QueuedIngestClient : MultiIngestClient {
         database: String,
         table: String,
         ingestRequestProperties: IngestRequestProperties?,
-    ): IngestResponse {
+    ): ExtendedIngestResponse {
         // Add this as a fallback because the format is mandatory and if that is not present it may
         // cause a failure
         val effectiveIngestionProperties =
@@ -218,7 +214,7 @@ class QueuedIngestClient : MultiIngestClient {
 
     override suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): Status {
+    ): ExtendedStatus {
         val statusResponse =
             getIngestionDetails(
                 operation.database,
@@ -226,24 +222,28 @@ class QueuedIngestClient : MultiIngestClient {
                 operation.operationId.toString(),
                 false,
             )
-        return statusResponse.status
-            ?: Status(
-                inProgress = 0,
-                succeeded = 0,
-                failed = 0,
-                canceled = 0,
-            )
+        val status =
+            statusResponse.status
+                ?: Status(
+                    inProgress = 0,
+                    succeeded = 0,
+                    failed = 0,
+                    canceled = 0,
+                )
+        return ExtendedStatus(status, IngestKind.QUEUED)
     }
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): StatusResponse {
-        return getIngestionDetails(
-            database = operation.database,
-            table = operation.table,
-            operationId = operation.operationId.toString(),
-            details = true,
-        )
+    ): ExtendedStatusResponse {
+        val statusResponse =
+            getIngestionDetails(
+                database = operation.database,
+                table = operation.table,
+                operationId = operation.operationId.toString(),
+                details = true,
+            )
+        return ExtendedStatusResponse(statusResponse, IngestKind.QUEUED)
     }
 
     override fun close() {

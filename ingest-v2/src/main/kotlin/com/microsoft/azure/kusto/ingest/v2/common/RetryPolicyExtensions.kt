@@ -18,12 +18,12 @@ suspend fun <T> IngestRetryPolicy.runWithRetry(
     onRetry: ((UInt, Exception, Boolean) -> Unit)? = null,
     // retry attempt number, exception, isPermanent
     onError: ((UInt, Exception, Boolean) -> Unit)? = null,
-    shouldRetry: ((UInt, Exception, Boolean) -> Retry)? = null,
+    shouldRetry: ((UInt, Exception, Boolean) -> RetryDecision)? = null,
     throwOnExhaustedRetries: Boolean = true,
     tracer: ((String) -> Unit)? = null,
     cancellationChecker: (() -> Boolean)? = null,
 ): T? {
-    var attempt: UInt = 1u
+    var attempt = 1u
     while (true) {
         try {
             return action(attempt)
