@@ -61,7 +61,7 @@ interface IngestClient : Closeable {
      */
     suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): ExtendedStatus
+    ): Status
 
     /**
      * Get the current status of an ingestion operation.
@@ -79,7 +79,7 @@ interface IngestClient : Closeable {
      */
     suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): ExtendedStatusResponse
+    ): StatusResponse
 }
 
 /** Interface for ingesting from multiple data sources into Kusto. */

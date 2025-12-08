@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.client
 
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import java.util.UUID
 
 /** Represents an ingestion operation that can be tracked. */
@@ -14,4 +15,7 @@ data class IngestionOperation(
 
     /** The table name where data was ingested. */
     val table: String,
+
+    /** The kind of ingestion (e.g., STREAMING, QUEUED). */
+    val ingestKind: IngestKind
 )

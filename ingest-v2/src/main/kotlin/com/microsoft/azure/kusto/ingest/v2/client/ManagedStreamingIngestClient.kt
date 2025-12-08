@@ -11,12 +11,13 @@ import com.microsoft.azure.kusto.ingest.v2.common.RetryDecision
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.models.Status
+import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
@@ -63,6 +64,23 @@ internal constructor(
     private val logger =
         LoggerFactory.getLogger(ManagedStreamingIngestClient::class.java)
 
+    companion object {
+        private val EMPTY_STATUS =
+            Status(
+                succeeded = 0L,
+                failed = 0L,
+                inProgress = 0L,
+                canceled = 0L,
+            )
+
+        private val EMPTY_STATUS_RESPONSE =
+            StatusResponse(
+                status = EMPTY_STATUS,
+                details = emptyList(),
+                startTime = null,
+            )
+    }
+
     override suspend fun ingestAsync(
         source: IngestionSource,
         database: String,
@@ -103,15 +121,31 @@ internal constructor(
 
     override suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): ExtendedStatus {
+    ): Status {
         // Delegate to queued client for tracking
+        if (operation.ingestKind ==  IngestKind.STREAMING) {
+            logger.warn(
+                "getOperationSummaryAsync called for a streaming ingestion operation. " +
+                    "Streaming ingestion operations are not tracked. " +
+                    "Returning a empty Status.",
+            )
+            return EMPTY_STATUS
+        }
         return queuedIngestClient.getOperationSummaryAsync(operation)
     }
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): ExtendedStatusResponse {
+    ): StatusResponse {
         // Delegate to queued client for tracking
+        if (operation.ingestKind ==  IngestKind.STREAMING) {
+            logger.warn(
+                "getOperationDetailsAsync called for a streaming ingestion operation. " +
+                        "Streaming ingestion operations are not tracked. " +
+                        "Returning a dummy StatusResponse.",
+            )
+            return EMPTY_STATUS_RESPONSE
+        }
         return queuedIngestClient.getOperationDetailsAsync(operation)
     }
 

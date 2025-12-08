@@ -6,8 +6,6 @@ import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.STREAMING_MAX_REQ_BODY_SIZE
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
@@ -65,25 +63,19 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
 
     companion object {
         private val EMPTY_STATUS =
-            ExtendedStatus(
                 Status(
                     succeeded = 0L,
                     failed = 0L,
                     inProgress = 0L,
                     canceled = 0L,
-                ),
-                IngestKind.STREAMING,
-            )
+                )
 
         private val EMPTY_STATUS_RESPONSE =
-            ExtendedStatusResponse(
                 StatusResponse(
-                    status = EMPTY_STATUS.status,
+                    status = EMPTY_STATUS,
                     details = emptyList(),
                     startTime = null,
-                ),
-                IngestKind.STREAMING,
-            )
+                )
     }
 
     override suspend fun ingestAsync(
@@ -261,7 +253,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
 
     override suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): ExtendedStatus {
+    ): Status {
         logger.warn(
             "Streaming ingestion does not support operation status tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status.",
         )
@@ -270,7 +262,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): ExtendedStatusResponse {
+    ): StatusResponse {
         logger.warn(
             "Streaming ingestion does not support detailed operation tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status response.",
         )

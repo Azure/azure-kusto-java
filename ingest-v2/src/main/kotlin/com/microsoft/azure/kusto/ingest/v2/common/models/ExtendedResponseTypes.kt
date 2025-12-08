@@ -16,9 +16,3 @@ data class ExtendedIngestResponse(
     val ingestionType: IngestKind,
 )
 
-data class ExtendedStatus(val status: Status, val ingestionType: IngestKind)
-
-data class ExtendedStatusResponse(
-    val status: StatusResponse,
-    val ingestionType: IngestKind,
-)

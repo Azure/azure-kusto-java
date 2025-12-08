@@ -9,8 +9,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientExcepti
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatus
-import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedStatusResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
@@ -214,7 +212,7 @@ internal constructor(
 
     override suspend fun getOperationSummaryAsync(
         operation: IngestionOperation,
-    ): ExtendedStatus {
+    ): Status {
         val statusResponse =
             getIngestionDetails(
                 operation.database,
@@ -222,28 +220,24 @@ internal constructor(
                 operation.operationId.toString(),
                 false,
             )
-        val status =
-            statusResponse.status
+        return statusResponse.status
                 ?: Status(
                     inProgress = 0,
                     succeeded = 0,
                     failed = 0,
                     canceled = 0,
                 )
-        return ExtendedStatus(status, IngestKind.QUEUED)
     }
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
-    ): ExtendedStatusResponse {
-        val statusResponse =
-            getIngestionDetails(
+    ): StatusResponse {
+        return getIngestionDetails(
                 database = operation.database,
                 table = operation.table,
                 operationId = operation.operationId.toString(),
                 details = true,
             )
-        return ExtendedStatusResponse(statusResponse, IngestKind.QUEUED)
     }
 
     override fun close() {
