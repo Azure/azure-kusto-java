@@ -19,9 +19,11 @@ import com.microsoft.azure.kusto.ingest.v2.container.UploadResults
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
@@ -66,8 +68,10 @@ abstract class ContainerUploaderBase(
         }
 
         // Check size limit if not ignored
-        if (!ignoreSizeLimit && stream.available() > 0) {
-            val availableSize = stream.available().toLong()
+        val availableSize = withContext(Dispatchers.IO) {
+            stream.available()
+        }.toLong()
+        if (!ignoreSizeLimit && availableSize > 0) {
             if (availableSize > maxDataSize) {
                 logger.error(
                     "Stream size {} exceeds max allowed size {} for: {}",

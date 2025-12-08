@@ -6,6 +6,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerSettings
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -236,7 +237,7 @@ class DefaultConfigurationCacheTest {
             // Make multiple concurrent requests after cache expires
             val results = coroutineScope {
                 List(10) { async { cache.getConfiguration() } }
-                    .map { it.await() }
+                    .awaitAll()
             }
 
             // All results should be consistent (same data)

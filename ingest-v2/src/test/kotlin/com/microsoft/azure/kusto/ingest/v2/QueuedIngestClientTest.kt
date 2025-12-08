@@ -772,19 +772,17 @@ test2,456,2024-01-02"""
         )
         val exception =
             assertThrows<IngestClientException> {
-                runBlocking {
-                    client.ingestAsync(
-                        database = database,
-                        table = targetTable,
-                        sources = sources,
-                        ingestRequestProperties =
-                        IngestRequestPropertiesBuilder(
-                            format = Format.json,
-                        )
-                            .withEnableTracking(true)
-                            .build(),
+                client.ingestAsync(
+                    database = database,
+                    table = targetTable,
+                    sources = sources,
+                    ingestRequestProperties =
+                    IngestRequestPropertiesBuilder(
+                        format = Format.json,
                     )
-                }
+                        .withEnableTracking(true)
+                        .build(),
+                )
             }
         assertNotNull(
             exception,

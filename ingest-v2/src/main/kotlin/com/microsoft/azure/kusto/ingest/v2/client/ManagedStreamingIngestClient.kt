@@ -20,6 +20,8 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Clock
@@ -171,7 +173,9 @@ internal constructor(
             )
         }
 
-        val streamSize = stream.available().toLong()
+        val streamSize = withContext(Dispatchers.IO) {
+            stream.available()
+        }.toLong()
 
         if (
             shouldUseQueuedIngestBySize(streamSize) ||
