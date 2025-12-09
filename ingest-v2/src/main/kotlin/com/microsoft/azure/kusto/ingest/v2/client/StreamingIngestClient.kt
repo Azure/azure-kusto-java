@@ -255,7 +255,8 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         operation: IngestionOperation,
     ): Status {
         logger.warn(
-            "Streaming ingestion does not support operation status tracking. Operation ID: ${operation.operationId} cannot be tracked. Returning empty status.",
+            "Streaming ingestion does not support operation status tracking. Operation ID: ${operation.operationId} " +
+                "cannot be tracked. Returning empty status.",
         )
         return EMPTY_STATUS
     }
