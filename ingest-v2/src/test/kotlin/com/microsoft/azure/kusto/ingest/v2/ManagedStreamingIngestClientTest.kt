@@ -22,6 +22,8 @@ import java.io.ByteArrayInputStream
 import java.net.ConnectException
 import java.util.*
 import kotlin.test.DefaultAsserter.assertNotNull
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
@@ -134,7 +136,6 @@ class ManagedStreamingIngestClientTest :
                 logger.info("Ingestion used streaming mode. Verifying data...")
 
                 // kotlinx.coroutines.delay(3000)
-
                 awaitAndQuery(
                     query = "$targetTable | summarize count=count()",
                     expectedResultsCount = 5,
@@ -251,5 +252,55 @@ class ManagedStreamingIngestClientTest :
                 "Skipping test: Unable to connect to test cluster: ${e.message}",
             )
         }
+    }
+
+    @Test
+    fun fallbackToQueuedIngestionTest() = runBlocking {
+        val customPolicy =
+            DefaultManagedStreamingPolicy(
+                continueWhenStreamingIngestionUnavailable = true,
+                dataSizeFactor = 0.25,
+            )
+        val customManagedClient =
+            ManagedStreamingIngestClientBuilder.create(dmUrl = dmEndpoint)
+                .withAuthentication(tokenProvider)
+                .withManagedStreamingIngestPolicy(
+                    DefaultManagedStreamingPolicy(),
+                )
+                .withManagedStreamingIngestPolicy(customPolicy)
+                .build()
+        adminClusterClient.executeMgmt(
+            database,
+            ".alter table $targetTable policy streamingingestion disable",
+        )
+        clearDatabaseSchemaCache()
+        val testSource =
+            BlobSource(
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+            )
+        val ingestRequestProperties =
+            IngestRequestPropertiesBuilder(Format.multijson)
+                .withEnableTracking(true)
+                .build()
+        val ingestionResponse =
+            customManagedClient.ingestAsync(
+                database = database,
+                table = targetTable,
+                source = testSource,
+                ingestRequestProperties = ingestRequestProperties,
+            )
+        assertNotNull(
+            ingestionResponse,
+            "Ingestion response should not be null",
+        )
+        assertEquals(
+            IngestKind.QUEUED,
+            ingestionResponse.ingestionType,
+            "Ingestion should have fallen back to QUEUED",
+        )
+        awaitAndQuery(
+            query = "$targetTable | summarize count=count()",
+            expectedResultsCount = 5,
+        )
     }
 }

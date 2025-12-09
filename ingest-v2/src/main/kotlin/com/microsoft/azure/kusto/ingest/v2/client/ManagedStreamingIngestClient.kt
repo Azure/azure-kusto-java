@@ -281,9 +281,13 @@ internal constructor(
                     )
                     result
                 },
-                onRetry = { retryNumber : UInt, ex : Exception, _: Boolean ->
+                onRetry = { retryNumber: UInt, ex: Exception, _: Boolean,
+                    ->
                     // Reset stream if possible for retry
-                    logger.error("Exception while trying streaming ingest $retryNumber, retrying...", ex)
+                    logger.error(
+                        "Exception while trying streaming ingest $retryNumber, retrying...",
+                        ex,
+                    )
                     resetLocalSourceIfPossible(source)
                 },
                 shouldRetry = {
