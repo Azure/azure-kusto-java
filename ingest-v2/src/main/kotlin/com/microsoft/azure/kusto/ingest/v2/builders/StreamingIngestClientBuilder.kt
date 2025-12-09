@@ -15,7 +15,10 @@ private constructor(private val clusterUrl: String) :
         @JvmStatic
         fun create(clusterUrl: String): StreamingIngestClientBuilder {
             require(clusterUrl.isNotBlank()) { "Cluster URI cannot be blank" }
-            return StreamingIngestClientBuilder(clusterUrl)
+            // Make sure to convert it to cluster-url if user passed ingest-url
+            return StreamingIngestClientBuilder(
+                normalizeAndCheckEngineUrl(clusterUrl),
+            )
         }
     }
 

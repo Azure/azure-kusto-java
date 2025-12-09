@@ -63,19 +63,19 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
 
     companion object {
         private val EMPTY_STATUS =
-                Status(
-                    succeeded = 0L,
-                    failed = 0L,
-                    inProgress = 0L,
-                    canceled = 0L,
-                )
+            Status(
+                succeeded = 0L,
+                failed = 0L,
+                inProgress = 0L,
+                canceled = 0L,
+            )
 
         private val EMPTY_STATUS_RESPONSE =
-                StatusResponse(
-                    status = EMPTY_STATUS,
-                    details = emptyList(),
-                    startTime = null,
-                )
+            StatusResponse(
+                status = EMPTY_STATUS,
+                details = emptyList(),
+                startTime = null,
+            )
     }
 
     override suspend fun ingestAsync(

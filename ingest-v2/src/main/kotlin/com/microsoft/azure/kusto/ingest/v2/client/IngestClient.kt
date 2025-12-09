@@ -57,9 +57,7 @@ interface IngestClient : Closeable {
      * @return An [Status] object that provides a summary of the ingestion
      *   operation.
      */
-    suspend fun getOperationSummaryAsync(
-        operation: IngestionOperation,
-    ): Status
+    suspend fun getOperationSummaryAsync(operation: IngestionOperation): Status
 
     /**
      * Get the current status of an ingestion operation.

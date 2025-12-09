@@ -17,7 +17,8 @@ class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
         @JvmStatic
         fun create(dmUrl: String): QueuedIngestClientBuilder {
             require(dmUrl.isNotBlank()) { "Data Ingestion URI cannot be blank" }
-            return QueuedIngestClientBuilder(dmUrl)
+            // Make sure to convert it to ingest-url if user passed engine-url
+            return QueuedIngestClientBuilder(normalizeAndCheckDmUrl(dmUrl))
         }
     }
 

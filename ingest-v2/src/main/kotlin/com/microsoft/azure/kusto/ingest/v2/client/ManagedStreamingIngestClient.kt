@@ -123,7 +123,7 @@ internal constructor(
         operation: IngestionOperation,
     ): Status {
         // Delegate to queued client for tracking
-        if (operation.ingestKind ==  IngestKind.STREAMING) {
+        if (operation.ingestKind == IngestKind.STREAMING) {
             logger.warn(
                 "getOperationSummaryAsync called for a streaming ingestion operation. " +
                     "Streaming ingestion operations are not tracked. " +
@@ -138,11 +138,11 @@ internal constructor(
         operation: IngestionOperation,
     ): StatusResponse {
         // Delegate to queued client for tracking
-        if (operation.ingestKind ==  IngestKind.STREAMING) {
+        if (operation.ingestKind == IngestKind.STREAMING) {
             logger.warn(
                 "getOperationDetailsAsync called for a streaming ingestion operation. " +
-                        "Streaming ingestion operations are not tracked. " +
-                        "Returning a dummy StatusResponse.",
+                    "Streaming ingestion operations are not tracked. " +
+                    "Returning a dummy StatusResponse.",
             )
             return EMPTY_STATUS_RESPONSE
         }
@@ -207,9 +207,8 @@ internal constructor(
             )
         }
 
-        val streamSize = withContext(Dispatchers.IO) {
-            stream.available()
-        }.toLong()
+        val streamSize =
+            withContext(Dispatchers.IO) { stream.available() }.toLong()
 
         if (
             shouldUseQueuedIngestBySize(streamSize) ||
@@ -282,8 +281,9 @@ internal constructor(
                     )
                     result
                 },
-                onRetry = { _: UInt, _: Exception, _: Boolean ->
+                onRetry = { retryNumber : UInt, ex : Exception, _: Boolean ->
                     // Reset stream if possible for retry
+                    logger.error("Exception while trying streaming ingest $retryNumber, retrying...", ex)
                     resetLocalSourceIfPossible(source)
                 },
                 shouldRetry = {
@@ -420,7 +420,6 @@ internal constructor(
                     ManagedStreamingErrorCategory.OTHER_ERRORS
                 },
             )
-
         logger.warn("Streaming ingestion throttled: {}", ex.message)
         managedStreamingPolicy.streamingErrorCallback(
             source,
@@ -597,5 +596,22 @@ internal constructor(
         } catch (_: Exception) {
             false
         }
+    }
+
+    suspend fun pollUntilCompletion(
+        database: String,
+        table: String,
+        operationId: String,
+        pollingInterval: kotlin.time.Duration =
+            kotlin.time.Duration.parse("PT30S"),
+        timeout: kotlin.time.Duration = kotlin.time.Duration.parse("PT5M"),
+    ): StatusResponse {
+        return queuedIngestClient.pollUntilCompletion(
+            database,
+            table,
+            operationId,
+            pollingInterval,
+            timeout,
+        )
     }
 }

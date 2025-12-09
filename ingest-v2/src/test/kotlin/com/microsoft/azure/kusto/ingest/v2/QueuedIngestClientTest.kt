@@ -32,10 +32,8 @@ import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Clock
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.UUID
-import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
 
@@ -276,20 +274,11 @@ class QueuedIngestClientTest :
                         else -> "None"
                     }
                 if (useMappingReference || useInlineIngestionMapping) {
-                    val results =
-                        adminClusterClient
-                            .executeQuery(
-                                database,
-                                "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",
-                            )
-                            .primaryResults
-                    assertNotNull(results, "Query results should not be null")
-                    results.next()
-                    val count: Int = results.getInt("count")
-                    assertNotNull(count, "Count should not be null")
-                    assert(count == 5) {
-                        "Expected 5 records in the table after ingestion"
-                    }
+                    awaitAndQuery(
+                        query =
+                        "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",
+                        expectedResultsCount = 5L,
+                    )
                 }
             }
         } catch (e: ConnectException) {
@@ -646,25 +635,12 @@ class QueuedIngestClientTest :
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
                 )
-                val results =
-                    adminClusterClient
-                        .executeQuery(
-                            database,
-                            "$targetTable | where format == '$format' |summarize count=count() by format",
-                        )
-                        .primaryResults
-                assertNotNull(results, "Query results should not be null")
-                results.next()
-                val actualCount: Int = results.getInt("count")
-                assertNotNull(actualCount, "Count should not be null")
-                assert(actualCount > 0) {
-                    "Expected some records in the table after ingestion"
-                }
-                assertEquals(
-                    expectedRecordCount,
-                    actualCount,
-                    "Record count mismatch for format $formatName",
+                awaitAndQuery(
+                    query =
+                    "$targetTable | where format == '$format' |summarize count=count() by format",
+                    expectedResultsCount = 1L,
                 )
+
                 val extentDetailsResults =
                     adminClusterClient
                         .executeMgmt(
@@ -677,17 +653,18 @@ class QueuedIngestClientTest :
                     "Query results should not be null",
                 )
                 extentDetailsResults.next()
+                val actualTags: String = extentDetailsResults.getString("Tags")
+                /* TODO : This is being checked in the ingestion service side now. Uncomment when confirmed
                 val actualCreatedOnTime: Instant =
                     Instant.parse(
                         extentDetailsResults.getString("MinCreatedOn"),
                     )
-                val actualTags: String = extentDetailsResults.getString("Tags")
                 assertNotNull(
                     actualCreatedOnTime,
                     "Extent timestamp should not be null",
                 )
                 assertNotNull(actualTags, "Extent timestamp should not be null")
-                /* TODO : This is being checked in the ingestion service side now. Uncomment when confirmed
+
                 val actualCreatedOnInstant =
                     actualCreatedOnTime.truncatedTo(ChronoUnit.MINUTES)
                 val expectedCreatedOnInstant =

@@ -8,11 +8,16 @@ import com.microsoft.azure.kusto.data.Client
 import com.microsoft.azure.kusto.data.ClientFactory
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder
 import com.microsoft.azure.kusto.ingest.v2.models.Format
+import org.awaitility.Awaitility
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.UUID
+import java.time.Duration
+import java.time.temporal.ChronoUnit
+import java.util.*
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val logger: Logger = LoggerFactory.getLogger(testClass)
@@ -96,5 +101,44 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         val dropTableScript = ".drop table $targetTable ifexists"
         logger.info("Dropping table $targetTable")
         adminClusterClient.executeMgmt(database, dropTableScript)
+    }
+
+    protected fun awaitAndQuery(
+        query: String,
+        queryColumnName: String = "count",
+        expectedResultsCount: Long,
+        isManagementQuery: Boolean = false,
+    ) {
+        Awaitility.await()
+            .atMost(Duration.of(2, ChronoUnit.MINUTES))
+            .pollInterval(Duration.of(5, ChronoUnit.SECONDS))
+            .ignoreExceptions()
+            .untilAsserted {
+                val results =
+                    if (isManagementQuery) {
+                        adminClusterClient
+                            .executeMgmt(database, query)
+                            .primaryResults
+                    } else {
+                        adminClusterClient
+                            .executeQuery(database, query)
+                            .primaryResults
+                    }
+                results.next()
+                val actualResultCount = results.getLong(queryColumnName)
+                logger.trace(
+                    "For query {} , Current result count: {}, waiting for {}",
+                    query,
+                    actualResultCount,
+                    expectedResultsCount,
+                )
+                actualResultCount >= expectedResultsCount
+                assertNotNull(results, "Query results should not be null")
+                assertNotNull(actualResultCount, "Count should not be null")
+                assertTrue(
+                    actualResultCount >= expectedResultsCount,
+                    "expected $expectedResultsCount counts should match $actualResultCount",
+                )
+            }
     }
 }

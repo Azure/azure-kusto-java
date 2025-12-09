@@ -140,28 +140,34 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
         this.clusterEndpoint = normalizeAndCheckEngineUrl(endpoint)
     }
 
-    protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
-        val normalizedUrl =
-            if (clusterUrl.matches(Regex("https://ingest-[^/]+.*"))) {
-                // If the URL starts with https://ingest-, remove ingest-
-                clusterUrl.replace(
-                    Regex("https://ingest-([^/]+)"),
-                    "https://$1",
-                )
-            } else {
-                clusterUrl
-            }
-        return normalizedUrl
-    }
+    companion object {
+        protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
+            val normalizedUrl =
+                if (clusterUrl.matches(Regex("https://ingest-[^/]+.*"))) {
+                    // If the URL starts with https://ingest-, remove ingest-
+                    clusterUrl.replace(
+                        Regex("https://ingest-([^/]+)"),
+                        "https://$1",
+                    )
+                } else {
+                    clusterUrl
+                }
+            return normalizedUrl
+        }
 
-    protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
-        val normalizedUrl =
-            if (dmUrl.matches(Regex("https://(?!ingest-)[^/]+.*"))) {
-                // If the URL starts with https:// and does not already have ingest-, add it
-                dmUrl.replace(Regex("https://([^/]+)"), "https://ingest-$1")
-            } else {
-                dmUrl
-            }
-        return normalizedUrl
+        @JvmStatic
+        protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
+            val normalizedUrl =
+                if (dmUrl.matches(Regex("https://(?!ingest-)[^/]+.*"))) {
+                    // If the URL starts with https:// and does not already have ingest-, add it
+                    dmUrl.replace(
+                        Regex("https://([^/]+)"),
+                        "https://ingest-$1",
+                    )
+                } else {
+                    dmUrl
+                }
+            return normalizedUrl
+        }
     }
 }

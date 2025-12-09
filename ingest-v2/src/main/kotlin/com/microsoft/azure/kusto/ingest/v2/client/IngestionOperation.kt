@@ -17,5 +17,5 @@ data class IngestionOperation(
     val table: String,
 
     /** The kind of ingestion (e.g., STREAMING, QUEUED). */
-    val ingestKind: IngestKind
+    val ingestKind: IngestKind,
 )

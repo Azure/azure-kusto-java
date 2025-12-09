@@ -3,7 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient
-import com.microsoft.azure.kusto.ingest.v2.client.policy.DefaultManagedStreamingPolicy
+import com.microsoft.azure.kusto.ingest.v2.client.policy.DefaultManagedStreamingPolicy.Companion.DEFAULT_MANAGED_STREAMING_POLICY
 import com.microsoft.azure.kusto.ingest.v2.client.policy.ManagedStreamingPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
@@ -79,7 +79,7 @@ private constructor(private val dmUrl: String) :
                 .build()
 
         val effectiveManagedStreamingPolicy =
-            managedStreamingPolicy ?: DefaultManagedStreamingPolicy()
+            managedStreamingPolicy ?: DEFAULT_MANAGED_STREAMING_POLICY
         val streamingIngestClient =
             StreamingIngestClientBuilder.create(this.dmUrl)
                 .withClientDetails(

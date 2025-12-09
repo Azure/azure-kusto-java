@@ -236,8 +236,7 @@ class DefaultConfigurationCacheTest {
 
             // Make multiple concurrent requests after cache expires
             val results = coroutineScope {
-                List(10) { async { cache.getConfiguration() } }
-                    .awaitAll()
+                List(10) { async { cache.getConfiguration() } }.awaitAll()
             }
 
             // All results should be consistent (same data)

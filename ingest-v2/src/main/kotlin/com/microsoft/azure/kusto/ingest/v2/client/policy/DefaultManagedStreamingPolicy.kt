@@ -150,6 +150,6 @@ class DefaultManagedStreamingPolicy(
         }
 
         /** Default instance with standard settings. */
-        val DEFAULT = DefaultManagedStreamingPolicy()
+        val DEFAULT_MANAGED_STREAMING_POLICY = DefaultManagedStreamingPolicy()
     }
 }

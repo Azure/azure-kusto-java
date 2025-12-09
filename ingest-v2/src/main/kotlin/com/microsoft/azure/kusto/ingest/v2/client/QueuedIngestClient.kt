@@ -221,23 +221,23 @@ internal constructor(
                 false,
             )
         return statusResponse.status
-                ?: Status(
-                    inProgress = 0,
-                    succeeded = 0,
-                    failed = 0,
-                    canceled = 0,
-                )
+            ?: Status(
+                inProgress = 0,
+                succeeded = 0,
+                failed = 0,
+                canceled = 0,
+            )
     }
 
     override suspend fun getOperationDetailsAsync(
         operation: IngestionOperation,
     ): StatusResponse {
         return getIngestionDetails(
-                database = operation.database,
-                table = operation.table,
-                operationId = operation.operationId.toString(),
-                details = true,
-            )
+            database = operation.database,
+            table = operation.table,
+            operationId = operation.operationId.toString(),
+            details = true,
+        )
     }
 
     override fun close() {

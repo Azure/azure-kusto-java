@@ -13,4 +13,3 @@ data class ExtendedIngestResponse(
     val ingestResponse: IngestResponse,
     val ingestionType: IngestKind,
 )
-

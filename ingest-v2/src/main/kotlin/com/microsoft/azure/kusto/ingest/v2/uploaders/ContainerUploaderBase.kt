@@ -68,9 +68,8 @@ abstract class ContainerUploaderBase(
         }
 
         // Check size limit if not ignored
-        val availableSize = withContext(Dispatchers.IO) {
-            stream.available()
-        }.toLong()
+        val availableSize =
+            withContext(Dispatchers.IO) { stream.available() }.toLong()
         if (!ignoreSizeLimit && availableSize > 0) {
             if (availableSize > maxDataSize) {
                 logger.error(
