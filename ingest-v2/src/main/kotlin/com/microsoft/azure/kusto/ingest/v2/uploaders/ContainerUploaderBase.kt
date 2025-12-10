@@ -344,31 +344,39 @@ abstract class ContainerUploaderBase(
 
         val blobClient =
             if (container.uploadMethod == UploadMethod.STORAGE) {
+                logger.info(
+                    "Upload {} using STORAGE upload method for container url {}",
+                    name,
+                    url,
+                )
                 BlobClientBuilder()
                     .endpoint(container.containerInfo.path)
                     .blobName(name)
                     .buildClient()
             } else {
                 if (tokenCredential != null) {
+                    logger.info(
+                        "Upload {} using LAKE upload method with TokenCredential for container url {}",
+                        name,
+                        url,
+                    )
                     BlobClientBuilder()
                         .endpoint(container.containerInfo.path)
                         .blobName(name)
                         .credential(tokenCredential)
                         .buildClient()
                 } else {
+                    logger.info(
+                        "Upload {} LAKE upload method with no auth for container url {}",
+                        name,
+                        url,
+                    )
                     BlobClientBuilder()
                         .endpoint(container.containerInfo.path)
                         .blobName(name)
                         .buildClient()
                 }
             }
-
-        logger.debug(
-            "Uploading stream to blob url: {} to container {}",
-            url,
-            name,
-        )
-
         val parallelTransferOptions =
             ParallelTransferOptions()
                 .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)

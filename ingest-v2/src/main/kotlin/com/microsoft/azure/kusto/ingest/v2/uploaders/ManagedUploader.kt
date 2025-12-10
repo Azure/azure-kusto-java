@@ -3,16 +3,16 @@
 package com.microsoft.azure.kusto.ingest.v2.uploaders
 
 import com.azure.core.credential.TokenCredential
-import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 
-class ManagedUploader(
+class ManagedUploader
+internal constructor(
     override var ignoreSizeLimit: Boolean,
     maxConcurrency: Int,
-    maxDataSize: Long? = null,
+    maxDataSize: Long,
     configurationCache: ConfigurationCache,
     uploadMethod: UploadMethod = UploadMethod.DEFAULT,
     ingestRetryPolicy: IngestRetryPolicy = SimpleRetryPolicy(),
@@ -20,13 +20,25 @@ class ManagedUploader(
 ) :
     ContainerUploaderBase(
         maxConcurrency = maxConcurrency,
-        maxDataSize =
-        maxDataSize ?: UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES,
+        maxDataSize = maxDataSize,
         configurationCache = configurationCache,
         uploadMethod = uploadMethod,
         retryPolicy = ingestRetryPolicy,
         tokenCredential = tokenCredential,
     ) {
+
+    companion object {
+        /**
+         * Creates a new builder for constructing ManagedUploader instances.
+         *
+         * @return a new ManagedUploaderBuilder instance
+         */
+        @JvmStatic
+        fun builder(): ManagedUploaderBuilder {
+            return ManagedUploaderBuilder.create()
+        }
+    }
+
     override suspend fun selectContainers(
         configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,

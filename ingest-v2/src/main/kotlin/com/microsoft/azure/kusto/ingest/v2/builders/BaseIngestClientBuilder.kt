@@ -125,15 +125,13 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
         maxConcurrency: Int,
         maxDataSize: Long,
     ): IUploader {
-        val managedUploader =
-            ManagedUploader(
-                ignoreSizeLimit = ignoreFileSize,
-                maxConcurrency = maxConcurrency,
-                maxDataSize = maxDataSize,
-                configurationCache = configuration,
-                tokenCredential = tokenCredential,
-            )
-        return managedUploader
+        return ManagedUploader.builder()
+            .withConfigurationCache(configuration)
+            .withIgnoreSizeLimit(ignoreFileSize)
+            .withMaxConcurrency(maxConcurrency)
+            .withMaxDataSize(maxDataSize)
+            .apply { tokenCredential?.let { withTokenCredential(it) } }
+            .build()
     }
 
     protected fun setEndpoint(endpoint: String) {
