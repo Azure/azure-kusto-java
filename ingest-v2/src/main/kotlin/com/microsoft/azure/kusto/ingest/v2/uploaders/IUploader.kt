@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.uploaders
 
+import com.microsoft.azure.kusto.ingest.v2.container.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.container.UploadResults
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
@@ -27,8 +28,8 @@ interface IUploader : Closeable {
      * Uploads the specified local sources.
      *
      * @param localSources List of the local sources to upload.
-     * @return The uploaded results - successes (as [BlobSource]) and failures
-     *   (as [UploadFailure]).
+     * @return The uploaded results - successes (as [UploadResult.Success]) and
+     *   failures (as [UploadResult.Failure]).
      */
     suspend fun uploadManyAsync(localSources: List<LocalSource>): UploadResults
 }

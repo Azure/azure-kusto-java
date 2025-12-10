@@ -131,6 +131,7 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
                 maxConcurrency = maxConcurrency,
                 maxDataSize = maxDataSize,
                 configurationCache = configuration,
+                tokenCredential = tokenCredential,
             )
         return managedUploader
     }

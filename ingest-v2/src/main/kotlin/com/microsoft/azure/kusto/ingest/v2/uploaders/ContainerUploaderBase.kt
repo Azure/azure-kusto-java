@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.uploaders
 
+import com.azure.core.credential.TokenCredential
 import com.azure.core.util.Context
 import com.azure.storage.blob.BlobClientBuilder
 import com.azure.storage.blob.models.BlockBlobItem
@@ -16,7 +17,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.container.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.container.UploadResults
-import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +38,7 @@ abstract class ContainerUploaderBase(
     private val maxDataSize: Long,
     private val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod,
+    private val tokenCredential: TokenCredential?,
 ) : IUploader {
 
     protected val logger: Logger =
@@ -114,7 +115,7 @@ abstract class ContainerUploaderBase(
         local: LocalSource,
         name: String,
         stream: InputStream,
-        containers: List<ContainerInfo>,
+        containers: List<ExtendedContainerInfo>,
     ): BlobSource {
         // Select random starting container index
         var containerIndex = (0 until containers.size).random()
@@ -136,7 +137,8 @@ abstract class ContainerUploaderBase(
                     "Upload attempt {} to container index {} ({}): {}",
                     retryNumber + 1u,
                     containerIndex,
-                    container.path?.split("?")?.first() ?: "unknown",
+                    container.containerInfo.path?.split("?")?.first()
+                        ?: "unknown",
                     name,
                 )
 
@@ -335,16 +337,31 @@ abstract class ContainerUploaderBase(
     protected fun uploadToContainer(
         name: String,
         stream: InputStream,
-        container: ContainerInfo,
+        container: ExtendedContainerInfo,
         maxConcurrency: Int,
     ): String {
-        val (url, sas) = container.path!!.split("?", limit = 2)
+        val (url, sas) = container.containerInfo.path!!.split("?", limit = 2)
 
         val blobClient =
-            BlobClientBuilder()
-                .endpoint(container.path)
-                .blobName(name)
-                .buildClient()
+            if (container.uploadMethod == UploadMethod.STORAGE) {
+                BlobClientBuilder()
+                    .endpoint(container.containerInfo.path)
+                    .blobName(name)
+                    .buildClient()
+            } else {
+                if (tokenCredential != null) {
+                    BlobClientBuilder()
+                        .endpoint(container.containerInfo.path)
+                        .blobName(name)
+                        .credential(tokenCredential)
+                        .buildClient()
+                } else {
+                    BlobClientBuilder()
+                        .endpoint(container.containerInfo.path)
+                        .blobName(name)
+                        .buildClient()
+                }
+            }
 
         logger.debug(
             "Uploading stream to blob url: {} to container {}",
@@ -403,5 +420,5 @@ abstract class ContainerUploaderBase(
     abstract suspend fun selectContainers(
         configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
-    ): List<ContainerInfo>
+    ): List<ExtendedContainerInfo>
 }

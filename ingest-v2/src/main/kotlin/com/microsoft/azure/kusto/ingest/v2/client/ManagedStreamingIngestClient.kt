@@ -415,7 +415,11 @@ internal constructor(
                 errorCategory =
                 if (
                     (ex as? IngestException)?.failureCode ==
-                    429 || ex.message?.contains("KustoRequestThrottledException", ignoreCase = true) == true
+                    429 ||
+                    ex.message?.contains(
+                        "KustoRequestThrottledException",
+                        ignoreCase = true,
+                    ) == true
                 ) {
                     ManagedStreamingErrorCategory.THROTTLED
                 } else {
@@ -589,7 +593,9 @@ internal constructor(
         return message.contains("too large") ||
             message.contains("exceeds") ||
             message.contains("maximum allowed size") ||
-            message.contains("KustoRequestPayloadTooLargeException".lowercase()) ||
+            message.contains(
+                "KustoRequestPayloadTooLargeException".lowercase(),
+            ) ||
             ex.failureCode == 413 // Request Entity Too Large
     }
 

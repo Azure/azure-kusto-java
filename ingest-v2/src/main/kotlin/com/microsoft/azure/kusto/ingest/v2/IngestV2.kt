@@ -39,7 +39,7 @@ const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
 val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
 
 // Number of blobs to upload in a single batch
-const val MAX_BLOBS_PER_BATCH: Int = 4
+const val MAX_BLOBS_PER_BATCH: Int = 70
 
 // Default maximum data size for blob upload operations (4GB)
 const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024

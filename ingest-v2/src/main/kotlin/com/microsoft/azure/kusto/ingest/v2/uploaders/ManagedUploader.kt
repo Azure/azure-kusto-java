@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.uploaders
 
+import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 
 class ManagedUploader(
     override var ignoreSizeLimit: Boolean,
@@ -16,6 +16,7 @@ class ManagedUploader(
     configurationCache: ConfigurationCache,
     uploadMethod: UploadMethod = UploadMethod.DEFAULT,
     ingestRetryPolicy: IngestRetryPolicy = SimpleRetryPolicy(),
+    tokenCredential: TokenCredential? = null,
 ) :
     ContainerUploaderBase(
         maxConcurrency = maxConcurrency,
@@ -24,11 +25,12 @@ class ManagedUploader(
         configurationCache = configurationCache,
         uploadMethod = uploadMethod,
         retryPolicy = ingestRetryPolicy,
+        tokenCredential = tokenCredential,
     ) {
     override suspend fun selectContainers(
         configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
-    ): List<ContainerInfo> {
+    ): List<ExtendedContainerInfo> {
         // This method is delegated to and this calls getConfiguration again to ensure fresh data is
         // retrieved
         // or cached data is used as appropriate.
@@ -101,11 +103,21 @@ class ManagedUploader(
             }
         return when {
             effectiveMethod == UploadMethod.LAKE && hasLake ->
-                containerSettings.lakeFolders
+                containerSettings.lakeFolders.map {
+                    ExtendedContainerInfo(it, UploadMethod.LAKE)
+                }
             effectiveMethod == UploadMethod.STORAGE && hasStorage ->
-                containerSettings.containers
-            hasStorage -> containerSettings.containers
-            else -> containerSettings.lakeFolders!!
+                containerSettings.containers.map {
+                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
+                }
+            hasStorage ->
+                containerSettings.containers.map {
+                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
+                }
+            else ->
+                containerSettings.lakeFolders!!.map {
+                    ExtendedContainerInfo(it, UploadMethod.LAKE)
+                }
         }
     }
 
