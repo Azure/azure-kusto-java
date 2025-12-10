@@ -16,6 +16,10 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var skipSecurityChecks: Boolean = false
     protected var clientDetails: ClientDetails? = null
 
+    // Fabric Private Link support
+    protected var s2sTokenProvider: (suspend () -> Pair<String, String>)? = null
+    protected var s2sFabricPrivateLinkAccessContext: String? = null
+
     // Added properties for ingestion endpoint and authentication
     protected var ingestionEndpoint: String? = null
     protected var clusterEndpoint: String? = null
@@ -38,6 +42,29 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
 
     fun skipSecurityChecks(): T {
         this.skipSecurityChecks = true
+        return self()
+    }
+
+    /**
+     * Enables a run request to target a cluster with Fabric Private Link enabled.
+     *
+     * @param s2sTokenProvider A suspend function that provides the S2S (Service-to-Service) token,
+     *   indicating that the caller is authorized as a valid Fabric Private Link client.
+     *   Returns a Pair of (token, scheme) e.g., ("token_value", "Bearer")
+     *   Note: The header format will be "{scheme} {token}" (scheme first)
+     * @param s2sFabricPrivateLinkAccessContext Specifies the scope of the Fabric Private Link perimeter,
+     *   such as the entire tenant or a specific workspace.
+     * @return This builder instance for method chaining
+     */
+    fun withFabricPrivateLink(
+        s2sTokenProvider: suspend () -> Pair<String, String>,
+        s2sFabricPrivateLinkAccessContext: String,
+    ): T {
+        require(s2sFabricPrivateLinkAccessContext.isNotBlank()) {
+            "s2sFabricPrivateLinkAccessContext must not be blank"
+        }
+        this.s2sTokenProvider = s2sTokenProvider
+        this.s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext
         return self()
     }
 
@@ -116,6 +143,8 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             tokenCredential = tokenCredential,
             skipSecurityChecks = skipSecurityChecks,
             clientDetails = clientDetails,
+            s2sTokenProvider = s2sTokenProvider,
+            s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext,
         )
     }
 

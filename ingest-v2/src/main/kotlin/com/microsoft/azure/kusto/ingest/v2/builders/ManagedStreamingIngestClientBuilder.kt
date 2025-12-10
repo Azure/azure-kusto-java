@@ -76,6 +76,16 @@ private constructor(private val dmUrl: String) :
                 )
                 .withAuthentication(this.tokenCredential!!)
                 .withUploader(effectiveUploader, closeUploader)
+                .apply {
+                    s2sTokenProvider?.let { provider ->
+                        s2sFabricPrivateLinkAccessContext?.let { context ->
+                            withFabricPrivateLink(provider, context)
+                        }
+                    }
+                    if (skipSecurityChecks) {
+                        skipSecurityChecks()
+                    }
+                }
                 .build()
 
         val effectiveManagedStreamingPolicy =
@@ -90,6 +100,16 @@ private constructor(private val dmUrl: String) :
                     effectiveClientDetails.getUserNameForTracing(),
                 )
                 .withAuthentication(this.tokenCredential!!)
+                .apply {
+                    s2sTokenProvider?.let { provider ->
+                        s2sFabricPrivateLinkAccessContext?.let { context ->
+                            withFabricPrivateLink(provider, context)
+                        }
+                    }
+                    if (skipSecurityChecks) {
+                        skipSecurityChecks()
+                    }
+                }
                 .build()
 
         return ManagedStreamingIngestClient(
