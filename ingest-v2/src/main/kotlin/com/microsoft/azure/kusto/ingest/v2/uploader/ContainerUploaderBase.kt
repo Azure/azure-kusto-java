@@ -19,7 +19,6 @@ import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
-import com.sun.jndi.toolkit.url.Uri
 import kotlinx.coroutines.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
