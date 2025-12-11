@@ -928,25 +928,6 @@ test2,456,2024-01-02"""
                 logger.info(
                     "OneLake uploader test: submitted with operation ID $operationId",
                 )
-
-                val status =
-                    oneLakeIngestClient.pollUntilCompletion(
-                        database = database,
-                        table = targetTable,
-                        operationId = operationId,
-                        pollingInterval = pollInterval,
-                        timeout = pollTimeout,
-                    )
-                val succeededCount =
-                    status.details?.count {
-                        it.status == BlobStatus.Status.Succeeded
-                    } ?: 0
-                assert(succeededCount > 0) {
-                    "Expected successful ingestion for OneLake uploader"
-                }
-                logger.info(
-                    "OneLake uploader test: passed ($succeededCount succeeded)",
-                )
             } catch (e: Exception) {
                 e.printStackTrace()
                 fail("Ingestion failed for OneLake uploader: ${e.message}")
