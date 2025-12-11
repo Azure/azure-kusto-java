@@ -5,12 +5,9 @@ package com.microsoft.azure.kusto.ingest.v2.uploader
 import com.azure.core.credential.TokenCredential
 import com.azure.core.util.Context
 import com.azure.storage.blob.BlobClientBuilder
-import com.azure.storage.blob.BlobServiceClient
-import com.azure.storage.blob.BlobServiceClientBuilder
 import com.azure.storage.blob.models.BlockBlobItem
 import com.azure.storage.blob.models.ParallelTransferOptions
 import com.azure.storage.blob.options.BlobParallelUploadOptions
-import com.azure.storage.file.datalake.DataLakeServiceClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
@@ -214,7 +211,7 @@ abstract class ContainerUploaderBase(
                 )
                 // Wait before retrying
                 if (retryDecision.interval.toMillis() > 0) {
-                    kotlinx.coroutines.delay(retryDecision.interval.toMillis())
+                    delay(retryDecision.interval.toMillis())
                 }
             }
         }

@@ -100,7 +100,7 @@ data class ClientDetails(
             return try {
                 ClientDetails::class.java.`package`.implementationVersion
                     ?: "Unknown"
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 "Unknown"
             }
         }

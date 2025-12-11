@@ -11,7 +11,6 @@ open class IngestException(
     val failureSubCode: String? = null,
     val isPermanent: Boolean? = null,
 ) : Exception(message, cause) {
-    open val alreadyTraced: Boolean = false
     open val creationMessage: String? = message
 
     override val message: String
@@ -135,7 +134,7 @@ class InvalidIngestionMappingException(
     override val message: String
         get() =
             creationMessage
-                ?: "Ingestion mapping is invalid: ${super.message ?: ""}"
+                ?: "Ingestion mapping is invalid: ${super.message}"
 }
 
 class MultipleIngestionMappingPropertiesException(
