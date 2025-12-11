@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-package com.microsoft.azure.kusto.ingest.v2.container
+package com.microsoft.azure.kusto.ingest.v2.uploader.models
 
 enum class UploadErrorCode(val code: String, val description: String) {
     // Stream validation errors

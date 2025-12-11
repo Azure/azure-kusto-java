@@ -24,7 +24,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
-import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
+import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

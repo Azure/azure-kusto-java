@@ -5,9 +5,9 @@ package com.microsoft.azure.kusto.ingest.v2.builders
 import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient
 import com.microsoft.azure.kusto.ingest.v2.client.policy.DefaultManagedStreamingPolicy.Companion.DEFAULT_MANAGED_STREAMING_POLICY
 import com.microsoft.azure.kusto.ingest.v2.client.policy.ManagedStreamingPolicy
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
-import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 
 class ManagedStreamingIngestClientBuilder
 private constructor(private val dmUrl: String) :

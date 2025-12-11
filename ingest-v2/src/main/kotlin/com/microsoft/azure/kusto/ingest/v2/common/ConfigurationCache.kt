@@ -6,6 +6,7 @@ import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS
 import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS
 import com.microsoft.azure.kusto.ingest.v2.ConfigurationClient
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration

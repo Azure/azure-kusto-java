@@ -3,8 +3,8 @@
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.InvalidUploadStreamException
-import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.models.Format
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Files

@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-package com.microsoft.azure.kusto.ingest.v2.uploaders
+package com.microsoft.azure.kusto.ingest.v2.uploader
 
-import com.microsoft.azure.kusto.ingest.v2.container.UploadResult
-import com.microsoft.azure.kusto.ingest.v2.container.UploadResults
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
 import java.io.Closeable
 
 /** Interface for uploading data sources to blob storage. */
@@ -28,8 +27,10 @@ interface IUploader : Closeable {
      * Uploads the specified local sources.
      *
      * @param localSources List of the local sources to upload.
-     * @return The uploaded results - successes (as [UploadResult.Success]) and
-     *   failures (as [UploadResult.Failure]).
+     * @return The uploaded results - successes (as
+     *   [com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult.Success])
+     *   and failures (as
+     *   [com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult.Failure]).
      */
     suspend fun uploadManyAsync(localSources: List<LocalSource>): UploadResults
 }

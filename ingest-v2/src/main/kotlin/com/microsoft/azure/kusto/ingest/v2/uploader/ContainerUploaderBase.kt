@@ -1,35 +1,36 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-package com.microsoft.azure.kusto.ingest.v2.uploaders
+package com.microsoft.azure.kusto.ingest.v2.uploader
 
 import com.azure.core.credential.TokenCredential
 import com.azure.core.util.Context
 import com.azure.storage.blob.BlobClientBuilder
+import com.azure.storage.blob.BlobServiceClient
+import com.azure.storage.blob.BlobServiceClientBuilder
 import com.azure.storage.blob.models.BlockBlobItem
 import com.azure.storage.blob.models.ParallelTransferOptions
 import com.azure.storage.blob.options.BlobParallelUploadOptions
+import com.azure.storage.file.datalake.DataLakeServiceClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
-import com.microsoft.azure.kusto.ingest.v2.container.UploadResult
-import com.microsoft.azure.kusto.ingest.v2.container.UploadResults
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
+import com.sun.jndi.toolkit.url.Uri
+import kotlinx.coroutines.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+
 
 /** Represents an abstract base class for uploaders to storage containers. */
 abstract class ContainerUploaderBase(
@@ -340,7 +341,14 @@ abstract class ContainerUploaderBase(
         container: ExtendedContainerInfo,
         maxConcurrency: Int,
     ): String {
-        val (url, sas) = container.containerInfo.path!!.split("?", limit = 2)
+        val containerPath = container.containerInfo.path!!
+        // Parse URL and SAS token (if present)
+        // Storage containers have SAS tokens: "https://...?sp=..."
+        // Lake containers don't have SAS tokens:
+        // "https://msit-onelake.dfs.fabric.microsoft.com/..."
+        val pathParts = containerPath.split("?", limit = 2)
+        val url = pathParts[0]
+        val sas = if (pathParts.size > 1) pathParts[1] else null
 
         val blobClient =
             if (container.uploadMethod == UploadMethod.STORAGE) {
@@ -350,7 +358,7 @@ abstract class ContainerUploaderBase(
                     url,
                 )
                 BlobClientBuilder()
-                    .endpoint(container.containerInfo.path)
+                    .endpoint(containerPath)
                     .blobName(name)
                     .buildClient()
             } else {
@@ -361,18 +369,18 @@ abstract class ContainerUploaderBase(
                         url,
                     )
                     BlobClientBuilder()
-                        .endpoint(container.containerInfo.path)
+                        .endpoint(containerPath)
                         .blobName(name)
                         .credential(tokenCredential)
                         .buildClient()
                 } else {
                     logger.info(
-                        "Upload {} LAKE upload method with no auth for container url {}",
+                        "Upload {} using LAKE upload method with no auth for container url {}",
                         name,
                         url,
                     )
                     BlobClientBuilder()
-                        .endpoint(container.containerInfo.path)
+                        .endpoint(containerPath)
                         .blobName(name)
                         .buildClient()
                 }
@@ -406,7 +414,12 @@ abstract class ContainerUploaderBase(
                 url,
                 blockBlobItem.eTag,
             )
-            "$url/$name?$sas"
+            // Return the blob URL with SAS token if available
+            if (sas != null) {
+                "$url/$name?$sas"
+            } else {
+                "$url/$name"
+            }
         } else {
             throw IngestException(
                 "Upload failed with status: ${blobUploadResult.statusCode}",

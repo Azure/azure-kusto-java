@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-package com.microsoft.azure.kusto.ingest.v2.container
+package com.microsoft.azure.kusto.ingest.v2.uploader.models
 
 import com.microsoft.azure.kusto.ingest.v2.common.BatchOperationResult
 import java.time.Instant

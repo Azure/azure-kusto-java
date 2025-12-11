@@ -6,10 +6,10 @@ import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
-import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
-import com.microsoft.azure.kusto.ingest.v2.uploaders.ManagedUploader
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
+import com.microsoft.azure.kusto.ingest.v2.uploader.ManagedUploader
 
 abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var tokenCredential: TokenCredential? = null

@@ -3,10 +3,10 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
-import com.microsoft.azure.kusto.ingest.v2.uploaders.IUploader
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 
 class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
     BaseIngestClientBuilder<QueuedIngestClientBuilder>() {

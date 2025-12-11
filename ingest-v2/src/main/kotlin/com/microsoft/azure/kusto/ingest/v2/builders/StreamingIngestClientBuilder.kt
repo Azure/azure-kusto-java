@@ -3,7 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.microsoft.azure.kusto.ingest.v2.client.StreamingIngestClient
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 
 class StreamingIngestClientBuilder
 private constructor(private val clusterUrl: String) :

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common
 
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerSettings

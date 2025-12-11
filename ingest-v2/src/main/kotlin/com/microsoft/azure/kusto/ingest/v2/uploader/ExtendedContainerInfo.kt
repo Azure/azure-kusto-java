@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-package com.microsoft.azure.kusto.ingest.v2.uploaders
+package com.microsoft.azure.kusto.ingest.v2.uploader
 
 import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
 

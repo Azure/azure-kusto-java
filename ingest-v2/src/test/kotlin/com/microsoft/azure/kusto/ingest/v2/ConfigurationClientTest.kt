@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2
 
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.parallel.Execution

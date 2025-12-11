@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.exceptions
 
-import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 
 open class IngestException(
     message: String? = null,

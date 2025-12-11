@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest

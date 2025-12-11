@@ -29,6 +29,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
             ?: throw IllegalArgumentException(
                 "DM_CONNECTION_STRING environment variable is not set",
             )
+    protected val oneLakeFolder: String? = System.getenv("ONE_LAKE_FOLDER")
     protected val targetTestFormat = Format.json
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")

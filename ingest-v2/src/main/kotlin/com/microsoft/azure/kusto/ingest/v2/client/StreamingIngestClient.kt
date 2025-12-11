@@ -9,7 +9,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
-import com.microsoft.azure.kusto.ingest.v2.container.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
@@ -20,6 +19,7 @@ import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.SerialName

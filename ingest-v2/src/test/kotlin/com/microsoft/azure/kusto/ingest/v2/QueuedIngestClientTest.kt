@@ -4,13 +4,18 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
+import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
+import com.microsoft.azure.kusto.ingest.v2.models.ContainerInfo
+import com.microsoft.azure.kusto.ingest.v2.models.ContainerSettings
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
@@ -638,7 +643,7 @@ class QueuedIngestClientTest :
                 awaitAndQuery(
                     query =
                     "$targetTable | where format == '$format' |summarize count=count() by format",
-                    expectedResultsCount = 1L,
+                    expectedResultsCount = expectedRecordCount.toLong(),
                 )
 
                 val extentDetailsResults =
@@ -853,6 +858,104 @@ test2,456,2024-01-02"""
             } == true,
         ) {
             "Expected at least one successful ingestion for $testName"
+        }
+    }
+
+    @Test
+    fun `E2E - OneLake uploader test`(): Unit = runBlocking {
+        if (oneLakeFolder != null) {
+            logger.info("E2E: Testing OneLake uploader")
+
+            // Create a ConfigurationResponse with OneLake lakeFolders configuration
+            val oneLakeConfigResponse =
+                ConfigurationResponse(
+                    containerSettings =
+                    ContainerSettings(
+                        containers = null,
+                        lakeFolders =
+                        listOf(
+                            ContainerInfo(
+                                path =
+                                oneLakeFolder,
+                            ),
+                        ),
+                        refreshInterval = null,
+                        preferredUploadMethod = "Rest",
+                    ),
+                    ingestionSettings = null,
+                )
+
+            // Create a configuration cache that returns our OneLake configuration
+            val oneLakeConfiguration =
+                DefaultConfigurationCache(
+                    dmUrl = dmEndpoint,
+                    tokenCredential = tokenProvider,
+                    skipSecurityChecks = true,
+                    clientDetails = ClientDetails.createDefault(),
+                    configurationProvider = { oneLakeConfigResponse },
+                )
+
+            val builder =
+                QueuedIngestClientBuilder.create(dmEndpoint)
+                    .withAuthentication(tokenProvider)
+                    .withConfiguration(oneLakeConfiguration)
+                    .skipSecurityChecks()
+
+            val oneLakeIngestClient = builder.build()
+
+            val source = createTestStreamSource(1024 * 10, "onelake_test.json")
+
+            try {
+                val response =
+                    oneLakeIngestClient.ingestAsync(
+                        database = database,
+                        table = targetTable,
+                        source = source,
+                        ingestRequestProperties =
+                        IngestRequestPropertiesBuilder(
+                            format =
+                            Format.multijson,
+                        )
+                            .withEnableTracking(true)
+                            .build(),
+                    )
+
+                val operationId =
+                    assertValidIngestionResponse(
+                        response,
+                        "OneLake uploader test",
+                    )
+                logger.info(
+                    "OneLake uploader test: submitted with operation ID $operationId",
+                )
+
+                val status =
+                    oneLakeIngestClient.pollUntilCompletion(
+                        database = database,
+                        table = targetTable,
+                        operationId = operationId,
+                        pollingInterval = pollInterval,
+                        timeout = pollTimeout,
+                    )
+                val succeededCount =
+                    status.details?.count {
+                        it.status == BlobStatus.Status.Succeeded
+                    } ?: 0
+                assert(succeededCount > 0) {
+                    "Expected successful ingestion for OneLake uploader"
+                }
+                logger.info(
+                    "OneLake uploader test: passed ($succeededCount succeeded)",
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+                fail("Ingestion failed for OneLake uploader: ${e.message}")
+            }
+        } else {
+            logger.warn(
+                "Skipping OneLake uploader test: ONE_LAKE_FOLDER not set",
+            )
+            assumeTrue(false, "ONE_LAKE_FOLDER environment variable is not set")
         }
     }
 }
