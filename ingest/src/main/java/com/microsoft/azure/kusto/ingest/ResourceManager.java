@@ -9,7 +9,6 @@ import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ExponentialRetry;
 import com.microsoft.azure.kusto.data.KustoOperationResult;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
-import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.exceptions.ThrottleException;
@@ -19,19 +18,16 @@ import com.microsoft.azure.kusto.data.instrumentation.MonitoredActivity;
 import com.microsoft.azure.kusto.data.instrumentation.SupplierTwoExceptions;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionServiceException;
-import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
-import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccountSet;
 import com.microsoft.azure.kusto.ingest.resources.ContainerWithSas;
 import com.microsoft.azure.kusto.ingest.resources.QueueWithSas;
+import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccount;
+import com.microsoft.azure.kusto.ingest.resources.RankedStorageAccountSet;
 import com.microsoft.azure.kusto.ingest.resources.ResourceWithSas;
 import com.microsoft.azure.kusto.ingest.utils.TableWithSas;
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.retry.RetryConfig;
-import io.vavr.CheckedFunction0;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import reactor.util.annotation.Nullable;
+import reactor.util.retry.Retry;
 
 import java.io.Closeable;
 import java.lang.invoke.MethodHandles;
@@ -55,10 +51,10 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD = TimeUnit.HOURS.toMillis(1);
     private static final long REFRESH_INGESTION_RESOURCES_PERIOD_ON_FAILURE = TimeUnit.MINUTES.toMillis(1);
     private static final long REFRESH_RESULT_POLL_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(15);
-    private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
+    private static final double BASE_INTERVAL_SECS = 2.0;
     private static final double JITTER_FACTOR = 0.5;
-    private static final reactor.util.retry.Retry RETRY_CONFIG = new ExponentialRetry(MAX_RETRY_ATTEMPTS, BASE_INTERVAL, JITTER_FACTOR)
-            .retry(Collections.singletonList(ThrottleException.class), null); // TODO: fix import after removing vavr
+    private static final Retry RETRY_CONFIG = new ExponentialRetry(MAX_RETRY_ATTEMPTS, BASE_INTERVAL_SECS, JITTER_FACTOR)
+            .retry(Collections.singletonList(ThrottleException.class), null);
     private final Client client;
     private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private Timer refreshTasksTimer;
@@ -69,7 +65,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
     private final Long defaultRefreshTime;
     private final Long refreshTimeOnFailure;
     private final HttpClient httpClient;
-    private final RetryConfig taskRetryConfig;
     private RequestRetryOptions queueRequestOptions = null;
     private RankedStorageAccountSet storageAccountSet;
     private String identityToken;
@@ -94,7 +89,6 @@ class ResourceManager implements Closeable, IngestionResourceManager {
         this.refreshTasksTimer = new Timer(true);
         this.defaultRefreshTime = defaultRefreshTime;
         this.refreshTimeOnFailure = refreshTimeOnFailure;
-        this.taskRetryConfig = Utils.buildRetryConfig(ThrottleException.class);
         initRefreshTasks();
 
         this.storageAccountSet = new RankedStorageAccountSet();
@@ -155,10 +149,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
                 try {
                     log.info("Refreshing Ingestion Resources");
                     IngestionResourceSet newIngestionResourceSet = new IngestionResourceSet();
-                    Retry retry = Retry.of("get ingestion resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND));
-                    KustoOperationResult ingestionResourcesResults = retryExecute.apply();
+
+                    KustoOperationResult ingestionResourcesResults = client.executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND)
+                            .retryWhen(RETRY_CONFIG)
+                            .block();
+
                     if (ingestionResourcesResults != null) {
                         KustoResultSetTable table = ingestionResourcesResults.getPrimaryResults();
                         // Add the received values to the new ingestion resources
@@ -251,10 +246,11 @@ class ResourceManager implements Closeable, IngestionResourceManager {
             if (ingestionAuthTokenLock.writeLock().tryLock()) {
                 try {
                     log.info("Refreshing Ingestion Auth Token");
-                    Retry retry = Retry.of("get Ingestion Auth Token resources", taskRetryConfig);
-                    CheckedFunction0<KustoOperationResult> retryExecute = Retry.decorateCheckedSupplier(retry,
-                            () -> client.executeMgmt(Commands.IDENTITY_GET_COMMAND));
-                    KustoOperationResult identityTokenResult = retryExecute.apply();
+
+                    KustoOperationResult identityTokenResult = client.executeMgmtAsync(Commands.IDENTITY_GET_COMMAND)
+                            .retryWhen(RETRY_CONFIG)
+                            .block();
+
                     if (identityTokenResult != null
                             && identityTokenResult.hasNext()
                             && !identityTokenResult.getResultTables().isEmpty()) {

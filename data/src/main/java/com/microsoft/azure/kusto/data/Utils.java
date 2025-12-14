@@ -10,9 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.github.resilience4j.core.IntervalFunction;
-import io.github.resilience4j.core.lang.Nullable;
-import io.github.resilience4j.retry.RetryConfig;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
@@ -36,15 +33,10 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 import java.util.zip.DeflaterInputStream;
 import java.util.zip.GZIPInputStream;
 
 public class Utils {
-
-    private static final int MAX_RETRY_ATTEMPTS = 4;
-    private static final long MAX_RETRY_INTERVAL = TimeUnit.SECONDS.toMillis(30);
-    private static final long BASE_INTERVAL = TimeUnit.SECONDS.toMillis(2);
 
     // added auto bigdecimal deserialization for float and double value, since the bigdecimal values seem to lose precision while auto deserialization to
     // double value
@@ -62,11 +54,6 @@ public class Utils {
             add(SSLException.class);
         }
     };
-
-    static private final IntervalFunction sleepConfig = IntervalFunction.ofExponentialRandomBackoff(BASE_INTERVAL,
-            IntervalFunction.DEFAULT_MULTIPLIER,
-            IntervalFunction.DEFAULT_RANDOMIZATION_FACTOR,
-            MAX_RETRY_INTERVAL);
 
     private Utils() {
         // Hide constructor, as this is a static utility class
@@ -112,22 +99,6 @@ public class Utils {
         return !nonRetriableClasses.contains(ex.getClass()) &&
                 ex.getMessage() != null && ex.getMessage().contains("timed out");
 
-    }
-
-    public static RetryConfig buildRetryConfig(@Nullable Class<? extends Throwable>... errorClasses) {
-        return RetryConfig.custom()
-                .maxAttempts(MAX_RETRY_ATTEMPTS)
-                .intervalFunction(sleepConfig)
-                .retryExceptions(errorClasses)
-                .build();
-    }
-
-    public static RetryConfig buildRetryConfig(Predicate<Throwable> predicate) {
-        return RetryConfig.custom()
-                .maxAttempts(MAX_RETRY_ATTEMPTS)
-                .intervalFunction(sleepConfig)
-                .retryOnException(predicate)
-                .build();
     }
 
     /**
@@ -200,9 +171,7 @@ public class Utils {
         final CompositeByteBuf composite = Unpooled.compositeBuffer();
 
         return body
-                .doOnNext(byteBuffer -> {
-                    composite.addComponent(true, Unpooled.wrappedBuffer(byteBuffer));
-                })
+                .doOnNext(byteBuffer -> composite.addComponent(true, Unpooled.wrappedBuffer(byteBuffer)))
                 .then(Mono.fromCallable(() -> composite.toString(StandardCharsets.UTF_8)))
                 .doFinally(ignore -> composite.release())
                 .switchIfEmpty(Mono.just(StringUtils.EMPTY));
