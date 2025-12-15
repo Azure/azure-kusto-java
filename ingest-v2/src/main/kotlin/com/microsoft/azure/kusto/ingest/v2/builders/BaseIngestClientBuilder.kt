@@ -46,14 +46,17 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     }
 
     /**
-     * Enables a run request to target a cluster with Fabric Private Link enabled.
+     * Enables a run request to target a cluster with Fabric Private Link
+     * enabled.
      *
-     * @param s2sTokenProvider A suspend function that provides the S2S (Service-to-Service) token,
-     *   indicating that the caller is authorized as a valid Fabric Private Link client.
-     *   Returns a Pair of (token, scheme) e.g., ("token_value", "Bearer")
-     *   Note: The header format will be "{scheme} {token}" (scheme first)
-     * @param s2sFabricPrivateLinkAccessContext Specifies the scope of the Fabric Private Link perimeter,
-     *   such as the entire tenant or a specific workspace.
+     * @param s2sTokenProvider A suspend function that provides the S2S
+     *   (Service-to-Service) token, indicating that the caller is authorized as
+     *   a valid Fabric Private Link client. Returns a Pair of (token, scheme)
+     *   e.g., ("token_value", "Bearer") Note: The header format will be
+     *   "{scheme} {token}" (scheme first)
+     * @param s2sFabricPrivateLinkAccessContext Specifies the scope of the
+     *   Fabric Private Link perimeter, such as the entire tenant or a specific
+     *   workspace.
      * @return This builder instance for method chaining
      */
     fun withFabricPrivateLink(
@@ -64,7 +67,8 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             "s2sFabricPrivateLinkAccessContext must not be blank"
         }
         this.s2sTokenProvider = s2sTokenProvider
-        this.s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext
+        this.s2sFabricPrivateLinkAccessContext =
+            s2sFabricPrivateLinkAccessContext
         return self()
     }
 
@@ -144,7 +148,8 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             skipSecurityChecks = skipSecurityChecks,
             clientDetails = clientDetails,
             s2sTokenProvider = s2sTokenProvider,
-            s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext,
+            s2sFabricPrivateLinkAccessContext =
+            s2sFabricPrivateLinkAccessContext,
         )
     }
 

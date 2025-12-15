@@ -22,14 +22,18 @@ import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-
 
 /** Represents an abstract base class for uploaders to storage containers. */
 abstract class ContainerUploaderBase(
@@ -351,7 +355,14 @@ abstract class ContainerUploaderBase(
 
         return if (container.uploadMethod == UploadMethod.STORAGE) {
             // Use Blob API for STORAGE upload method
-            uploadUsingBlobApi(name, stream, containerPath, url, sas, maxConcurrency)
+            uploadUsingBlobApi(
+                name,
+                stream,
+                containerPath,
+                url,
+                sas,
+                maxConcurrency,
+            )
         } else {
             // Use Data Lake API for LAKE upload method
             uploadUsingDataLakeApi(name, stream, url, sas, maxConcurrency)
@@ -372,13 +383,15 @@ abstract class ContainerUploaderBase(
             url,
         )
 
-        val blobClient = BlobClientBuilder()
-            .endpoint(containerPath)
-            .blobName(name)
-            .buildClient()
+        val blobClient =
+            BlobClientBuilder()
+                .endpoint(containerPath)
+                .blobName(name)
+                .buildClient()
 
         val parallelTransferOptions =
-            com.azure.storage.blob.models.ParallelTransferOptions()
+            com.azure.storage.blob.models
+                .ParallelTransferOptions()
                 .setBlockSizeLong(UPLOAD_BLOCK_SIZE_BYTES)
                 .setMaxConcurrency(maxConcurrency)
                 .setMaxSingleUploadSizeLong(
@@ -434,61 +447,83 @@ abstract class ContainerUploaderBase(
         )
 
         // Parse the URL to extract file system and path
-        // OneLake URL format: https://msit-onelake.dfs.fabric.microsoft.com/{workspace-id}/{lakehouse-id}/Files/Ingestions/
-        // In OneLake/Fabric, the workspace-id is treated as the "container" (file system in ADLS Gen2 terms)
+        // OneLake URL format:
+        // https://msit-onelake.dfs.fabric.microsoft.com/{workspace-id}/{lakehouse-id}/Files/Ingestions/
+        // In OneLake/Fabric, the workspace-id is treated as the "container" (file system in ADLS
+        // Gen2 terms)
         // and {lakehouse-id}/Files/... is the path within that container
         val uri = java.net.URI(url)
         val pathSegments = uri.path.trimStart('/').split('/')
 
         val serviceEndpoint = "${uri.scheme}://${uri.host}"
         // First segment is the workspace-id (container/filesystem)
-        val fileSystemName = if (pathSegments.isNotEmpty()) pathSegments[0] else ""
+        val fileSystemName =
+            if (pathSegments.isNotEmpty()) pathSegments[0] else ""
         // Remaining segments form the directory path: {lakehouse-id}/Files/Ingestions/...
-        val directoryPath = if (pathSegments.size > 1) {
-            pathSegments.subList(1, pathSegments.size).filter { it.isNotEmpty() }.joinToString("/")
-        } else {
-            ""
-        }
+        val directoryPath =
+            if (pathSegments.size > 1) {
+                pathSegments
+                    .subList(1, pathSegments.size)
+                    .filter { it.isNotEmpty() }
+                    .joinToString("/")
+            } else {
+                ""
+            }
 
         // Build the Data Lake file client
-        val fileClient: DataLakeFileClient = if (tokenCredential != null) {
-            logger.debug("Using TokenCredential for Data Lake authentication")
-            val serviceClient = DataLakeServiceClientBuilder()
-                .endpoint(serviceEndpoint)
-                .credential(tokenCredential)
-                .buildClient()
+        val fileClient: DataLakeFileClient =
+            if (tokenCredential != null) {
+                logger.debug(
+                    "Using TokenCredential for Data Lake authentication",
+                )
+                val serviceClient =
+                    DataLakeServiceClientBuilder()
+                        .endpoint(serviceEndpoint)
+                        .credential(tokenCredential)
+                        .buildClient()
 
-            val fileSystemClient = serviceClient.getFileSystemClient(fileSystemName)
-            if (directoryPath.isNotEmpty()) {
-                fileSystemClient.getDirectoryClient(directoryPath).getFileClient(name)
-            } else {
-                fileSystemClient.getFileClient(name)
-            }
-        } else if (sas != null) {
-            logger.debug("Using SAS token for Data Lake authentication")
-            val serviceClient = DataLakeServiceClientBuilder()
-                .endpoint("$serviceEndpoint?$sas")
-                .buildClient()
+                val fileSystemClient =
+                    serviceClient.getFileSystemClient(fileSystemName)
+                if (directoryPath.isNotEmpty()) {
+                    fileSystemClient
+                        .getDirectoryClient(directoryPath)
+                        .getFileClient(name)
+                } else {
+                    fileSystemClient.getFileClient(name)
+                }
+            } else if (sas != null) {
+                logger.debug("Using SAS token for Data Lake authentication")
+                val serviceClient =
+                    DataLakeServiceClientBuilder()
+                        .endpoint("$serviceEndpoint?$sas")
+                        .buildClient()
 
-            val fileSystemClient = serviceClient.getFileSystemClient(fileSystemName)
-            if (directoryPath.isNotEmpty()) {
-                fileSystemClient.getDirectoryClient(directoryPath).getFileClient(name)
+                val fileSystemClient =
+                    serviceClient.getFileSystemClient(fileSystemName)
+                if (directoryPath.isNotEmpty()) {
+                    fileSystemClient
+                        .getDirectoryClient(directoryPath)
+                        .getFileClient(name)
+                } else {
+                    fileSystemClient.getFileClient(name)
+                }
             } else {
-                fileSystemClient.getFileClient(name)
-            }
-        } else {
-            logger.debug("Using anonymous access for Data Lake")
-            val serviceClient = DataLakeServiceClientBuilder()
-                .endpoint(serviceEndpoint)
-                .buildClient()
+                logger.debug("Using anonymous access for Data Lake")
+                val serviceClient =
+                    DataLakeServiceClientBuilder()
+                        .endpoint(serviceEndpoint)
+                        .buildClient()
 
-            val fileSystemClient = serviceClient.getFileSystemClient(fileSystemName)
-            if (directoryPath.isNotEmpty()) {
-                fileSystemClient.getDirectoryClient(directoryPath).getFileClient(name)
-            } else {
-                fileSystemClient.getFileClient(name)
+                val fileSystemClient =
+                    serviceClient.getFileSystemClient(fileSystemName)
+                if (directoryPath.isNotEmpty()) {
+                    fileSystemClient
+                        .getDirectoryClient(directoryPath)
+                        .getFileClient(name)
+                } else {
+                    fileSystemClient.getFileClient(name)
+                }
             }
-        }
 
         val parallelTransferOptions =
             ParallelTransferOptions()
@@ -498,12 +533,15 @@ abstract class ContainerUploaderBase(
                     UPLOAD_MAX_SINGLE_SIZE_BYTES,
                 )
 
-        val uploadResponse = fileClient.uploadWithResponse(
-            FileParallelUploadOptions(stream)
-                .setParallelTransferOptions(parallelTransferOptions),
-            Duration.ofHours(BLOB_UPLOAD_TIMEOUT_HOURS),
-            Context.NONE,
-        )
+        val uploadResponse =
+            fileClient.uploadWithResponse(
+                FileParallelUploadOptions(stream)
+                    .setParallelTransferOptions(
+                        parallelTransferOptions,
+                    ),
+                Duration.ofHours(BLOB_UPLOAD_TIMEOUT_HOURS),
+                Context.NONE,
+            )
 
         return if (uploadResponse.statusCode in 200..299) {
             logger.debug(

@@ -78,7 +78,8 @@ private constructor(private val dmUrl: String) :
                 .withUploader(effectiveUploader, closeUploader)
                 .apply {
                     s2sTokenProvider?.let { provider ->
-                        s2sFabricPrivateLinkAccessContext?.let { context ->
+                        s2sFabricPrivateLinkAccessContext?.let { context,
+                            ->
                             withFabricPrivateLink(provider, context)
                         }
                     }
@@ -102,7 +103,8 @@ private constructor(private val dmUrl: String) :
                 .withAuthentication(this.tokenCredential!!)
                 .apply {
                     s2sTokenProvider?.let { provider ->
-                        s2sFabricPrivateLinkAccessContext?.let { context ->
+                        s2sFabricPrivateLinkAccessContext?.let { context,
+                            ->
                             withFabricPrivateLink(provider, context)
                         }
                     }

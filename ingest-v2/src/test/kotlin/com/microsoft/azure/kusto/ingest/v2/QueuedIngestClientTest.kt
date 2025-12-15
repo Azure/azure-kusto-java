@@ -37,7 +37,9 @@ import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Clock
+import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertNotNull
 import kotlin.time.Duration
@@ -635,7 +637,7 @@ class QueuedIngestClientTest :
                         it.status == BlobStatus.Status.Succeeded
                     } ?: 0
                 assert(succeededCount > 0) {
-                    "Expected successful ingestion for $formatName"
+                    "Expected successful ingestion for $formatName and operation-id $operationId.Got response: ${Json.encodeToString(status)}"
                 }
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
@@ -659,7 +661,7 @@ class QueuedIngestClientTest :
                 )
                 extentDetailsResults.next()
                 val actualTags: String = extentDetailsResults.getString("Tags")
-                /* TODO : This is being checked in the ingestion service side now. Uncomment when confirmed
+                /* TODO : This is being checked in the ingestion service side now. Uncomment when confirmed */
                 val actualCreatedOnTime: Instant =
                     Instant.parse(
                         extentDetailsResults.getString("MinCreatedOn"),
@@ -679,7 +681,6 @@ class QueuedIngestClientTest :
                 assert(actualCreatedOnInstant == expectedCreatedOnInstant) {
                     "Extent creation time $actualCreatedOnInstant is <> expected $expectedCreatedOnInstant (rounded to minutes)"
                 }
-                 */
                 extentTags.forEach { tag ->
                     assert(actualTags.contains(tag)) {
                         "Extent tags $actualTags does not contain expected tag $tag"

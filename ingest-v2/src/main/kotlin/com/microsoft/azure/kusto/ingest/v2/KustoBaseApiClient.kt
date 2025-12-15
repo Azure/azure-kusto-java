@@ -116,32 +116,37 @@ open class KustoBaseApiClient(
 
         // Add S2S authorization and Fabric Private Link headers using request interceptor
         s2sTokenProvider?.let { provider ->
-            config.install(io.ktor.client.plugins.api.createClientPlugin("S2SAuthPlugin") {
-                onRequest { request, _ ->
-                    try {
-                        // Get S2S token
-                        val (token, scheme) = provider()
-                        request.headers.append(
-                            "x-ms-s2s-actor-authorization",
-                            "$scheme $token"
-                        )
-
-                        // Add Fabric Private Link access context header
-                        s2sFabricPrivateLinkAccessContext?.let { context ->
+            config.install(
+                io.ktor.client.plugins.api.createClientPlugin(
+                    "S2SAuthPlugin",
+                ) {
+                    onRequest { request, _ ->
+                        try {
+                            // Get S2S token
+                            val (token, scheme) = provider()
                             request.headers.append(
-                                "x-ms-fabric-s2s-access-context",
-                                context
+                                "x-ms-s2s-actor-authorization",
+                                "$scheme $token",
                             )
+
+                            // Add Fabric Private Link access context header
+                            s2sFabricPrivateLinkAccessContext?.let { context,
+                                ->
+                                request.headers.append(
+                                    "x-ms-fabric-s2s-access-context",
+                                    context,
+                                )
+                            }
+                        } catch (e: Exception) {
+                            logger.error(
+                                "Error retrieving S2S token: ${e.message}",
+                                e,
+                            )
+                            throw e
                         }
-                    } catch (e: Exception) {
-                        logger.error(
-                            "Error retrieving S2S token: ${e.message}",
-                            e,
-                        )
-                        throw e
                     }
-                }
-            })
+                },
+            )
         }
         config.install(ContentNegotiation) {
             json(
