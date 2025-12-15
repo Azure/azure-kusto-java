@@ -535,12 +535,22 @@ internal constructor(
                 currentStatus
             }
 
-        if(result != null) {
-            logger.debug("Finished polling ingestion status for operation: {}, result: {}", operationId, result)
+        if (result != null) {
+            logger.debug(
+                "Finished polling ingestion status for operation: {}, result: {}",
+                operationId,
+                result,
+            )
             result.status?.failed?.let {
-                if(it >= 1) {
-                    val errorMessage = printMessagesFromFailures(result.details, isTransientFailure = false)
-                    logger.error("Ingestion operation $operationId failed. $errorMessage")
+                if (it >= 1) {
+                    val errorMessage =
+                        printMessagesFromFailures(
+                            result.details,
+                            isTransientFailure = false,
+                        )
+                    logger.error(
+                        "Ingestion operation $operationId failed. $errorMessage",
+                    )
                     throw IngestException(
                         "Ingestion operation $operationId failed. $errorMessage",
                         isPermanent = true,
@@ -561,24 +571,30 @@ internal constructor(
         isTransientFailure: Boolean,
     ): String? {
         return failures?.joinToString {
-            (
-                sourceId,
-                status,
-                startedAt,
-                lastUpdateTime,
-                errorCode,
-                failureStatus,
-                details,
-            ),
+                (
+                    sourceId,
+                    status,
+                    startedAt,
+                    lastUpdateTime,
+                    errorCode,
+                    failureStatus,
+                    details,
+                ),
             ->
             buildString {
                 append("Error ingesting blob with $sourceId. ")
                 if (!details.isNullOrBlank()) append("ErrorDetails $details, ")
-                if (!errorCode.isNullOrBlank()) append("ErrorCode $errorCode , ")
+                if (!errorCode.isNullOrBlank()) {
+                    append("ErrorCode $errorCode , ")
+                }
                 if (status != null) append("Status ${status.value}. ")
-                if (lastUpdateTime != null) append("Ingestion lastUpdated at $lastUpdateTime ")
+                if (lastUpdateTime != null) {
+                    append("Ingestion lastUpdated at $lastUpdateTime ")
+                }
                 if (startedAt != null) append("& started at $startedAt. ")
-                if (failureStatus != null) append("FailureStatus ${failureStatus.value}. ")
+                if (failureStatus != null) {
+                    append("FailureStatus ${failureStatus.value}. ")
+                }
                 append("Is transient failure: $isTransientFailure")
             }
         }
