@@ -2,9 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>ingest-v2</artifactId>
-    <name>ingest-v2</name>
-    <description>ingest-v2</description>
+    <artifactId>kusto-ingest-v2</artifactId>
+    <name>kusto-ingest-v2</name>
+    <description>
+        New ingest module that simplifies ingestion and prepares for next set of iterations to support Private Link for
+        EventHouse on Fabric
+    </description>
     <properties>
         <awaitility.version>4.3.0</awaitility.version>
         <kotlin.code.style>official</kotlin.code.style>
@@ -65,6 +68,11 @@
             <artifactId>kotlin-test-junit5</artifactId>
             <version>${kotlin.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-jdk8</artifactId>
+            <version>${kotlinx.coroutines.debug.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>

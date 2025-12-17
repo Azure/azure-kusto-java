@@ -18,6 +18,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
@@ -30,10 +31,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.util.zip.GZIPOutputStream
 
 /** Represents an abstract base class for uploaders to storage containers. */
 abstract class ContainerUploaderBase(
@@ -59,10 +63,10 @@ abstract class ContainerUploaderBase(
 
     override suspend fun uploadAsync(local: LocalSource): BlobSource {
         // Get the stream and validate it
-        val stream = local.data()
+        val originalStream = local.data()
         val name = local.generateBlobName()
 
-        val errorCode = checkStreamForErrors(stream)
+        val errorCode = checkStreamForErrors(originalStream)
         if (errorCode != null) {
             logger.error(
                 "Stream validation failed for {}: {}",
@@ -72,9 +76,10 @@ abstract class ContainerUploaderBase(
             throw IngestException(errorCode.description, isPermanent = true)
         }
 
-        // Check size limit if not ignored
+        // Check size limit if not ignored (check original size before compression)
         val availableSize =
-            withContext(Dispatchers.IO) { stream.available() }.toLong()
+            withContext(Dispatchers.IO) { originalStream.available() }
+                .toLong()
         if (!ignoreSizeLimit && availableSize > 0) {
             if (availableSize > maxDataSize) {
                 logger.error(
@@ -101,14 +106,51 @@ abstract class ContainerUploaderBase(
             )
         }
 
+        // Compress stream if needed (for non-binary, non-compressed formats)
+        val (uploadStream, effectiveCompressionType) =
+            if (local.shouldCompress) {
+                logger.debug(
+                    "Auto-compressing stream for {} (format: {}, original compression: {})",
+                    name,
+                    local.format,
+                    local.compressionType,
+                )
+                val compressedStream = compressStream(originalStream)
+                logger.debug(
+                    "Compression complete for {}: original={} bytes, compressed={} bytes",
+                    name,
+                    availableSize,
+                    compressedStream.available(),
+                )
+                Pair(compressedStream, CompressionType.GZIP)
+            } else {
+                Pair(originalStream, local.compressionType)
+            }
+
         // Upload with retry policy and container cycling
         return uploadWithRetries(
             local = local,
             name = name,
-            stream = stream,
+            stream = uploadStream,
             containers = containers,
+            effectiveCompressionType = effectiveCompressionType,
         )
     }
+
+    /**
+     * Compresses the input stream using GZIP compression. Reads all data into
+     * memory, compresses it, and returns a new ByteArrayInputStream.
+     */
+    private suspend fun compressStream(
+        inputStream: InputStream,
+    ): ByteArrayInputStream =
+        withContext(Dispatchers.IO) {
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            GZIPOutputStream(byteArrayOutputStream).use { gzipStream ->
+                inputStream.copyTo(gzipStream)
+            }
+            ByteArrayInputStream(byteArrayOutputStream.toByteArray())
+        }
 
     /**
      * Uploads a stream with retry logic and container cycling. Randomly selects
@@ -120,6 +162,7 @@ abstract class ContainerUploaderBase(
         name: String,
         stream: InputStream,
         containers: List<ExtendedContainerInfo>,
+        effectiveCompressionType: CompressionType = local.compressionType,
     ): BlobSource {
         // Select random starting container index
         var containerIndex = (0 until containers.size).random()
@@ -163,10 +206,11 @@ abstract class ContainerUploaderBase(
                 )
 
                 // Return BlobSource with the uploaded blob path
+                // Use effective compression type (GZIP if auto-compressed)
                 return BlobSource(
                     blobPath = blobUrl,
                     format = local.format,
-                    compressionType = local.compressionType,
+                    compressionType = effectiveCompressionType,
                     sourceId = local.sourceId,
                 )
                     .apply { blobExactSize = local.size() }

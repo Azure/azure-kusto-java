@@ -12,22 +12,25 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientExcepti
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.database
+import com.microsoft.azure.kusto.ingest.v2.common.models.table
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.CompletableFuture
 
 /**
  * Managed streaming ingestion client that combines streaming and queued
@@ -83,19 +86,16 @@ internal constructor(
 
     override suspend fun ingestAsync(
         source: IngestionSource,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
+        // Extract database and table from properties
+        val database = ingestRequestProperties.database
+        val table = ingestRequestProperties.table
+
         requireNotNull(database.trim().isNotEmpty()) {
             "database cannot be blank"
         }
         requireNotNull(table.trim().isNotEmpty()) { "table cannot be blank" }
-
-        val effectiveIngestRequestProperties =
-            ingestRequestProperties
-                ?: IngestRequestPropertiesBuilder(format = Format.csv)
-                    .build()
 
         return when (source) {
             is BlobSource ->
@@ -103,14 +103,14 @@ internal constructor(
                     source,
                     database,
                     table,
-                    effectiveIngestRequestProperties,
+                    ingestRequestProperties,
                 )
             is LocalSource ->
                 ingestLocalAsync(
                     source,
                     database,
                     table,
-                    effectiveIngestRequestProperties,
+                    ingestRequestProperties,
                 )
             else ->
                 throw IllegalArgumentException(
@@ -161,6 +161,56 @@ internal constructor(
             logger.warn("Error closing queued ingest client", e)
         }
     }
+
+    /**
+     * Ingests data from the specified source with the given properties. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     *
+     * @param source The source to ingest.
+     * @param ingestRequestProperties Ingestion properties containing database,
+     *   table, format, and other settings.
+     * @return A [CompletableFuture] that completes with an
+     *   [ExtendedIngestResponse].
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsync(source, ingestRequestProperties)
+        }
+
+    /**
+     * Gets the operation summary for the specified ingestion operation. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     *
+     * @param operation The ingestion operation to get the status for.
+     * @return A [CompletableFuture] that completes with a [Status] object.
+     */
+    @JvmName("getOperationSummaryAsync")
+    fun getOperationSummaryAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<Status> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationSummaryAsync(operation)
+        }
+
+    /**
+     * Gets the detailed operation status for the specified ingestion operation.
+     * This is the Java-friendly version that returns a CompletableFuture.
+     *
+     * @param operation The ingestion operation to get the details for.
+     * @return A [CompletableFuture] that completes with a [StatusResponse]
+     *   object.
+     */
+    @JvmName("getOperationDetailsAsync")
+    fun getOperationDetailsAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationDetailsAsync(operation)
+        }
 
     private suspend fun ingestBlobAsync(
         blobSource: BlobSource,
@@ -259,8 +309,6 @@ internal constructor(
                     val result =
                         streamingIngestClient.ingestAsync(
                             source,
-                            database,
-                            table,
                             props,
                         )
                     val requestDuration =
@@ -375,7 +423,7 @@ internal constructor(
         table: String,
         props: IngestRequestProperties,
     ): ExtendedIngestResponse {
-        return queuedIngestClient.ingestAsync(source, database, table, props)
+        return queuedIngestClient.ingestAsync(source, props)
     }
 
     private fun shouldUseQueuedIngestByPolicy(

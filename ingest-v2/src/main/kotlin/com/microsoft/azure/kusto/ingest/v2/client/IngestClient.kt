@@ -26,21 +26,17 @@ import java.io.Closeable
 interface IngestClient : Closeable {
 
     /**
-     * Ingests data from the specified source into the specified database and
-     * table.
+     * Ingests data from the specified source.
      *
      * @param source The source to ingest.
-     * @param database The name of the database to ingest to.
-     * @param table The name of the table to ingest to.
-     * @param ingestRequestProperties Optional ingestion properties.
+     * @param ingestRequestProperties Ingestion properties containing database,
+     *   table, format, and other settings.
      * @return An [IngestionOperation] object that can be used to track the
      *   status of the ingestion.
      */
     suspend fun ingestAsync(
         source: IngestionSource,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties? = null,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse
 
     /**
@@ -85,17 +81,14 @@ interface MultiIngestClient : IngestClient {
      * Ingest data from multiple sources.
      *
      * @param sources The sources to ingest.
-     * @param database The name of the database to ingest to.
-     * @param table The name of the table to ingest to.
-     * @param ingestRequestProperties Optional ingestion properties.
+     * @param ingestRequestProperties Ingestion properties containing database,
+     *   table, format, and other settings.
      * @return An [IngestionOperation] object that can be used to track the
      *   status of the ingestion.
      */
     suspend fun ingestAsync(
         sources: List<IngestionSource>,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties? = null,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse
 
     /**

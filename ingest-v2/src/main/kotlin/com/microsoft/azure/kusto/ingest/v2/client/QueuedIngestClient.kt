@@ -10,12 +10,12 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.database
+import com.microsoft.azure.kusto.ingest.v2.common.models.table
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
@@ -26,15 +26,19 @@ import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.time.Clock
 import java.time.OffsetDateTime
+import java.util.concurrent.CompletableFuture
 import kotlin.time.Duration
 
 /**
@@ -69,12 +73,85 @@ internal constructor(
 ) : MultiIngestClient {
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
 
+    /**
+     * Ingests data from multiple sources with the given properties. This is the
+     * suspend function for Kotlin callers.
+     */
     override suspend fun ingestAsync(
         sources: List<IngestionSource>,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
+    ): ExtendedIngestResponse =
+        ingestAsyncInternal(sources, ingestRequestProperties)
+
+    /**
+     * Ingests data from a single source with the given properties. This is the
+     * suspend function for Kotlin callers.
+     */
+    override suspend fun ingestAsync(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): ExtendedIngestResponse =
+        ingestAsyncSingleInternal(source, ingestRequestProperties)
+
+    /**
+     * Ingests data from multiple sources with the given properties. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        sources: List<IngestionSource>,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsyncInternal(sources, ingestRequestProperties)
+        }
+
+    /**
+     * Ingests data from a single source with the given properties. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsyncSingleInternal(source, ingestRequestProperties)
+        }
+
+    /**
+     * Gets the operation summary for the specified ingestion operation. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("getOperationSummaryAsync")
+    fun getOperationSummaryAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<Status> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationSummaryAsync(operation)
+        }
+
+    /**
+     * Gets the detailed operation status for the specified ingestion operation.
+     * This is the Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("getOperationDetailsAsync")
+    fun getOperationDetailsAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationDetailsAsync(operation)
+        }
+
+    /** Internal implementation of ingestAsync for multiple sources. */
+    private suspend fun ingestAsyncInternal(
+        sources: List<IngestionSource>,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
+        // Extract database and table from properties
+        val database = ingestRequestProperties.database
+        val table = ingestRequestProperties.table
+
         // Validate sources list is not empty
         require(sources.isNotEmpty()) { "sources list cannot be empty" }
         val maxBlobsPerBatch = getMaxSourcesPerMultiIngest()
@@ -171,36 +248,19 @@ internal constructor(
         }
     }
 
-    override suspend fun ingestAsync(
+    /** Internal implementation of ingestAsync for a single source. */
+    private suspend fun ingestAsyncSingleInternal(
         source: IngestionSource,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
-        // Add this as a fallback because the format is mandatory and if that is not present it may
-        // cause a failure
-        val effectiveIngestionProperties =
-            ingestRequestProperties
-                ?: IngestRequestPropertiesBuilder(format = Format.csv)
-                    .build()
         when (source) {
             is BlobSource -> {
-                return ingestAsync(
-                    listOf(source),
-                    database,
-                    table,
-                    effectiveIngestionProperties,
-                )
+                return ingestAsync(listOf(source), ingestRequestProperties)
             }
             is LocalSource -> {
                 // Upload the local source to blob storage
                 val blobSource = uploader.uploadAsync(source)
-                return ingestAsync(
-                    listOf(blobSource),
-                    database,
-                    table,
-                    effectiveIngestionProperties,
-                )
+                return ingestAsync(listOf(blobSource), ingestRequestProperties)
             }
             else -> {
                 throw IngestClientException(
