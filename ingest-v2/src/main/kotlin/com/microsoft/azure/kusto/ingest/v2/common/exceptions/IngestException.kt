@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.exceptions
 
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
+
 open class IngestException(
     message: String? = null,
     cause: Throwable? = null,
@@ -9,7 +11,6 @@ open class IngestException(
     val failureSubCode: String? = null,
     val isPermanent: Boolean? = null,
 ) : Exception(message, cause) {
-    open val alreadyTraced: Boolean = false
     open val creationMessage: String? = message
 
     override val message: String
@@ -33,7 +34,14 @@ class IngestRequestException(
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
-) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
+) :
+    IngestException(
+        message,
+        cause,
+        failureCode,
+        failureSubCode.toString(),
+        isPermanent,
+    ) {
     override val message: String
         get() =
             creationMessage
@@ -77,7 +85,7 @@ open class IngestClientException(
 
 class IngestSizeLimitExceededException(
     val size: Long,
-    val maxSize: Long,
+    val maxNumberOfBlobs: Int,
     ingestionSourceId: String? = null,
     ingestionSource: String? = null,
     error: String? = null,
@@ -100,7 +108,7 @@ class IngestSizeLimitExceededException(
     override val message: String
         get() =
             creationMessage
-                ?: "Size too large to ingest: Source: '${ingestionSource ?: ""}' size in bytes is '$size' which exceeds the maximal size of '$maxSize'"
+                ?: "Size too large to ingest: Source: '${ingestionSource ?: ""}' size in bytes is '$size' which exceeds the maximal size of '$maxNumberOfBlobs'"
 }
 
 class InvalidIngestionMappingException(
@@ -126,7 +134,7 @@ class InvalidIngestionMappingException(
     override val message: String
         get() =
             creationMessage
-                ?: "Ingestion mapping is invalid: ${super.message ?: ""}"
+                ?: "Ingestion mapping is invalid: ${super.message}"
 }
 
 class MultipleIngestionMappingPropertiesException(
@@ -159,11 +167,18 @@ open class UploadFailedException(
     val fileName: String? = null,
     val blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = null,
     message: String? = null,
     cause: Throwable? = null,
-) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
+) :
+    IngestException(
+        message,
+        cause,
+        failureCode,
+        failureSubCode.toString(),
+        isPermanent,
+    ) {
     override val message: String
         get() =
             creationMessage
@@ -174,7 +189,7 @@ class NoAvailableIngestContainersException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = 500,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = false,
     message: String? = null,
     cause: Throwable? = null,
@@ -196,7 +211,7 @@ class InvalidUploadStreamException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,
@@ -222,7 +237,7 @@ class UploadSizeLimitExceededException(
     fileName: String? = null,
     blobName: String? = null,
     failureCode: Int? = null,
-    failureSubCode: String? = null,
+    failureSubCode: UploadErrorCode,
     isPermanent: Boolean? = true,
     message: String? = null,
     cause: Throwable? = null,

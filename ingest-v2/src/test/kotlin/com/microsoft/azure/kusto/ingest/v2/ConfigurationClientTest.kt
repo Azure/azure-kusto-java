@@ -4,38 +4,42 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import java.net.ConnectException
 import java.util.stream.Stream
 import kotlin.test.assertNotNull
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Execution(ExecutionMode.CONCURRENT)
 class ConfigurationClientTest :
     IngestV2TestBase(ConfigurationClientTest::class.java) {
-    private fun endpointAndExceptionClause(): Stream<Arguments?> {
-        return Stream.of(
-            Arguments.of(
-                "Success Scenario",
-                System.getenv("DM_CONNECTION_STRING"),
-                false,
-                false,
-            ),
-            // Note on the arg below when this is rolled out to all clusters, this test will
-            // start failing
-            Arguments.of(
-                "Cluster without ingest-v2",
-                "https://help.kusto.windows.net",
-                true,
-                false,
-            ),
-        )
+
+    companion object {
+        @JvmStatic
+        private fun endpointAndExceptionClause(): Stream<Arguments?> {
+            return Stream.of(
+                Arguments.of(
+                    "Success Scenario",
+                    System.getenv("DM_CONNECTION_STRING"),
+                    false,
+                    false,
+                ),
+                // Note on the arg below when this is rolled out to all clusters, this test will
+                // start failing
+                Arguments.of(
+                    "Cluster without ingest-v2",
+                    "https://help.kusto.windows.net",
+                    true,
+                    false,
+                ),
+            )
+        }
     }
 
     @ParameterizedTest(name = "{0}")
@@ -48,7 +52,13 @@ class ConfigurationClientTest :
     ): Unit = runBlocking {
         logger.info("Running configuration test {}", testName)
         // val cluster = System.getenv("DM_CONNECTION_STRING")
-        val actualWrapper = ConfigurationClient(cluster, tokenProvider, true)
+        val actualWrapper =
+            ConfigurationClient(
+                cluster,
+                tokenProvider,
+                true,
+                ClientDetails.createDefault(),
+            )
         if (isException) {
             // assert the call to DefaultConfigurationCache throws
             val exception =
@@ -58,12 +68,14 @@ class ConfigurationClientTest :
                             actualWrapper
                                 .getConfigurationDetails()
                         },
+                        clientDetails =
+                        ClientDetails.createDefault(),
                     )
                         .getConfiguration()
                 }
             assertNotNull(exception, "Exception should not be null")
             if (isUnreachableHost) {
-                assert(exception.cause is java.net.ConnectException)
+                assert(exception.cause is ConnectException)
                 assert(exception.isPermanent == false)
             } else {
                 // if the host is reachable, we expect a 404
@@ -73,6 +85,7 @@ class ConfigurationClientTest :
         } else {
             val defaultCachedConfig =
                 DefaultConfigurationCache(
+                    clientDetails = ClientDetails.createDefault(),
                     configurationProvider = {
                         actualWrapper.getConfigurationDetails()
                     },

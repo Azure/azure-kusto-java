@@ -17,13 +17,13 @@ object PathUtils {
     private val FORBIDDEN_CHARS =
         Pattern.compile("[^\\w-]", Pattern.CASE_INSENSITIVE)
 
-    fun sanitizeFileName(baseName: String?, sourceId: String?): String {
+    fun sanitizeFileName(baseName: String?, sourceId: UUID): String {
         val base = getBasename(baseName)
         val fileNameSegment = sanitize(base, FILE_NAME_SEGMENT_MAX_LENGTH)
         val baseNamePart =
             if (!base.isNullOrEmpty()) "_$fileNameSegment" else ""
         return sanitize(
-            sourceId,
+            sourceId.toString(),
             TOTAL_TWO_SEGMENT_MAX_LENGTH - fileNameSegment.length,
         ) + baseNamePart
     }

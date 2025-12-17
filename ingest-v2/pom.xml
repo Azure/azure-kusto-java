@@ -3,13 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ingest-v2</artifactId>
-    <version>${revision}</version>
     <name>ingest-v2</name>
     <description>ingest-v2</description>
     <properties>
+        <awaitility.version>4.3.0</awaitility.version>
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.version>2.2.10</kotlin.version>
-        <ktor.version>3.3.0</ktor.version>
+        <ktor.version>3.3.3</ktor.version>
         <ktor.async.api.version>3.1.1</ktor.async.api.version>
         <kotlinx.coroutines.debug.version>1.10.2</kotlinx.coroutines.debug.version>
         <logback.version>1.4.14</logback.version>
@@ -48,16 +48,6 @@
             <version>${ktor.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-serialization-jackson</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-serialization-jackson</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
@@ -65,6 +55,10 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -85,15 +79,15 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>kusto-data</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.mockk</groupId>
             <artifactId>mockk-jvm</artifactId>
             <version>1.14.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -188,7 +182,7 @@
                             <goal>generate</goal>
                         </goals>
                         <configuration>
-                            <typeMappings>integer=java.lang.Long,int=java.lang.Long</typeMappings>
+                            <typeMappings>integer=kotlin.Long,int=kotlin.Long</typeMappings>
                             <globalProperties>
                                 <authMethods>bearer</authMethods>
                             </globalProperties>
@@ -284,10 +278,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <!-- Enable parallel execution -->
-                    <parallel>methods</parallel>
-                    <threadCount>4</threadCount>
+                    <parallel>classesAndMethods</parallel>
+                    <threadCount>8</threadCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
                     <!-- Configure JUnit 5 parallel execution -->
