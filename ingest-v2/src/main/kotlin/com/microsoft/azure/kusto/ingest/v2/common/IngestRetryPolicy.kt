@@ -37,7 +37,7 @@ class SimpleRetryPolicy(
 
     override fun moveNext(retryNumber: UInt): Retry {
         require(retryNumber > 0u) { "retryNumber must be positive" }
-        if (retryNumber >= totalRetries.toUInt()) {
+        if (retryNumber > totalRetries.toUInt()) {
             return Retry(false, Duration.ZERO)
         }
         return Retry(true, intervalDuration)

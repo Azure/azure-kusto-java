@@ -5,23 +5,8 @@ package com.microsoft.azure.kusto.ingest.v2
 // Size of each block to upload to Azure Blob Storage (4 MB)
 const val UPLOAD_BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024
 
-// Maximum number of concurrent upload operations for blob upload
-const val UPLOAD_MAX_CONCURRENCY: Int = 8
-
 // Maximum size for a single upload operation to Azure Blob Storage (256 MB)
 const val UPLOAD_MAX_SINGLE_SIZE_BYTES: Long = 256 * 1024 * 1024
-
-// Maximum number of retry attempts for blob upload operations
-const val UPLOAD_RETRY_MAX_TRIES: Int = 3
-
-// Timeout in seconds for each blob upload attempt
-const val UPLOAD_RETRY_TIMEOUT_SECONDS: Int = 60
-
-// Initial delay in milliseconds between blob upload retry attempts
-const val UPLOAD_RETRY_DELAY_MS: Long = 100
-
-// Maximum delay in milliseconds between blob upload retry attempts
-const val UPLOAD_RETRY_MAX_DELAY_MS: Long = 300
 
 // Request timeout in milliseconds for Kusto API HTTP requests
 const val KUSTO_API_REQUEST_TIMEOUT_MS: Long = 60_000
@@ -53,11 +38,37 @@ const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
 // Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
 val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
 
-// Default maximum number of retry attempts for container upload operations
-const val UPLOAD_CONTAINER_MAX_RETRIES: Int = 3
+// Number of blobs to upload in a single batch
+const val MAX_BLOBS_PER_BATCH: Int = 70
 
 // Default maximum data size for blob upload operations (4GB)
 const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
 
 // Default maximum concurrency for blob upload operations
 const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4
+
+const val STREAMING_MAX_REQ_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
+
+// Managed Streaming Policy Defaults
+
+// Default value for continueWhenStreamingIngestionUnavailable in ManagedStreamingPolicy
+// When false, the client will fail if streaming ingestion is unavailable
+const val MANAGED_STREAMING_CONTINUE_WHEN_UNAVAILABLE_DEFAULT: Boolean = false
+
+// Default data size factor for ManagedStreamingPolicy
+// Factor used to determine size threshold for queued ingestion (1.0 = no adjustment)
+const val MANAGED_STREAMING_DATA_SIZE_FACTOR_DEFAULT: Double = 1.0
+
+// Default throttle backoff period in seconds for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming is throttled
+const val MANAGED_STREAMING_THROTTLE_BACKOFF_SECONDS: Long = 10
+
+// Default time until resuming streaming ingestion in minutes for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming becomes unavailable
+const val MANAGED_STREAMING_RESUME_TIME_MINUTES: Long = 15
+
+// Default retry delays for ManagedStreamingPolicy (in seconds): 1s, 2s, 4s
+val MANAGED_STREAMING_RETRY_DELAYS_SECONDS: Array<Long> = arrayOf(1, 2, 4)
+
+// Maximum jitter to add to retry delays in milliseconds
+const val MANAGED_STREAMING_RETRY_JITTER_MS: Long = 1000

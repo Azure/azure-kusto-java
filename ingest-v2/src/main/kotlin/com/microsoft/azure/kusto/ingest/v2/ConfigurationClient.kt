@@ -4,6 +4,7 @@ package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import io.ktor.http.HttpStatusCode
@@ -14,7 +15,14 @@ class ConfigurationClient(
     override val dmUrl: String,
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
-) : KustoBaseApiClient(dmUrl, tokenCredential, skipSecurityChecks) {
+    override val clientDetails: ClientDetails,
+) :
+    KustoBaseApiClient(
+        dmUrl,
+        tokenCredential,
+        skipSecurityChecks,
+        clientDetails,
+    ) {
     private val logger =
         LoggerFactory.getLogger(ConfigurationClient::class.java)
     private val baseUrl = "$dmUrl/v1/rest/ingestion/configuration"
