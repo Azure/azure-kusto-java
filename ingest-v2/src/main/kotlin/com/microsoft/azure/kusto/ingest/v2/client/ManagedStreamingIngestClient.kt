@@ -14,6 +14,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.database
 import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status

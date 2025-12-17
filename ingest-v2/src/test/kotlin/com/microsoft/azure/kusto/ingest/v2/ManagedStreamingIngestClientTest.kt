@@ -66,7 +66,6 @@ class ManagedStreamingIngestClientTest :
         targetFormat: String,
     ): Unit = runBlocking {
         logger.info("Starting test: $testName")
-        val testSources = BlobSource(blobUrl)
         val format =
             when (targetFormat.lowercase()) {
                 "json" -> Format.json
@@ -76,9 +75,9 @@ class ManagedStreamingIngestClientTest :
                         "Unsupported format: $targetFormat",
                     )
             }
+        val testSources = BlobSource(blobUrl, format = format)
         val ingestRequestProperties =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(format)
                 .withEnableTracking(true)
                 .build()
         try {
@@ -198,7 +197,6 @@ class ManagedStreamingIngestClientTest :
 
         val properties =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(targetTestFormat)
                 .withEnableTracking(true)
                 .build()
 
@@ -273,10 +271,10 @@ class ManagedStreamingIngestClientTest :
         val testSource =
             BlobSource(
                 "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+                format = Format.multijson,
             )
         val ingestRequestProperties =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(Format.multijson)
                 .withEnableTracking(true)
                 .build()
         val ingestionResponse =

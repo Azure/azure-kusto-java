@@ -150,12 +150,11 @@ class QueuedIngestClientTest :
     ): Unit = runBlocking {
         logger.info("Starting test: $testName")
         val ingestClient = createTestClient()
-        val testSources = listOf(BlobSource(blobUrl))
+        val testSources = listOf(BlobSource(blobUrl, format = Format.json))
 
         val properties =
             if (useMappingReference) {
                 IngestRequestPropertiesBuilder.create(database, targetTable)
-                    .withFormat(targetTestFormat)
                     .withIngestionMappingReference(
                         "${targetTable}_mapping",
                     )
@@ -212,13 +211,11 @@ class QueuedIngestClientTest :
                         inlineIngestionMappingInline.columnMappings,
                     )
                 IngestRequestPropertiesBuilder.create(database, targetTable)
-                    .withFormat(targetTestFormat)
                     .withIngestionMapping(ingestionMappingString)
                     .withEnableTracking(true)
                     .build()
             } else {
                 IngestRequestPropertiesBuilder.create(database, targetTable)
-                    .withFormat(targetTestFormat)
                     .withEnableTracking(true)
                     .build()
             }
@@ -351,7 +348,6 @@ class QueuedIngestClientTest :
                         database,
                         targetTable,
                     )
-                        .withFormat(Format.multijson)
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -392,7 +388,6 @@ class QueuedIngestClientTest :
                         database,
                         targetTable,
                     )
-                        .withFormat(Format.multijson)
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -435,7 +430,6 @@ class QueuedIngestClientTest :
                         database,
                         targetTable,
                     )
-                        .withFormat(Format.multijson)
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -492,7 +486,6 @@ class QueuedIngestClientTest :
                         database,
                         targetTable,
                     )
-                        .withFormat(Format.multijson)
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -612,7 +605,6 @@ class QueuedIngestClientTest :
                             database,
                             targetTable,
                         )
-                            .withFormat(format)
                             .withEnableTracking(true)
                             .withIngestByTags(
                                 listOf("i-tag"),
@@ -772,7 +764,6 @@ test2,456,2024-01-02"""
                         database,
                         targetTable,
                     )
-                        .withFormat(Format.json)
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -839,7 +830,6 @@ test2,456,2024-01-02"""
         val queuedIngestClient = createTestClient()
         val properties =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(targetFormat)
                 .withEnableTracking(true)
                 .build()
 
@@ -924,7 +914,6 @@ test2,456,2024-01-02"""
                             database,
                             targetTable,
                         )
-                            .withFormat(Format.multijson)
                             .withEnableTracking(true)
                             .build(),
                     )

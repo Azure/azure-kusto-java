@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.database
 import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
@@ -165,15 +166,18 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         source: IngestionSource,
         ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
+        // Inject format from source into properties
+        val effectiveProperties = ingestRequestProperties.withFormatFromSource(source)
+
         // Extract database and table from properties
-        val database = ingestRequestProperties.database
-        val table = ingestRequestProperties.table
+        val database = effectiveProperties.database
+        val table = effectiveProperties.table
 
         // Streaming ingestion processes one source at a time
         val maxSize =
             getMaxStreamingIngestSize(
                 compressionType = source.compressionType,
-                format = ingestRequestProperties.format,
+                format = effectiveProperties.format,
             )
         val operationId = UUID.randomUUID().toString()
         when (source) {
@@ -186,7 +190,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     table = table,
                     // Not used for blob-based streaming
                     data = ByteArray(0),
-                    ingestProperties = ingestRequestProperties,
+                    ingestProperties = effectiveProperties,
                     blobUrl = source.blobPath,
                     compressionType = source.compressionType,
                 )
@@ -214,7 +218,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     database = database,
                     table = table,
                     data = data,
-                    ingestProperties = ingestRequestProperties,
+                    ingestProperties = effectiveProperties,
                     blobUrl = null,
                     compressionType = source.compressionType,
                 )

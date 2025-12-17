@@ -84,7 +84,6 @@ class StreamingIngestClientTest :
 
         val ingestProps =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(targetTestFormat)
                 .build()
         if (isException) {
             if (blobUrl != null) {
@@ -95,7 +94,7 @@ class StreamingIngestClientTest :
                 )
                 val exception =
                     assertThrows<IngestException> {
-                        val ingestionSource = BlobSource(blobUrl)
+                        val ingestionSource = BlobSource(blobUrl, format = Format.json)
                         client.ingestAsync(
                             source = ingestionSource,
                             ingestRequestProperties = ingestProps,
@@ -115,7 +114,7 @@ class StreamingIngestClientTest :
             }
         } else {
             if (blobUrl != null) {
-                val ingestionSource = BlobSource(blobUrl)
+                val ingestionSource = BlobSource(blobUrl, format = Format.json)
                 client.ingestAsync(
                     source = ingestionSource,
                     ingestRequestProperties = ingestProps,
@@ -173,7 +172,6 @@ class StreamingIngestClientTest :
 
         val properties =
             IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(Format.multijson)
                 .withEnableTracking(true)
                 .build()
 

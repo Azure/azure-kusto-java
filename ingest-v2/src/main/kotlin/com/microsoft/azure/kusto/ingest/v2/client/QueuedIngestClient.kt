@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.database
 import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
@@ -210,11 +211,15 @@ internal constructor(
                     rawSize = it.blobExactSize,
                 )
             }
+
+        // Extract format from the first source (all sources have same format as validated above)
+        val effectiveProperties = ingestRequestProperties.withFormatFromSource(sources.first())
+
         val ingestRequest =
             IngestRequest(
                 timestamp = OffsetDateTime.now(Clock.systemUTC()),
                 blobs = blobs,
-                properties = ingestRequestProperties,
+                properties = effectiveProperties,
             )
         val response: HttpResponse<IngestResponse> =
             this.apiClient.api.postQueuedIngest(
@@ -255,11 +260,14 @@ internal constructor(
     ): ExtendedIngestResponse {
         when (source) {
             is BlobSource -> {
+                // Pass the source to multi-source method which will extract format
                 return ingestAsync(listOf(source), ingestRequestProperties)
             }
             is LocalSource -> {
-                // Upload the local source to blob storage
+                // Upload the local source to blob storage, then ingest
+                // Note: We pass the original LocalSource to preserve format information
                 val blobSource = uploader.uploadAsync(source)
+                // Use the original source's format
                 return ingestAsync(listOf(blobSource), ingestRequestProperties)
             }
             else -> {

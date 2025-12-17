@@ -103,7 +103,6 @@ public class StreamingIngestV2 {
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
                 .create(database, table)
-                .withFormat(Format.csv)
                 .withEnableTracking(true)
                 .build();
 
@@ -142,7 +141,6 @@ public class StreamingIngestV2 {
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder
                 .create(database, table)
-                .withFormat(Format.json)
                 .withIngestionMappingReference(mapping)
                 .withEnableTracking(true)
                 .build();
@@ -173,7 +171,6 @@ public class StreamingIngestV2 {
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
                 .create(database, table)
-                .withFormat(Format.csv)
                 .withEnableTracking(true)
                 .build();
 
@@ -191,7 +188,6 @@ public class StreamingIngestV2 {
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder
                 .create(database, table)
-                .withFormat(Format.multijson)
                 .withIngestionMappingReference(mapping)
                 .withEnableTracking(true)
                 .build();
