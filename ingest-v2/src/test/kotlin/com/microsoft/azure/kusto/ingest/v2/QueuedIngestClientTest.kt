@@ -39,12 +39,12 @@ import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.test.assertNotNull
-import kotlin.time.Duration
 
 @Execution(ExecutionMode.CONCURRENT)
 class QueuedIngestClientTest :

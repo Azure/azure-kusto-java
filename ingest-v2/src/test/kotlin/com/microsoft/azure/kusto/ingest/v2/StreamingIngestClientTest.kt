@@ -28,8 +28,6 @@ class StreamingIngestClientTest :
 
     private val publicBlobUrl =
         "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
-    private val targetUuid = UUID.randomUUID().toString()
-
     private fun testParameters(): Stream<Arguments?> {
         return Stream.of(
             Arguments.of(
@@ -94,7 +92,8 @@ class StreamingIngestClientTest :
                 )
                 val exception =
                     assertThrows<IngestException> {
-                        val ingestionSource = BlobSource(blobUrl, format = Format.json)
+                        val ingestionSource =
+                            BlobSource(blobUrl, format = Format.json)
                         client.ingestAsync(
                             source = ingestionSource,
                             ingestRequestProperties = ingestProps,

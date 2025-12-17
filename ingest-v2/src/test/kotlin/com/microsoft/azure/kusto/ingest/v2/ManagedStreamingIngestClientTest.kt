@@ -19,12 +19,12 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import java.io.ByteArrayInputStream
 import java.net.ConnectException
+import java.time.Duration
 import java.util.*
 import kotlin.test.DefaultAsserter.assertNotNull
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.time.Duration
 
 /**
  * End-to-end tests for ManagedStreamingIngestClient.

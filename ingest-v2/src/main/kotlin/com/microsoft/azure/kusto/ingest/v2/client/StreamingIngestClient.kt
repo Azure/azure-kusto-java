@@ -167,7 +167,8 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
         // Inject format from source into properties
-        val effectiveProperties = ingestRequestProperties.withFormatFromSource(source)
+        val effectiveProperties =
+            ingestRequestProperties.withFormatFromSource(source)
 
         // Extract database and table from properties
         val database = effectiveProperties.database

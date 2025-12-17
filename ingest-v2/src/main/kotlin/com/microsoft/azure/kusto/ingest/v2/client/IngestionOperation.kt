@@ -3,12 +3,11 @@
 package com.microsoft.azure.kusto.ingest.v2.client
 
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import java.util.UUID
 
 /** Represents an ingestion operation that can be tracked. */
 data class IngestionOperation(
     /** Unique identifier for the ingestion operation. */
-    val operationId: UUID,
+    val operationId: String,
 
     /** The database name where data was ingested. */
     val database: String,

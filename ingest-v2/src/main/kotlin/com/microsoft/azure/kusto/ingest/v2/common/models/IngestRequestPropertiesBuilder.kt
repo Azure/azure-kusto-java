@@ -67,9 +67,12 @@ private constructor(private val database: String, private val table: String) {
      * Sets the data format for ingestion.
      *
      * @param value The data format (e.g., Format.json, Format.csv)
-     * @deprecated Format is automatically extracted from the IngestionSource. This method is no longer needed.
+     * @deprecated Format is automatically extracted from the IngestionSource.
+     *   This method is no longer needed.
      */
-    @Deprecated("Format is automatically extracted from the IngestionSource. This method is no longer needed.")
+    @Deprecated(
+        "Format is automatically extracted from the IngestionSource. This method is no longer needed.",
+    )
     fun withFormat(value: com.microsoft.azure.kusto.ingest.v2.models.Format) =
         apply {
             this.format = value
@@ -155,10 +158,10 @@ private constructor(private val database: String, private val table: String) {
      * The built properties will have database and table information stored in
      * the underlying map for retrieval by client implementations.
      *
-     * Note: The format field will be automatically extracted from the IngestionSource
-     * by the client implementation during ingestion using withFormatFromSource().
-     * A placeholder value (Format.csv) is used during build and will be overridden
-     * with the actual source format.
+     * Note: The format field will be automatically extracted from the
+     * IngestionSource by the client implementation during ingestion using
+     * withFormatFromSource(). A placeholder value (Format.csv) is used during
+     * build and will be overridden with the actual source format.
      *
      * @return The built IngestRequestProperties
      */
@@ -173,7 +176,8 @@ private constructor(private val database: String, private val table: String) {
         dropByTags?.forEach { tag -> combinedTags.add("drop-by:$tag") }
 
         // Use format if explicitly set, otherwise use placeholder (will be overridden from source)
-        val effectiveFormat = format ?: com.microsoft.azure.kusto.ingest.v2.models.Format.csv
+        val effectiveFormat =
+            format ?: com.microsoft.azure.kusto.ingest.v2.models.Format.csv
 
         val properties =
             IngestRequestProperties(
@@ -202,100 +206,3 @@ private constructor(private val database: String, private val table: String) {
         return properties
     }
 }
-
-/**
- * Extension property to extract the database name from IngestRequestProperties.
- */
-val IngestRequestProperties.database: String
-    get() =
-        this.get(IngestRequestPropertiesBuilder.DATABASE_KEY) as? String
-            ?: throw IllegalStateException(
-                "Database not set in IngestRequestProperties",
-            )
-
-/**
- * Extension property to extract the table name from IngestRequestProperties.
- */
-val IngestRequestProperties.table: String
-    get() =
-        this.get(IngestRequestPropertiesBuilder.TABLE_KEY) as? String
-            ?: throw IllegalStateException(
-                "Table not set in IngestRequestProperties",
-            )
-
-/**
- * Extension property to extract drop-by tags from the combined tags list.
- * Returns all tags that start with "drop-by:" prefix.
- */
-val IngestRequestProperties.dropByTags: List<String>
-    get() =
-        tags?.filter { it.startsWith("drop-by:") }
-            ?.map { it.removePrefix("drop-by:") } ?: emptyList()
-
-/**
- * Extension property to extract ingest-by tags from the combined tags list.
- * Returns all tags that start with "ingest-by:" prefix.
- */
-val IngestRequestProperties.ingestByTags: List<String>
-    get() =
-        tags?.filter { it.startsWith("ingest-by:") }
-            ?.map { it.removePrefix("ingest-by:") } ?: emptyList()
-
-/**
- * Extension property to extract additional (non-prefixed) tags from the
- * combined tags list. Returns all tags that don't start with "drop-by:" or
- * "ingest-by:" prefix.
- */
-val IngestRequestProperties.additionalTags: List<String>
-    get() =
-        tags?.filter {
-            !it.startsWith("drop-by:") && !it.startsWith("ingest-by:")
-        } ?: emptyList()
-
-/**
- * Creates a copy of this [IngestRequestProperties] with modified tags. Useful
- * for adding or removing drop-by and ingest-by tags without recreating the
- * entire object.
- *
- * @param dropByTags New drop-by tags to replace existing ones (null means keep
- *   existing)
- * @param ingestByTags New ingest-by tags to replace existing ones (null means
- *   keep existing)
- * @param additionalTags New additional tags to replace existing ones (null
- *   means keep existing)
- */
-fun IngestRequestProperties.copyWithTags(
-    dropByTags: List<String>? = null,
-    ingestByTags: List<String>? = null,
-    additionalTags: List<String>? = null,
-): IngestRequestProperties {
-    val newDropByTags = dropByTags ?: this.dropByTags
-    val newIngestByTags = ingestByTags ?: this.ingestByTags
-    val newAdditionalTags = additionalTags ?: this.additionalTags
-    val combinedTags = mutableListOf<String>()
-    combinedTags.addAll(newAdditionalTags)
-    newIngestByTags.forEach { tag -> combinedTags.add("ingest-by:$tag") }
-    newDropByTags.forEach { tag -> combinedTags.add("drop-by:$tag") }
-    return this.copy(tags = combinedTags.ifEmpty { null })
-}
-
-/**
- * Creates a copy of this [IngestRequestProperties] with the format field set
- * from the provided [com.microsoft.azure.kusto.ingest.v2.source.IngestionSource].
- * This is used internally by ingest clients to inject the source's format.
- *
- * Note: This function preserves the database and table entries stored in the
- * underlying HashMap.
- *
- * @param source The ingestion source from which to extract the format
- * @return A new IngestRequestProperties with the format from the source
- */
-fun IngestRequestProperties.withFormatFromSource(
-    source: com.microsoft.azure.kusto.ingest.v2.source.IngestionSource,
-): IngestRequestProperties {
-    val newProperties = this.copy(format = source.format)
-    // Copy over HashMap entries (database and table)
-    this.forEach { (key, value) -> newProperties[key] = value }
-    return newProperties
-}
-

@@ -38,9 +38,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.time.Clock
+import java.time.Duration
 import java.time.OffsetDateTime
 import java.util.concurrent.CompletableFuture
-import kotlin.time.Duration
 
 /**
  * Queued ingestion client for Azure Data Explorer (Kusto).
@@ -144,6 +144,32 @@ internal constructor(
             getOperationDetailsAsync(operation)
         }
 
+    /**
+     * Polls the ingestion status until completion or timeout. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     *
+     * @param operation The ingestion operation to poll
+     * @param timeout Maximum time to wait before throwing timeout exception (in
+     *   milliseconds)
+     * @return CompletableFuture that completes with the final StatusResponse
+     *   when ingestion is completed
+     */
+    @JvmName("pollForCompletion")
+    fun pollForCompletion(
+        operation: IngestionOperation,
+        pollingInterval: Duration,
+        timeout: Duration,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            pollUntilCompletion(
+                database = operation.database,
+                table = operation.table,
+                operationId = operation.operationId,
+                pollingInterval = pollingInterval,
+                timeout = timeout,
+            )
+        }
+
     /** Internal implementation of ingestAsync for multiple sources. */
     private suspend fun ingestAsyncInternal(
         sources: List<IngestionSource>,
@@ -213,7 +239,8 @@ internal constructor(
             }
 
         // Extract format from the first source (all sources have same format as validated above)
-        val effectiveProperties = ingestRequestProperties.withFormatFromSource(sources.first())
+        val effectiveProperties =
+            ingestRequestProperties.withFormatFromSource(sources.first())
 
         val ingestRequest =
             IngestRequest(
@@ -285,7 +312,7 @@ internal constructor(
             getIngestionDetails(
                 operation.database,
                 operation.table,
-                operation.operationId.toString(),
+                operation.operationId,
                 false,
             )
         return statusResponse.status
@@ -303,7 +330,7 @@ internal constructor(
         return getIngestionDetails(
             database = operation.database,
             table = operation.table,
-            operationId = operation.operationId.toString(),
+            operationId = operation.operationId,
             details = true,
         )
     }
@@ -566,7 +593,7 @@ internal constructor(
         timeout: Duration = Duration.parse("PT5M"),
     ): StatusResponse {
         val result =
-            withTimeoutOrNull(timeout.inWholeMilliseconds) {
+            withTimeoutOrNull(timeout.toMillis()) {
                 var currentStatus: StatusResponse
                 do {
                     currentStatus =
@@ -577,7 +604,9 @@ internal constructor(
                             forceDetails = true,
                         )
                     logger.debug(
-                        "Starting to poll ingestion status for operation: $operationId, timeout: $timeout",
+                        "Starting to poll ingestion status for operation: {}, timeout: {}",
+                        operationId,
+                        timeout,
                     )
                     if (
                         IngestionResultUtils.isCompleted(
@@ -591,9 +620,9 @@ internal constructor(
                     }
 
                     logger.debug(
-                        "Ingestion operation $operationId still in progress, waiting ${pollingInterval.inWholeSeconds}s before next check",
+                        "Ingestion operation $operationId still in progress, waiting ${pollingInterval.toMillis()}s before next check",
                     )
-                    delay(pollingInterval.inWholeMilliseconds)
+                    delay(pollingInterval.toMillis())
                 } while (
                     !IngestionResultUtils.isCompleted(
                         currentStatus.details,

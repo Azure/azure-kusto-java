@@ -14,7 +14,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.database
 import com.microsoft.azure.kusto.ingest.v2.common.models.table
-import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status
@@ -229,8 +228,6 @@ internal constructor(
         ) {
             return invokeQueuedIngestionAsync(
                 blobSource,
-                database,
-                table,
                 ingestRequestProperties,
             )
         }
@@ -269,7 +266,7 @@ internal constructor(
                 props,
             )
         ) {
-            return invokeQueuedIngestionAsync(source, database, table, props)
+            return invokeQueuedIngestionAsync(source, props)
         }
         return invokeStreamingIngestionAsync(source, database, table, props)
     }
@@ -364,7 +361,7 @@ internal constructor(
             currentAttempt,
             lastException?.message,
         )
-        return invokeQueuedIngestionAsync(source, database, table, props)
+        return invokeQueuedIngestionAsync(source, props)
     }
 
     private fun resetLocalSourceIfPossible(source: IngestionSource) {
@@ -420,8 +417,6 @@ internal constructor(
 
     private suspend fun invokeQueuedIngestionAsync(
         source: IngestionSource,
-        database: String,
-        table: String,
         props: IngestRequestProperties,
     ): ExtendedIngestResponse {
         return queuedIngestClient.ingestAsync(source, props)
@@ -660,9 +655,8 @@ internal constructor(
         database: String,
         table: String,
         operationId: String,
-        pollingInterval: kotlin.time.Duration =
-            kotlin.time.Duration.parse("PT30S"),
-        timeout: kotlin.time.Duration = kotlin.time.Duration.parse("PT5M"),
+        pollingInterval: Duration = Duration.parse("PT30S"),
+        timeout: Duration = Duration.parse("PT5M"),
     ): StatusResponse {
         return queuedIngestClient.pollUntilCompletion(
             database,
