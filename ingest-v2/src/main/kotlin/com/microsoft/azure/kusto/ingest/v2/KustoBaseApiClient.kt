@@ -5,7 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
-import com.microsoft.azure.kusto.ingest.v2.common.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
@@ -15,6 +15,7 @@ import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
+import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
@@ -29,8 +30,10 @@ open class KustoBaseApiClient(
     open val dmUrl: String,
     open val tokenCredential: TokenCredential,
     open val skipSecurityChecks: Boolean = false,
-    open val clientDetails: ClientDetails? = ClientDetails.createDefault(),
+    open val clientDetails: ClientDetails,
     open val clientRequestIdPrefix: String = "KIC.execute",
+    open val s2sTokenProvider: (suspend () -> Pair<String, String>)? = null,
+    open val s2sFabricPrivateLinkAccessContext: String? = null,
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
 
@@ -38,15 +41,17 @@ open class KustoBaseApiClient(
         getClientConfig(config)
     }
 
-    protected val api: DefaultApi by lazy {
+    val engineUrl: String
+        get() = dmUrl.replace(Regex("https://ingest-"), "https://")
+
+    val api: DefaultApi by lazy {
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }
 
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
-            header("Content-Type", "application/json")
-
-            clientDetails?.let { details ->
+            header("Content-Type", ContentType.Application.Json.toString())
+            clientDetails.let { details ->
                 header("x-ms-app", details.getApplicationForTracing())
                 header("x-ms-user", details.getUserNameForTracing())
                 header(
@@ -59,8 +64,8 @@ open class KustoBaseApiClient(
             val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
             header("x-ms-client-request-id", clientRequestId)
             header("x-ms-version", KUSTO_API_VERSION)
-            header("Connection", "Keep-Alive")
-            header("Accept", "application/json")
+            header("Connection", "keep-alive")
+            header("Accept", ContentType.Application.Json.toString())
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {
@@ -107,6 +112,41 @@ open class KustoBaseApiClient(
                     }
                 }
             }
+        }
+
+        // Add S2S authorization and Fabric Private Link headers using request interceptor
+        s2sTokenProvider?.let { provider ->
+            config.install(
+                io.ktor.client.plugins.api.createClientPlugin(
+                    "S2SAuthPlugin",
+                ) {
+                    onRequest { request, _ ->
+                        try {
+                            // Get S2S token
+                            val (token, scheme) = provider()
+                            request.headers.append(
+                                "x-ms-s2s-actor-authorization",
+                                "$scheme $token",
+                            )
+
+                            // Add Fabric Private Link access context header
+                            s2sFabricPrivateLinkAccessContext?.let { context,
+                                ->
+                                request.headers.append(
+                                    "x-ms-fabric-s2s-access-context",
+                                    context,
+                                )
+                            }
+                        } catch (e: Exception) {
+                            logger.error(
+                                "Error retrieving S2S token: ${e.message}",
+                                e,
+                            )
+                            throw e
+                        }
+                    }
+                },
+            )
         }
         config.install(ContentNegotiation) {
             json(
