@@ -11,6 +11,7 @@ data class ClientDetails(
 ) {
     companion object {
         const val NONE = "[none]"
+        const val DEFAULT_APP_NAME = "Kusto.Java.Client.V2"
 
         // Cache for default values to avoid recomputing on every call
         private val defaultValuesCache = ConcurrentHashMap<String, String>()
@@ -43,7 +44,12 @@ data class ClientDetails(
                 if (!command.isNullOrBlank()) {
                     // Strip file name from command line (matches
                     // UriUtils.stripFileNameFromCommandLine)
-                    command.split(" ").firstOrNull() ?: "JavaProcess"
+                    try {
+                        val processName = command.trim().split(" ")[0]
+                        java.nio.file.Paths.get(processName).fileName.toString()
+                    } catch (_: Exception) {
+                        "JavaProcess"
+                    }
                 } else {
                     "JavaProcess"
                 }
@@ -87,7 +93,7 @@ data class ClientDetails(
             return defaultValuesCache.computeIfAbsent("defaultVersion") {
                 val baseMap =
                     linkedMapOf(
-                        "Kusto.Java.Client" to getPackageVersion(),
+                        DEFAULT_APP_NAME to getPackageVersion(),
                         "Runtime.${escapeField(getRuntime())}" to
                             getJavaVersion(),
                     )
@@ -98,10 +104,16 @@ data class ClientDetails(
         /** Gets the package version from the manifest or returns a default. */
         private fun getPackageVersion(): String {
             return try {
-                ClientDetails::class.java.`package`.implementationVersion
-                    ?: "Unknown"
+                val props = java.util.Properties()
+                ClientDetails::class
+                    .java
+                    .getResourceAsStream("/app.properties")
+                    ?.use { stream ->
+                        props.load(stream)
+                        props.getProperty("version")?.trim() ?: ""
+                    } ?: ""
             } catch (_: Exception) {
-                "Unknown"
+                ""
             }
         }
 

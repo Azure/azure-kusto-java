@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import java.time.OffsetDateTime
 
@@ -14,14 +13,18 @@ import java.time.OffsetDateTime
  *
  * Example usage:
  * ```kotlin
- * val properties = IngestRequestPropertiesBuilder(format = Format.json)
+ * val properties = IngestRequestPropertiesBuilder.create(database = "db", table = "table")
+ *     .withFormat(Format.json)
  *     .withDropByTags(listOf("tag1", "tag2"))
  *     .withIngestByTags(listOf("tag3"))
  *     .withEnableTracking(true)
  *     .build()
  * ```
  */
-class IngestRequestPropertiesBuilder(private val format: Format) {
+class IngestRequestPropertiesBuilder
+private constructor(private val database: String, private val table: String) {
+    private var format: com.microsoft.azure.kusto.ingest.v2.models.Format? =
+        null
     private var enableTracking: Boolean? = null
     private var additionalTags: List<String>? = null
     private var dropByTags: List<String>? = null
@@ -39,6 +42,36 @@ class IngestRequestPropertiesBuilder(private val format: Format) {
     private var zipPattern: String? = null
     private var extendSchema: Boolean? = null
     private var recreateSchema: Boolean? = null
+
+    companion object {
+        internal const val DATABASE_KEY = "_database"
+        internal const val TABLE_KEY = "_table"
+
+        /**
+         * Creates a new builder for IngestRequestProperties.
+         *
+         * @param database The target database name
+         * @param table The target table name
+         * @return A new IngestRequestPropertiesBuilder instance
+         */
+        @JvmStatic
+        fun create(
+            database: String,
+            table: String,
+        ): IngestRequestPropertiesBuilder {
+            return IngestRequestPropertiesBuilder(database, table)
+        }
+    }
+
+    /**
+     * Sets the data format for ingestion.
+     *
+     * @param value The data format (e.g., Format.json, Format.csv)
+     */
+    fun withFormat(value: com.microsoft.azure.kusto.ingest.v2.models.Format) =
+        apply {
+            this.format = value
+        }
 
     fun withEnableTracking(value: Boolean) = apply {
         this.enableTracking = value
@@ -116,8 +149,18 @@ class IngestRequestPropertiesBuilder(private val format: Format) {
      * Builds the
      * [com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties] with
      * combined tags from dropByTags, ingestByTags, and additionalTags.
+     *
+     * The built properties will have database and table information stored in
+     * the underlying map for retrieval by client implementations.
+     *
+     * @return The built IngestRequestProperties
+     * @throws IllegalStateException if format has not been set
      */
     fun build(): IngestRequestProperties {
+        requireNotNull(format) {
+            "Format must be set before building IngestRequestProperties. Use withFormat() to set it."
+        }
+
         // Combine all tags: additional tags + prefixed ingest-by tags + prefixed drop-by tags
         val combinedTags = mutableListOf<String>()
 
@@ -127,26 +170,53 @@ class IngestRequestPropertiesBuilder(private val format: Format) {
 
         dropByTags?.forEach { tag -> combinedTags.add("drop-by:$tag") }
 
-        return IngestRequestProperties(
-            format = format,
-            enableTracking = enableTracking,
-            tags = combinedTags.ifEmpty { null },
-            ingestIfNotExists = ingestIfNotExists,
-            skipBatching = skipBatching,
-            deleteAfterDownload = deleteAfterDownload,
-            ingestionMappingReference = ingestionMappingReference,
-            ingestionMapping = ingestionMapping,
-            validationPolicy = validationPolicy,
-            ignoreSizeLimit = ignoreSizeLimit,
-            ignoreFirstRecord = ignoreFirstRecord,
-            ignoreLastRecordIfInvalid = ignoreLastRecordIfInvalid,
-            creationTime = creationTime,
-            zipPattern = zipPattern,
-            extendSchema = extendSchema,
-            recreateSchema = recreateSchema,
-        )
+        val properties =
+            IngestRequestProperties(
+                format = format!!,
+                enableTracking = enableTracking,
+                tags = combinedTags.ifEmpty { null },
+                ingestIfNotExists = ingestIfNotExists,
+                skipBatching = skipBatching,
+                deleteAfterDownload = deleteAfterDownload,
+                ingestionMappingReference = ingestionMappingReference,
+                ingestionMapping = ingestionMapping,
+                validationPolicy = validationPolicy,
+                ignoreSizeLimit = ignoreSizeLimit,
+                ignoreFirstRecord = ignoreFirstRecord,
+                ignoreLastRecordIfInvalid = ignoreLastRecordIfInvalid,
+                creationTime = creationTime,
+                zipPattern = zipPattern,
+                extendSchema = extendSchema,
+                recreateSchema = recreateSchema,
+            )
+
+        // Store database and table in the HashMap for retrieval
+        properties.put(DATABASE_KEY, database)
+        properties.put(TABLE_KEY, table)
+
+        return properties
     }
 }
+
+/**
+ * Extension property to extract the database name from IngestRequestProperties.
+ */
+val IngestRequestProperties.database: String
+    get() =
+        this.get(IngestRequestPropertiesBuilder.DATABASE_KEY) as? String
+            ?: throw IllegalStateException(
+                "Database not set in IngestRequestProperties",
+            )
+
+/**
+ * Extension property to extract the table name from IngestRequestProperties.
+ */
+val IngestRequestProperties.table: String
+    get() =
+        this.get(IngestRequestPropertiesBuilder.TABLE_KEY) as? String
+            ?: throw IllegalStateException(
+                "Table not set in IngestRequestProperties",
+            )
 
 /**
  * Extension property to extract drop-by tags from the combined tags list.

@@ -5,14 +5,19 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.IngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
-import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
+import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
+import java.nio.file.Paths
 import java.util.UUID
 import java.util.stream.Stream
 import kotlin.test.assertNotNull
@@ -77,7 +82,10 @@ class StreamingIngestClientTest :
                 .withClientDetails("BuilderStreamingE2ETest", "1.0")
                 .build()
 
-        val ingestProps = IngestRequestProperties(format = targetTestFormat)
+        val ingestProps =
+            IngestRequestPropertiesBuilder.create(database, targetTable)
+                .withFormat(targetTestFormat)
+                .build()
         if (isException) {
             if (blobUrl != null) {
                 logger.info(
@@ -89,8 +97,6 @@ class StreamingIngestClientTest :
                     assertThrows<IngestException> {
                         val ingestionSource = BlobSource(blobUrl)
                         client.ingestAsync(
-                            database = database,
-                            table = targetTable,
                             source = ingestionSource,
                             ingestRequestProperties = ingestProps,
                         )
@@ -111,8 +117,6 @@ class StreamingIngestClientTest :
             if (blobUrl != null) {
                 val ingestionSource = BlobSource(blobUrl)
                 client.ingestAsync(
-                    database = database,
-                    table = targetTable,
                     source = ingestionSource,
                     ingestRequestProperties = ingestProps,
                 )
@@ -126,5 +130,65 @@ class StreamingIngestClientTest :
                 )
             }
         }
+    }
+
+    @ParameterizedTest(name = "Ingest file: {0} with compression: {1}")
+    @CsvSource("sample.multijson,NONE", "sample.multijson.gz,GZIP")
+    fun `ingest from file in compressed and uncompressed formats`(
+        fileName: String,
+        compressionType: String,
+    ) = runBlocking {
+        logger.info(
+            "Running streaming ingest from file test: $fileName with compression: $compressionType",
+        )
+
+        // Create client using builder
+        val client: IngestClient =
+            StreamingIngestClientBuilder.create(engineEndpoint)
+                .withAuthentication(tokenProvider)
+                .skipSecurityChecks()
+                .withClientDetails("FileStreamingE2ETest", "1.0")
+                .build()
+
+        val resourcesDirectory = "src/test/resources/compression/"
+
+        val compression =
+            when (compressionType) {
+                "NONE" -> CompressionType.NONE
+                "GZIP" -> CompressionType.GZIP
+                "ZIP" -> CompressionType.ZIP
+                else ->
+                    throw IllegalArgumentException(
+                        "Unknown compression type: $compressionType",
+                    )
+            }
+
+        val fileSource =
+            FileSource(
+                path = Paths.get(resourcesDirectory + fileName),
+                format = Format.multijson,
+                sourceId = UUID.randomUUID(),
+                compressionType = compression,
+            )
+
+        val properties =
+            IngestRequestPropertiesBuilder.create(database, targetTable)
+                .withFormat(Format.multijson)
+                .withEnableTracking(true)
+                .build()
+
+        val response =
+            client.ingestAsync(
+                source = fileSource,
+                ingestRequestProperties = properties,
+            )
+
+        assertNotNull(
+            response,
+            "File ingestion response should not be null for $fileName",
+        )
+        logger.info(
+            "File ingestion completed for $fileName ($compressionType). Operation ID: ${response.ingestResponse.ingestionOperationId}",
+        )
     }
 }

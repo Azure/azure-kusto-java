@@ -8,7 +8,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
@@ -78,15 +77,14 @@ class ManagedStreamingIngestClientTest :
                     )
             }
         val ingestRequestProperties =
-            IngestRequestPropertiesBuilder(format)
+            IngestRequestPropertiesBuilder.create(database, targetTable)
+                .withFormat(format)
                 .withEnableTracking(true)
                 .build()
         try {
             // Ingest data - should attempt streaming first
             val ingestionResponse =
                 managedClient.ingestAsync(
-                    database = database,
-                    table = targetTable,
                     source = testSources,
                     ingestRequestProperties = ingestRequestProperties,
                 )
@@ -199,16 +197,14 @@ class ManagedStreamingIngestClientTest :
             )
 
         val properties =
-            IngestRequestProperties(
-                format = targetTestFormat,
-                enableTracking = true,
-            )
+            IngestRequestPropertiesBuilder.create(database, targetTable)
+                .withFormat(targetTestFormat)
+                .withEnableTracking(true)
+                .build()
 
         try {
             val ingestionResponse =
                 customManagedClient.ingestAsync(
-                    database = database,
-                    table = targetTable,
                     source = source,
                     ingestRequestProperties = properties,
                 )
@@ -279,13 +275,12 @@ class ManagedStreamingIngestClientTest :
                 "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
             )
         val ingestRequestProperties =
-            IngestRequestPropertiesBuilder(Format.multijson)
+            IngestRequestPropertiesBuilder.create(database, targetTable)
+                .withFormat(Format.multijson)
                 .withEnableTracking(true)
                 .build()
         val ingestionResponse =
             customManagedClient.ingestAsync(
-                database = database,
-                table = targetTable,
                 source = testSource,
                 ingestRequestProperties = ingestRequestProperties,
             )
