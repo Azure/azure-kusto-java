@@ -52,12 +52,5 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${fasterxml.jackson.core.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.microsoft.azure.kusto</groupId>
-            <artifactId>ingest-v2</artifactId>
-            <version>8.0.0</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
-
 </project>
