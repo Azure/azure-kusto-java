@@ -152,9 +152,7 @@ class StreamingIngestClientTest :
                 .build()
 
         val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
-                .withFormat(Format.json)
-                .build()
+            IngestRequestPropertiesBuilder.create(database, targetTable).build()
 
         // Send invalid text data claiming to be JSON - this triggers a data format error
         val invalidData = "this is not valid json { broken"
@@ -182,7 +180,7 @@ class StreamingIngestClientTest :
         logger.info("  failureCode: ${exception.failureCode}")
 
         // Validate error parsing extracted meaningful details from Kusto OneApiError
-        assert(exception.message != null && exception.message!!.isNotEmpty()) {
+        assert(exception.message.isNotEmpty()) {
             "Exception message should contain error details from Kusto OneApiError"
         }
 
