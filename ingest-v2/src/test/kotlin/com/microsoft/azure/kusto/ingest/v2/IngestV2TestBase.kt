@@ -111,7 +111,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         isManagementQuery: Boolean = false,
     ) {
         Awaitility.await()
-            .atMost(Duration.of(2, ChronoUnit.MINUTES))
+            .atMost(Duration.of(3, ChronoUnit.MINUTES))
             .pollInterval(Duration.of(5, ChronoUnit.SECONDS))
             .ignoreExceptions()
             .untilAsserted {
