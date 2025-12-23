@@ -3,6 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>kusto-ingest-v2</artifactId>
+    <version>${ingest-v2.revision}</version>
     <name>kusto-ingest-v2</name>
     <description>
         New ingest module that simplifies ingestion and prepares for next set of iterations to support Private Link for
@@ -115,6 +116,7 @@
         <resources>
             <resource>
                 <directory>${project.basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
             </resource>
         </resources>
 
