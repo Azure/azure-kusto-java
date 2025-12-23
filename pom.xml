@@ -67,11 +67,11 @@
         <jacoco.version>0.8.11</jacoco.version>
     </properties>
     <modules>
-        <module>ingest</module>
         <module>data</module>
+        <module>ingest</module>
+        <module>ingest-v2</module>
         <module>samples</module>
         <module>quickstart</module>
-        <module>ingest-v2</module>
     </modules>
 
     <build>
