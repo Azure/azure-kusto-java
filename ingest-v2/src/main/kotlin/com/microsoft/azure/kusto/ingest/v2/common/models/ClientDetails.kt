@@ -169,7 +169,7 @@ data class ClientDetails(
             return ClientDetails(
                 applicationForTracing = getProcessName(),
                 userNameForTracing = getUserName(),
-                clientVersionForTracing = getDefaultVersion(),
+                clientVersionForTracing = null,
             )
         }
     }
