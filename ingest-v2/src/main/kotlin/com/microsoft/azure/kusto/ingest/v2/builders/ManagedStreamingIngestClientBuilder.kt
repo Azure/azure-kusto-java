@@ -20,7 +20,7 @@ private constructor(private val dmUrl: String) :
         @JvmStatic
         fun create(dmUrl: String): ManagedStreamingIngestClientBuilder {
             require(dmUrl.isNotBlank()) { "Data Ingestion URI cannot be blank" }
-            return ManagedStreamingIngestClientBuilder(dmUrl)
+            return ManagedStreamingIngestClientBuilder(normalizeAndCheckDmUrl(dmUrl))
         }
     }
 
