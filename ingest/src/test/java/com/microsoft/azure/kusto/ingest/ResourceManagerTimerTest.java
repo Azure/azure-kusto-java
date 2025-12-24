@@ -1,5 +1,21 @@
 package com.microsoft.azure.kusto.ingest;
 
+import com.microsoft.azure.kusto.data.BaseClient;
+import com.microsoft.azure.kusto.data.Client;
+import com.microsoft.azure.kusto.data.KustoOperationResult;
+import com.microsoft.azure.kusto.data.exceptions.DataClientException;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
+import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
+import reactor.core.publisher.Mono;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static com.microsoft.azure.kusto.ingest.ResourceManagerTest.generateIngestionAuthTokenResult;
 import static com.microsoft.azure.kusto.ingest.ResourceManagerTest.generateIngestionResourcesResult;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -8,22 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.junit.jupiter.api.Test;
-import org.mockito.stubbing.Answer;
-
-import com.microsoft.azure.kusto.data.BaseClient;
-import com.microsoft.azure.kusto.data.Client;
-import com.microsoft.azure.kusto.data.KustoOperationResult;
-import com.microsoft.azure.kusto.data.exceptions.DataClientException;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
-import com.microsoft.azure.kusto.data.exceptions.KustoServiceQueryError;
-
 class ResourceManagerTimerTest {
 
     @Test
@@ -31,16 +31,16 @@ class ResourceManagerTimerTest {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
         AtomicBoolean gotHere = new AtomicBoolean(false);
-        when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(generateIngestionAuthTokenResult());
-        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<KustoOperationResult>) invocationOnMock -> {
+        when(mockedClient.executeMgmtAsync(Commands.IDENTITY_GET_COMMAND))
+                .thenReturn(Mono.just(generateIngestionAuthTokenResult()));
+        when(mockedClient.executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND)).then((Answer<Mono<KustoOperationResult>>) invocationOnMock -> {
             refreshTimestamps.add((new Date()));
             gotHere.set(true);
             if (refreshTimestamps.size() == 2) {
-                throw new Exception();
+                return Mono.error(new Exception());
             }
 
-            return generateIngestionResourcesResult();
+            return Mono.just(generateIngestionResourcesResult());
         });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
@@ -68,13 +68,13 @@ class ResourceManagerTimerTest {
         Client mockedClient = mock(Client.class);
         final List<Date> refreshTimestamps = new ArrayList<>();
         AtomicBoolean gotHere = new AtomicBoolean(false);
-        when(mockedClient.executeMgmt(Commands.IDENTITY_GET_COMMAND))
-                .thenThrow(new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error")));
-        when(mockedClient.executeMgmt(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
+        when(mockedClient.executeMgmtAsync(Commands.IDENTITY_GET_COMMAND))
+                .thenReturn(Mono.error(new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"))));
+        when(mockedClient.executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocation -> {
                     refreshTimestamps.add(new Date());
                     gotHere.set(true);
-                    throw new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"));
+                    return Mono.error(new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error")));
                 });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);

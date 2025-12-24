@@ -248,16 +248,6 @@
             <artifactId>annotations</artifactId>
             <version>${annotations.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-retry</artifactId>
-            <version>${resilience4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.vavr</groupId>
-            <artifactId>vavr</artifactId>
-            <version>${io.vavr.version}</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-test -->
         <dependency>
             <groupId>io.projectreactor</groupId>
