@@ -18,6 +18,18 @@
         <version>${revision}</version>
     </parent>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>${azure-bom-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -168,6 +180,7 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-core</artifactId>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -176,6 +189,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jackson-annotations</artifactId>
@@ -186,6 +200,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+            <version>${fasterxml.jackson.core.version}</version>
         </dependency>
         <dependency>
             <groupId>com.univocity</groupId>
@@ -232,16 +247,7 @@
             <artifactId>annotations</artifactId>
             <version>${annotations.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-retry</artifactId>
-            <version>${resilience4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.vavr</groupId>
-            <artifactId>vavr</artifactId>
-            <version>${io.vavr.version}</version>
-        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-test -->
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>

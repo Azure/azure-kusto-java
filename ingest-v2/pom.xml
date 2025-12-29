@@ -10,6 +10,7 @@
         EventHouse on Fabric
     </description>
     <properties>
+        <azure-bom-version>1.2.37</azure-bom-version>
         <awaitility.version>4.3.0</awaitility.version>
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.version>2.2.10</kotlin.version>
@@ -17,6 +18,7 @@
         <ktor.async.api.version>3.1.1</ktor.async.api.version>
         <kotlinx.coroutines.debug.version>1.10.2</kotlinx.coroutines.debug.version>
         <logback.version>1.4.14</logback.version>
+        <java.version>11</java.version>
         <junit.version>5.10.0</junit.version>
         <openapi.generator.version>7.15.0</openapi.generator.version>
         <slf4j.version>2.0.9</slf4j.version>
@@ -30,6 +32,17 @@
         <!--suppress MavenPropertyInParent -->
         <version>${revision}</version>
     </parent>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.azure</groupId>
+                <artifactId>azure-sdk-bom</artifactId>
+                <version>${azure-bom-version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>io.ktor</groupId>
