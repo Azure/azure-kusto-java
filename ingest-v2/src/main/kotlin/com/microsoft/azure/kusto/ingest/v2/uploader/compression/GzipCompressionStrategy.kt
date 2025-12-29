@@ -44,11 +44,6 @@ class GzipCompressionStrategy : CompressionStrategy {
          * Even for large files, we cap at 10MB initial allocation.
          */
         private const val MAX_INITIAL_BUFFER_SIZE = 10 * 1024 * 1024
-
-        /** Singleton instance for reuse (class is stateless). */
-        val INSTANCE: GzipCompressionStrategy by lazy {
-            GzipCompressionStrategy()
-        }
     }
 
     /**

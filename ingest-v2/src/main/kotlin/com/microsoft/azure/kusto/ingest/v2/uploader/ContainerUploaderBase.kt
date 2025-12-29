@@ -199,7 +199,7 @@ abstract class ContainerUploaderBase(
                                         )
                                     }
                                 }
-                        } catch (e: java.io.IOException) {
+                        } catch (e: IOException) {
                             logger.error(
                                 "Streaming GZIP compression failed: {}",
                                 e.message,
@@ -210,13 +210,10 @@ abstract class ContainerUploaderBase(
                             } catch (_: Exception) {
                                 // Ignore close errors during cleanup
                             }
-                            throw com.microsoft.azure.kusto.ingest.v2
-                                .uploader
-                                .compression
-                                .CompressionException(
-                                    "Failed to compress stream using streaming GZIP",
-                                    e,
-                                )
+                            throw CompressionException(
+                                "Failed to compress stream using streaming GZIP",
+                                e,
+                            )
                         } catch (e: OutOfMemoryError) {
                             logger.error(
                                 "Streaming GZIP compression failed due to memory constraints: {}",

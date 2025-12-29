@@ -24,7 +24,6 @@ import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -208,7 +207,7 @@ public class QueuedIngestV2 {
      * - CSV file
      * - Compressed JSON file with mapping
      */
-    static List<CompletableFuture<Void>> ingestFromFile() throws Exception {
+    static List<CompletableFuture<Void>> ingestFromFile() {
         System.out.println("\n=== Queued Ingestion from Files ===");
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -265,7 +264,7 @@ public class QueuedIngestV2 {
      * Demonstrates batch ingestion from multiple sources in a single operation.
      * This is more efficient than ingesting sources one by one when you have multiple files.
      */
-    static CompletableFuture<Void> ingestMultipleSources() throws Exception {
+    static CompletableFuture<Void> ingestMultipleSources() {
         System.out.println("\n=== Queued Ingestion from Multiple Sources (Batch) ===");
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
