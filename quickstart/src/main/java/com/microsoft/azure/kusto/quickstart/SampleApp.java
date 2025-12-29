@@ -7,7 +7,7 @@ import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
@@ -60,6 +60,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS;
+
 /**
  * SourceType - represents the type of files used for ingestion
  */
@@ -81,7 +83,6 @@ enum SourceType {
         return null;
     }
 }
-
 /**
  * AuthenticationModeOptions - represents the different options to authenticate to the system
  */
@@ -270,7 +271,10 @@ class ConfigJson {
     }
 
     public IngestV2QuickstartConfig getIngestV2Config() {
-        return ingestV2Config == null ? new IngestV2QuickstartConfig() : ingestV2Config;
+        if (ingestV2Config == null) {
+            ingestV2Config = new IngestV2QuickstartConfig();
+        }
+        return ingestV2Config;
     }
 
     @Override
@@ -402,9 +406,7 @@ class IngestV2QuickstartConfig {
  * adapting the code to your needs.
  */
 public class SampleApp {
-    // TODO (config):
-    // If this quickstart app was downloaded from OneClick, kusto_sample_config.json should be pre-populated with your cluster's details.
-    // If this quickstart app was downloaded from GitHub, edit kusto_sample_config.json and modify the cluster URL and database fields appropriately.
+    private static final String CONFIG_ENV_OVERRIDE = "KUSTO_SAMPLE_CONFIG_PATH";
     private static final String configFileName = "quickstart/kusto_sample_config.json";
     private static int step = 1;
     private static boolean waitForUser;
@@ -420,6 +422,8 @@ public class SampleApp {
     private static void runSampleApp() {
         System.out.println("Kusto sample app is starting...");
         ConfigJson config = loadConfigs();
+        IngestV2QuickstartConfig ingestV2Config = config.getIngestV2Config();
+        ingestV2Config.applyDefaultsFromRoot(config);
         waitForUser = config.isWaitForUser();
 
         if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
@@ -482,16 +486,15 @@ public class SampleApp {
      */
     @NotNull
     private static ConfigJson loadConfigs() {
-        File configFile = new File(".\\" + SampleApp.configFileName);
+        Path configPath = locateConfigFile();
         try {
             ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
-            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
-            return mapper.readValue(configFile, ConfigJson.class);
-
+            mapper.configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true);
+            return mapper.readValue(configPath.toFile(), ConfigJson.class);
         } catch (Exception e) {
-            Utils.errorHandler(String.format("Couldn't read config file from file '%s'", SampleApp.configFileName), e);
+            Utils.errorHandler(String.format("Couldn't read config file from file '%s'", configPath), e);
         }
-        return new ConfigJson(); // Note: will never reach here.
+        return new ConfigJson();
     }
 
     /**
@@ -543,10 +546,6 @@ public class SampleApp {
         // For more information about customizing the ingestion batching policy, see:
         // https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
         // TODO: Change if needed. Disabled to prevent an existing batching policy from being unintentionally changed
-        if (false && config.getBatchingPolicy() != null) {
-            waitForUserToProceed(String.format("Alter the batching policy for table '%s.%s'", config.getDatabaseName(), config.getTableName()));
-            alterBatchingPolicy(kustoClient, config.getDatabaseName(), config.getTableName(), config.getBatchingPolicy());
-        }
     }
 
     /**
@@ -943,5 +942,50 @@ public class SampleApp {
         } catch (IOException e) {
             System.err.println("Failed to close resource: " + e.getMessage());
         }
+    }
+
+    private static Path locateConfigFile() {
+        List<Path> candidates = new ArrayList<>();
+        String override = System.getenv(CONFIG_ENV_OVERRIDE);
+        if (StringUtils.isNotBlank(override)) {
+            candidates.add(Paths.get(override));
+        }
+        Path relative = Paths.get(configFileName);
+        candidates.add(relative);
+        candidates.add(Paths.get(System.getProperty("user.dir", ".")).resolve(relative));
+        try {
+            Path jarLocation = Paths.get(SampleApp.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path jarDir = jarLocation.getParent();
+            if (jarDir != null) {
+                candidates.add(jarDir.resolve(relative));
+                Path parent = jarDir.getParent();
+                if (parent != null) {
+                    candidates.add(parent.resolve(relative));
+                }
+            }
+        } catch (URISyntaxException ignored) {
+            // Fall through to default locations
+        }
+
+        return candidates.stream()
+                .map(Path::normalize)
+                .map(SampleApp::expandWithWorkingDirectory)
+                .filter(Files::exists)
+                .findFirst()
+                .orElseGet(() -> {
+                    Utils.errorHandler(String.format(
+                            "Couldn't find config file '%s'. Provide it next to the jar, pass an absolute path, or set %s.",
+                            configFileName,
+                            CONFIG_ENV_OVERRIDE));
+                    return relative;
+                });
+    }
+
+    private static Path expandWithWorkingDirectory(Path path) {
+        if (Files.exists(path)) {
+            return path;
+        }
+        Path justFileName = Paths.get(path.getFileName().toString());
+        return Files.exists(justFileName) ? justFileName : path;
     }
 }

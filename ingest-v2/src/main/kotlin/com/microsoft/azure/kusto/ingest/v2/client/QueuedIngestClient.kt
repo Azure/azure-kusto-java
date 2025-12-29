@@ -680,9 +680,9 @@ internal constructor(
             ->
             buildString {
                 append("Error ingesting blob with $sourceId. ")
-                if (!details.isNullOrBlank()) append("ErrorDetails $details, ")
+                if (!details.isNullOrBlank()) append("ErrorDetail: $details, ")
                 if (!errorCode.isNullOrBlank()) {
-                    append("ErrorCode $errorCode , ")
+                    append("ErrorCode: $errorCode , ")
                 }
                 if (status != null) append("Status ${status.value}. ")
                 if (lastUpdateTime != null) {
@@ -690,7 +690,7 @@ internal constructor(
                 }
                 if (startedAt != null) append("& started at $startedAt. ")
                 if (failureStatus != null) {
-                    append("FailureStatus ${failureStatus.value}. ")
+                    append("FailureStatus: ${failureStatus.value}. ")
                 }
                 append("Is transient failure: $isTransientFailure")
             }
