@@ -33,13 +33,15 @@
     </developers>
 
     <properties>
-        <revision>7.0.4</revision> <!-- CHANGE THIS to match project version in the root (not technically parent) pom -->
-        <java.version>1.8</java.version>
+        <revision>8.0.0</revision> <!-- CHANGE THIS to match project version in the root (not technically parent) pom -->
+        <java.version>11</java.version>
         <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <json.version>20201115</json.version>
+        <ingest-v2.revision>0.0.1-beta</ingest-v2.revision>
+        <azure-identity.version>1.18.1</azure-identity.version>
     </properties>
 
     <build>
@@ -108,7 +110,7 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-bom</artifactId>
-                <version>1.31.0</version>
+                <version>1.57.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -125,6 +127,11 @@
             <groupId>com.microsoft.azure.kusto</groupId>
             <artifactId>kusto-ingest</artifactId>
             <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-ingest-v2</artifactId>
+            <version>${ingest-v2.revision}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -162,6 +169,11 @@
             <groupId>io.opentelemetry</groupId>
             <artifactId>opentelemetry-exporters-logging</artifactId>
             <version>0.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>${azure-identity.version}</version>
         </dependency>
 
     </dependencies>

@@ -38,6 +38,11 @@
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.microsoft.azure.kusto</groupId>
+            <artifactId>kusto-ingest-v2</artifactId>
+            <version>${ingest-v2.revision}</version>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${fasterxml.jackson.core.version}</version>
@@ -48,5 +53,4 @@
             <version>${fasterxml.jackson.core.version}</version>
         </dependency>
     </dependencies>
-
 </project>

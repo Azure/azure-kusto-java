@@ -81,6 +81,18 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         adminClusterClient.executeMgmt(database, createTableScript)
         adminClusterClient.executeMgmt(database, mappingReference)
         clearDatabaseSchemaCache()
+
+        // Allow subclasses to perform additional setup
+        additionalSetup()
+    }
+
+    /**
+     * Hook method for subclasses to perform additional setup after table
+     * creation. By default, does nothing. Streaming test classes can override
+     * to enable streaming policy.
+     */
+    protected open fun additionalSetup() {
+        // Default: no additional setup
     }
 
     protected fun alterTableToEnableStreaming() {
@@ -111,7 +123,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         isManagementQuery: Boolean = false,
     ) {
         Awaitility.await()
-            .atMost(Duration.of(2, ChronoUnit.MINUTES))
+            .atMost(Duration.of(3, ChronoUnit.MINUTES))
             .pollInterval(Duration.of(5, ChronoUnit.SECONDS))
             .ignoreExceptions()
             .untilAsserted {

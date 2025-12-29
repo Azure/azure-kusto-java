@@ -5,9 +5,13 @@ package com.microsoft.azure.kusto.ingest.v2.client
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.STREAMING_MAX_REQ_BODY_SIZE
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestRequestException
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestServiceException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.database
+import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Format
@@ -16,19 +20,29 @@ import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Status
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.future
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.net.URI
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 
 /**
  * Streaming ingestion client for Azure Data Explorer (Kusto).
@@ -78,19 +92,102 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
             )
     }
 
+    /**
+     * Ingests data from the specified source with the given properties. This is
+     * the suspend function for Kotlin callers.
+     *
+     * @param source The source to ingest (FileSource, StreamSource, or
+     *   BlobSource).
+     * @param ingestRequestProperties Ingestion properties containing database,
+     *   table, format, and other settings.
+     * @return An ExtendedIngestResponse containing the operation ID and
+     *   ingestion kind.
+     */
     override suspend fun ingestAsync(
         source: IngestionSource,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
+    ): ExtendedIngestResponse =
+        ingestAsyncInternal(source, ingestRequestProperties)
+
+    /**
+     * Ingests data from the specified source with the given properties. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     *
+     * @param source The source to ingest (FileSource, StreamSource, or
+     *   BlobSource).
+     * @param ingestRequestProperties Ingestion properties containing database,
+     *   table, format, and other settings.
+     * @return A CompletableFuture that completes with an
+     *   ExtendedIngestResponse.
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsyncInternal(source, ingestRequestProperties)
+        }
+
+    /**
+     * Gets the operation summary for the specified ingestion operation. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     *
+     * Note: Streaming ingestion does not support operation tracking, so this
+     * always returns an empty status.
+     *
+     * @param operation The ingestion operation to get the status for.
+     * @return A CompletableFuture that completes with a Status object.
+     */
+    @JvmName("getOperationSummaryAsync")
+    fun getOperationSummaryAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<Status> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationSummaryAsync(operation)
+        }
+
+    /**
+     * Gets the detailed operation status for the specified ingestion operation.
+     * This is the Java-friendly version that returns a CompletableFuture.
+     *
+     * Note: Streaming ingestion does not support operation tracking, so this
+     * always returns an empty status response.
+     *
+     * @param operation The ingestion operation to get the details for.
+     * @return A CompletableFuture that completes with a StatusResponse object.
+     */
+    @JvmName("getOperationDetailsAsync")
+    fun getOperationDetailsAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationDetailsAsync(operation)
+        }
+
+    /**
+     * Internal implementation of ingestAsync that both the suspend and Java
+     * versions call.
+     */
+    private suspend fun ingestAsyncInternal(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
+        // Inject format from source into properties
+        val effectiveProperties =
+            ingestRequestProperties.withFormatFromSource(source)
+
+        // Extract database and table from properties
+        val database = effectiveProperties.database
+        val table = effectiveProperties.table
+
         // Streaming ingestion processes one source at a time
-        val maxSize = getMaxStreamingIngestSize(source = source)
+        val maxSize =
+            getMaxStreamingIngestSize(
+                compressionType = source.compressionType,
+                format = effectiveProperties.format,
+            )
         val operationId = UUID.randomUUID().toString()
-        val effectiveIngestionProperties =
-            ingestRequestProperties
-                ?: IngestRequestPropertiesBuilder(format = Format.csv)
-                    .build()
         when (source) {
             is BlobSource -> {
                 logger.info(
@@ -101,8 +198,9 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     table = table,
                     // Not used for blob-based streaming
                     data = ByteArray(0),
-                    ingestProperties = effectiveIngestionProperties,
+                    ingestProperties = effectiveProperties,
                     blobUrl = source.blobPath,
+                    compressionType = source.compressionType,
                 )
             }
             is FileSource,
@@ -128,8 +226,9 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     database = database,
                     table = table,
                     data = data,
-                    ingestProperties = effectiveIngestionProperties,
+                    ingestProperties = effectiveProperties,
                     blobUrl = null,
+                    compressionType = source.compressionType,
                 )
                 source.close()
             }
@@ -167,6 +266,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         data: ByteArray,
         ingestProperties: IngestRequestProperties,
         blobUrl: String? = null,
+        compressionType: CompressionType,
     ) {
         val host = URI(this.apiClient.engineUrl).host
 
@@ -202,7 +302,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         }
 
         try {
-            val response: HttpResponse<Unit> =
+            val response =
                 this.apiClient.api.postStreamingIngest(
                     database = database,
                     table = table,
@@ -212,9 +312,17 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     ingestProperties.ingestionMappingReference,
                     sourceKind = sourceKind,
                     host = host,
-                    acceptEncoding = "gzip",
+                    acceptEncoding = null,
                     connection = "Keep-Alive",
-                    contentEncoding = null,
+                    contentEncoding =
+                    if (
+                        compressionType ==
+                        CompressionType.GZIP
+                    ) {
+                        "gzip"
+                    } else {
+                        null
+                    },
                     contentType = contentType,
                 )
             return handleIngestResponse(
@@ -296,41 +404,124 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                     isPermanent = false,
                 )
             }
-            val nonSuccessResponseBody: T = response.body()
-            val ingestResponseOperationId =
-                if (nonSuccessResponseBody is IngestResponse) {
-                    if (
-                        (nonSuccessResponseBody as IngestResponse)
-                            .ingestionOperationId != null
-                    ) {
-                        logger.info(
-                            "Ingestion Operation ID: ${(nonSuccessResponseBody as IngestResponse).ingestionOperationId}",
-                        )
-                        nonSuccessResponseBody.ingestionOperationId
-                    } else {
-                        "N/A"
-                    }
-                } else {
-                    "N/A"
-                }
+
+            // Try to parse the error response as Kusto OneApiError format
+            val errorDetails = parseKustoErrorResponse(response)
+
             val errorMessage =
-                "Failed to submit streaming ingestion to $database.$table. " +
-                    "Status: ${response.status}, Body: $nonSuccessResponseBody. " +
-                    "OperationId $ingestResponseOperationId"
+                if (errorDetails != null) {
+                    // Use the detailed message from the Kusto error response
+                    val description =
+                        errorDetails.description ?: errorDetails.message
+                    "Failed to submit streaming ingestion to $database.$table. " +
+                        "Error: $description (Code: ${errorDetails.code}, Type: ${errorDetails.type})"
+                } else {
+                    // Fallback to generic error message
+                    "Failed to submit streaming ingestion to $database.$table. Status: ${response.status}"
+                }
+
             logger.error(errorMessage)
-            throw IngestException(
-                message = errorMessage,
-                cause = RuntimeException(errorMessage),
-                isPermanent = true,
-            )
+
+            // Determine if the error is permanent based on the parsed response
+            val isPermanent = errorDetails?.permanent ?: true
+            val failureCode = errorDetails?.failureCode ?: response.status
+
+            // Use appropriate exception type based on the error
+            if (isPermanent) {
+                throw IngestRequestException(
+                    errorCode = errorDetails?.code,
+                    errorReason = errorDetails?.type,
+                    errorMessage =
+                    errorDetails?.description
+                        ?: errorDetails?.message,
+                    databaseName = database,
+                    failureCode = failureCode,
+                    isPermanent = true,
+                    message = errorMessage,
+                )
+            } else {
+                throw IngestServiceException(
+                    errorCode = errorDetails?.code,
+                    errorReason = errorDetails?.type,
+                    errorMessage =
+                    errorDetails?.description
+                        ?: errorDetails?.message,
+                    failureCode = failureCode,
+                    isPermanent = false,
+                    message = errorMessage,
+                )
+            }
         }
     }
 
-    private fun getMaxStreamingIngestSize(source: IngestionSource): Long {
+    /**
+     * Parses the Kusto error response to extract error details. The error
+     * response follows the OneApiError format:
+     * ```json
+     * {
+     *   "error": {
+     *     "code": "BadRequest",
+     *     "message": "Request is invalid and cannot be executed.",
+     *     "@type": "Kusto.DataNode.Exceptions.StreamingIngestionRequestException",
+     *     "@message": "Bad streaming ingestion request...",
+     *     "@failureCode": 400,
+     *     "@permanent": true
+     *   }
+     * }
+     * ```
+     */
+    private suspend fun <T : Any> parseKustoErrorResponse(
+        response: HttpResponse<T>,
+    ): KustoErrorDetails? {
+        return try {
+            val bodyText = response.response.bodyAsText()
+            if (bodyText.isBlank()) {
+                logger.debug("Empty error response body")
+                return null
+            }
+
+            logger.debug("Parsing error response: {}", bodyText)
+
+            val json = Json { ignoreUnknownKeys = true }
+            val rootObject = json.parseToJsonElement(bodyText).jsonObject
+
+            // The error is wrapped in an "error" object
+            val errorObject = rootObject["error"]?.jsonObject
+            if (errorObject == null) {
+                logger.debug("No 'error' field found in response")
+                return null
+            }
+
+            val code = errorObject["code"]?.jsonPrimitive?.content
+            val message = errorObject["message"]?.jsonPrimitive?.content
+            val type = errorObject["@type"]?.jsonPrimitive?.content
+            val description = errorObject["@message"]?.jsonPrimitive?.content
+            val failureCode = errorObject["@failureCode"]?.jsonPrimitive?.int
+            val permanent =
+                errorObject["@permanent"]?.jsonPrimitive?.boolean ?: true
+
+            KustoErrorDetails(
+                code = code,
+                message = message,
+                type = type,
+                description = description,
+                failureCode = failureCode,
+                permanent = permanent,
+            )
+        } catch (e: Exception) {
+            logger.warn("Failed to parse Kusto error response: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun getMaxStreamingIngestSize(
+        compressionType: CompressionType,
+        format: Format,
+    ): Long {
         val compressionFactor =
             IngestionUtils.getRowStoreEstimatedFactor(
-                source.format,
-                source.compressionType,
+                format,
+                compressionType,
             )
         return (STREAMING_MAX_REQ_BODY_SIZE * compressionFactor).toLong()
     }
@@ -341,4 +532,23 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
 @Serializable
 private data class StreamFromBlobRequestBody(
     @SerialName("SourceUri") val sourceUri: String,
+)
+
+/**
+ * Data class to hold parsed Kusto error details from OneApiError format.
+ * Matches the structure of error responses from Kusto streaming ingestion.
+ */
+private data class KustoErrorDetails(
+    /** The error code (e.g., "BadRequest") */
+    val code: String?,
+    /** The high-level error message */
+    val message: String?,
+    /** The exception type (from @type field) */
+    val type: String?,
+    /** The detailed error description (from @message field) */
+    val description: String?,
+    /** The HTTP failure code (from @failureCode field) */
+    val failureCode: Int?,
+    /** Whether the error is permanent (from @permanent field) */
+    val permanent: Boolean,
 )

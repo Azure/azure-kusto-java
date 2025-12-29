@@ -33,6 +33,7 @@
 
     <properties>
         <revision>8.0.0</revision> <!-- CHANGE THIS to adjust project version-->
+        <ingest-v2.revision>0.0.1-beta</ingest-v2.revision> <!-- CHANGE THIS to adjust ingest-v2 version -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
         <azure-bom-version>1.2.37</azure-bom-version>
@@ -64,11 +65,11 @@
         <jacoco.version>0.8.11</jacoco.version>
     </properties>
     <modules>
-        <module>ingest</module>
         <module>data</module>
+        <module>ingest</module>
+        <module>ingest-v2</module>
         <module>samples</module>
         <module>quickstart</module>
-        <module>ingest-v2</module>
     </modules>
 
     <build>
