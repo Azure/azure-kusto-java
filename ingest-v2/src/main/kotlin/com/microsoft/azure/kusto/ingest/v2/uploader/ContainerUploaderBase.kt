@@ -12,13 +12,17 @@ import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder
 import com.azure.storage.file.datalake.options.FileParallelUploadOptions
 import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
+import com.microsoft.azure.kusto.ingest.v2.STREAM_COMPRESSION_BUFFER_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.STREAM_PIPE_BUFFER_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionException
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
@@ -30,10 +34,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.io.InputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.util.zip.GZIPOutputStream
 
 /** Represents an abstract base class for uploaders to storage containers. */
 abstract class ContainerUploaderBase(
@@ -59,10 +67,10 @@ abstract class ContainerUploaderBase(
 
     override suspend fun uploadAsync(local: LocalSource): BlobSource {
         // Get the stream and validate it
-        val stream = local.data()
+        val originalStream = local.data()
         val name = local.generateBlobName()
 
-        val errorCode = checkStreamForErrors(stream)
+        val errorCode = checkStreamForErrors(originalStream)
         if (errorCode != null) {
             logger.error(
                 "Stream validation failed for {}: {}",
@@ -72,9 +80,10 @@ abstract class ContainerUploaderBase(
             throw IngestException(errorCode.description, isPermanent = true)
         }
 
-        // Check size limit if not ignored
+        // Check size limit if not ignored (check original size before compression)
         val availableSize =
-            withContext(Dispatchers.IO) { stream.available() }.toLong()
+            withContext(Dispatchers.IO) { originalStream.available() }
+                .toLong()
         if (!ignoreSizeLimit && availableSize > 0) {
             if (availableSize > maxDataSize) {
                 logger.error(
@@ -101,14 +110,145 @@ abstract class ContainerUploaderBase(
             )
         }
 
+        // Compress stream if needed (for non-binary, non-compressed formats)
+        val (uploadStream, effectiveCompressionType, compressionJob) =
+            if (local.shouldCompress) {
+                logger.debug(
+                    "Auto-compressing stream for {} (format: {}, original compression: {})",
+                    name,
+                    local.format,
+                    local.compressionType,
+                )
+                val compressResult = compressStreamWithPipe(originalStream)
+                logger.debug(
+                    "Compression started for {} using streaming approach (original={} bytes)",
+                    name,
+                    availableSize,
+                )
+                Triple(
+                    compressResult.stream,
+                    CompressionType.GZIP,
+                    compressResult.compressionJob,
+                )
+            } else {
+                Triple(originalStream, local.compressionType, null)
+            }
+
         // Upload with retry policy and container cycling
-        return uploadWithRetries(
-            local = local,
-            name = name,
-            stream = stream,
-            containers = containers,
-        )
+        return try {
+            uploadWithRetries(
+                local = local,
+                name = name,
+                stream = uploadStream,
+                containers = containers,
+                effectiveCompressionType = effectiveCompressionType,
+            )
+                .also {
+                    // Ensure compression job completes successfully
+                    compressionJob?.await()
+                    logger.debug(
+                        "Compression job completed successfully for {}",
+                        name,
+                    )
+                }
+        } catch (e: Exception) {
+            // Cancel compression job if upload fails
+            compressionJob?.cancel()
+            throw e
+        }
     }
+
+    /**
+     * Compresses the input stream using GZIP compression with streaming
+     * approach. Uses piped streams to avoid loading entire file into memory.
+     *
+     * This creates a background coroutine that reads from the input stream,
+     * compresses the data, and writes to a pipe. The returned InputStream reads
+     * from the other end of the pipe, allowing the uploader to stream
+     * compressed bytes directly into storage.
+     */
+    private suspend fun compressStreamWithPipe(
+        inputStream: InputStream,
+    ): CompressedStreamResult =
+        withContext(Dispatchers.IO) {
+            try {
+                // Create piped streams with 1MB buffer to handle backpressure
+                val pipeSize = STREAM_PIPE_BUFFER_SIZE_BYTES
+                val pipedInputStream = PipedInputStream(pipeSize)
+                val pipedOutputStream = PipedOutputStream(pipedInputStream)
+
+                logger.debug(
+                    "Starting streaming GZIP compression with pipe buffer size: {} bytes",
+                    pipeSize,
+                )
+
+                // Start compression in background coroutine
+                val compressionJob =
+                    async(Dispatchers.IO) {
+                        try {
+                            GZIPOutputStream(
+                                pipedOutputStream,
+                                STREAM_COMPRESSION_BUFFER_SIZE_BYTES,
+                            )
+                                .use { gzipStream ->
+                                    inputStream.use { input ->
+                                        input.copyTo(
+                                            gzipStream,
+                                            bufferSize =
+                                            STREAM_COMPRESSION_BUFFER_SIZE_BYTES,
+                                        )
+                                    }
+                                }
+                        } catch (e: IOException) {
+                            logger.error(
+                                "Streaming GZIP compression failed: {}",
+                                e.message,
+                            )
+                            // Close output pipe to signal error to reader
+                            try {
+                                pipedOutputStream.close()
+                            } catch (_: Exception) {
+                                // Ignore close errors during cleanup
+                            }
+                            throw CompressionException(
+                                "Failed to compress stream using streaming GZIP",
+                                e,
+                            )
+                        } catch (e: OutOfMemoryError) {
+                            logger.error(
+                                "Streaming GZIP compression failed due to memory constraints: {}",
+                                e.message,
+                            )
+                            try {
+                                pipedOutputStream.close()
+                            } catch (_: Exception) {
+                                // Ignore close errors during cleanup
+                            }
+                            throw CompressionException(
+                                "Insufficient memory for streaming compression",
+                                e,
+                            )
+                        }
+                    }
+
+                CompressedStreamResult(pipedInputStream, compressionJob)
+            } catch (e: IOException) {
+                logger.error(
+                    "Failed to setup compression pipes: {}",
+                    e.message,
+                )
+                throw CompressionException(
+                    "Failed to initialize streaming compression",
+                    e,
+                )
+            }
+        }
+
+    /** Helper class to hold compressed stream and its completion job */
+    private data class CompressedStreamResult(
+        val stream: InputStream,
+        val compressionJob: kotlinx.coroutines.Deferred<Long>,
+    )
 
     /**
      * Uploads a stream with retry logic and container cycling. Randomly selects
@@ -120,6 +260,7 @@ abstract class ContainerUploaderBase(
         name: String,
         stream: InputStream,
         containers: List<ExtendedContainerInfo>,
+        effectiveCompressionType: CompressionType = local.compressionType,
     ): BlobSource {
         // Select random starting container index
         var containerIndex = (0 until containers.size).random()
@@ -163,10 +304,11 @@ abstract class ContainerUploaderBase(
                 )
 
                 // Return BlobSource with the uploaded blob path
+                // Use effective compression type (GZIP if auto-compressed)
                 return BlobSource(
                     blobPath = blobUrl,
                     format = local.format,
-                    compressionType = local.compressionType,
+                    compressionType = effectiveCompressionType,
                     sourceId = local.sourceId,
                 )
                     .apply { blobExactSize = local.size() }

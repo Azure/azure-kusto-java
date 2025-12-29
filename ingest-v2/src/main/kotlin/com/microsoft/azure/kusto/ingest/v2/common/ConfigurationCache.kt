@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Interface for caching configuration data.
@@ -95,32 +96,55 @@ class DefaultConfigurationCache(
                     .getConfigurationDetails()
             }
 
-    @Volatile private var cachedConfiguration: ConfigurationResponse? = null
-    private var lastRefreshTime: Long = 0
+    /**
+     * Holds both the configuration and its refresh timestamp atomically. This
+     * prevents race conditions between checking expiration and updating.
+     */
+    private data class CachedData(
+        val configuration: ConfigurationResponse,
+        val timestamp: Long,
+    )
+
+    private val cache = AtomicReference<CachedData?>(null)
 
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
+        val cached = cache.get()
+
+        // Check if we need to refresh
         val needsRefresh =
-            cachedConfiguration == null ||
-                (currentTime - lastRefreshTime) >=
+            cached == null ||
+                (currentTime - cached.timestamp) >=
                 refreshInterval.toMillis()
+
         if (needsRefresh) {
+            // Attempt to refresh - only one thread will succeed
             val newConfig =
                 runCatching { provider() }
-                    .getOrElse { cachedConfiguration ?: throw it }
-            synchronized(this) {
-                // Double-check in case another thread refreshed while we were waiting
-                val stillNeedsRefresh =
-                    cachedConfiguration == null ||
-                        (currentTime - lastRefreshTime) >=
-                        refreshInterval.toMillis()
-                if (stillNeedsRefresh) {
-                    cachedConfiguration = newConfig
-                    lastRefreshTime = currentTime
+                    .getOrElse {
+                        // If fetch fails, return cached if available, otherwise rethrow
+                        cached?.configuration ?: throw it
+                    }
+
+            // Atomically update if still needed (prevents thundering herd)
+            cache.updateAndGet { current ->
+                val currentTimestamp = current?.timestamp ?: 0
+                // Only update if current is null or still stale
+                if (
+                    current == null ||
+                    (currentTime - currentTimestamp) >=
+                    refreshInterval.toMillis()
+                ) {
+                    CachedData(newConfig, currentTime)
+                } else {
+                    // Another thread already refreshed
+                    current
                 }
             }
         }
-        return cachedConfiguration!!
+
+        // Return the cached value (guaranteed non-null after refresh)
+        return cache.get()!!.configuration
     }
 
     override fun close() {

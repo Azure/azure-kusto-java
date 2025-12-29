@@ -17,6 +17,14 @@ You can use it as a baseline to write your own first kusto client application, a
 
 1. Download the app files from this GitHub repo.
 1. Modify the `kusto_sample_config.json` file, changing `KustoUri`, `IngestUri` and `DatabaseName` appropriately for your cluster.
+2. The config file can be overridden using 
+```bash
+export KUSTO_SAMPLE_CONFIG_PATH=/path/to/kusto_sample_config.json
+```
+
+```cmd
+set KUSTO_SAMPLE_CONFIG_PATH=C:\Path\To\kusto_sample_config.json
+```
 
 ### Retrieving the app from OneClick
 
@@ -32,6 +40,7 @@ You can use it as a baseline to write your own first kusto client application, a
 1. Open a command line window and navigate to the folder where you extracted the app.
 1. Run `mvn clean install` to compile the source code into a binary.
 1. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`.
+1. To run the ingest-v2 path, set `useIngestV2Sample` to true in `kusto_sample_config.json` & run `java -jar target/kusto-quickstart-[version]-jar-with-dependencies.jar`.
 
 #### Troubleshooting
 

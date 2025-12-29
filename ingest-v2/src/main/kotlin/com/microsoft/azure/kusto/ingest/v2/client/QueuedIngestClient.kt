@@ -10,12 +10,13 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.database
+import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.Blob
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
-import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequest
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.IngestResponse
@@ -26,16 +27,20 @@ import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.LoggerFactory
 import java.net.ConnectException
 import java.time.Clock
+import java.time.Duration
 import java.time.OffsetDateTime
-import kotlin.time.Duration
+import java.util.concurrent.CompletableFuture
 
 /**
  * Queued ingestion client for Azure Data Explorer (Kusto).
@@ -69,12 +74,111 @@ internal constructor(
 ) : MultiIngestClient {
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
 
+    /**
+     * Ingests data from multiple sources with the given properties. This is the
+     * suspend function for Kotlin callers.
+     */
     override suspend fun ingestAsync(
         sources: List<IngestionSource>,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
+    ): ExtendedIngestResponse =
+        ingestAsyncInternal(sources, ingestRequestProperties)
+
+    /**
+     * Ingests data from a single source with the given properties. This is the
+     * suspend function for Kotlin callers.
+     */
+    override suspend fun ingestAsync(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): ExtendedIngestResponse =
+        ingestAsyncSingleInternal(source, ingestRequestProperties)
+
+    /**
+     * Ingests data from multiple sources with the given properties. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        sources: List<IngestionSource>,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsyncInternal(sources, ingestRequestProperties)
+        }
+
+    /**
+     * Ingests data from a single source with the given properties. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("ingestAsync")
+    fun ingestAsyncJava(
+        source: IngestionSource,
+        ingestRequestProperties: IngestRequestProperties,
+    ): CompletableFuture<ExtendedIngestResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            ingestAsyncSingleInternal(source, ingestRequestProperties)
+        }
+
+    /**
+     * Gets the operation summary for the specified ingestion operation. This is
+     * the Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("getOperationSummaryAsync")
+    fun getOperationSummaryAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<Status> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationSummaryAsync(operation)
+        }
+
+    /**
+     * Gets the detailed operation status for the specified ingestion operation.
+     * This is the Java-friendly version that returns a CompletableFuture.
+     */
+    @JvmName("getOperationDetailsAsync")
+    fun getOperationDetailsAsyncJava(
+        operation: IngestionOperation,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            getOperationDetailsAsync(operation)
+        }
+
+    /**
+     * Polls the ingestion status until completion or timeout. This is the
+     * Java-friendly version that returns a CompletableFuture.
+     *
+     * @param operation The ingestion operation to poll
+     * @param timeout Maximum time to wait before throwing timeout exception (in
+     *   milliseconds)
+     * @return CompletableFuture that completes with the final StatusResponse
+     *   when ingestion is completed
+     */
+    @JvmName("pollForCompletion")
+    fun pollForCompletion(
+        operation: IngestionOperation,
+        pollingInterval: Duration,
+        timeout: Duration,
+    ): CompletableFuture<StatusResponse> =
+        CoroutineScope(Dispatchers.IO).future {
+            pollUntilCompletion(
+                database = operation.database,
+                table = operation.table,
+                operationId = operation.operationId,
+                pollingInterval = pollingInterval,
+                timeout = timeout,
+            )
+        }
+
+    /** Internal implementation of ingestAsync for multiple sources. */
+    private suspend fun ingestAsyncInternal(
+        sources: List<IngestionSource>,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
+        // Extract database and table from properties
+        val database = ingestRequestProperties.database
+        val table = ingestRequestProperties.table
+
         // Validate sources list is not empty
         require(sources.isNotEmpty()) { "sources list cannot be empty" }
         val maxBlobsPerBatch = getMaxSourcesPerMultiIngest()
@@ -133,11 +237,16 @@ internal constructor(
                     rawSize = it.blobExactSize,
                 )
             }
+
+        // Extract format from the first source (all sources have same format as validated above)
+        val effectiveProperties =
+            ingestRequestProperties.withFormatFromSource(sources.first())
+
         val ingestRequest =
             IngestRequest(
                 timestamp = OffsetDateTime.now(Clock.systemUTC()),
                 blobs = blobs,
-                properties = ingestRequestProperties,
+                properties = effectiveProperties,
             )
         val response: HttpResponse<IngestResponse> =
             this.apiClient.api.postQueuedIngest(
@@ -171,36 +280,22 @@ internal constructor(
         }
     }
 
-    override suspend fun ingestAsync(
+    /** Internal implementation of ingestAsync for a single source. */
+    private suspend fun ingestAsyncSingleInternal(
         source: IngestionSource,
-        database: String,
-        table: String,
-        ingestRequestProperties: IngestRequestProperties?,
+        ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
-        // Add this as a fallback because the format is mandatory and if that is not present it may
-        // cause a failure
-        val effectiveIngestionProperties =
-            ingestRequestProperties
-                ?: IngestRequestPropertiesBuilder(format = Format.csv)
-                    .build()
         when (source) {
             is BlobSource -> {
-                return ingestAsync(
-                    listOf(source),
-                    database,
-                    table,
-                    effectiveIngestionProperties,
-                )
+                // Pass the source to multi-source method which will extract format
+                return ingestAsync(listOf(source), ingestRequestProperties)
             }
             is LocalSource -> {
-                // Upload the local source to blob storage
+                // Upload the local source to blob storage, then ingest
+                // Note: We pass the original LocalSource to preserve format information
                 val blobSource = uploader.uploadAsync(source)
-                return ingestAsync(
-                    listOf(blobSource),
-                    database,
-                    table,
-                    effectiveIngestionProperties,
-                )
+                // Use the original source's format
+                return ingestAsync(listOf(blobSource), ingestRequestProperties)
             }
             else -> {
                 throw IngestClientException(
@@ -217,7 +312,7 @@ internal constructor(
             getIngestionDetails(
                 operation.database,
                 operation.table,
-                operation.operationId.toString(),
+                operation.operationId,
                 false,
             )
         return statusResponse.status
@@ -235,7 +330,7 @@ internal constructor(
         return getIngestionDetails(
             database = operation.database,
             table = operation.table,
-            operationId = operation.operationId.toString(),
+            operationId = operation.operationId,
             details = true,
         )
     }
@@ -498,7 +593,7 @@ internal constructor(
         timeout: Duration = Duration.parse("PT5M"),
     ): StatusResponse {
         val result =
-            withTimeoutOrNull(timeout.inWholeMilliseconds) {
+            withTimeoutOrNull(timeout.toMillis()) {
                 var currentStatus: StatusResponse
                 do {
                     currentStatus =
@@ -509,7 +604,9 @@ internal constructor(
                             forceDetails = true,
                         )
                     logger.debug(
-                        "Starting to poll ingestion status for operation: $operationId, timeout: $timeout",
+                        "Starting to poll ingestion status for operation: {}, timeout: {}",
+                        operationId,
+                        timeout,
                     )
                     if (
                         IngestionResultUtils.isCompleted(
@@ -523,9 +620,9 @@ internal constructor(
                     }
 
                     logger.debug(
-                        "Ingestion operation $operationId still in progress, waiting ${pollingInterval.inWholeSeconds}s before next check",
+                        "Ingestion operation $operationId still in progress, waiting ${pollingInterval.toMillis()}s before next check",
                     )
-                    delay(pollingInterval.inWholeMilliseconds)
+                    delay(pollingInterval.toMillis())
                 } while (
                     !IngestionResultUtils.isCompleted(
                         currentStatus.details,
@@ -583,19 +680,19 @@ internal constructor(
             ->
             buildString {
                 append("Error ingesting blob with $sourceId. ")
-                if (!details.isNullOrBlank()) append("ErrorDetails $details, ")
+                if (!details.isNullOrBlank()) append("ErrorDetails: $details. ")
                 if (!errorCode.isNullOrBlank()) {
-                    append("ErrorCode $errorCode , ")
+                    append("ErrorCode: $errorCode. ")
                 }
-                if (status != null) append("Status ${status.value}. ")
+                if (status != null) append("Status: ${status.value}. ")
                 if (lastUpdateTime != null) {
-                    append("Ingestion lastUpdated at $lastUpdateTime ")
+                    append("Ingestion lastUpdated at $lastUpdateTime. ")
                 }
-                if (startedAt != null) append("& started at $startedAt. ")
+                if (startedAt != null) append("Started at $startedAt. ")
                 if (failureStatus != null) {
-                    append("FailureStatus ${failureStatus.value}. ")
+                    append("FailureStatus: ${failureStatus.value}. ")
                 }
-                append("Is transient failure: $isTransientFailure")
+                append("IsTransientFailure: $isTransientFailure")
             }
         }
     }
