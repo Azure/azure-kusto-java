@@ -97,12 +97,12 @@ class DefaultConfigurationCache(
             }
 
     /**
-     * Holds both the configuration and its refresh timestamp atomically.
-     * This prevents race conditions between checking expiration and updating.
+     * Holds both the configuration and its refresh timestamp atomically. This
+     * prevents race conditions between checking expiration and updating.
      */
     private data class CachedData(
         val configuration: ConfigurationResponse,
-        val timestamp: Long
+        val timestamp: Long,
     )
 
     private val cache = AtomicReference<CachedData?>(null)
@@ -110,25 +110,31 @@ class DefaultConfigurationCache(
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
         val cached = cache.get()
-        
+
         // Check if we need to refresh
-        val needsRefresh = cached == null || 
-            (currentTime - cached.timestamp) >= refreshInterval.toMillis()
-        
+        val needsRefresh =
+            cached == null ||
+                (currentTime - cached.timestamp) >=
+                refreshInterval.toMillis()
+
         if (needsRefresh) {
             // Attempt to refresh - only one thread will succeed
-            val newConfig = runCatching { provider() }
-                .getOrElse { 
-                    // If fetch fails, return cached if available, otherwise rethrow
-                    cached?.configuration ?: throw it 
-                }
-            
+            val newConfig =
+                runCatching { provider() }
+                    .getOrElse {
+                        // If fetch fails, return cached if available, otherwise rethrow
+                        cached?.configuration ?: throw it
+                    }
+
             // Atomically update if still needed (prevents thundering herd)
             cache.updateAndGet { current ->
                 val currentTimestamp = current?.timestamp ?: 0
                 // Only update if current is null or still stale
-                if (current == null || 
-                    (currentTime - currentTimestamp) >= refreshInterval.toMillis()) {
+                if (
+                    current == null ||
+                    (currentTime - currentTimestamp) >=
+                    refreshInterval.toMillis()
+                ) {
                     CachedData(newConfig, currentTime)
                 } else {
                     // Another thread already refreshed
@@ -136,7 +142,7 @@ class DefaultConfigurationCache(
                 }
             }
         }
-        
+
         // Return the cached value (guaranteed non-null after refresh)
         return cache.get()!!.configuration
     }

@@ -19,9 +19,7 @@ class NoCompressionStrategy : CompressionStrategy {
     override val compressionType: String = "none"
 
     companion object {
-        /**
-         * Singleton instance for reuse (class is stateless).
-         */
+        /** Singleton instance for reuse (class is stateless). */
         val INSTANCE: NoCompressionStrategy by lazy { NoCompressionStrategy() }
     }
 
@@ -32,5 +30,8 @@ class NoCompressionStrategy : CompressionStrategy {
      * @param estimatedSize Ignored for no-op compression
      * @return The same input stream unchanged
      */
-    override suspend fun compress(input: InputStream, estimatedSize: Long): InputStream = input
+    override suspend fun compress(
+        input: InputStream,
+        estimatedSize: Long,
+    ): InputStream = input
 }
