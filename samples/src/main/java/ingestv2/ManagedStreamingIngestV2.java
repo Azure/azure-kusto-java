@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -37,13 +38,11 @@ import java.util.concurrent.CompletableFuture;
  * Sample demonstrating managed streaming ingestion using the new ingest-v2 API.
  * This is the modern API that uses Kotlin-based clients with coroutines,
  * providing better async support and a cleaner API design.
- * 
  * Managed streaming ingestion intelligently chooses between streaming and queued ingestion:
  * - Small data (typically under 4MB) is ingested via streaming for low latency
  * - Large data automatically falls back to queued ingestion for reliability
  * - Server errors (like streaming disabled) trigger automatic fallback to queued
  * - Transient errors are retried according to the configured retry policy
- * 
  * This approach provides the best of both worlds: low latency for small data
  * and high reliability for all data sizes.
  */
@@ -117,7 +116,6 @@ public class ManagedStreamingIngestV2 {
     /**
      * Demonstrates ingestion from various stream sources.
      * Small data will typically use streaming ingestion for low latency.
-     * 
      * Sources include:
      * - In-memory string data as CSV (small, will use streaming)
      * - Compressed file stream (CSV)
@@ -189,7 +187,6 @@ public class ManagedStreamingIngestV2 {
      * Demonstrates ingestion from file sources.
      * The client will automatically decide between streaming and queued
      * based on file size and other factors.
-     * 
      * Sources include:
      * - CSV file
      * - Compressed JSON file with mapping
@@ -238,17 +235,14 @@ public class ManagedStreamingIngestV2 {
     /**
      * Demonstrates the automatic fallback to queued ingestion when data size exceeds
      * the streaming limit.
-     * 
-     * This method creates a large in-memory dataset (~20MB uncompressed) to force the 
+     * This method creates a large in-memory dataset (~20MB uncompressed) to force the
      * client to fall back to queued ingestion. Note that data is automatically compressed
      * before ingestion, so we use a larger size (20MB) to ensure the compressed data
      * still exceeds the streaming threshold (~4MB compressed).
-     * 
      * This demonstrates:
      * - Automatic size-based decision making
      * - Fallback logging from the client ("Blob size is too big for streaming ingest")
      * - Operation tracking for queued ingestion
-     * 
      * Note: Streaming ingestion operations are not tracked - they complete immediately
      * with success or throw an exception on failure.
      */
@@ -304,7 +298,7 @@ public class ManagedStreamingIngestV2 {
             System.out.println("This demonstrates the automatic size-based routing.\n");
 
             IngestionOperation operation = new IngestionOperation(
-                    response.getIngestResponse().getIngestionOperationId(),
+                    Objects.requireNonNull(response.getIngestResponse().getIngestionOperationId()),
                     database,
                     table,
                     response.getIngestionType()
@@ -407,7 +401,7 @@ public class ManagedStreamingIngestV2 {
             
             // Check if completed (no more in-progress items)
             Status summary = status.getStatus();
-            if (summary != null && summary.getInProgress() == 0) {
+            if (summary != null && summary.getInProgress()!=null && summary.getInProgress() == 0) {
                 System.out.println("Operation completed.");
                 return status;
             }
