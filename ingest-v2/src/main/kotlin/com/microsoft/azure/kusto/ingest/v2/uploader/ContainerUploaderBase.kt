@@ -31,9 +31,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -107,7 +107,7 @@ abstract class ContainerUploaderBase(
         }
 
         // Compress stream if needed (for non-binary, non-compressed formats)
-        val (uploadStream, effectiveCompressionType) =
+        val (uploadStream, effectiveCompressionType, compressionJob) =
             if (local.shouldCompress) {
                 logger.debug(
                     "Auto-compressing stream for {} (format: {}, original compression: {})",
@@ -115,42 +115,116 @@ abstract class ContainerUploaderBase(
                     local.format,
                     local.compressionType,
                 )
-                val compressedStream = compressStream(originalStream)
+                val compressResult = compressStreamWithPipe(originalStream)
                 logger.debug(
-                    "Compression complete for {}: original={} bytes, compressed={} bytes",
+                    "Compression started for {} using streaming approach (original={} bytes)",
                     name,
                     availableSize,
-                    compressedStream.available(),
                 )
-                Pair(compressedStream, CompressionType.GZIP)
+                Triple(compressResult.stream, CompressionType.GZIP, compressResult.compressionJob)
             } else {
-                Pair(originalStream, local.compressionType)
+                Triple(originalStream, local.compressionType, null)
             }
 
         // Upload with retry policy and container cycling
-        return uploadWithRetries(
-            local = local,
-            name = name,
-            stream = uploadStream,
-            containers = containers,
-            effectiveCompressionType = effectiveCompressionType,
-        )
+        return try {
+            uploadWithRetries(
+                local = local,
+                name = name,
+                stream = uploadStream,
+                containers = containers,
+                effectiveCompressionType = effectiveCompressionType,
+            ).also {
+                // Ensure compression job completes successfully
+                compressionJob?.await()
+                logger.debug("Compression job completed successfully for {}", name)
+            }
+        } catch (e: Exception) {
+            // Cancel compression job if upload fails
+            compressionJob?.cancel()
+            throw e
+        }
     }
 
     /**
-     * Compresses the input stream using GZIP compression. Reads all data into
-     * memory, compresses it, and returns a new ByteArrayInputStream.
+     * Compresses the input stream using GZIP compression with streaming approach.
+     * Uses piped streams to avoid loading entire file into memory.
+     * 
+     * This creates a background coroutine that reads from the input stream,
+     * compresses the data, and writes to a pipe. The returned InputStream reads
+     * from the other end of the pipe, allowing Blob SDK to upload data as it's
+     * being compressed.
+     * 
+     * @param inputStream The input stream to compress
+     * @return A CompressedStreamResult containing the compressed stream and a job
+     *   to track compression completion
+     * @throws CompressionException if compression setup fails
      */
-    private suspend fun compressStream(
+    private suspend fun compressStreamWithPipe(
         inputStream: InputStream,
-    ): ByteArrayInputStream =
-        withContext(Dispatchers.IO) {
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            GZIPOutputStream(byteArrayOutputStream).use { gzipStream ->
-                inputStream.copyTo(gzipStream)
+    ): CompressedStreamResult = withContext(Dispatchers.IO) {
+        try {
+            // Create piped streams with 1MB buffer to handle backpressure
+            val pipeSize = 1024 * 1024 // 1MB pipe buffer
+            val pipedInputStream = PipedInputStream(pipeSize)
+            val pipedOutputStream = PipedOutputStream(pipedInputStream)
+            
+            logger.debug(
+                "Starting streaming GZIP compression with pipe buffer size: {} bytes",
+                pipeSize,
+            )
+            
+            // Start compression in background coroutine
+            val compressionJob = async(Dispatchers.IO) {
+                try {
+                    GZIPOutputStream(pipedOutputStream, 64 * 1024).use { gzipStream ->
+                        inputStream.use { input ->
+                            input.copyTo(gzipStream, bufferSize = 64 * 1024)
+                        }
+                    }
+                } catch (e: java.io.IOException) {
+                    logger.error("Streaming GZIP compression failed: {}", e.message)
+                    // Close output pipe to signal error to reader
+                    try {
+                        pipedOutputStream.close()
+                    } catch (_: Exception) {
+                        // Ignore close errors during cleanup
+                    }
+                    throw com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionException(
+                        "Failed to compress stream using streaming GZIP",
+                        e,
+                    )
+                } catch (e: OutOfMemoryError) {
+                    logger.error("Streaming GZIP compression failed due to memory constraints: {}", e.message)
+                    try {
+                        pipedOutputStream.close()
+                    } catch (_: Exception) {
+                        // Ignore close errors during cleanup
+                    }
+                    throw com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionException(
+                        "Insufficient memory for streaming compression",
+                        e,
+                    )
+                }
             }
-            ByteArrayInputStream(byteArrayOutputStream.toByteArray())
+            
+            CompressedStreamResult(pipedInputStream, compressionJob)
+        } catch (e: java.io.IOException) {
+            logger.error("Failed to setup compression pipes: {}", e.message)
+            throw com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionException(
+                "Failed to initialize streaming compression",
+                e,
+            )
         }
+    }
+    
+    /**
+     * Helper class to hold compressed stream and its completion job
+     */
+    private data class CompressedStreamResult(
+        val stream: InputStream,
+        val compressionJob: kotlinx.coroutines.Deferred<Long>
+    )
 
     /**
      * Uploads a stream with retry logic and container cycling. Randomly selects
