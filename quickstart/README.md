@@ -32,6 +32,7 @@ You can use it as a baseline to write your own first kusto client application, a
 1. Open a command line window and navigate to the folder where you extracted the app.
 1. Run `mvn clean install` to compile the source code into a binary.
 1. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`.
+1. To run the ingest-v2 path, set `useIngestV2Sample` to true in `kusto_sample_config.json`, adjust the `ingestV2Config` section with your cluster, and run `java -cp target/kusto-quickstart-[version]-jar-with-dependencies.jar com.microsoft.azure.kusto.quickstart.SampleApp`.
 
 #### Troubleshooting
 
