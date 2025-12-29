@@ -192,12 +192,18 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             .build();
 
         try {
-            // Use test resource file if available
+            // Use test resource file if available - check both module dir and root dir paths
             String resourcePath = "src/test/resources/compression/sample.multijson";
             java.nio.file.Path filePath = java.nio.file.Paths.get(resourcePath);
             
+            // If not found in module directory, try from root directory
             if (!java.nio.file.Files.exists(filePath)) {
-                logger.warn("Test file not found: {}, skipping file source test", resourcePath);
+                resourcePath = "ingest-v2/src/test/resources/compression/sample.multijson";
+                filePath = java.nio.file.Paths.get(resourcePath);
+            }
+            
+            if (!java.nio.file.Files.exists(filePath)) {
+                logger.warn("Test file not found at either location, skipping file source test");
                 return;
             }
 

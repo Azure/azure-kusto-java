@@ -28,6 +28,12 @@ import kotlin.test.assertNotNull
 class StreamingIngestClientTest :
     IngestV2TestBase(StreamingIngestClientTest::class.java) {
 
+    override fun additionalSetup() {
+        // Enable streaming ingestion policy for all streaming tests
+        alterTableToEnableStreaming()
+        clearDatabaseSchemaCache()
+    }
+
     private val publicBlobUrl =
         "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
     private fun testParameters(): Stream<Arguments?> {
@@ -74,6 +80,7 @@ class StreamingIngestClientTest :
         blobUrl: String?,
     ) = runBlocking {
         logger.info("Running streaming ingest builder test {}", testName)
+        
         // Create client using builder
         val client: IngestClient =
             StreamingIngestClientBuilder.create(cluster)
