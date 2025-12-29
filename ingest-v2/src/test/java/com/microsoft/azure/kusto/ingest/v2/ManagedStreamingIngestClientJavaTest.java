@@ -169,6 +169,9 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                 logger.info("Data ingested via STREAMING (compression may have kept size small)");
             }
 
+            String query = String.format("%s | summarize count=count()", targetTable);
+            awaitAndQuery(query, 100);
+
             logger.info("Java managed streaming fallback test PASSED");
 
         }
@@ -219,10 +222,14 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             ExtendedIngestResponse response = client.ingestAsync(fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
+            assertNotNull(response.getIngestResponse().getIngestionOperationId(), "Operation ID should not be null");
 
             IngestKind ingestionType = response.getIngestionType();
             logger.info("File ingestion completed using {} method. Operation ID: {}",
                     ingestionType, response.getIngestResponse().getIngestionOperationId());
+
+            String query = String.format("%s | summarize count=count()", targetTable);
+            awaitAndQuery(query, 1);
 
             logger.info("Java managed streaming file ingest test PASSED");
 
