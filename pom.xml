@@ -78,6 +78,7 @@
 
     <modules>
         <module>ingest</module>
+        <module>ingest-v2</module>
         <module>data</module>
         <module>samples</module>
         <module>quickstart</module>
