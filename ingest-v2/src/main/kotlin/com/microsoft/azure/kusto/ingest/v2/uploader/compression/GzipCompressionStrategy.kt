@@ -101,7 +101,7 @@ class GzipCompressionStrategy : CompressionStrategy {
                     }
 
                 logger.debug(
-                    "GZIP compression complete: {} bytes -> {} bytes ({:.1f}% reduction) in {} ms",
+                    "GZIP compression complete: {} bytes -> {} bytes ({}% reduction) in {} ms",
                     estimatedSize,
                     compressedBytes.size,
                     compressionRatio,

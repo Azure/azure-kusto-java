@@ -25,8 +25,10 @@ import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
@@ -145,12 +147,13 @@ public class QueuedIngestV2 {
                 .thenCompose(response -> {
                     System.out.println("CSV ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestionOperation(response, "CSV Stream");
-                });
+                })
+                .whenComplete((unused, throwable) -> closeQuietly(csvInputStream));
         futures.add(csvFuture);
 
         // Example 2: Ingest from compressed CSV file
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        FileInputStream compressedCsvStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
+        InputStream compressedCsvStream = new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.csv.gz"));
 
         StreamSource compressedStreamSource = new StreamSource(
                 compressedCsvStream,
@@ -165,17 +168,13 @@ public class QueuedIngestV2 {
         CompletableFuture<Void> compressedFuture = queuedIngestClient.ingestAsync(compressedStreamSource, csvProperties)
                 .thenCompose(response -> {
                     System.out.println("Compressed CSV ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
-                    try {
-                        compressedCsvStream.close();
-                    } catch (Exception e) {
-                        System.err.println("Error closing stream: " + e.getMessage());
-                    }
                     return trackIngestionOperation(response, "Compressed CSV Stream");
-                });
+                })
+                .whenComplete((unused, throwable) -> closeQuietly(compressedCsvStream));
         futures.add(compressedFuture);
 
         // Example 3: Ingest JSON with mapping
-        FileInputStream jsonStream = new FileInputStream(resourcesDirectory + "dataset.json");
+        InputStream jsonStream = new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.json"));
 
         StreamSource jsonStreamSource = new StreamSource(
                 jsonStream,
@@ -196,13 +195,9 @@ public class QueuedIngestV2 {
         CompletableFuture<Void> jsonFuture = queuedIngestClient.ingestAsync(jsonStreamSource, jsonProperties)
                 .thenCompose(response -> {
                     System.out.println("JSON ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
-                    try {
-                        jsonStream.close();
-                    } catch (Exception e) {
-                        System.err.println("Error closing stream: " + e.getMessage());
-                    }
                     return trackIngestionOperation(response, "JSON Stream");
-                });
+                })
+                .whenComplete((unused, throwable) -> closeQuietly(jsonStream));
         futures.add(jsonFuture);
 
         return futures;
@@ -388,5 +383,19 @@ public class QueuedIngestV2 {
             }
         }
     }
-}
 
+    private static byte[] readResourceBytes(String baseDirectory, String fileName) throws IOException {
+        return Files.readAllBytes(Paths.get(baseDirectory, fileName));
+    }
+
+    private static void closeQuietly(InputStream stream) {
+        if (stream == null) {
+            return;
+        }
+        try {
+            stream.close();
+        } catch (Exception e) {
+            System.err.println("Failed to close stream: " + e.getMessage());
+        }
+    }
+}

@@ -72,3 +72,6 @@ val MANAGED_STREAMING_RETRY_DELAYS_SECONDS: Array<Long> = arrayOf(1, 2, 4)
 
 // Maximum jitter to add to retry delays in milliseconds
 const val MANAGED_STREAMING_RETRY_JITTER_MS: Long = 1000
+
+const val STREAM_COMPRESSION_BUFFER_SIZE_BYTES: Int = 64 * 1024
+const val STREAM_PIPE_BUFFER_SIZE_BYTES: Int = 1024 * 1024

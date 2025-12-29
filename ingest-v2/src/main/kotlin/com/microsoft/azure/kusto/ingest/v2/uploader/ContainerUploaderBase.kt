@@ -12,6 +12,8 @@ import com.azure.storage.file.datalake.DataLakeFileClient
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder
 import com.azure.storage.file.datalake.options.FileParallelUploadOptions
 import com.microsoft.azure.kusto.ingest.v2.BLOB_UPLOAD_TIMEOUT_HOURS
+import com.microsoft.azure.kusto.ingest.v2.STREAM_COMPRESSION_BUFFER_SIZE_BYTES
+import com.microsoft.azure.kusto.ingest.v2.STREAM_PIPE_BUFFER_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_BLOCK_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
@@ -20,6 +22,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
+import com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionException
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
@@ -31,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.io.InputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
@@ -160,13 +164,8 @@ abstract class ContainerUploaderBase(
      *
      * This creates a background coroutine that reads from the input stream,
      * compresses the data, and writes to a pipe. The returned InputStream reads
-     * from the other end of the pipe, allowing Blob SDK to upload data as it's
-     * being compressed.
-     *
-     * @param inputStream The input stream to compress
-     * @return A CompressedStreamResult containing the compressed stream and a
-     *   job to track compression completion
-     * @throws CompressionException if compression setup fails
+     * from the other end of the pipe, allowing the uploader to stream
+     * compressed bytes directly into storage.
      */
     private suspend fun compressStreamWithPipe(
         inputStream: InputStream,
@@ -174,7 +173,7 @@ abstract class ContainerUploaderBase(
         withContext(Dispatchers.IO) {
             try {
                 // Create piped streams with 1MB buffer to handle backpressure
-                val pipeSize = 1024 * 1024 // 1MB pipe buffer
+                val pipeSize = STREAM_PIPE_BUFFER_SIZE_BYTES
                 val pipedInputStream = PipedInputStream(pipeSize)
                 val pipedOutputStream = PipedOutputStream(pipedInputStream)
 
@@ -189,14 +188,14 @@ abstract class ContainerUploaderBase(
                         try {
                             GZIPOutputStream(
                                 pipedOutputStream,
-                                64 * 1024,
+                                STREAM_COMPRESSION_BUFFER_SIZE_BYTES,
                             )
                                 .use { gzipStream ->
                                     inputStream.use { input ->
                                         input.copyTo(
                                             gzipStream,
                                             bufferSize =
-                                            64 * 1024,
+                                            STREAM_COMPRESSION_BUFFER_SIZE_BYTES,
                                         )
                                     }
                                 }
@@ -228,28 +227,23 @@ abstract class ContainerUploaderBase(
                             } catch (_: Exception) {
                                 // Ignore close errors during cleanup
                             }
-                            throw com.microsoft.azure.kusto.ingest.v2
-                                .uploader
-                                .compression
-                                .CompressionException(
-                                    "Insufficient memory for streaming compression",
-                                    e,
-                                )
+                            throw CompressionException(
+                                "Insufficient memory for streaming compression",
+                                e,
+                            )
                         }
                     }
 
                 CompressedStreamResult(pipedInputStream, compressionJob)
-            } catch (e: java.io.IOException) {
+            } catch (e: IOException) {
                 logger.error(
                     "Failed to setup compression pipes: {}",
                     e.message,
                 )
-                throw com.microsoft.azure.kusto.ingest.v2.uploader
-                    .compression
-                    .CompressionException(
-                        "Failed to initialize streaming compression",
-                        e,
-                    )
+                throw CompressionException(
+                    "Failed to initialize streaming compression",
+                    e,
+                )
             }
         }
 

@@ -40,7 +40,7 @@ set KUSTO_SAMPLE_CONFIG_PATH=C:\Path\To\kusto_sample_config.json
 1. Open a command line window and navigate to the folder where you extracted the app.
 1. Run `mvn clean install` to compile the source code into a binary.
 1. Run the binary using `java -jar target\kusto-quickstart-[version]-jar-with-dependencies.jar`.
-1. To run the ingest-v2 path, set `useIngestV2Sample` to true in `kusto_sample_config.json` & run `java -cp target/kusto-quickstart-[version]-jar-with-dependencies.jar`.
+1. To run the ingest-v2 path, set `useIngestV2Sample` to true in `kusto_sample_config.json` & run `java -jar target/kusto-quickstart-[version]-jar-with-dependencies.jar`.
 
 #### Troubleshooting
 

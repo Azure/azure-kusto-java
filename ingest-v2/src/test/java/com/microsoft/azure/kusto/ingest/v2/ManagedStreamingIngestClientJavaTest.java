@@ -20,6 +20,9 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,11 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @Execution(ExecutionMode.CONCURRENT)
 public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
-
     public ManagedStreamingIngestClientJavaTest() {
         super(ManagedStreamingIngestClientJavaTest.class);
     }
-
     /**
      * Test basic managed streaming ingestion from Java with small data.
      * Small data should use streaming ingestion for low latency.
@@ -46,54 +47,53 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Data appears in the table after ingestion
      */
     @Test
-    public void testManagedStreamingIngestSmallDataFromJava() throws Exception {
+    public void testManagedStreamingIngestSmallData() throws Exception {
         logger.info("Running Java managed streaming ingest (small data) regression test");
 
         // Enable streaming ingestion on the table
         alterTableToEnableStreaming();
 
         // Create managed streaming client
-        ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
-            .withAuthentication(tokenProvider)
-            .build();
 
-        try {
+        try (ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
+                .withAuthentication(tokenProvider)
+                .build()) {
             // Prepare small JSON data (should use streaming)
             String jsonData = "{\"timestamp\":\"2024-01-01T00:00:00Z\",\"deviceId\":\"00000000-0000-0000-0000-000000000001\",\"messageId\":\"00000000-0000-0000-0000-000000000002\",\"temperature\":25.5,\"humidity\":60.0,\"format\":\"json\"}";
             InputStream dataStream = new ByteArrayInputStream(jsonData.getBytes(StandardCharsets.UTF_8));
 
             StreamSource source = new StreamSource(
-                dataStream,
-                CompressionType.NONE,
-                Format.json,
-                UUID.randomUUID(),
-                "java-managed-streaming-small",
-                false
+                    dataStream,
+                    CompressionType.NONE,
+                    Format.json,
+                    UUID.randomUUID(),
+                    "java-managed-streaming-small",
+                    false
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                .create(database, targetTable)
-                .withIngestionMappingReference(targetTable + "_mapping")
-                .withEnableTracking(true)
-                .build();
+                    .create(database, targetTable)
+                    .withIngestionMappingReference(targetTable + "_mapping")
+                    .withEnableTracking(true)
+                    .build();
 
             // Ingest data (should use streaming for small data)
             logger.info("Ingesting small data via managed streaming...");
             ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            assertNotNull(response.getIngestResponse().getIngestionOperationId(), 
-                "Operation ID should not be null");
-            
+            assertNotNull(response.getIngestResponse().getIngestionOperationId(),
+                    "Operation ID should not be null");
+
             // Verify it used streaming ingestion
             IngestKind ingestionType = response.getIngestionType();
-            logger.info("Ingestion completed using {} method. Operation ID: {}", 
-                ingestionType, response.getIngestResponse().getIngestionOperationId());
-            
+            logger.info("Ingest completed using {} method. Operation ID: {}",
+                    ingestionType, response.getIngestResponse().getIngestionOperationId());
+
             // Small data typically uses streaming, but fallback to queued is acceptable
             assertTrue(
-                ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
-                "Ingestion type should be either STREAMING or QUEUED"
+                    ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
+                    "Ingestion type should be either STREAMING or QUEUED"
             );
 
             // Verify data appeared in table
@@ -102,8 +102,6 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             logger.info("Java managed streaming ingest (small data) regression test PASSED");
 
-        } finally {
-            client.close();
         }
     }
 
@@ -114,57 +112,55 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Fallback mechanism works correctly from Java
      */
     @Test
-    public void testManagedStreamingIngestWithFallbackFromJava() throws Exception {
+    public void testManagedStreamingIngestWithFallback() throws Exception {
         logger.info("Running Java managed streaming ingest with fallback test");
 
         alterTableToEnableStreaming();
 
-        ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
-            .withAuthentication(tokenProvider)
-            .build();
-
-        try {
+        try (ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
+                .withAuthentication(tokenProvider)
+                .build()) {
             // Generate larger data (multiple records to increase size)
             StringBuilder largeDataBuilder = new StringBuilder();
             for (int i = 0; i < 100; i++) {
                 largeDataBuilder.append(String.format(
-                    "{\"timestamp\":\"2024-01-01T%02d:00:00Z\",\"deviceId\":\"00000000-0000-0000-0000-00000000%04d\",\"messageId\":\"%s\",\"temperature\":%.1f,\"humidity\":%.1f,\"format\":\"json\"}\n",
-                    i % 24, i, UUID.randomUUID(), 20.0 + (i % 20), 50.0 + (i % 30)
+                        "{\"timestamp\":\"2024-01-01T%02d:00:00Z\",\"deviceId\":\"00000000-0000-0000-0000-00000000%04d\",\"messageId\":\"%s\",\"temperature\":%.1f,\"humidity\":%.1f,\"format\":\"json\"}\n",
+                        i % 24, i, UUID.randomUUID(), 20.0 + (i % 20), 50.0 + (i % 30)
                 ));
             }
             String largeData = largeDataBuilder.toString();
-            
+
             InputStream dataStream = new ByteArrayInputStream(largeData.getBytes(StandardCharsets.UTF_8));
             dataStream.mark(largeData.length()); // Mark for potential retry
 
             StreamSource source = new StreamSource(
-                dataStream,
-                CompressionType.NONE,
-                Format.multijson,
-                UUID.randomUUID(),
-                "java-managed-streaming-fallback",
-                false
+                    dataStream,
+                    CompressionType.NONE,
+                    Format.multijson,
+                    UUID.randomUUID(),
+                    "java-managed-streaming-fallback",
+                    false
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                .create(database, targetTable)
-                .withIngestionMappingReference(targetTable + "_mapping")
-                .withEnableTracking(true)
-                .build();
+                    .create(database, targetTable)
+                    .withIngestionMappingReference(targetTable + "_mapping")
+                    .withEnableTracking(true)
+                    .build();
 
             logger.info("Ingesting larger data via managed streaming (may trigger fallback)...");
             ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            
+
             IngestKind ingestionType = response.getIngestionType();
-            logger.info("Ingestion completed using {} method. Operation ID: {}", 
-                ingestionType, response.getIngestResponse().getIngestionOperationId());
+            logger.info("Ingestion completed using {} method. Operation ID: {}",
+                    ingestionType, response.getIngestResponse().getIngestionOperationId());
 
             // Both streaming and queued are valid outcomes
             assertTrue(
-                ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
-                "Ingestion type should be either STREAMING or QUEUED"
+                    ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
+                    "Ingestion type should be either STREAMING or QUEUED"
             );
 
             if (ingestionType == IngestKind.QUEUED) {
@@ -175,8 +171,6 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             logger.info("Java managed streaming fallback test PASSED");
 
-        } finally {
-            client.close();
         }
     }
 
@@ -185,57 +179,53 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * Verifies that file-based ingestion works correctly with managed streaming.
      */
     @Test
-    public void testManagedStreamingIngestFromFileSourceJava() throws Exception {
+    public void testManagedStreamingIngestFromFileSource() throws Exception {
         logger.info("Running Java managed streaming ingest from file source test");
 
         alterTableToEnableStreaming();
 
-        ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
-            .withAuthentication(tokenProvider)
-            .build();
-
-        try {
+        try (ManagedStreamingIngestClient client = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
+                .withAuthentication(tokenProvider)
+                .build()) {
             // Use test resource file if available - check both module dir and root dir paths
             String resourcePath = "src/test/resources/compression/sample.multijson";
-            java.nio.file.Path filePath = java.nio.file.Paths.get(resourcePath);
-            
+            Path filePath = Paths.get(resourcePath);
+
             // If not found in module directory, try from root directory
-            if (!java.nio.file.Files.exists(filePath)) {
+            if (!Files.exists(filePath)) {
                 resourcePath = "ingest-v2/src/test/resources/compression/sample.multijson";
-                filePath = java.nio.file.Paths.get(resourcePath);
+                filePath = Paths.get(resourcePath);
             }
-            
-            if (!java.nio.file.Files.exists(filePath)) {
+
+            if (!Files.exists(filePath)) {
                 logger.warn("Test file not found at either location, skipping file source test");
                 return;
             }
 
             FileSource fileSource =
-                new FileSource(
-                    filePath,
-                    Format.multijson,
-                    UUID.randomUUID(),
-                    CompressionType.NONE
-                );
+                    new FileSource(
+                            filePath,
+                            Format.multijson,
+                            UUID.randomUUID(),
+                            CompressionType.NONE
+                    );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                .create(database, targetTable)
-                .withEnableTracking(true)
-                .build();
+                    .create(database, targetTable)
+                    .withEnableTracking(true)
+                    .build();
 
             logger.info("Ingesting file via managed streaming...");
             ExtendedIngestResponse response = client.ingestAsync(fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            
+
             IngestKind ingestionType = response.getIngestionType();
-            logger.info("File ingestion completed using {} method. Operation ID: {}", 
-                ingestionType, response.getIngestResponse().getIngestionOperationId());
+            logger.info("File ingestion completed using {} method. Operation ID: {}",
+                    ingestionType, response.getIngestResponse().getIngestionOperationId());
 
             logger.info("Java managed streaming file ingest test PASSED");
 
-        } finally {
-            client.close();
         }
     }
 }

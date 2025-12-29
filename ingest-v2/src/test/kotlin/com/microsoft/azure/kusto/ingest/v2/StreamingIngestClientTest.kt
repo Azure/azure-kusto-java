@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -81,7 +82,7 @@ class StreamingIngestClientTest :
         blobUrl: String?,
     ) = runBlocking {
         logger.info("Running streaming ingest builder test {}", testName)
-        
+
         // Create client using builder
         val client: IngestClient =
             StreamingIngestClientBuilder.create(cluster)
@@ -148,7 +149,7 @@ class StreamingIngestClientTest :
      * contains meaningful details from the Kusto error response (code,
      * type, @message) rather than just a generic HTTP status code.
      */
-    @org.junit.jupiter.api.Test
+    @Test
     fun `error response parsing extracts Kusto OneApiError details`() =
         runBlocking {
             logger.info("Testing error parsing for invalid data format")
