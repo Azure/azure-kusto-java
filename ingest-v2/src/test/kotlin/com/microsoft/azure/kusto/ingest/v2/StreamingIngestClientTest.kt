@@ -12,13 +12,13 @@ import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
 import kotlinx.coroutines.runBlocking
-import java.io.ByteArrayInputStream
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.MethodSource
+import java.io.ByteArrayInputStream
 import java.nio.file.Paths
 import java.util.UUID
 import java.util.stream.Stream
@@ -30,6 +30,7 @@ class StreamingIngestClientTest :
 
     private val publicBlobUrl =
         "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
+
     private fun testParameters(): Stream<Arguments?> {
         return Stream.of(
             Arguments.of(
@@ -137,58 +138,71 @@ class StreamingIngestClientTest :
      * from OneApiError JSON format.
      *
      * This validates that when streaming ingestion fails, the error message
-     * contains meaningful details from the Kusto error response (code, type,
-     * @message) rather than just a generic HTTP status code.
+     * contains meaningful details from the Kusto error response (code,
+     * type, @message) rather than just a generic HTTP status code.
      */
     @org.junit.jupiter.api.Test
-    fun `error response parsing extracts Kusto OneApiError details`() = runBlocking {
-        logger.info("Testing error parsing for invalid data format")
+    fun `error response parsing extracts Kusto OneApiError details`() =
+        runBlocking {
+            logger.info("Testing error parsing for invalid data format")
 
-        val client: IngestClient =
-            StreamingIngestClientBuilder.create(engineEndpoint)
-                .withAuthentication(tokenProvider)
-                .skipSecurityChecks()
-                .withClientDetails("ErrorParsingE2ETest", "1.0")
-                .build()
+            val client: IngestClient =
+                StreamingIngestClientBuilder.create(engineEndpoint)
+                    .withAuthentication(tokenProvider)
+                    .skipSecurityChecks()
+                    .withClientDetails("ErrorParsingE2ETest", "1.0")
+                    .build()
 
-        val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable).build()
+            val properties =
+                IngestRequestPropertiesBuilder.create(
+                    database,
+                    targetTable,
+                )
+                    .build()
 
-        // Send invalid text data claiming to be JSON - this triggers a data format error
-        val invalidData = "this is not valid json { broken"
-        val streamSource = StreamSource(
-            stream = ByteArrayInputStream(invalidData.toByteArray()),
-            format = Format.json,
-            sourceId = UUID.randomUUID(),
-            sourceCompression = CompressionType.NONE,
-        )
+            // Send invalid text data claiming to be JSON - this triggers a data format error
+            val invalidData = "this is not valid json { broken"
+            val streamSource =
+                StreamSource(
+                    stream =
+                    ByteArrayInputStream(
+                        invalidData.toByteArray(),
+                    ),
+                    format = Format.json,
+                    sourceId = UUID.randomUUID(),
+                    sourceCompression = CompressionType.NONE,
+                )
 
-        val exception = assertThrows<IngestException> {
-            client.ingestAsync(
-                source = streamSource,
-                ingestRequestProperties = properties,
+            val exception =
+                assertThrows<IngestException> {
+                    client.ingestAsync(
+                        source = streamSource,
+                        ingestRequestProperties = properties,
+                    )
+                }
+
+            // Validate exception was captured
+            assertNotNull(
+                exception,
+                "Exception should not be null for invalid data format",
             )
+
+            // Log exception details for debugging
+            logger.info("  Exception type: ${exception::class.simpleName}")
+            logger.info("  Message: ${exception.message}")
+            logger.info("  isPermanent: ${exception.isPermanent}")
+            logger.info("  failureCode: ${exception.failureCode}")
+
+            // Validate error parsing extracted meaningful details from Kusto OneApiError
+            assert(exception.message.isNotEmpty()) {
+                "Exception message should contain error details from Kusto OneApiError"
+            }
+
+            // Data format errors should be marked as permanent (cannot be retried)
+            assert(exception.isPermanent == true) {
+                "Data format errors should be marked as permanent"
+            }
         }
-
-        // Validate exception was captured
-        assertNotNull(exception, "Exception should not be null for invalid data format")
-
-        // Log exception details for debugging
-        logger.info("  Exception type: ${exception::class.simpleName}")
-        logger.info("  Message: ${exception.message}")
-        logger.info("  isPermanent: ${exception.isPermanent}")
-        logger.info("  failureCode: ${exception.failureCode}")
-
-        // Validate error parsing extracted meaningful details from Kusto OneApiError
-        assert(exception.message.isNotEmpty()) {
-            "Exception message should contain error details from Kusto OneApiError"
-        }
-
-        // Data format errors should be marked as permanent (cannot be retried)
-        assert(exception.isPermanent == true) {
-            "Data format errors should be marked as permanent"
-        }
-    }
 
     @ParameterizedTest(name = "Ingest file: {0} with compression: {1}")
     @CsvSource("sample.multijson,NONE", "sample.multijson.gz,GZIP")

@@ -8,7 +8,5 @@ package com.microsoft.azure.kusto.ingest.v2.uploader.compression
  * @param message The detail message
  * @param cause The underlying cause of the compression failure
  */
-class CompressionException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
+class CompressionException(message: String, cause: Throwable? = null) :
+    RuntimeException(message, cause)

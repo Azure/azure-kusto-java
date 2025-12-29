@@ -14,6 +14,8 @@ import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -28,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests basic managed streaming ingestion functionality from Java to ensure
  * compatibility with Kotlin-based implementation.
  */
+@Execution(ExecutionMode.CONCURRENT)
 public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
     public ManagedStreamingIngestClientJavaTest() {

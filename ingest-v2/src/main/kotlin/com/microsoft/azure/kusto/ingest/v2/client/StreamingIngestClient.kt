@@ -25,6 +25,7 @@ import com.microsoft.azure.kusto.ingest.v2.source.FileSource
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.future
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
@@ -411,7 +411,8 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
             val errorMessage =
                 if (errorDetails != null) {
                     // Use the detailed message from the Kusto error response
-                    val description = errorDetails.description ?: errorDetails.message
+                    val description =
+                        errorDetails.description ?: errorDetails.message
                     "Failed to submit streaming ingestion to $database.$table. " +
                         "Error: $description (Code: ${errorDetails.code}, Type: ${errorDetails.type})"
                 } else {
@@ -430,7 +431,9 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                 throw IngestRequestException(
                     errorCode = errorDetails?.code,
                     errorReason = errorDetails?.type,
-                    errorMessage = errorDetails?.description ?: errorDetails?.message,
+                    errorMessage =
+                    errorDetails?.description
+                        ?: errorDetails?.message,
                     databaseName = database,
                     failureCode = failureCode,
                     isPermanent = true,
@@ -440,7 +443,9 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                 throw IngestServiceException(
                     errorCode = errorDetails?.code,
                     errorReason = errorDetails?.type,
-                    errorMessage = errorDetails?.description ?: errorDetails?.message,
+                    errorMessage =
+                    errorDetails?.description
+                        ?: errorDetails?.message,
                     failureCode = failureCode,
                     isPermanent = false,
                     message = errorMessage,
@@ -450,8 +455,8 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
     }
 
     /**
-     * Parses the Kusto error response to extract error details.
-     * The error response follows the OneApiError format:
+     * Parses the Kusto error response to extract error details. The error
+     * response follows the OneApiError format:
      * ```json
      * {
      *   "error": {
@@ -492,7 +497,8 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
             val type = errorObject["@type"]?.jsonPrimitive?.content
             val description = errorObject["@message"]?.jsonPrimitive?.content
             val failureCode = errorObject["@failureCode"]?.jsonPrimitive?.int
-            val permanent = errorObject["@permanent"]?.jsonPrimitive?.boolean ?: true
+            val permanent =
+                errorObject["@permanent"]?.jsonPrimitive?.boolean ?: true
 
             KustoErrorDetails(
                 code = code,
