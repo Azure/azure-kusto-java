@@ -17,13 +17,6 @@ class BlobSource(
     baseName: String? = null,
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
 
-    /*
-        val path: Path,
-    format: Format,
-    sourceId: UUID = UUID.randomUUID(),
-    compressionType: CompressionType? = null,
-     */
-
     /**
      * The exact size of the blob in bytes if available. This is only set when
      * the blob was created by uploading a local source. Returns null if size is

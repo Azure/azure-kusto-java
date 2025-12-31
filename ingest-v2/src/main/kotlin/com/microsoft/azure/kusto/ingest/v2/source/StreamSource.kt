@@ -15,13 +15,7 @@ class StreamSource(
     baseName: String? = null,
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, sourceCompression, baseName, sourceId) {
-    /*
-        val path: Path,
-    format: Format,
-    sourceId: UUID = UUID.randomUUID(),
-    compressionType: CompressionType? = null,
-    baseName: String? = null,
-     */
+
     init {
         mStream = stream
         initName(baseName)
