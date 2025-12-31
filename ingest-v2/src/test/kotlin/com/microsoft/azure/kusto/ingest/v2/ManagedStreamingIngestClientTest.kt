@@ -191,8 +191,7 @@ class ManagedStreamingIngestClientTest :
                 stream = ByteArrayInputStream(testData.toByteArray()),
                 format = targetTestFormat,
                 sourceCompression = CompressionType.NONE,
-                sourceId = UUID.randomUUID(),
-                name = "test-custom-policy",
+                baseName = "test-custom-policy",
             )
 
         val properties =

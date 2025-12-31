@@ -12,8 +12,8 @@ import java.util.UUID
 class BlobSource(
     val blobPath: String,
     format: Format = Format.csv,
-    compressionType: CompressionType = CompressionType.NONE,
     sourceId: UUID = UUID.randomUUID(),
+    compressionType: CompressionType = CompressionType.NONE,
     baseName: String? = null,
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
 

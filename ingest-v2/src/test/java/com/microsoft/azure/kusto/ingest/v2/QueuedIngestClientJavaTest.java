@@ -63,8 +63,7 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
 
             StreamSource source = new StreamSource(
                     dataStream,
-                    CompressionType.NONE,
-                    Format.json,
+                    Format.json, CompressionType.NONE,
                     UUID.randomUUID(),
                     "java-queued-test",
                     false
@@ -149,7 +148,8 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
                             filePath,
                             Format.multijson,
                             UUID.randomUUID(),
-                            CompressionType.NONE
+                            CompressionType.NONE,
+                            null
                     );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder

@@ -18,13 +18,14 @@ class FileSource(
     format: Format,
     sourceId: UUID = UUID.randomUUID(),
     compressionType: CompressionType? = null,
+    baseName: String? = null,
 ) :
     LocalSource(
         format,
         leaveOpen = false,
         compressionType =
         compressionType ?: detectCompressionFromPath(path),
-        baseName = path.fileName?.toString(),
+        baseName = baseName ?: path.fileName?.toString(),
         sourceId = sourceId,
     ) {
     override fun data(): InputStream {

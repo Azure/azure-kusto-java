@@ -308,8 +308,8 @@ abstract class ContainerUploaderBase(
                 return BlobSource(
                     blobPath = blobUrl,
                     format = local.format,
-                    compressionType = effectiveCompressionType,
                     sourceId = local.sourceId,
+                    compressionType = effectiveCompressionType,
                 )
                     .apply { blobExactSize = local.size() }
             } catch (e: Exception) {

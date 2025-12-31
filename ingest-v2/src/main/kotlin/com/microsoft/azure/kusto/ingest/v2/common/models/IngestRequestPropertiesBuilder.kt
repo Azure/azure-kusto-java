@@ -63,21 +63,6 @@ private constructor(private val database: String, private val table: String) {
         }
     }
 
-    /**
-     * Sets the data format for ingestion.
-     *
-     * @param value The data format (e.g., Format.json, Format.csv)
-     * @deprecated Format is automatically extracted from the IngestionSource.
-     *   This method is no longer needed.
-     */
-    @Deprecated(
-        "Format is automatically extracted from the IngestionSource. This method is no longer needed.",
-    )
-    fun withFormat(value: com.microsoft.azure.kusto.ingest.v2.models.Format) =
-        apply {
-            this.format = value
-        }
-
     fun withEnableTracking(value: Boolean) = apply {
         this.enableTracking = value
     }

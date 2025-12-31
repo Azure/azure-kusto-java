@@ -9,15 +9,16 @@ import java.util.UUID
 /** Represents a stream-based ingestion source. */
 class StreamSource(
     stream: InputStream,
-    sourceCompression: CompressionType,
     format: Format,
+    sourceCompression: CompressionType,
     sourceId: UUID = UUID.randomUUID(),
-    name: String? = null,
+    baseName: String? = null,
     leaveOpen: Boolean = false,
-) : LocalSource(format, leaveOpen, sourceCompression, name, sourceId) {
+) : LocalSource(format, leaveOpen, sourceCompression, baseName, sourceId) {
+
     init {
         mStream = stream
-        initName(name)
+        initName(baseName)
     }
 
     override fun data(): InputStream {
