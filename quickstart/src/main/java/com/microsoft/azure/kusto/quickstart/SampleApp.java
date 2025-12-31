@@ -717,7 +717,7 @@ public class SampleApp {
         queryFirstTwoRows(kustoClient, databaseName, tableName);
     }
 
-    private static void runIngestV2Sample(ConfigJson config) {
+    private static void runIngestV2Sample(@NotNull ConfigJson config) {
         IngestV2QuickstartConfig ingestV2Config = config.getIngestV2Config();
         String clusterPath = ingestV2Config.getClusterPath();
         if (StringUtils.isBlank(clusterPath)) {
@@ -747,7 +747,7 @@ public class SampleApp {
         }
     }
 
-    private static ChainedTokenCredential buildIngestV2Credential(IngestV2QuickstartConfig config) {
+    private static ChainedTokenCredential buildIngestV2Credential(@NotNull IngestV2QuickstartConfig config) {
         AuthenticationModeOptions mode = config.getAuthModeOverride();
         if (mode == null) {
             mode = AuthenticationModeOptions.USER_PROMPT;
@@ -768,8 +768,8 @@ public class SampleApp {
         return builder.build();
     }
 
-    private static List<CompletableFuture<Void>> ingestV2FromStreams(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-            QueuedIngestClient queuedIngestClient) throws IOException {
+    private static @NotNull List<CompletableFuture<Void>> ingestV2FromStreams(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+                                                                              @NotNull QueuedIngestClient queuedIngestClient) throws IOException {
         System.out.println("\n=== Queued ingestion from streams (ingest-v2) ===");
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -797,8 +797,8 @@ public class SampleApp {
         return futures;
     }
 
-    private static List<CompletableFuture<Void>> ingestV2FromFiles(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-            QueuedIngestClient queuedIngestClient) {
+    private static @NotNull List<CompletableFuture<Void>> ingestV2FromFiles(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+                                                                            @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from files (ingest-v2) ===");
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -821,8 +821,8 @@ public class SampleApp {
         return futures;
     }
 
-    private static CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-            QueuedIngestClient queuedIngestClient) {
+    private static @NotNull CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+                                                                           @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from multiple sources (ingest-v2 batch) ===");
         FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-1");
         FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-2");
@@ -837,7 +837,7 @@ public class SampleApp {
                 });
     }
 
-    private static IngestRequestProperties buildIngestV2RequestProperties(ConfigJson config, IngestV2QuickstartConfig ingestV2Config, String mappingName) {
+    private static @NotNull IngestRequestProperties buildIngestV2RequestProperties(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config, String mappingName) {
         IngestRequestPropertiesBuilder builder = IngestRequestPropertiesBuilder
                 .create(config.getDatabaseName(), config.getTableName())
                 .withEnableTracking(ingestV2Config.isTrackingEnabled());
@@ -847,8 +847,8 @@ public class SampleApp {
         return builder.build();
     }
 
-    private static CompletableFuture<Void> trackIngestV2Operation(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-            QueuedIngestClient queuedIngestClient, ExtendedIngestResponse response, String operationName) {
+    private static @NotNull CompletableFuture<Void> trackIngestV2Operation(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config,
+                                                                           @NotNull QueuedIngestClient queuedIngestClient, @NotNull ExtendedIngestResponse response, String operationName) {
         IngestionOperation operation = new IngestionOperation(
                 Objects.requireNonNull(response.getIngestResponse().getIngestionOperationId()),
                 config.getDatabaseName(),
@@ -913,7 +913,7 @@ public class SampleApp {
         }
     }
 
-    private static Path resolveQuickstartPath(String fileName) {
+    private static @NotNull Path resolveQuickstartPath(String fileName) {
         Path preferred = Paths.get("quickstart", fileName);
         if (Files.exists(preferred)) {
             return preferred;
