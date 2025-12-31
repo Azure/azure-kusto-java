@@ -62,8 +62,7 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             StreamSource source = new StreamSource(
                     dataStream,
-                    CompressionType.NONE,
-                    Format.json,
+                    Format.json, CompressionType.NONE,
                     UUID.randomUUID(),
                     "java-streaming-test",
                     false
@@ -122,8 +121,7 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             StreamSource source = new StreamSource(
                     fileStream,
-                    CompressionType.GZIP,
-                    Format.multijson,
+                    Format.multijson, CompressionType.GZIP,
                     UUID.randomUUID(),
                     "java-compressed-stream-test",
                     false

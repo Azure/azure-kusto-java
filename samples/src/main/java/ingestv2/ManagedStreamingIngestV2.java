@@ -129,7 +129,7 @@ public class ManagedStreamingIngestV2 {
         InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
         StreamSource csvStreamSource = new StreamSource(
-                csvInputStream, CompressionType.NONE, Format.csv,
+                csvInputStream, Format.csv, CompressionType.NONE,
                 UUID.randomUUID(), "csv-managed-stream", false);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
@@ -147,8 +147,7 @@ public class ManagedStreamingIngestV2 {
 
         StreamSource compressedStreamSource = new StreamSource(
                 compressedCsvStream,
-                CompressionType.GZIP,
-                Format.csv,
+                Format.csv, CompressionType.GZIP,
                 UUID.randomUUID(),
                 "compressed-csv-managed-stream",
                 false
@@ -164,8 +163,7 @@ public class ManagedStreamingIngestV2 {
 
         StreamSource jsonStreamSource = new StreamSource(
                 jsonStream,
-                CompressionType.NONE,
-                Format.json,
+                Format.json, CompressionType.NONE,
                 UUID.randomUUID(),
                 "json-managed-stream",
                 false
@@ -273,8 +271,7 @@ public class ManagedStreamingIngestV2 {
 
         StreamSource largeStreamSource = new StreamSource(
                 largeInputStream,
-                CompressionType.NONE,  // Will be auto-compressed by the client
-                Format.csv,
+                Format.csv, CompressionType.NONE,  // Will be auto-compressed by the client
                 UUID.randomUUID(),
                 "large-data-fallback-demo",
                 false

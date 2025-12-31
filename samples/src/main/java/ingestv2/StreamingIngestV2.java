@@ -98,7 +98,7 @@ public class StreamingIngestV2 {
         InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
         StreamSource csvStreamSource = new StreamSource(
-                csvInputStream, CompressionType.NONE, Format.csv,
+                csvInputStream, Format.csv, CompressionType.NONE,
                 UUID.randomUUID(), "csv-test-src", false);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
@@ -116,8 +116,7 @@ public class StreamingIngestV2 {
 
         StreamSource compressedStreamSource = new StreamSource(
                 compressedCsvStream,
-                CompressionType.GZIP,
-                Format.csv,
+                Format.csv, CompressionType.GZIP,
                 UUID.randomUUID(),
                 "compressed-csv-stream",
                 false
@@ -132,8 +131,7 @@ public class StreamingIngestV2 {
 
         StreamSource jsonStreamSource = new StreamSource(
                 jsonStream,
-                CompressionType.NONE,
-                Format.json,
+                Format.json, CompressionType.NONE,
                 UUID.randomUUID(),
                 "json-data-stream",
                 false

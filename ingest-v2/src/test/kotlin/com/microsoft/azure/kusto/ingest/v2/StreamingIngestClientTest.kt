@@ -60,15 +60,16 @@ class StreamingIngestClientTest :
                 false,
                 publicBlobUrl,
             ),
-//            Arguments.of(
-//                "Blob based ingest- Invalid blob URL",
-//                engineEndpoint,
-//                // isException
-//                true,
-//                // isUnreachableHost
-//                false,
-//                "https://nonexistentaccount.blob.core.windows.net/container/file.json",
-//            ),
+            //            Arguments.of(
+            //                "Blob based ingest- Invalid blob URL",
+            //                engineEndpoint,
+            //                // isException
+            //                true,
+            //                // isUnreachableHost
+            //                false,
+            //
+            // "https://nonexistentaccount.blob.core.windows.net/container/file.json",
+            //            ),
         )
     }
 
@@ -177,7 +178,6 @@ class StreamingIngestClientTest :
                         invalidData.toByteArray(),
                     ),
                     format = Format.json,
-                    sourceId = UUID.randomUUID(),
                     sourceCompression = CompressionType.NONE,
                 )
 

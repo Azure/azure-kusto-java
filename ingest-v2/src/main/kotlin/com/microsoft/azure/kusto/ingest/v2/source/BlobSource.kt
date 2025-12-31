@@ -12,10 +12,17 @@ import java.util.UUID
 class BlobSource(
     val blobPath: String,
     format: Format = Format.csv,
-    compressionType: CompressionType = CompressionType.NONE,
     sourceId: UUID = UUID.randomUUID(),
+    compressionType: CompressionType = CompressionType.NONE,
     baseName: String? = null,
 ) : IngestionSource(format, compressionType, baseName, sourceId) {
+
+    /*
+        val path: Path,
+    format: Format,
+    sourceId: UUID = UUID.randomUUID(),
+    compressionType: CompressionType? = null,
+     */
 
     /**
      * The exact size of the blob in bytes if available. This is only set when

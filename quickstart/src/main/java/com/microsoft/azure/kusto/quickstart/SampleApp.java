@@ -776,7 +776,7 @@ public class SampleApp {
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
         String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream csvStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
-        StreamSource csvSource = new StreamSource(csvStream, CompressionType.NONE, Format.csv, UUID.randomUUID(), "csv-stream", false);
+        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), "csv-stream", false);
         futures.add(queuedIngestClient.ingestAsync(csvSource, csvProps)
                 .thenCompose(response -> {
                     closeQuietly(csvStream);
@@ -785,7 +785,7 @@ public class SampleApp {
                 }));
 
         InputStream jsonStream = Files.newInputStream(resolveQuickstartPath("dataset.json"));
-        StreamSource jsonSource = new StreamSource(jsonStream, CompressionType.NONE, Format.json, UUID.randomUUID(), "json-stream", false);
+        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), "json-stream", false);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
         futures.add(queuedIngestClient.ingestAsync(jsonSource, jsonProps)
                 .thenCompose(response -> {
