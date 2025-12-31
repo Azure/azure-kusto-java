@@ -216,7 +216,7 @@ public class ManagedStreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP,"m-ds-json-compressed"
+                CompressionType.GZIP, "m-ds-json-compressed"
         );
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder
@@ -238,7 +238,7 @@ public class ManagedStreamingIngestV2 {
      * before ingestion, so we use a larger size (20MB) to ensure the compressed data
      * still exceeds the streaming threshold (~4MB compressed).
      * This demonstrates:
-     * - Automatic size-based decision making
+     * - Automatic size-based decision-making
      * - Fallback logging from the client ("Blob size is too big for streaming ingest")
      * - Operation tracking for queued ingestion
      * Note: Streaming ingestion operations are not tracked - they complete immediately
