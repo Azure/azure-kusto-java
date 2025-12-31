@@ -217,7 +217,7 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE
+                CompressionType.NONE,"dataset.csv"
         );
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
@@ -238,7 +238,7 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP
+                CompressionType.GZIP , "dataset.jsonz"
         );
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder
@@ -272,14 +272,14 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE
+                CompressionType.NONE,"dataset.csv"
         );
 
         FileSource source2 = new FileSource(
                 Paths.get(resourcesDirectory + "dataset.csv.gz"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.GZIP
+                CompressionType.GZIP, "dataset.csv.gz"
         );
 
         List<IngestionSource> sources = Arrays.asList(source1, source2);

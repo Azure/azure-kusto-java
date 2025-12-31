@@ -803,14 +803,14 @@ public class SampleApp {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
-        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE,"csv-file");
         futures.add(queuedIngestClient.ingestAsync(csvFileSource, csvProps)
                 .thenCompose(response -> {
                     System.out.println("CSV file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV File");
                 }));
 
-        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE);
+        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE,"json-file");
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
         futures.add(queuedIngestClient.ingestAsync(jsonFileSource, jsonProps)
                 .thenCompose(response -> {
@@ -824,8 +824,8 @@ public class SampleApp {
     private static CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
             QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from multiple sources (ingest-v2 batch) ===");
-        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
-        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE,"source-1");
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE,"source-2");
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 
         IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);

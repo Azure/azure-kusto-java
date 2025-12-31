@@ -164,7 +164,8 @@ public class StreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE
+                CompressionType.NONE,
+                "jcsv-file-source"
         );
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
@@ -181,7 +182,8 @@ public class StreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP
+                CompressionType.GZIP,
+                "sjson-compressed-file"
         );
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder

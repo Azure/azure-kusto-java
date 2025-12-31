@@ -199,7 +199,7 @@ public class ManagedStreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE
+                CompressionType.NONE,"m-ds-csv"
         );
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder
@@ -216,7 +216,7 @@ public class ManagedStreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP
+                CompressionType.GZIP,"m-ds-json-compressed"
         );
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder
