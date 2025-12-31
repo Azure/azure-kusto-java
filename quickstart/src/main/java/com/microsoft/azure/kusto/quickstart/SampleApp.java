@@ -824,8 +824,8 @@ public class SampleApp {
     private static CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
             QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from multiple sources (ingest-v2 batch) ===");
-        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE,  "source-1");
-        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE,  "source-2");
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-1");
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-2");
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 
         IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);
