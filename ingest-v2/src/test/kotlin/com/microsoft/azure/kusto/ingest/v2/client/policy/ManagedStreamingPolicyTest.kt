@@ -22,8 +22,8 @@ class ManagedStreamingPolicyTest {
 
     private fun createTestSource() = StreamSource(
         ByteArrayInputStream("test".toByteArray()),
-        CompressionType.NONE,
-        Format.csv
+        Format.csv,
+        CompressionType.NONE
     )
 
     private fun createTestProps() = IngestRequestProperties(format = Format.csv)

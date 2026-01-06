@@ -56,7 +56,7 @@ class SourceClassesTest {
         val testFile = tempDir.resolve("test.json")
         Files.write(testFile, byteArrayOf(1, 2, 3))
 
-        val source = FileSource(testFile, Format.json, CompressionType.GZIP)
+        val source = FileSource(testFile, Format.json, compressionType = CompressionType.GZIP)
 
         assertEquals(CompressionType.GZIP, source.compressionType)
     }
@@ -78,7 +78,7 @@ class SourceClassesTest {
         Files.write(testFile, byteArrayOf(1, 2, 3))
         val customId = UUID.randomUUID()
 
-        val source = FileSource(testFile, Format.json, CompressionType.NONE, customId)
+        val source = FileSource(testFile, Format.json, customId, CompressionType.NONE)
 
         assertEquals(customId, source.sourceId)
     }
@@ -90,10 +90,10 @@ class SourceClassesTest {
 
         val source = StreamSource(
             stream = stream,
-            sourceCompression = CompressionType.NONE,
             format = Format.json,
+            sourceCompression = CompressionType.NONE,
             sourceId = UUID.randomUUID(),
-            name = "test-stream",
+            baseName = "test-stream",
             leaveOpen = false
         )
 
@@ -109,8 +109,8 @@ class SourceClassesTest {
         val source = BlobSource(
             blobPath = blobPath,
             format = Format.json,
-            compressionType = CompressionType.NONE,
-            sourceId = UUID.randomUUID()
+            sourceId = UUID.randomUUID(),
+            compressionType = CompressionType.NONE
         )
 
         assertEquals(blobPath, source.blobPath)
