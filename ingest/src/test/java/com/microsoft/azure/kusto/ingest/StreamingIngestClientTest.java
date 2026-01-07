@@ -40,7 +40,7 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.stream.Stream;
@@ -329,7 +329,7 @@ class StreamingIngestClientTest {
     void ingestFromFile_Json() throws Exception {
         String path = resourcesDirectory + "testdata.json";
         FileSourceInfo fileSourceInfo = new FileSourceInfo(path);
-        String contents = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8).trim();
+        String contents = new String(Files.readAllBytes(Path.of(path)), StandardCharsets.UTF_8).trim();
 
         ingestionProperties.setDataFormat(IngestionProperties.DataFormat.JSON);
         ingestionProperties.setIngestionMapping("JsonMapping", IngestionMapping.IngestionMappingKind.JSON);

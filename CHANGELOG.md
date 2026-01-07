@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0] - 2026-01-07
+
+### Changed
+- **[BREAKING] Minimum Java version requirement updated to Java 11.** Previous versions supported Java 8. 
+  Starting with version 8.0.0, Java 11 or later is required to use this SDK.
+
 ## [7.0.5] - 2025-12-24
 
 ### Fixed

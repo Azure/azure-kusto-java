@@ -11,7 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.CertificateException;
@@ -59,8 +59,8 @@ public class AadAuthenticationHelperTest {
     @DisplayName("validate auth with certificate  throws exception when missing or invalid parameters")
     void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
             PKCSException, IOException, URISyntaxException {
-        String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
+        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
+        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
 
         X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
@@ -114,8 +114,8 @@ public class AadAuthenticationHelperTest {
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
     void useCachedTokenAndRefreshWhenNeeded()
             throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
-        String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
+        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
+        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
 
         X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();

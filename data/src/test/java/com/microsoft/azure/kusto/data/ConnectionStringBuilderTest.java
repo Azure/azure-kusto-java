@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -64,8 +64,8 @@ class ConnectionStringBuilderTest {
     void createWithAadApplicationCertificate() throws CertificateException, OperatorCreationException,
             PKCSException, IOException {
 
-        String certFilePath = Paths.get("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Paths.get("src", "test", "resources", "key.pem").toString();
+        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
+        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
 
         X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
         PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
