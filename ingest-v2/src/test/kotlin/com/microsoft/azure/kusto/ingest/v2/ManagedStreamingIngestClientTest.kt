@@ -136,6 +136,7 @@ class ManagedStreamingIngestClientTest :
                 awaitAndQuery(
                     query = "$targetTable | summarize count=count()",
                     expectedResultsCount = 5,
+                    testName = testName,
                 )
             }
         } catch (e: ConnectException) {
@@ -238,6 +239,7 @@ class ManagedStreamingIngestClientTest :
                 query =
                 "$targetTable | where deviceId == '$targetUuid' | summarize count=count()",
                 expectedResultsCount = 1,
+                testName = testName,
             )
         } catch (e: ConnectException) {
             assumeTrue(
@@ -293,6 +295,7 @@ class ManagedStreamingIngestClientTest :
         awaitAndQuery(
             query = "$targetTable | summarize count=count()",
             expectedResultsCount = 5,
+            testName = "FallbackToQueuedIngestionTest",
         )
     }
 }

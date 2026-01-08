@@ -285,6 +285,7 @@ class QueuedIngestClientTest :
                         query =
                         "$targetTable | where Type == '$filterType' | summarize count=count() by SourceLocation",
                         expectedResultsCount = 5L,
+                        testName = testName,
                     )
                 }
             }
@@ -647,6 +648,7 @@ class QueuedIngestClientTest :
                     query =
                     "$targetTable | where format == '$format' |summarize count=count() by format",
                     expectedResultsCount = expectedRecordCount.toLong(),
+                    testName = "$formatName format test",
                 )
 
                 val extentDetailsResults =

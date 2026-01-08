@@ -63,19 +63,6 @@
         <mockito.version>5.11.0</mockito.version>
         <jacoco.version>0.8.11</jacoco.version>
     </properties>
-    <profiles>
-        <profile>
-            <!-- For java 8 this is the supported mockito version -->
-            <id>java8</id>
-            <activation>
-                <jdk>[1.8,11)</jdk>
-            </activation>
-            <properties>
-                <mockito.version>4.5.1</mockito.version>
-            </properties>
-        </profile>
-    </profiles>
-
     <modules>
         <module>ingest</module>
         <module>ingest-v2</module>
@@ -83,7 +70,6 @@
         <module>samples</module>
         <module>quickstart</module>
     </modules>
-
     <build>
         <plugins>
             <plugin>

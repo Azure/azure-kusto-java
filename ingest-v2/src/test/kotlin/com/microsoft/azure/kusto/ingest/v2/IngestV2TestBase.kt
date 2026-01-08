@@ -121,11 +121,13 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
         queryColumnName: String = "count",
         expectedResultsCount: Long,
         isManagementQuery: Boolean = false,
+        testName: String,
     ) {
         Awaitility.await()
             .atMost(Duration.of(3, ChronoUnit.MINUTES))
             .pollInterval(Duration.of(5, ChronoUnit.SECONDS))
             .ignoreExceptions()
+            .alias("Awaiting query result: $query on test: $testName")
             .untilAsserted {
                 val results =
                     if (isManagementQuery) {

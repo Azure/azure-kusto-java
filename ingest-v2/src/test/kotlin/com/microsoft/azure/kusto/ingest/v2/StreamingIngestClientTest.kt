@@ -137,6 +137,7 @@ class StreamingIngestClientTest :
                 awaitAndQuery(
                     query = "$targetTable | summarize count=count()",
                     expectedResultsCount = 5,
+                    testName = testName,
                 )
             }
         }
