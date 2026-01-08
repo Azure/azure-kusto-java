@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.utils
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.*
 
@@ -12,7 +15,7 @@ class PathUtilsTest {
     fun `sanitizeFileName creates valid name with baseName and sourceId`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
         val result = PathUtils.sanitizeFileName("myfile.csv", sourceId)
-        
+
         assertTrue(result.contains("e493b23d-684f-4f4c-8ba8-3edfaca09427"))
         assertTrue(result.contains("myfile-csv"))
     }
@@ -21,7 +24,7 @@ class PathUtilsTest {
     fun `sanitizeFileName handles null baseName`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
         val result = PathUtils.sanitizeFileName(null, sourceId)
-        
+
         assertEquals("e493b23d-684f-4f4c-8ba8-3edfaca09427", result)
     }
 
@@ -29,7 +32,7 @@ class PathUtilsTest {
     fun `sanitizeFileName handles empty baseName`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
         val result = PathUtils.sanitizeFileName("", sourceId)
-        
+
         assertEquals("e493b23d-684f-4f4c-8ba8-3edfaca09427", result)
     }
 
@@ -37,7 +40,7 @@ class PathUtilsTest {
     fun `sanitizeFileName replaces forbidden characters`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
         val result = PathUtils.sanitizeFileName("my file@#\$%.csv", sourceId)
-        
+
         assertTrue(result.contains("my-file"))
         assertTrue(result.contains("csv"))
     }
@@ -47,7 +50,7 @@ class PathUtilsTest {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
         val longName = "a".repeat(150) + ".csv"
         val result = PathUtils.sanitizeFileName(longName, sourceId)
-        
+
         assertTrue(result.contains("__trunc"))
         assertTrue(result.length <= 160)
     }
@@ -56,7 +59,7 @@ class PathUtilsTest {
     fun `createFileNameForUpload generates valid format`() {
         val name = "dataset.csv"
         val result = PathUtils.createFileNameForUpload(name)
-        
+
         assertTrue(result.startsWith("Ingest.V2.Java_"))
         assertTrue(result.endsWith("_dataset.csv"))
         assertTrue(result.contains("_"))
@@ -68,7 +71,7 @@ class PathUtilsTest {
         val result1 = PathUtils.createFileNameForUpload(name)
         Thread.sleep(10) // Ensure different timestamps
         val result2 = PathUtils.createFileNameForUpload(name)
-        
+
         assertNotEquals(result1, result2)
     }
 
@@ -86,25 +89,35 @@ class PathUtilsTest {
 
     @Test
     fun `getBasename extracts filename from URL`() {
-        val result = PathUtils.getBasename("https://example.com/path/to/file.csv.gz")
+        val result =
+            PathUtils.getBasename("https://example.com/path/to/file.csv.gz")
         assertEquals("file.csv.gz", result)
     }
 
     @Test
     fun `getBasename handles URL with query parameters`() {
-        val result = PathUtils.getBasename("https://example.com/path/file.csv?query=value")
+        val result =
+            PathUtils.getBasename(
+                "https://example.com/path/file.csv?query=value",
+            )
         assertEquals("file.csv", result)
     }
 
     @Test
     fun `getBasename handles URL with fragment`() {
-        val result = PathUtils.getBasename("https://example.com/path/file.csv#section")
+        val result =
+            PathUtils.getBasename(
+                "https://example.com/path/file.csv#section",
+            )
         assertEquals("file.csv", result)
     }
 
     @Test
     fun `getBasename handles URL with semicolon`() {
-        val result = PathUtils.getBasename("https://example.com/path/file.csv;jsessionid=123")
+        val result =
+            PathUtils.getBasename(
+                "https://example.com/path/file.csv;jsessionid=123",
+            )
         assertEquals("file.csv", result)
     }
 
@@ -140,7 +153,10 @@ class PathUtilsTest {
 
     @Test
     fun `getBasename handles blob storage URL`() {
-        val result = PathUtils.getBasename("https://account.blob.core.windows.net/container/file.csv.gz?sp=r&st=2024")
+        val result =
+            PathUtils.getBasename(
+                "https://account.blob.core.windows.net/container/file.csv.gz?sp=r&st=2024",
+            )
         assertEquals("file.csv.gz", result)
     }
 
@@ -148,7 +164,7 @@ class PathUtilsTest {
     fun `sanitizeFileName preserves hyphens and underscores`() {
         val sourceId = UUID.randomUUID()
         val result = PathUtils.sanitizeFileName("my-file_name.csv", sourceId)
-        
+
         assertTrue(result.contains("my-file_name-csv"))
     }
 
@@ -156,7 +172,7 @@ class PathUtilsTest {
     fun `sanitizeFileName preserves alphanumeric characters`() {
         val sourceId = UUID.randomUUID()
         val result = PathUtils.sanitizeFileName("file123ABC.csv", sourceId)
-        
+
         assertTrue(result.contains("file123ABC-csv"))
     }
 
@@ -164,7 +180,7 @@ class PathUtilsTest {
     fun `createFileNameForUpload handles special characters in name`() {
         val name = "my-file@#\$.csv"
         val result = PathUtils.createFileNameForUpload(name)
-        
+
         assertTrue(result.startsWith("Ingest.V2.Java_"))
         assertTrue(result.endsWith("_my-file@#\$.csv"))
     }

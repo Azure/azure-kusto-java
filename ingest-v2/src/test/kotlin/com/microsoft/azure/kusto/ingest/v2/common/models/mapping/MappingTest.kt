@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.common.models.mapping
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
@@ -10,19 +9,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for mapping classes.
- */
+/** Unit tests for mapping classes. */
 class MappingTest {
 
     // ==================== ColumnMapping Tests ====================
 
     @Test
     fun `ColumnMapping should store column name and type`() {
-        val mapping = ColumnMapping(
-            columnName = "TestColumn",
-            columnType = "string"
-        )
+        val mapping =
+            ColumnMapping(columnName = "TestColumn", columnType = "string")
 
         assertEquals("TestColumn", mapping.columnName)
         assertEquals("string", mapping.columnType)
@@ -47,7 +42,10 @@ class MappingTest {
         val mapping = ColumnMapping("col1", "string")
 
         mapping.setTransform(TransformationMethod.SourceLineNumber)
-        assertEquals(TransformationMethod.SourceLineNumber, mapping.getTransform())
+        assertEquals(
+            TransformationMethod.SourceLineNumber,
+            mapping.getTransform(),
+        )
     }
 
     @Test
@@ -265,37 +263,59 @@ class MappingTest {
     fun `TransformationMethod should have all expected values`() {
         val values = TransformationMethod.values()
         assertTrue(values.contains(TransformationMethod.None))
-        assertTrue(values.contains(TransformationMethod.PropertyBagArrayToDictionary))
+        assertTrue(
+            values.contains(
+                TransformationMethod.PropertyBagArrayToDictionary,
+            ),
+        )
         assertTrue(values.contains(TransformationMethod.SourceLocation))
         assertTrue(values.contains(TransformationMethod.SourceLineNumber))
         assertTrue(values.contains(TransformationMethod.GetPathElement))
         assertTrue(values.contains(TransformationMethod.UnknownMethod))
-        assertTrue(values.contains(TransformationMethod.DateTimeFromUnixSeconds))
-        assertTrue(values.contains(TransformationMethod.DateTimeFromUnixMilliseconds))
+        assertTrue(
+            values.contains(TransformationMethod.DateTimeFromUnixSeconds),
+        )
+        assertTrue(
+            values.contains(
+                TransformationMethod.DateTimeFromUnixMilliseconds,
+            ),
+        )
     }
 
     @Test
     fun `TransformationMethod valueOf should return correct enum`() {
-        assertEquals(TransformationMethod.None, TransformationMethod.valueOf("None"))
-        assertEquals(TransformationMethod.SourceLineNumber, TransformationMethod.valueOf("SourceLineNumber"))
+        assertEquals(
+            TransformationMethod.None,
+            TransformationMethod.valueOf("None"),
+        )
+        assertEquals(
+            TransformationMethod.SourceLineNumber,
+            TransformationMethod.valueOf("SourceLineNumber"),
+        )
     }
 
     // ==================== InlineIngestionMapping Tests ====================
 
     @Test
     fun `InlineIngestionMapping should store column mappings and type`() {
-        val columnMappings = listOf(
-            ColumnMapping("col1", "string"),
-            ColumnMapping("col2", "int")
-        )
+        val columnMappings =
+            listOf(
+                ColumnMapping("col1", "string"),
+                ColumnMapping("col2", "int"),
+            )
 
-        val mapping = InlineIngestionMapping(
-            columnMappings = columnMappings,
-            ingestionMappingType = InlineIngestionMapping.IngestionMappingType.JSON
-        )
+        val mapping =
+            InlineIngestionMapping(
+                columnMappings = columnMappings,
+                ingestionMappingType =
+                InlineIngestionMapping.IngestionMappingType.JSON,
+            )
 
         assertEquals(2, mapping.columnMappings?.size)
-        assertEquals(InlineIngestionMapping.IngestionMappingType.JSON, mapping.ingestionMappingType)
+        assertEquals(
+            InlineIngestionMapping.IngestionMappingType.JSON,
+            mapping.ingestionMappingType,
+        )
     }
 
     @Test
@@ -308,14 +328,19 @@ class MappingTest {
 
     @Test
     fun `InlineIngestionMapping copy constructor should create deep copy`() {
-        val columnMappings = listOf(
-            ColumnMapping("col1", "string").apply { setPath("$.data") }
-        )
+        val columnMappings =
+            listOf(
+                ColumnMapping("col1", "string").apply {
+                    setPath("$.data")
+                },
+            )
 
-        val original = InlineIngestionMapping(
-            columnMappings = columnMappings,
-            ingestionMappingType = InlineIngestionMapping.IngestionMappingType.JSON
-        )
+        val original =
+            InlineIngestionMapping(
+                columnMappings = columnMappings,
+                ingestionMappingType =
+                InlineIngestionMapping.IngestionMappingType.JSON,
+            )
 
         val copied = InlineIngestionMapping(original)
 
@@ -326,57 +351,88 @@ class MappingTest {
 
     @Test
     fun `InlineIngestionMapping copy constructor should handle null columnMappings`() {
-        val original = InlineIngestionMapping(
-            columnMappings = null,
-            ingestionMappingType = InlineIngestionMapping.IngestionMappingType.CSV
-        )
+        val original =
+            InlineIngestionMapping(
+                columnMappings = null,
+                ingestionMappingType =
+                InlineIngestionMapping.IngestionMappingType.CSV,
+            )
 
         val copied = InlineIngestionMapping(original)
 
         assertNull(copied.columnMappings)
-        assertEquals(InlineIngestionMapping.IngestionMappingType.CSV, copied.ingestionMappingType)
+        assertEquals(
+            InlineIngestionMapping.IngestionMappingType.CSV,
+            copied.ingestionMappingType,
+        )
     }
 
     // ==================== IngestionMappingType Tests ====================
 
     @Test
     fun `IngestionMappingType CSV should have correct kusto value`() {
-        assertEquals("Csv", InlineIngestionMapping.IngestionMappingType.CSV.kustoValue)
+        assertEquals(
+            "Csv",
+            InlineIngestionMapping.IngestionMappingType.CSV.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType JSON should have correct kusto value`() {
-        assertEquals("Json", InlineIngestionMapping.IngestionMappingType.JSON.kustoValue)
+        assertEquals(
+            "Json",
+            InlineIngestionMapping.IngestionMappingType.JSON.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType AVRO should have correct kusto value`() {
-        assertEquals("Avro", InlineIngestionMapping.IngestionMappingType.AVRO.kustoValue)
+        assertEquals(
+            "Avro",
+            InlineIngestionMapping.IngestionMappingType.AVRO.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType PARQUET should have correct kusto value`() {
-        assertEquals("Parquet", InlineIngestionMapping.IngestionMappingType.PARQUET.kustoValue)
+        assertEquals(
+            "Parquet",
+            InlineIngestionMapping.IngestionMappingType.PARQUET.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType SSTREAM should have correct kusto value`() {
-        assertEquals("SStream", InlineIngestionMapping.IngestionMappingType.SSTREAM.kustoValue)
+        assertEquals(
+            "SStream",
+            InlineIngestionMapping.IngestionMappingType.SSTREAM.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType ORC should have correct kusto value`() {
-        assertEquals("Orc", InlineIngestionMapping.IngestionMappingType.ORC.kustoValue)
+        assertEquals(
+            "Orc",
+            InlineIngestionMapping.IngestionMappingType.ORC.kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType APACHEAVRO should have correct kusto value`() {
-        assertEquals("ApacheAvro", InlineIngestionMapping.IngestionMappingType.APACHEAVRO.kustoValue)
+        assertEquals(
+            "ApacheAvro",
+            InlineIngestionMapping.IngestionMappingType.APACHEAVRO
+                .kustoValue,
+        )
     }
 
     @Test
     fun `IngestionMappingType W3CLOGFILE should have correct kusto value`() {
-        assertEquals("W3CLogFile", InlineIngestionMapping.IngestionMappingType.W3CLOGFILE.kustoValue)
+        assertEquals(
+            "W3CLogFile",
+            InlineIngestionMapping.IngestionMappingType.W3CLOGFILE
+                .kustoValue,
+        )
     }
 
     @Test

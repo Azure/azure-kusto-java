@@ -4,7 +4,6 @@ package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.client.policy.ManagedStreamingPolicy
-import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
@@ -40,56 +39,59 @@ class ManagedStreamingIngestClientBuilderTest {
     @Test
     fun `build without authentication should throw exception`() {
         val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-        assertThrows<IllegalArgumentException> {
-            builder.build()
-        }
+        assertThrows<IllegalArgumentException> { builder.build() }
     }
 
     @Test
     fun `build with authentication should succeed`() {
-        val client = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .withAuthentication(mockTokenCredential)
-            .build()
+        val client =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .withAuthentication(mockTokenCredential)
+                .build()
         assertNotNull(client)
     }
 
     @Test
     fun `withUploader should accept custom uploader`() {
         val mockUploader: IUploader = mockk(relaxed = true)
-        val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .withUploader(mockUploader, true)
+        val builder =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .withUploader(mockUploader, true)
         assertNotNull(builder)
     }
 
     @Test
     fun `withManagedStreamingIngestPolicy should accept custom policy`() {
         val mockPolicy: ManagedStreamingPolicy = mockk(relaxed = true)
-        val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .withManagedStreamingIngestPolicy(mockPolicy)
+        val builder =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .withManagedStreamingIngestPolicy(mockPolicy)
         assertNotNull(builder)
     }
 
     @Test
     fun `builder methods should return self for chaining`() {
         val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-        val result = builder
-            .withAuthentication(mockTokenCredential)
-            .withClientDetails("TestApp", "1.0")
-        
+        val result =
+            builder.withAuthentication(mockTokenCredential)
+                .withClientDetails("TestApp", "1.0")
+
         assertEquals(builder, result)
     }
 
     @Test
     fun `withClientDetails should accept custom client details`() {
-        val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .withClientDetails("TestApp", "1.0.0")
+        val builder =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .withClientDetails("TestApp", "1.0.0")
         assertNotNull(builder)
     }
 
     @Test
     fun `skipSecurityChecks should be accepted`() {
-        val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .skipSecurityChecks()
+        val builder =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .skipSecurityChecks()
         assertNotNull(builder)
     }
 
@@ -97,15 +99,16 @@ class ManagedStreamingIngestClientBuilderTest {
     fun `build with all optional parameters should succeed`() {
         val mockUploader: IUploader = mockk(relaxed = true)
         val mockPolicy: ManagedStreamingPolicy = mockk(relaxed = true)
-        
-        val client = ManagedStreamingIngestClientBuilder.create(validDmUrl)
-            .withAuthentication(mockTokenCredential)
-            .withUploader(mockUploader, true)
-            .withManagedStreamingIngestPolicy(mockPolicy)
-            .withClientDetails("TestApp", "2.0")
-            .skipSecurityChecks()
-            .build()
-        
+
+        val client =
+            ManagedStreamingIngestClientBuilder.create(validDmUrl)
+                .withAuthentication(mockTokenCredential)
+                .withUploader(mockUploader, true)
+                .withManagedStreamingIngestPolicy(mockPolicy)
+                .withClientDetails("TestApp", "2.0")
+                .skipSecurityChecks()
+                .build()
+
         assertNotNull(client)
     }
 

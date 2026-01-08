@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.uploader.models
 
 import java.time.Instant
@@ -10,9 +9,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for upload models.
- */
+/** Unit tests for upload models. */
 class UploadModelsTest {
 
     // ==================== UploadErrorCode Tests ====================
@@ -50,7 +47,10 @@ class UploadModelsTest {
     fun `UploadErrorCode SOURCE_SIZE_LIMIT_EXCEEDED should have correct code and description`() {
         val errorCode = UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
         assertEquals("UploadError_SourceSizeLimitExceeded", errorCode.code)
-        assertEquals("Upload source exceeds maximum allowed size", errorCode.description)
+        assertEquals(
+            "Upload source exceeds maximum allowed size",
+            errorCode.description,
+        )
     }
 
     @Test
@@ -105,8 +105,14 @@ class UploadModelsTest {
 
     @Test
     fun `UploadErrorCode valueOf should return correct enum`() {
-        assertEquals(UploadErrorCode.SOURCE_IS_NULL, UploadErrorCode.valueOf("SOURCE_IS_NULL"))
-        assertEquals(UploadErrorCode.UPLOAD_FAILED, UploadErrorCode.valueOf("UPLOAD_FAILED"))
+        assertEquals(
+            UploadErrorCode.SOURCE_IS_NULL,
+            UploadErrorCode.valueOf("SOURCE_IS_NULL"),
+        )
+        assertEquals(
+            UploadErrorCode.UPLOAD_FAILED,
+            UploadErrorCode.valueOf("UPLOAD_FAILED"),
+        )
     }
 
     // ==================== UploadResult.Success Tests ====================
@@ -116,18 +122,23 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val success = UploadResult.Success(
-            sourceName = "test-file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            blobUrl = "https://storage.blob.core.windows.net/container/blob",
-            sizeBytes = 1024
-        )
+        val success =
+            UploadResult.Success(
+                sourceName = "test-file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                blobUrl =
+                "https://storage.blob.core.windows.net/container/blob",
+                sizeBytes = 1024,
+            )
 
         assertEquals("test-file.csv", success.sourceName)
         assertEquals(startTime, success.startedAt)
         assertEquals(endTime, success.completedAt)
-        assertEquals("https://storage.blob.core.windows.net/container/blob", success.blobUrl)
+        assertEquals(
+            "https://storage.blob.core.windows.net/container/blob",
+            success.blobUrl,
+        )
         assertEquals(1024, success.sizeBytes)
     }
 
@@ -136,13 +147,14 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val original = UploadResult.Success(
-            sourceName = "original.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            blobUrl = "https://original.blob",
-            sizeBytes = 100
-        )
+        val original =
+            UploadResult.Success(
+                sourceName = "original.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                blobUrl = "https://original.blob",
+                sizeBytes = 100,
+            )
 
         val copied = original.copy(sourceName = "copied.csv", sizeBytes = 200)
 
@@ -156,21 +168,23 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val success1 = UploadResult.Success(
-            sourceName = "file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            blobUrl = "https://blob",
-            sizeBytes = 100
-        )
+        val success1 =
+            UploadResult.Success(
+                sourceName = "file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                blobUrl = "https://blob",
+                sizeBytes = 100,
+            )
 
-        val success2 = UploadResult.Success(
-            sourceName = "file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            blobUrl = "https://blob",
-            sizeBytes = 100
-        )
+        val success2 =
+            UploadResult.Success(
+                sourceName = "file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                blobUrl = "https://blob",
+                sizeBytes = 100,
+            )
 
         assertEquals(success1, success2)
         assertEquals(success1.hashCode(), success2.hashCode())
@@ -184,15 +198,16 @@ class UploadModelsTest {
         val endTime = startTime.plusSeconds(5)
         val exception = RuntimeException("Test error")
 
-        val failure = UploadResult.Failure(
-            sourceName = "failed-file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            errorCode = UploadErrorCode.UPLOAD_FAILED,
-            errorMessage = "Upload failed due to network error",
-            exception = exception,
-            isPermanent = true
-        )
+        val failure =
+            UploadResult.Failure(
+                sourceName = "failed-file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                errorCode = UploadErrorCode.UPLOAD_FAILED,
+                errorMessage = "Upload failed due to network error",
+                exception = exception,
+                isPermanent = true,
+            )
 
         assertEquals("failed-file.csv", failure.sourceName)
         assertEquals(startTime, failure.startedAt)
@@ -208,14 +223,15 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(5)
 
-        val failure = UploadResult.Failure(
-            sourceName = "file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            errorCode = UploadErrorCode.NETWORK_ERROR,
-            errorMessage = "Network timeout",
-            exception = null
-        )
+        val failure =
+            UploadResult.Failure(
+                sourceName = "file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                errorCode = UploadErrorCode.NETWORK_ERROR,
+                errorMessage = "Network timeout",
+                exception = null,
+            )
 
         assertFalse(failure.isPermanent)
     }
@@ -225,15 +241,16 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(5)
 
-        val failure = UploadResult.Failure(
-            sourceName = "file.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            errorCode = UploadErrorCode.SOURCE_NOT_FOUND,
-            errorMessage = "File not found",
-            exception = null,
-            isPermanent = true
-        )
+        val failure =
+            UploadResult.Failure(
+                sourceName = "file.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                errorCode = UploadErrorCode.SOURCE_NOT_FOUND,
+                errorMessage = "File not found",
+                exception = null,
+                isPermanent = true,
+            )
 
         assertNull(failure.exception)
     }
@@ -243,17 +260,19 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(5)
 
-        val original = UploadResult.Failure(
-            sourceName = "original.csv",
-            startedAt = startTime,
-            completedAt = endTime,
-            errorCode = UploadErrorCode.UPLOAD_FAILED,
-            errorMessage = "Original error",
-            exception = null,
-            isPermanent = false
-        )
+        val original =
+            UploadResult.Failure(
+                sourceName = "original.csv",
+                startedAt = startTime,
+                completedAt = endTime,
+                errorCode = UploadErrorCode.UPLOAD_FAILED,
+                errorMessage = "Original error",
+                exception = null,
+                isPermanent = false,
+            )
 
-        val copied = original.copy(errorMessage = "Copied error", isPermanent = true)
+        val copied =
+            original.copy(errorMessage = "Copied error", isPermanent = true)
 
         assertEquals("Copied error", copied.errorMessage)
         assertTrue(copied.isPermanent)
@@ -267,14 +286,35 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val successes = listOf(
-            UploadResult.Success("file1.csv", startTime, endTime, "https://blob1", 100),
-            UploadResult.Success("file2.csv", startTime, endTime, "https://blob2", 200)
-        )
+        val successes =
+            listOf(
+                UploadResult.Success(
+                    "file1.csv",
+                    startTime,
+                    endTime,
+                    "https://blob1",
+                    100,
+                ),
+                UploadResult.Success(
+                    "file2.csv",
+                    startTime,
+                    endTime,
+                    "https://blob2",
+                    200,
+                ),
+            )
 
-        val failures = listOf(
-            UploadResult.Failure("file3.csv", startTime, endTime, UploadErrorCode.UPLOAD_FAILED, "Error", null)
-        )
+        val failures =
+            listOf(
+                UploadResult.Failure(
+                    "file3.csv",
+                    startTime,
+                    endTime,
+                    UploadErrorCode.UPLOAD_FAILED,
+                    "Error",
+                    null,
+                ),
+            )
 
         val results = UploadResults(successes, failures)
 
@@ -297,9 +337,16 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val successes = listOf(
-            UploadResult.Success("file.csv", startTime, endTime, "https://blob", 100)
-        )
+        val successes =
+            listOf(
+                UploadResult.Success(
+                    "file.csv",
+                    startTime,
+                    endTime,
+                    "https://blob",
+                    100,
+                ),
+            )
 
         val results = UploadResults(successes, emptyList())
 
@@ -312,9 +359,17 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val failures = listOf(
-            UploadResult.Failure("file.csv", startTime, endTime, UploadErrorCode.UPLOAD_FAILED, "Error", null)
-        )
+        val failures =
+            listOf(
+                UploadResult.Failure(
+                    "file.csv",
+                    startTime,
+                    endTime,
+                    UploadErrorCode.UPLOAD_FAILED,
+                    "Error",
+                    null,
+                ),
+            )
 
         val results = UploadResults(emptyList(), failures)
 
@@ -327,9 +382,16 @@ class UploadModelsTest {
         val startTime = Instant.now()
         val endTime = startTime.plusSeconds(10)
 
-        val successes = listOf(
-            UploadResult.Success("file.csv", startTime, endTime, "https://blob", 100)
-        )
+        val successes =
+            listOf(
+                UploadResult.Success(
+                    "file.csv",
+                    startTime,
+                    endTime,
+                    "https://blob",
+                    100,
+                ),
+            )
 
         val results1 = UploadResults(successes, emptyList())
         val results2 = UploadResults(successes, emptyList())

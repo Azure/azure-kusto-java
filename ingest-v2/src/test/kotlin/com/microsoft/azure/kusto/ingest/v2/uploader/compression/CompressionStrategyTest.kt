@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.uploader.compression
 
 import kotlinx.coroutines.runBlocking
@@ -11,13 +10,10 @@ import java.util.zip.GZIPInputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for compression strategy implementations.
- */
+/** Unit tests for compression strategy implementations. */
 class CompressionStrategyTest {
 
     // ==================== GzipCompressionStrategy Tests ====================
@@ -29,17 +25,27 @@ class CompressionStrategyTest {
     }
 
     @Test
-    fun `GzipCompressionStrategy should compress data correctly`() = runBlocking {
-        val strategy = GzipCompressionStrategy()
-        val originalData = "Hello, World! This is a test string for compression."
-        val inputStream = ByteArrayInputStream(originalData.toByteArray())
+    fun `GzipCompressionStrategy should compress data correctly`() =
+        runBlocking {
+            val strategy = GzipCompressionStrategy()
+            val originalData =
+                "Hello, World! This is a test string for compression."
+            val inputStream =
+                ByteArrayInputStream(originalData.toByteArray())
 
-        val compressedStream = strategy.compress(inputStream, originalData.length.toLong())
+            val compressedStream =
+                strategy.compress(
+                    inputStream,
+                    originalData.length.toLong(),
+                )
 
-        // Verify we can decompress and get original data
-        val decompressedData = GZIPInputStream(compressedStream).bufferedReader().readText()
-        assertEquals(originalData, decompressedData)
-    }
+            // Verify we can decompress and get original data
+            val decompressedData =
+                GZIPInputStream(compressedStream)
+                    .bufferedReader()
+                    .readText()
+            assertEquals(originalData, decompressedData)
+        }
 
     @Test
     fun `GzipCompressionStrategy should compress empty stream`() = runBlocking {
@@ -49,7 +55,8 @@ class CompressionStrategyTest {
         val compressedStream = strategy.compress(inputStream, 0)
 
         // Verify we can decompress empty data
-        val decompressedData = GZIPInputStream(compressedStream).bufferedReader().readText()
+        val decompressedData =
+            GZIPInputStream(compressedStream).bufferedReader().readText()
         assertEquals("", decompressedData)
     }
 
@@ -59,42 +66,56 @@ class CompressionStrategyTest {
         val largeData = "A".repeat(100_000)
         val inputStream = ByteArrayInputStream(largeData.toByteArray())
 
-        val compressedStream = strategy.compress(inputStream, largeData.length.toLong())
+        val compressedStream =
+            strategy.compress(inputStream, largeData.length.toLong())
 
         // Verify compressed size is smaller than original
         val compressedBytes = compressedStream.readBytes()
         assertTrue(compressedBytes.size < largeData.length)
 
         // Verify we can decompress and get original data
-        val decompressedData = GZIPInputStream(ByteArrayInputStream(compressedBytes)).bufferedReader().readText()
+        val decompressedData =
+            GZIPInputStream(ByteArrayInputStream(compressedBytes))
+                .bufferedReader()
+                .readText()
         assertEquals(largeData, decompressedData)
     }
 
     @Test
-    fun `GzipCompressionStrategy should work with unknown estimated size`() = runBlocking {
-        val strategy = GzipCompressionStrategy()
-        val originalData = "Test data without estimated size"
-        val inputStream = ByteArrayInputStream(originalData.toByteArray())
+    fun `GzipCompressionStrategy should work with unknown estimated size`() =
+        runBlocking {
+            val strategy = GzipCompressionStrategy()
+            val originalData = "Test data without estimated size"
+            val inputStream =
+                ByteArrayInputStream(originalData.toByteArray())
 
-        // Use 0 as estimated size (unknown)
-        val compressedStream = strategy.compress(inputStream, 0)
+            // Use 0 as estimated size (unknown)
+            val compressedStream = strategy.compress(inputStream, 0)
 
-        val decompressedData = GZIPInputStream(compressedStream).bufferedReader().readText()
-        assertEquals(originalData, decompressedData)
-    }
+            val decompressedData =
+                GZIPInputStream(compressedStream)
+                    .bufferedReader()
+                    .readText()
+            assertEquals(originalData, decompressedData)
+        }
 
     @Test
-    fun `GzipCompressionStrategy should work with negative estimated size`() = runBlocking {
-        val strategy = GzipCompressionStrategy()
-        val originalData = "Test data with negative estimated size"
-        val inputStream = ByteArrayInputStream(originalData.toByteArray())
+    fun `GzipCompressionStrategy should work with negative estimated size`() =
+        runBlocking {
+            val strategy = GzipCompressionStrategy()
+            val originalData = "Test data with negative estimated size"
+            val inputStream =
+                ByteArrayInputStream(originalData.toByteArray())
 
-        // Use negative as estimated size (invalid)
-        val compressedStream = strategy.compress(inputStream, -1)
+            // Use negative as estimated size (invalid)
+            val compressedStream = strategy.compress(inputStream, -1)
 
-        val decompressedData = GZIPInputStream(compressedStream).bufferedReader().readText()
-        assertEquals(originalData, decompressedData)
-    }
+            val decompressedData =
+                GZIPInputStream(compressedStream)
+                    .bufferedReader()
+                    .readText()
+            assertEquals(originalData, decompressedData)
+        }
 
     @Test
     fun `GzipCompressionStrategy should handle binary data`() = runBlocking {
@@ -102,25 +123,28 @@ class CompressionStrategyTest {
         val binaryData = ByteArray(256) { it.toByte() }
         val inputStream = ByteArrayInputStream(binaryData)
 
-        val compressedStream = strategy.compress(inputStream, binaryData.size.toLong())
+        val compressedStream =
+            strategy.compress(inputStream, binaryData.size.toLong())
 
         val decompressedData = GZIPInputStream(compressedStream).readBytes()
         assertTrue(binaryData.contentEquals(decompressedData))
     }
 
     @Test
-    fun `GzipCompressionStrategy should throw CompressionException on IO error`() = runBlocking {
-        val strategy = GzipCompressionStrategy()
-        val failingStream = object : InputStream() {
-            override fun read(): Int {
-                throw IOException("Simulated IO error")
+    fun `GzipCompressionStrategy should throw CompressionException on IO error`() =
+        runBlocking {
+            val strategy = GzipCompressionStrategy()
+            val failingStream =
+                object : InputStream() {
+                    override fun read(): Int {
+                        throw IOException("Simulated IO error")
+                    }
+                }
+
+            assertFailsWith<CompressionException> {
+                strategy.compress(failingStream, 100)
             }
         }
-
-        assertFailsWith<CompressionException> {
-            strategy.compress(failingStream, 100)
-        }
-    }
 
     // ==================== NoCompressionStrategy Tests ====================
 
@@ -136,23 +160,30 @@ class CompressionStrategyTest {
         val originalData = "Test data"
         val inputStream = ByteArrayInputStream(originalData.toByteArray())
 
-        val resultStream = strategy.compress(inputStream, originalData.length.toLong())
+        val resultStream =
+            strategy.compress(inputStream, originalData.length.toLong())
 
         // Should be the exact same stream instance
         assertSame(inputStream, resultStream)
     }
 
     @Test
-    fun `NoCompressionStrategy should pass through data unchanged`() = runBlocking {
-        val strategy = NoCompressionStrategy()
-        val originalData = "Unchanged data"
-        val inputStream = ByteArrayInputStream(originalData.toByteArray())
+    fun `NoCompressionStrategy should pass through data unchanged`() =
+        runBlocking {
+            val strategy = NoCompressionStrategy()
+            val originalData = "Unchanged data"
+            val inputStream =
+                ByteArrayInputStream(originalData.toByteArray())
 
-        val resultStream = strategy.compress(inputStream, originalData.length.toLong())
-        val resultData = resultStream.bufferedReader().readText()
+            val resultStream =
+                strategy.compress(
+                    inputStream,
+                    originalData.length.toLong(),
+                )
+            val resultData = resultStream.bufferedReader().readText()
 
-        assertEquals(originalData, resultData)
-    }
+            assertEquals(originalData, resultData)
+        }
 
     @Test
     fun `NoCompressionStrategy INSTANCE should be singleton`() {

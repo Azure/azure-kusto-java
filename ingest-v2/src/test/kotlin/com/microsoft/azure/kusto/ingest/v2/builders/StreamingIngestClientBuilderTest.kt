@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
-import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -38,26 +37,25 @@ class StreamingIngestClientBuilderTest {
     @Test
     fun `build without authentication should throw exception`() {
         val builder = StreamingIngestClientBuilder.create(validClusterUrl)
-        assertThrows<IllegalArgumentException> {
-            builder.build()
-        }
+        assertThrows<IllegalArgumentException> { builder.build() }
     }
 
     @Test
     fun `build with authentication should succeed`() {
-        val client = StreamingIngestClientBuilder.create(validClusterUrl)
-            .withAuthentication(mockTokenCredential)
-            .build()
+        val client =
+            StreamingIngestClientBuilder.create(validClusterUrl)
+                .withAuthentication(mockTokenCredential)
+                .build()
         assertNotNull(client)
     }
 
     @Test
     fun `builder methods should return self for chaining`() {
         val builder = StreamingIngestClientBuilder.create(validClusterUrl)
-        val result = builder
-            .withAuthentication(mockTokenCredential)
-            .withClientDetails("TestApp", "1.0")
-        
+        val result =
+            builder.withAuthentication(mockTokenCredential)
+                .withClientDetails("TestApp", "1.0")
+
         assertEquals(builder, result)
     }
 
@@ -70,26 +68,29 @@ class StreamingIngestClientBuilderTest {
 
     @Test
     fun `withClientDetails should accept custom client details`() {
-        val builder = StreamingIngestClientBuilder.create(validClusterUrl)
-            .withClientDetails("TestApp", "1.0.0")
+        val builder =
+            StreamingIngestClientBuilder.create(validClusterUrl)
+                .withClientDetails("TestApp", "1.0.0")
         assertNotNull(builder)
     }
 
     @Test
     fun `skipSecurityChecks should be accepted`() {
-        val builder = StreamingIngestClientBuilder.create(validClusterUrl)
-            .skipSecurityChecks()
+        val builder =
+            StreamingIngestClientBuilder.create(validClusterUrl)
+                .skipSecurityChecks()
         assertNotNull(builder)
     }
 
     @Test
     fun `build with all optional parameters should succeed`() {
-        val client = StreamingIngestClientBuilder.create(validClusterUrl)
-            .withAuthentication(mockTokenCredential)
-            .withClientDetails("TestApp", "2.0")
-            .skipSecurityChecks()
-            .build()
-        
+        val client =
+            StreamingIngestClientBuilder.create(validClusterUrl)
+                .withAuthentication(mockTokenCredential)
+                .withClientDetails("TestApp", "2.0")
+                .skipSecurityChecks()
+                .build()
+
         assertNotNull(client)
     }
 }

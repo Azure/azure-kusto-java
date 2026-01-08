@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.source
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
+import org.junit.jupiter.api.io.TempDir
 import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,15 +12,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.io.TempDir
 
-/**
- * Unit tests for Source classes (FileSource, StreamSource, BlobSource).
- */
+/** Unit tests for Source classes (FileSource, StreamSource, BlobSource). */
 class SourceClassesTest {
 
     @Test
-    fun `FileSource should detect GZIP compression from file extension`(@TempDir tempDir: Path) {
+    fun `FileSource should detect GZIP compression from file extension`(
+        @TempDir tempDir: Path,
+    ) {
         val testFile = tempDir.resolve("test.json.gz")
         Files.write(testFile, byteArrayOf(1, 2, 3))
 
@@ -32,7 +31,9 @@ class SourceClassesTest {
     }
 
     @Test
-    fun `FileSource should detect ZIP compression from file extension`(@TempDir tempDir: Path) {
+    fun `FileSource should detect ZIP compression from file extension`(
+        @TempDir tempDir: Path,
+    ) {
         val testFile = tempDir.resolve("test.json.zip")
         Files.write(testFile, byteArrayOf(1, 2, 3))
 
@@ -42,7 +43,9 @@ class SourceClassesTest {
     }
 
     @Test
-    fun `FileSource should default to NONE compression for uncompressed files`(@TempDir tempDir: Path) {
+    fun `FileSource should default to NONE compression for uncompressed files`(
+        @TempDir tempDir: Path,
+    ) {
         val testFile = tempDir.resolve("test.json")
         Files.write(testFile, byteArrayOf(1, 2, 3))
 
@@ -52,11 +55,18 @@ class SourceClassesTest {
     }
 
     @Test
-    fun `FileSource should allow explicit compression type override`(@TempDir tempDir: Path) {
+    fun `FileSource should allow explicit compression type override`(
+        @TempDir tempDir: Path,
+    ) {
         val testFile = tempDir.resolve("test.json")
         Files.write(testFile, byteArrayOf(1, 2, 3))
 
-        val source = FileSource(testFile, Format.json, compressionType = CompressionType.GZIP)
+        val source =
+            FileSource(
+                testFile,
+                Format.json,
+                compressionType = CompressionType.GZIP,
+            )
 
         assertEquals(CompressionType.GZIP, source.compressionType)
     }
@@ -73,12 +83,20 @@ class SourceClassesTest {
     }
 
     @Test
-    fun `FileSource should use custom sourceId when provided`(@TempDir tempDir: Path) {
+    fun `FileSource should use custom sourceId when provided`(
+        @TempDir tempDir: Path,
+    ) {
         val testFile = tempDir.resolve("test.json")
         Files.write(testFile, byteArrayOf(1, 2, 3))
         val customId = UUID.randomUUID()
 
-        val source = FileSource(testFile, Format.json, customId, CompressionType.NONE)
+        val source =
+            FileSource(
+                testFile,
+                Format.json,
+                customId,
+                CompressionType.NONE,
+            )
 
         assertEquals(customId, source.sourceId)
     }
@@ -88,14 +106,15 @@ class SourceClassesTest {
         val testData = "Test data".toByteArray()
         val stream = ByteArrayInputStream(testData)
 
-        val source = StreamSource(
-            stream = stream,
-            format = Format.json,
-            sourceCompression = CompressionType.NONE,
-            sourceId = UUID.randomUUID(),
-            baseName = "test-stream",
-            leaveOpen = false
-        )
+        val source =
+            StreamSource(
+                stream = stream,
+                format = Format.json,
+                sourceCompression = CompressionType.NONE,
+                sourceId = UUID.randomUUID(),
+                baseName = "test-stream",
+                leaveOpen = false,
+            )
 
         assertEquals(CompressionType.NONE, source.compressionType)
         assertEquals(Format.json, source.format)
@@ -104,14 +123,16 @@ class SourceClassesTest {
 
     @Test
     fun `BlobSource should create with blob path and format`() {
-        val blobPath = "https://storage.blob.core.windows.net/container/blob.json"
+        val blobPath =
+            "https://storage.blob.core.windows.net/container/blob.json"
 
-        val source = BlobSource(
-            blobPath = blobPath,
-            format = Format.json,
-            sourceId = UUID.randomUUID(),
-            compressionType = CompressionType.NONE
-        )
+        val source =
+            BlobSource(
+                blobPath = blobPath,
+                format = Format.json,
+                sourceId = UUID.randomUUID(),
+                compressionType = CompressionType.NONE,
+            )
 
         assertEquals(blobPath, source.blobPath)
         assertEquals(Format.json, source.format)
@@ -129,13 +150,22 @@ class SourceClassesTest {
     @Test
     fun `FileSource detectCompressionFromPath should handle various extensions`() {
         val gzPath = Path.of("test.json.gz")
-        assertEquals(CompressionType.GZIP, FileSource.detectCompressionFromPath(gzPath))
+        assertEquals(
+            CompressionType.GZIP,
+            FileSource.detectCompressionFromPath(gzPath),
+        )
 
         val zipPath = Path.of("test.json.zip")
-        assertEquals(CompressionType.ZIP, FileSource.detectCompressionFromPath(zipPath))
+        assertEquals(
+            CompressionType.ZIP,
+            FileSource.detectCompressionFromPath(zipPath),
+        )
 
         val plainPath = Path.of("test.json")
-        assertEquals(CompressionType.NONE, FileSource.detectCompressionFromPath(plainPath))
+        assertEquals(
+            CompressionType.NONE,
+            FileSource.detectCompressionFromPath(plainPath),
+        )
     }
 
     @Test

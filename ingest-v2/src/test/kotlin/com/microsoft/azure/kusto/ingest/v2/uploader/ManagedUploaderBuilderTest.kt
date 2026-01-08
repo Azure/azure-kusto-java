@@ -12,7 +12,8 @@ import kotlin.test.assertNotNull
 
 class ManagedUploaderBuilderTest {
 
-    private val mockConfigurationCache: ConfigurationCache = mockk(relaxed = true)
+    private val mockConfigurationCache: ConfigurationCache =
+        mockk(relaxed = true)
     private val mockTokenCredential: TokenCredential = mockk(relaxed = true)
     private val mockRetryPolicy: IngestRetryPolicy = mockk(relaxed = true)
 
@@ -24,31 +25,26 @@ class ManagedUploaderBuilderTest {
 
     @Test
     fun `withIgnoreSizeLimit true should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withIgnoreSizeLimit(true)
+        val builder = ManagedUploaderBuilder.create().withIgnoreSizeLimit(true)
         assertNotNull(builder)
     }
 
     @Test
     fun `withIgnoreSizeLimit false should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withIgnoreSizeLimit(false)
+        val builder = ManagedUploaderBuilder.create().withIgnoreSizeLimit(false)
         assertNotNull(builder)
     }
 
     @Test
     fun `withMaxConcurrency with positive value should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withMaxConcurrency(10)
+        val builder = ManagedUploaderBuilder.create().withMaxConcurrency(10)
         assertNotNull(builder)
     }
 
     @Test
     fun `withMaxConcurrency with zero should throw exception`() {
         val builder = ManagedUploaderBuilder.create()
-        assertThrows<IllegalArgumentException> {
-            builder.withMaxConcurrency(0)
-        }
+        assertThrows<IllegalArgumentException> { builder.withMaxConcurrency(0) }
     }
 
     @Test
@@ -61,17 +57,14 @@ class ManagedUploaderBuilderTest {
 
     @Test
     fun `withMaxDataSize with positive value should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withMaxDataSize(1024L)
+        val builder = ManagedUploaderBuilder.create().withMaxDataSize(1024L)
         assertNotNull(builder)
     }
 
     @Test
     fun `withMaxDataSize with zero should throw exception`() {
         val builder = ManagedUploaderBuilder.create()
-        assertThrows<IllegalArgumentException> {
-            builder.withMaxDataSize(0L)
-        }
+        assertThrows<IllegalArgumentException> { builder.withMaxDataSize(0L) }
     }
 
     @Test
@@ -84,98 +77,104 @@ class ManagedUploaderBuilderTest {
 
     @Test
     fun `withConfigurationCache should accept configuration`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withConfigurationCache(mockConfigurationCache)
+        val builder =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(mockConfigurationCache)
         assertNotNull(builder)
     }
 
     @Test
     fun `withUploadMethod STORAGE should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withUploadMethod(UploadMethod.STORAGE)
+        val builder =
+            ManagedUploaderBuilder.create()
+                .withUploadMethod(UploadMethod.STORAGE)
         assertNotNull(builder)
     }
 
     @Test
     fun `withUploadMethod LAKE should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withUploadMethod(UploadMethod.LAKE)
+        val builder =
+            ManagedUploaderBuilder.create()
+                .withUploadMethod(UploadMethod.LAKE)
         assertNotNull(builder)
     }
 
     @Test
     fun `withUploadMethod DEFAULT should succeed`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withUploadMethod(UploadMethod.DEFAULT)
+        val builder =
+            ManagedUploaderBuilder.create()
+                .withUploadMethod(UploadMethod.DEFAULT)
         assertNotNull(builder)
     }
 
     @Test
     fun `withRetryPolicy should accept custom policy`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withRetryPolicy(mockRetryPolicy)
+        val builder =
+            ManagedUploaderBuilder.create().withRetryPolicy(mockRetryPolicy)
         assertNotNull(builder)
     }
 
     @Test
     fun `withTokenCredential should accept credential`() {
-        val builder = ManagedUploaderBuilder.create()
-            .withTokenCredential(mockTokenCredential)
+        val builder =
+            ManagedUploaderBuilder.create()
+                .withTokenCredential(mockTokenCredential)
         assertNotNull(builder)
     }
 
     @Test
     fun `build without configuration cache should throw exception`() {
         val builder = ManagedUploaderBuilder.create()
-        assertThrows<IllegalStateException> {
-            builder.build()
-        }
+        assertThrows<IllegalStateException> { builder.build() }
     }
 
     @Test
     fun `build with configuration cache should succeed`() {
-        val uploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(mockConfigurationCache)
-            .build()
+        val uploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(mockConfigurationCache)
+                .build()
         assertNotNull(uploader)
     }
 
     @Test
     fun `builder methods should return self for chaining`() {
         val builder = ManagedUploaderBuilder.create()
-        val result = builder
-            .withIgnoreSizeLimit(true)
-            .withMaxConcurrency(5)
-            .withMaxDataSize(2048L)
-            .withConfigurationCache(mockConfigurationCache)
-            .withUploadMethod(UploadMethod.STORAGE)
-            .withRetryPolicy(mockRetryPolicy)
-            .withTokenCredential(mockTokenCredential)
-        
+        val result =
+            builder.withIgnoreSizeLimit(true)
+                .withMaxConcurrency(5)
+                .withMaxDataSize(2048L)
+                .withConfigurationCache(mockConfigurationCache)
+                .withUploadMethod(UploadMethod.STORAGE)
+                .withRetryPolicy(mockRetryPolicy)
+                .withTokenCredential(mockTokenCredential)
+
         assertNotNull(result)
     }
 
     @Test
     fun `build with all optional parameters should succeed`() {
-        val uploader = ManagedUploaderBuilder.create()
-            .withIgnoreSizeLimit(true)
-            .withMaxConcurrency(10)
-            .withMaxDataSize(4096L)
-            .withConfigurationCache(mockConfigurationCache)
-            .withUploadMethod(UploadMethod.LAKE)
-            .withRetryPolicy(mockRetryPolicy)
-            .withTokenCredential(mockTokenCredential)
-            .build()
-        
+        val uploader =
+            ManagedUploaderBuilder.create()
+                .withIgnoreSizeLimit(true)
+                .withMaxConcurrency(10)
+                .withMaxDataSize(4096L)
+                .withConfigurationCache(mockConfigurationCache)
+                .withUploadMethod(UploadMethod.LAKE)
+                .withRetryPolicy(mockRetryPolicy)
+                .withTokenCredential(mockTokenCredential)
+                .build()
+
         assertNotNull(uploader)
     }
 
     @Test
     fun `build with minimal parameters should succeed`() {
-        val uploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(mockConfigurationCache)
-            .build()
-        
+        val uploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(mockConfigurationCache)
+                .build()
+
         assertNotNull(uploader)
     }
 }

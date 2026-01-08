@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 package com.microsoft.azure.kusto.ingest.v2.common
 
 import java.time.Duration
@@ -9,9 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Unit tests for retry policy implementations.
- */
+/** Unit tests for retry policy implementations. */
 class RetryPolicyTest {
 
     @Test
@@ -60,11 +57,12 @@ class RetryPolicyTest {
 
     @Test
     fun `CustomRetryPolicy should use provided intervals`() {
-        val intervals = arrayOf(
-            Duration.ofSeconds(1),
-            Duration.ofSeconds(2),
-            Duration.ofSeconds(5)
-        )
+        val intervals =
+            arrayOf(
+                Duration.ofSeconds(1),
+                Duration.ofSeconds(2),
+                Duration.ofSeconds(5),
+            )
         val policy = CustomRetryPolicy(intervals)
 
         assertEquals(Duration.ofSeconds(1), policy.moveNext(0u).interval)

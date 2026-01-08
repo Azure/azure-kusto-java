@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class QueuedIngestClientBuilderTest {
 
@@ -40,17 +39,16 @@ class QueuedIngestClientBuilderTest {
 
     @Test
     fun `withMaxConcurrency with positive value should succeed`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withMaxConcurrency(10)
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withMaxConcurrency(10)
         assertNotNull(builder)
     }
 
     @Test
     fun `withMaxConcurrency with zero should throw exception`() {
         val builder = QueuedIngestClientBuilder.create(validDmUrl)
-        assertThrows<IllegalArgumentException> {
-            builder.withMaxConcurrency(0)
-        }
+        assertThrows<IllegalArgumentException> { builder.withMaxConcurrency(0) }
     }
 
     @Test
@@ -63,17 +61,16 @@ class QueuedIngestClientBuilderTest {
 
     @Test
     fun `withMaxDataSize with positive value should succeed`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withMaxDataSize(1024L)
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withMaxDataSize(1024L)
         assertNotNull(builder)
     }
 
     @Test
     fun `withMaxDataSize with zero should throw exception`() {
         val builder = QueuedIngestClientBuilder.create(validDmUrl)
-        assertThrows<IllegalArgumentException> {
-            builder.withMaxDataSize(0L)
-        }
+        assertThrows<IllegalArgumentException> { builder.withMaxDataSize(0L) }
     }
 
     @Test
@@ -86,64 +83,68 @@ class QueuedIngestClientBuilderTest {
 
     @Test
     fun `withIgnoreFileSize should accept true`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withIgnoreFileSize(true)
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withIgnoreFileSize(true)
         assertNotNull(builder)
     }
 
     @Test
     fun `withIgnoreFileSize should accept false`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withIgnoreFileSize(false)
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withIgnoreFileSize(false)
         assertNotNull(builder)
     }
 
     @Test
     fun `withUploader should accept custom uploader`() {
         val mockUploader: IUploader = mockk(relaxed = true)
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withUploader(mockUploader, true)
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withUploader(mockUploader, true)
         assertNotNull(builder)
     }
 
     @Test
     fun `withConfiguration should accept custom configuration`() {
-        val mockConfig = DefaultConfigurationCache(
-            dmUrl = validDmUrl,
-            tokenCredential = mockTokenCredential,
-            skipSecurityChecks = false,
-            clientDetails = ClientDetails.createDefault()
-        )
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withConfiguration(mockConfig)
+        val mockConfig =
+            DefaultConfigurationCache(
+                dmUrl = validDmUrl,
+                tokenCredential = mockTokenCredential,
+                skipSecurityChecks = false,
+                clientDetails = ClientDetails.createDefault(),
+            )
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withConfiguration(mockConfig)
         assertNotNull(builder)
     }
 
     @Test
     fun `build without authentication should throw exception`() {
         val builder = QueuedIngestClientBuilder.create(validDmUrl)
-        assertThrows<IllegalArgumentException> {
-            builder.build()
-        }
+        assertThrows<IllegalArgumentException> { builder.build() }
     }
 
     @Test
     fun `build with authentication should succeed`() {
-        val client = QueuedIngestClientBuilder.create(validDmUrl)
-            .withAuthentication(mockTokenCredential)
-            .build()
+        val client =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withAuthentication(mockTokenCredential)
+                .build()
         assertNotNull(client)
     }
 
     @Test
     fun `builder methods should return self for chaining`() {
         val builder = QueuedIngestClientBuilder.create(validDmUrl)
-        val result = builder
-            .withMaxConcurrency(5)
-            .withMaxDataSize(2048L)
-            .withIgnoreFileSize(true)
-            .withAuthentication(mockTokenCredential)
-        
+        val result =
+            builder.withMaxConcurrency(5)
+                .withMaxDataSize(2048L)
+                .withIgnoreFileSize(true)
+                .withAuthentication(mockTokenCredential)
+
         assertEquals(builder, result)
     }
 
@@ -156,39 +157,43 @@ class QueuedIngestClientBuilderTest {
 
     @Test
     fun `withClientDetails should accept custom client details`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .withClientDetails("TestApp", "1.0.0")
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withClientDetails("TestApp", "1.0.0")
         assertNotNull(builder)
     }
 
     @Test
     fun `skipSecurityChecks should be accepted`() {
-        val builder = QueuedIngestClientBuilder.create(validDmUrl)
-            .skipSecurityChecks()
+        val builder =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .skipSecurityChecks()
         assertNotNull(builder)
     }
 
     @Test
     fun `build with all optional parameters should succeed`() {
         val mockUploader: IUploader = mockk(relaxed = true)
-        val mockConfig = DefaultConfigurationCache(
-            dmUrl = validDmUrl,
-            tokenCredential = mockTokenCredential,
-            skipSecurityChecks = false,
-            clientDetails = ClientDetails.createDefault()
-        )
-        
-        val client = QueuedIngestClientBuilder.create(validDmUrl)
-            .withAuthentication(mockTokenCredential)
-            .withMaxConcurrency(10)
-            .withMaxDataSize(4096L)
-            .withIgnoreFileSize(true)
-            .withUploader(mockUploader, true)
-            .withConfiguration(mockConfig)
-            .withClientDetails("TestApp", "2.0")
-            .skipSecurityChecks()
-            .build()
-        
+        val mockConfig =
+            DefaultConfigurationCache(
+                dmUrl = validDmUrl,
+                tokenCredential = mockTokenCredential,
+                skipSecurityChecks = false,
+                clientDetails = ClientDetails.createDefault(),
+            )
+
+        val client =
+            QueuedIngestClientBuilder.create(validDmUrl)
+                .withAuthentication(mockTokenCredential)
+                .withMaxConcurrency(10)
+                .withMaxDataSize(4096L)
+                .withIgnoreFileSize(true)
+                .withUploader(mockUploader, true)
+                .withConfiguration(mockConfig)
+                .withClientDetails("TestApp", "2.0")
+                .skipSecurityChecks()
+                .build()
+
         assertNotNull(client)
     }
 }
