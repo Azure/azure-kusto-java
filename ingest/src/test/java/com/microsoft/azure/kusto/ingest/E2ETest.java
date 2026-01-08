@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -194,9 +194,9 @@ class E2ETest {
             Assertions.fail("Failed to drop and create new table", ex);
         }
 
-        resourcesPath = Paths.get(System.getProperty("user.dir"), "src", "test", "resources").toString();
+        resourcesPath = Path.of(System.getProperty("user.dir"), "src", "test", "resources").toString();
         try {
-            String mappingAsString = new String(Files.readAllBytes(Paths.get(resourcesPath, "dataset_mapping.json")));
+            String mappingAsString = new String(Files.readAllBytes(Path.of(resourcesPath, "dataset_mapping.json")));
             queryClient.executeToJsonResult(DB_NAME, String.format(".create table %s ingestion json mapping '%s' '%s'",
                     tableName, mappingReference, mappingAsString), null);
         } catch (Exception ex) {

@@ -3,7 +3,7 @@ package com.microsoft.azure.kusto.data;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Objects;
 
 public class UriUtils {
@@ -115,7 +115,7 @@ public class UriUtils {
             String processNameForTracing = cmdLine;
 
             if (processNameForTracing != null) {
-                processNameForTracing = Paths.get(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
+                processNameForTracing = Path.of(processNameForTracing.trim().split(" ")[0]).getFileName().toString();
             }
 
             return processNameForTracing;

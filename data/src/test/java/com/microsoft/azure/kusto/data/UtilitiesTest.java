@@ -22,7 +22,7 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -150,7 +150,7 @@ class UtilitiesTest {
     @Test
     @DisplayName("Assert file name extracted from some cmd line")
     void extractFileNameFromCommandLine() {
-        String cmdLine = Paths.get(" home", "user", "someFile.jar") + " -arg1 val";
+        String cmdLine = Path.of(" home", "user", "someFile.jar") + " -arg1 val";
         Assertions.assertEquals(UriUtils.stripFileNameFromCommandLine(cmdLine), "someFile.jar");
     }
 

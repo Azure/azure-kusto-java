@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -70,7 +70,7 @@ class QueuedIngestClientTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        testFilePath = Paths.get("src", "test", "resources", "testdata.csv").toString();
+        testFilePath = Path.of("src", "test", "resources", "testdata.csv").toString();
         when(resourceManagerMock.getShuffledContainers())
                 .thenReturn(Collections.singletonList(TestUtils.containerWithSasFromAccountNameAndContainerName(ACCOUNT_NAME, "someStorage")));
         when(resourceManagerMock.getShuffledQueues())
@@ -222,7 +222,7 @@ class QueuedIngestClientTest {
 
     @Test
     void ingestFromStream_UploadStreamToBlobIsCalled() throws Exception {
-        InputStream stream = Files.newInputStream(Paths.get(testFilePath));
+        InputStream stream = Files.newInputStream(Path.of(testFilePath));
         StreamSourceInfo streamSourceInfo = new StreamSourceInfo(stream, false);
         try {
             queuedIngestClient.ingestFromStream(streamSourceInfo, ingestionProperties);

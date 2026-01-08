@@ -36,7 +36,7 @@ jobs:
     environment: build
     strategy:
       matrix:
-        java: [ '8' ]
+        java: [ '11' ]
     name: Java ${{ matrix.java }}
     steps:
       - uses: actions/checkout@v4

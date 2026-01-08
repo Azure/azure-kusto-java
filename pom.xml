@@ -32,9 +32,9 @@
     </developers>
 
     <properties>
-        <revision>7.0.5</revision> <!-- CHANGE THIS to adjust project version-->
+        <revision>8.0.0</revision> <!-- CHANGE THIS to adjust project version-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
+        <java.version>11</java.version>
         <azure-bom-version>1.2.28</azure-bom-version>
         <!-- Versions below are for several dependencies we're using in the data & ingest modules -->
         <!-- Ideally, versions below should align with latest databricks runtime dependency versions -->
@@ -63,18 +63,6 @@
         <mockito.version>5.11.0</mockito.version>
         <jacoco.version>0.8.11</jacoco.version>
     </properties>
-    <profiles>
-        <profile>
-            <!-- For java 8 this is the supported mockito version -->
-            <id>java8</id>
-            <activation>
-                <jdk>[1.8,11)</jdk>
-            </activation>
-            <properties>
-                <mockito.version>4.5.1</mockito.version>
-            </properties>
-        </profile>
-    </profiles>
 
     <modules>
         <module>ingest</module>
