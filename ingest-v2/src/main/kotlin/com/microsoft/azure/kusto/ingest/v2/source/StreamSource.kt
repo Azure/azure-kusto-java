@@ -7,7 +7,9 @@ import java.io.InputStream
 import java.util.UUID
 
 /** Represents a stream-based ingestion source. */
-class StreamSource(
+class StreamSource
+@JvmOverloads
+constructor(
     stream: InputStream,
     format: Format,
     sourceCompression: CompressionType,

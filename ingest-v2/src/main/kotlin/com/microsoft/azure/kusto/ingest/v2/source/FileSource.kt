@@ -13,7 +13,9 @@ import java.nio.file.Path
 import java.util.UUID
 
 /** Represents a file-based ingestion source. */
-class FileSource(
+class FileSource
+@JvmOverloads
+constructor(
     val path: Path,
     format: Format,
     sourceId: UUID = UUID.randomUUID(),

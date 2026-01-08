@@ -122,7 +122,7 @@ class ManagedUploaderBuilder private constructor() {
      * @throws IllegalStateException if required configuration is missing
      */
     fun build(): ManagedUploader {
-        requireNotNull(configurationCache) {
+        check(configurationCache != null) {
             "Configuration cache is required. Call withConfigurationCache() before build()"
         }
 
