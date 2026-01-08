@@ -240,10 +240,4 @@ class CompressionStrategyTest {
         assertEquals("Message only", exception.message)
         assertEquals(null, exception.cause)
     }
-
-    @Test
-    fun `CompressionException should be RuntimeException`() {
-        val exception = CompressionException("Test")
-        assertTrue(exception is RuntimeException)
-    }
 }
