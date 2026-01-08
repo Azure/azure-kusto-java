@@ -14,7 +14,6 @@ import java.util.UUID
 
 /** Represents a file-based ingestion source. */
 class FileSource
-@JvmOverloads
 constructor(
     val path: Path,
     format: Format,

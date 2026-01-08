@@ -9,9 +9,7 @@ import java.util.UUID
  * Represents a blob-based ingestion source. This source references data that
  * already exists in blob storage.
  */
-class BlobSource
-@JvmOverloads
-constructor(
+class BlobSource(
     val blobPath: String,
     format: Format = Format.csv,
     sourceId: UUID = UUID.randomUUID(),

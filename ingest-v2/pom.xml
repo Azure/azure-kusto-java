@@ -358,6 +358,8 @@
                     <threadCount>8</threadCount>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <!-- Suppress MockK ByteBuddy transformation warnings -->
+                    <argLine>-Dorg.slf4j.simpleLogger.log.io.mockk.proxy.jvm.transformation.InliningClassTransformer=error</argLine>
                     <!-- Configure JUnit 5 parallel execution -->
                     <properties>
                         <configurationParameters>
