@@ -131,7 +131,7 @@ class CompressionStrategyTest {
     }
 
     @Test
-    fun `GzipCompressionStrategy should throw CompressionException on IO error`() =
+    fun `GzipCompressionStrategy should throw CompressionException on IO error`(): Unit =
         runBlocking {
             val strategy = GzipCompressionStrategy()
             val failingStream =
