@@ -48,7 +48,7 @@ abstract class ContainerUploaderBase(
     private val retryPolicy: IngestRetryPolicy,
     private val maxConcurrency: Int,
     private val maxDataSize: Long,
-    private val configurationCache: ConfigurationCache,
+    val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod,
     private val tokenCredential: TokenCredential?,
 ) : IUploader {
@@ -100,7 +100,7 @@ abstract class ContainerUploaderBase(
         }
 
         // Get containers from configuration
-        val containers = selectContainers(configurationCache, uploadMethod)
+        val containers = selectContainers(uploadMethod)
 
         if (containers.isEmpty()) {
             logger.error("No containers available for upload")
@@ -709,14 +709,11 @@ abstract class ContainerUploaderBase(
      * Selects the appropriate containers for upload based on the provided
      * configuration cache and upload method.
      *
-     * @param configurationCache The configuration cache to use for selecting
-     *   containers.
      * @param uploadMethod The upload method to consider when selecting
      *   containers.
      * @return A list of selected container information.
      */
     abstract suspend fun selectContainers(
-        configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
     ): List<ExtendedContainerInfo>
 }

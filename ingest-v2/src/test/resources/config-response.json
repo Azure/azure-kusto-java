@@ -1,0 +1,21 @@
+{
+  "containerSettings": {
+    "containers": [
+      {
+        "path": "https://somecontainer.z11.blob.storage.azure.net/trdwvweg9nfnngghb1eey-20260108-ingestdata-e5c334ee145d4b4-0?sv=keys"
+      }
+    ],
+    "lakeFolders": [
+      {
+        "path": "https://alakefolder.onelake.fabric.microsoft.com/17a97d10-a17f-4d72-8f38-858aac992978/bb9c26d4-4f99-44b5-9614-3ebb037f3510/Ingestions/20260108-lakedata%22"
+      }
+    ],
+    "refreshInterval": "01:00:00",
+    "preferredUploadMethod": "Lake"
+  },
+  "ingestionSettings": {
+    "maxBlobsPerBatch": 20,
+    "maxDataSize": 6442450944,
+    "preferredIngestionMethod": "Rest"
+  }
+}
