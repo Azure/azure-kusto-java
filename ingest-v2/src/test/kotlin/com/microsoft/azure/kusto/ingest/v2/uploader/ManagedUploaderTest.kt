@@ -44,7 +44,8 @@ class ManagedUploaderTest {
                     it.containerInfo.path?.contains("alakefolder") ?: false,
                 )
                 assertFalse(
-                    it.containerInfo.path?.contains("somecontainer") ?: true,
+                    it.containerInfo.path?.contains("somecontainer")
+                        ?: false,
                 )
             } else {
                 // User mentioned storage here, use that
@@ -52,7 +53,8 @@ class ManagedUploaderTest {
                     it.containerInfo.path?.contains("alakefolder") ?: false,
                 )
                 assertTrue(
-                    it.containerInfo.path?.contains("somecontainer") ?: true,
+                    it.containerInfo.path?.contains("somecontainer")
+                        ?: false,
                 )
             }
         }
