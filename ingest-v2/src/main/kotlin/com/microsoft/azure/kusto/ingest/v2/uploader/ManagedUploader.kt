@@ -40,7 +40,6 @@ internal constructor(
     }
 
     override suspend fun selectContainers(
-        configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
     ): List<ExtendedContainerInfo> {
         // This method is delegated to and this calls getConfiguration again to ensure fresh data is
