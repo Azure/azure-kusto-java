@@ -10,7 +10,9 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
+import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
 
 /**
  * Interface for caching configuration data.
@@ -162,13 +164,34 @@ class DefaultConfigurationCache(
 
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
-        val cached = cache.get()
+        val cachedConfiguration = cache.get()
+        val configRefreshInterval =
+            cachedConfiguration
+                ?.configuration
+                ?.containerSettings
+                ?.refreshInterval
+
+        /**
+         * Determine the effective refresh interval. If the configuration
+         * specifies a refresh interval, use the minimum of that and the
+         * default. Otherwise, use the default refresh interval.
+         */
+        val effectiveRefreshInterval =
+            if (configRefreshInterval?.isNotEmpty() == true) {
+                min(
+                    this.refreshInterval.toMillis(),
+                    LocalTime.parse(configRefreshInterval)
+                        .toSecondOfDay() * 1000L,
+                )
+            } else {
+                this.refreshInterval.toMillis()
+            }
 
         // Check if we need to refresh
         val needsRefresh =
-            cached == null ||
-                (currentTime - cached.timestamp) >=
-                refreshInterval.toMillis()
+            cachedConfiguration == null ||
+                (currentTime - cachedConfiguration.timestamp) >=
+                effectiveRefreshInterval
 
         if (needsRefresh) {
             // Attempt to refresh - only one thread will succeed
@@ -176,7 +199,7 @@ class DefaultConfigurationCache(
                 runCatching { provider() }
                     .getOrElse {
                         // If fetch fails, return cached if available, otherwise rethrow
-                        cached?.configuration ?: throw it
+                        cachedConfiguration?.configuration ?: throw it
                     }
 
             // Atomically update if still needed (prevents thundering herd)
@@ -186,7 +209,7 @@ class DefaultConfigurationCache(
                 if (
                     current == null ||
                     (currentTime - currentTimestamp) >=
-                    refreshInterval.toMillis()
+                    effectiveRefreshInterval
                 ) {
                     CachedData(newConfig, currentTime)
                 } else {
