@@ -13,7 +13,8 @@ import kotlinx.serialization.modules.SerializersModule
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -22,23 +23,38 @@ import java.time.OffsetDateTime
 
 class ManagedUploaderTest {
 
-    @Test
-    fun selectContainers(): Unit = runBlocking {
+    @ParameterizedTest(name = "PreferredUploadMethod={0}")
+    @CsvSource("DEFAULT", "STORAGE", "LAKE")
+    fun selectContainers(preferredUploadMethod: String): Unit = runBlocking {
+        val uploadMethod = UploadMethod.valueOf(preferredUploadMethod)
         val configurationCache = TestConfigurationCache()
         val managedUploader =
             ManagedUploaderBuilder.create()
                 .withConfigurationCache(configurationCache)
                 .build()
-        val selectedContainers =
-            managedUploader.selectContainers(UploadMethod.DEFAULT)
+        val selectedContainers = managedUploader.selectContainers(uploadMethod)
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
         selectedContainers.forEach {
             assertNotNull(it.containerInfo.path)
-            assertTrue(it.containerInfo.path?.contains("alakefolder") ?: false)
-            assertFalse(
-                it.containerInfo.path?.contains("somecontainer") ?: true,
-            )
+            // If we get both lake and storage and user does not specify, lake is preferred. If user
+            // specifies, respect that.
+            if (uploadMethod != UploadMethod.STORAGE) {
+                assertTrue(
+                    it.containerInfo.path?.contains("alakefolder") ?: false,
+                )
+                assertFalse(
+                    it.containerInfo.path?.contains("somecontainer") ?: true,
+                )
+            } else {
+                // User mentioned storage here, use that
+                assertFalse(
+                    it.containerInfo.path?.contains("alakefolder") ?: false,
+                )
+                assertTrue(
+                    it.containerInfo.path?.contains("somecontainer") ?: true,
+                )
+            }
         }
     }
 
