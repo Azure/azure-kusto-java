@@ -131,20 +131,19 @@ class CompressionStrategyTest {
     }
 
     @Test
-    fun `GzipCompressionStrategy should throw CompressionException on IO error`(): Unit =
-        runBlocking {
-            val strategy = GzipCompressionStrategy()
-            val failingStream =
-                object : InputStream() {
-                    override fun read(): Int {
-                        throw IOException("Simulated IO error")
-                    }
+    fun `GzipCompressionStrategy should throw CompressionException on IO error`(): Unit = runBlocking {
+        val strategy = GzipCompressionStrategy()
+        val failingStream =
+            object : InputStream() {
+                override fun read(): Int {
+                    throw IOException("Simulated IO error")
                 }
-
-            assertFailsWith<CompressionException> {
-                strategy.compress(failingStream, 100)
             }
+
+        assertFailsWith<CompressionException> {
+            strategy.compress(failingStream, 100)
         }
+    }
 
     // ==================== NoCompressionStrategy Tests ====================
 

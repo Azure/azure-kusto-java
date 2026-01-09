@@ -1,0 +1,5 @@
+{ "timestamp": "2019-05-02 15:23:50.0000000", "deviceId": "ddbc1bf5-096f-42c0-a771-bc3dca77ac71", "messageId": "7f316225-839a-4593-92b5-1812949279b3", "temperature": 31.0301639051317, "humidity": 62.0791099602725 }
+{ "timestamp": "2019-05-02 15:23:51.0000000", "deviceId": "ddbc1bf5-096f-42c0-a771-bc3dca77ac71", "messageId": "57de2821-7581-40e4-861e-ea3bde102364", "temperature": 33.7529423105311, "humidity": 75.4787976739364 }
+{ "timestamp": "2019-05-02 15:23:52.0000000", "deviceId": "ce2a9367-f01d-4d42-b5b0-1841f2965a8e", "messageId": "3c9754ed-839e-4448-bced-ea32b2a557fc", "temperature": 31.8848099801153, "humidity": 72.9356174231207 }
+{ "timestamp": "2019-05-02 15:23:53.0000000", "deviceId": "ce2a9367-f01d-4d42-b5b0-1841f2965a8e", "messageId": "dbbd46f2-bc50-4f79-833e-edeae533e786", "temperature": 34.1053494201532, "humidity": 63.0325346454198 }
+{ "timestamp": "2019-05-02 15:23:54.0000000", "deviceId": "ce2a9367-f01d-4d42-b5b0-1841f2965a8e", "messageId": "cbfc7c31-4c08-4abf-83ef-718f5d75169a", "temperature": 29.0367494332775, "humidity": 64.7741715818523 }

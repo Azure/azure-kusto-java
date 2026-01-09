@@ -49,7 +49,7 @@ class StreamingIngestClientTest :
                 // isUnreachableHost
                 false,
                 // blobUrl
-                null,
+                publicBlobUrl,
             ),
             Arguments.of(
                 "Blob based ingest - success",
@@ -58,24 +58,23 @@ class StreamingIngestClientTest :
                 false,
                 // isUnreachableHost
                 false,
-                publicBlobUrl,
+                null,
             ),
-            //            Arguments.of(
-            //                "Blob based ingest- Invalid blob URL",
-            //                engineEndpoint,
-            //                // isException
-            //                true,
-            //                // isUnreachableHost
-            //                false,
-            //
-            // "https://nonexistentaccount.blob.core.windows.net/container/file.json",
-            //            ),
+            Arguments.of(
+                "Blob based ingest- Invalid blob URL",
+                engineEndpoint,
+                // isException
+                true,
+                // isUnreachableHost
+                false,
+                "https://nonexistentaccount.blob.core.windows.net/container/file.json",
+            ),
         )
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("testParameters")
-    fun `run streaming ingest test using builder pattern`(
+    fun `run streaming ingest`(
         testName: String,
         cluster: String,
         isException: Boolean,
@@ -105,7 +104,10 @@ class StreamingIngestClientTest :
                 val exception =
                     assertThrows<IngestException> {
                         val ingestionSource =
-                            BlobSource(blobUrl, format = Format.json)
+                            BlobSource(
+                                blobUrl,
+                                format = targetTestFormat,
+                            )
                         client.ingestAsync(
                             source = ingestionSource,
                             ingestRequestProperties = ingestProps,
@@ -124,22 +126,30 @@ class StreamingIngestClientTest :
                 }
             }
         } else {
-            if (blobUrl != null) {
-                val ingestionSource = BlobSource(blobUrl, format = Format.json)
-                client.ingestAsync(
-                    source = ingestionSource,
-                    ingestRequestProperties = ingestProps,
-                )
+            val ingestionSource =
+                if (blobUrl != null) {
+                    BlobSource(blobUrl, format = targetTestFormat)
+                } else {
+                    val ingestFile = "src/test/resources/ingest/simple.json"
+                    FileSource(
+                        path = Paths.get(ingestFile),
+                        format = targetTestFormat,
+                        sourceId = UUID.randomUUID(),
+                    )
+                }
+            client.ingestAsync(
+                source = ingestionSource,
+                ingestRequestProperties = ingestProps,
+            )
 
-                logger.info(
-                    "Blob-based streaming ingestion submitted successfully (builder)",
-                )
-                awaitAndQuery(
-                    query = "$targetTable | summarize count=count()",
-                    expectedResultsCount = 5,
-                    testName = testName,
-                )
-            }
+            logger.info(
+                "Blob-based streaming ingestion submitted successfully (builder)",
+            )
+            awaitAndQuery(
+                query = "$targetTable | summarize count=count()",
+                expectedResultsCount = 5L,
+                testName = testName,
+            )
         }
     }
 
@@ -178,7 +188,7 @@ class StreamingIngestClientTest :
                     ByteArrayInputStream(
                         invalidData.toByteArray(),
                     ),
-                    format = Format.json,
+                    format = targetTestFormat,
                     sourceCompression = CompressionType.NONE,
                 )
 
