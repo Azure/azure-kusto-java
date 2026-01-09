@@ -33,8 +33,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val targetTestFormat = Format.json
     protected val engineEndpoint: String =
         dmEndpoint.replace("https://ingest-", "https://")
-    protected val targetTable: String =
-        "V2_Java_Tests_Sensor_${UUID.randomUUID().toString().replace("-", "").take(8)}"
+    lateinit var targetTable: String
     protected val columnNamesToTypes: Map<String, String> =
         mapOf(
             "timestamp" to "datetime",
@@ -50,6 +49,8 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
 
     @BeforeEach
     fun createTables() {
+        targetTable =
+            "IngestV2Test_${UUID.randomUUID().toString().replace("-", "_")}"
         val createTableScript =
             """
             .create-merge table $targetTable (
