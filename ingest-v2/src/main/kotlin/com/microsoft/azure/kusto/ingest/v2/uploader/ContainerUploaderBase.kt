@@ -755,8 +755,8 @@ abstract class ContainerUploaderBase(
         }
 
     /**
-     * Selects the appropriate containers for upload based on the provided
-     * configuration cache and upload method.
+     * Selects the appropriate containers for upload based on the uploader's
+     * configuration cache and the specified upload method.
      *
      * @param uploadMethod The upload method to consider when selecting
      *   containers.
