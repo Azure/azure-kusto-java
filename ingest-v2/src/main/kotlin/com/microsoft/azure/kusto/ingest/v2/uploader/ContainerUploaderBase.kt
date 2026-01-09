@@ -48,7 +48,7 @@ abstract class ContainerUploaderBase(
     private val retryPolicy: IngestRetryPolicy,
     private val maxConcurrency: Int,
     private val maxDataSize: Long,
-    val configurationCache: ConfigurationCache,
+    protected val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod,
     private val tokenCredential: TokenCredential?,
 ) : IUploader {
