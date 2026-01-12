@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import java.time.OffsetDateTime
 
@@ -21,10 +22,8 @@ import java.time.OffsetDateTime
  *     .build()
  * ```
  */
-class IngestRequestPropertiesBuilder
-private constructor(private val database: String, private val table: String) {
-    private var format: com.microsoft.azure.kusto.ingest.v2.models.Format? =
-        null
+class IngestRequestPropertiesBuilder private constructor() {
+    private var format: Format? = null
     private var enableTracking: Boolean? = null
     private var additionalTags: List<String>? = null
     private var dropByTags: List<String>? = null
@@ -44,22 +43,9 @@ private constructor(private val database: String, private val table: String) {
     private var recreateSchema: Boolean? = null
 
     companion object {
-        internal const val DATABASE_KEY = "_database"
-        internal const val TABLE_KEY = "_table"
-
-        /**
-         * Creates a new builder for IngestRequestProperties.
-         *
-         * @param database The target database name
-         * @param table The target table name
-         * @return A new IngestRequestPropertiesBuilder instance
-         */
         @JvmStatic
-        fun create(
-            database: String,
-            table: String,
-        ): IngestRequestPropertiesBuilder {
-            return IngestRequestPropertiesBuilder(database, table)
+        fun create(): IngestRequestPropertiesBuilder {
+            return IngestRequestPropertiesBuilder()
         }
     }
 
@@ -153,17 +139,11 @@ private constructor(private val database: String, private val table: String) {
     fun build(): IngestRequestProperties {
         // Combine all tags: additional tags + prefixed ingest-by tags + prefixed drop-by tags
         val combinedTags = mutableListOf<String>()
-
         additionalTags?.let { combinedTags.addAll(it) }
-
         ingestByTags?.forEach { tag -> combinedTags.add("ingest-by:$tag") }
-
         dropByTags?.forEach { tag -> combinedTags.add("drop-by:$tag") }
-
         // Use format if explicitly set, otherwise use placeholder (will be overridden from source)
-        val effectiveFormat =
-            format ?: com.microsoft.azure.kusto.ingest.v2.models.Format.csv
-
+        val effectiveFormat = format ?: Format.csv
         val properties =
             IngestRequestProperties(
                 format = effectiveFormat,
@@ -183,11 +163,7 @@ private constructor(private val database: String, private val table: String) {
                 extendSchema = extendSchema,
                 recreateSchema = recreateSchema,
             )
-
         // Store database and table in the HashMap for retrieval
-        properties.put(DATABASE_KEY, database)
-        properties.put(TABLE_KEY, table)
-
         return properties
     }
 }

@@ -5,34 +5,6 @@ package com.microsoft.azure.kusto.ingest.v2.common.models
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 
 /**
- * Extension properties and functions for
- * [com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties].
- *
- * These extensions provide convenient access to database, table, and tag
- * information stored in the IngestRequestProperties.
- */
-
-/**
- * Extension property to extract the database name from IngestRequestProperties.
- */
-val IngestRequestProperties.database: String
-    get() =
-        this.get(IngestRequestPropertiesBuilder.DATABASE_KEY) as? String
-            ?: throw IllegalStateException(
-                "Database not set in IngestRequestProperties",
-            )
-
-/**
- * Extension property to extract the table name from IngestRequestProperties.
- */
-val IngestRequestProperties.table: String
-    get() =
-        this.get(IngestRequestPropertiesBuilder.TABLE_KEY) as? String
-            ?: throw IllegalStateException(
-                "Table not set in IngestRequestProperties",
-            )
-
-/**
  * Extension property to extract drop-by tags from the combined tags list.
  * Returns all tags that start with "drop-by:" prefix.
  */

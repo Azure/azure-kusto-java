@@ -9,8 +9,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestRequestExcept
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestServiceException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.database
-import com.microsoft.azure.kusto.ingest.v2.common.models.table
 import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -104,10 +102,17 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      *   ingestion kind.
      */
     override suspend fun ingestAsync(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse =
-        ingestAsyncInternal(source, ingestRequestProperties)
+        ingestAsyncInternal(
+            database,
+            table,
+            source,
+            ingestRequestProperties,
+        )
 
     /**
      * Ingests data from the specified source with the given properties. This is
@@ -122,11 +127,18 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
+        database: String,
+        table: String,
         source: IngestionSource,
         ingestRequestProperties: IngestRequestProperties,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
-            ingestAsyncInternal(source, ingestRequestProperties)
+            ingestAsyncInternal(
+                database,
+                table,
+                source,
+                ingestRequestProperties,
+            )
         }
 
     /**
@@ -170,22 +182,19 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      * versions call.
      */
     private suspend fun ingestAsyncInternal(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         // Inject format from source into properties
         val effectiveProperties =
-            ingestRequestProperties.withFormatFromSource(source)
-
-        // Extract database and table from properties
-        val database = effectiveProperties.database
-        val table = effectiveProperties.table
-
+            ingestRequestProperties?.withFormatFromSource(source)
         // Streaming ingestion processes one source at a time
         val maxSize =
             getMaxStreamingIngestSize(
                 compressionType = source.compressionType,
-                format = effectiveProperties.format,
+                format = effectiveProperties?.format ?: Format.csv,
             )
         val operationId = UUID.randomUUID().toString()
         when (source) {
@@ -264,7 +273,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         database: String,
         table: String,
         data: ByteArray,
-        ingestProperties: IngestRequestProperties,
+        ingestProperties: IngestRequestProperties?,
         blobUrl: String? = null,
         compressionType: CompressionType,
     ) {
@@ -306,10 +315,11 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                 this.apiClient.api.postStreamingIngest(
                     database = database,
                     table = table,
-                    streamFormat = ingestProperties.format,
+                    streamFormat =
+                    ingestProperties?.format ?: Format.csv,
                     body = bodyContent,
                     mappingName =
-                    ingestProperties.ingestionMappingReference,
+                    ingestProperties?.ingestionMappingReference,
                     sourceKind = sourceKind,
                     host = host,
                     acceptEncoding = null,
@@ -441,11 +451,11 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
                 )
             } else {
                 throw IngestServiceException(
-                    errorCode = errorDetails?.code,
-                    errorReason = errorDetails?.type,
+                    errorCode = errorDetails.code,
+                    errorReason = errorDetails.type,
                     errorMessage =
-                    errorDetails?.description
-                        ?: errorDetails?.message,
+                    errorDetails.description
+                        ?: errorDetails.message,
                     failureCode = failureCode,
                     isPermanent = false,
                     message = errorMessage,

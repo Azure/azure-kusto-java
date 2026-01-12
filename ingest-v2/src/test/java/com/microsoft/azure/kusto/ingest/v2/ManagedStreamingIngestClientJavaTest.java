@@ -71,14 +71,14 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withIngestionMappingReference(targetTable + "_mapping")
                     .withEnableTracking(true)
                     .build();
 
             // Ingest data (should use streaming for small data)
             logger.info("Ingesting small data via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             assertNotNull(response.getIngestResponse().getIngestionOperationId(),
@@ -141,13 +141,13 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withIngestionMappingReference(targetTable + "_mapping")
                     .withEnableTracking(true)
                     .build();
 
             logger.info("Ingesting larger data via managed streaming (may trigger fallback)...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
 
@@ -213,12 +213,12 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withEnableTracking(true)
                     .build();
 
             logger.info("Ingesting file via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(fileSource, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
             assertNotNull(response.getIngestResponse().getIngestionOperationId(), "Operation ID should not be null");

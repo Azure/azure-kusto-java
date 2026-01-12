@@ -12,6 +12,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
@@ -70,14 +71,14 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withIngestionMappingReference(targetTable + "_mapping")
                     .withEnableTracking(true)
                     .build();
 
             // Queue data for ingestion
             logger.info("Queueing data for ingestion...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             assertNotNull(response.getIngestResponse().getIngestionOperationId(),
@@ -143,8 +144,8 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
                 return;
             }
 
-            com.microsoft.azure.kusto.ingest.v2.source.FileSource fileSource =
-                    new com.microsoft.azure.kusto.ingest.v2.source.FileSource(
+            FileSource fileSource =
+                    new FileSource(
                             filePath,
                             Format.multijson,
                             UUID.randomUUID(),
@@ -153,12 +154,12 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
                     );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withEnableTracking(true)
                     .build();
 
             logger.info("Queueing file for ingestion...");
-            ExtendedIngestResponse response = client.ingestAsync(fileSource, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
             logger.info("File queued. Operation ID: {}",

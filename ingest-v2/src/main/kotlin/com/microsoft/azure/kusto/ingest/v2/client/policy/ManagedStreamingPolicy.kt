@@ -95,7 +95,7 @@ interface ManagedStreamingPolicy {
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): Boolean
 
     /** This callback will be called when a streaming error occurs. */
@@ -103,7 +103,7 @@ interface ManagedStreamingPolicy {
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         failureDetails: ManagedStreamingRequestFailureDetails,
     )
 
@@ -112,7 +112,7 @@ interface ManagedStreamingPolicy {
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         successDetails: ManagedStreamingRequestSuccessDetails,
     )
 }

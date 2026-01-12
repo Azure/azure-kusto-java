@@ -18,6 +18,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -69,13 +70,13 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .withIngestionMappingReference(targetTable + "_mapping")
                     .build();
 
             // Ingest data
             logger.info("Ingesting data via streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             assertNotNull(response.getIngestResponse().getIngestionOperationId(),
@@ -117,7 +118,7 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                 return;
             }
 
-            InputStream fileStream = java.nio.file.Files.newInputStream(filePath);
+            InputStream fileStream = Files.newInputStream(filePath);
 
             StreamSource source = new StreamSource(
                     fileStream,
@@ -128,11 +129,11 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             );
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+                    .create()
                     .build();
 
             logger.info("Ingesting compressed data...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             logger.info("Compressed streaming ingestion completed. Operation ID: {}",

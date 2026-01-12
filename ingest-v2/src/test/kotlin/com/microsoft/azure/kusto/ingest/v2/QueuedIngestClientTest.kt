@@ -154,7 +154,7 @@ class QueuedIngestClientTest :
 
         val properties =
             if (useMappingReference) {
-                IngestRequestPropertiesBuilder.create(database, targetTable)
+                IngestRequestPropertiesBuilder.create()
                     .withIngestionMappingReference(
                         "${targetTable}_mapping",
                     )
@@ -210,12 +210,12 @@ class QueuedIngestClientTest :
                     jsonPrinter.encodeToString(
                         inlineIngestionMappingInline.columnMappings,
                     )
-                IngestRequestPropertiesBuilder.create(database, targetTable)
+                IngestRequestPropertiesBuilder.create()
                     .withIngestionMapping(ingestionMappingString)
                     .withEnableTracking(true)
                     .build()
             } else {
-                IngestRequestPropertiesBuilder.create(database, targetTable)
+                IngestRequestPropertiesBuilder.create()
                     .withEnableTracking(true)
                     .build()
             }
@@ -223,6 +223,8 @@ class QueuedIngestClientTest :
         try {
             val ingestionResponse =
                 ingestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = testSources,
                     ingestRequestProperties = properties,
                 )
@@ -342,12 +344,11 @@ class QueuedIngestClientTest :
                 createTestStreamSource(1024, "combined_small.json")
             val smallResponse =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = smallSource,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -382,12 +383,11 @@ class QueuedIngestClientTest :
                 )
             val largeResponse =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = largeSource,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -424,12 +424,11 @@ class QueuedIngestClientTest :
                 }
             val batchResponse =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = batchSources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -480,12 +479,11 @@ class QueuedIngestClientTest :
             val startTime = System.currentTimeMillis()
             val response =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = sources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -599,12 +597,11 @@ class QueuedIngestClientTest :
                     listOf("ingest-by:i-tag") + listOf("drop-by:d-tag")
                 val response =
                     queuedIngestClient.ingestAsync(
+                        database = database,
+                        table = targetTable,
                         sources = listOf(source),
                         ingestRequestProperties =
-                        IngestRequestPropertiesBuilder.create(
-                            database,
-                            targetTable,
-                        )
+                        IngestRequestPropertiesBuilder.create()
                             .withEnableTracking(true)
                             .withIngestByTags(
                                 listOf("i-tag"),
@@ -756,12 +753,11 @@ test2,456,2024-01-02"""
         val exception =
             assertThrows<IngestClientException> {
                 client.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = sources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -826,12 +822,14 @@ test2,456,2024-01-02"""
 
         val queuedIngestClient = createTestClient()
         val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
 
         val ingestionResponse =
             queuedIngestClient.ingestAsync(
+                database = database,
+                table = targetTable,
                 sources = listOf(source),
                 ingestRequestProperties = properties,
             )
@@ -905,12 +903,11 @@ test2,456,2024-01-02"""
             try {
                 val response =
                     oneLakeIngestClient.ingestAsync(
+                        database = database,
+                        table = targetTable,
                         source = source,
                         ingestRequestProperties =
-                        IngestRequestPropertiesBuilder.create(
-                            database,
-                            targetTable,
-                        )
+                        IngestRequestPropertiesBuilder.create()
                             .withEnableTracking(true)
                             .build(),
                     )

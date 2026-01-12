@@ -35,8 +35,10 @@ interface IngestClient : Closeable {
      *   status of the ingestion.
      */
     suspend fun ingestAsync(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse
 
     /**
@@ -87,8 +89,10 @@ interface MultiIngestClient : IngestClient {
      *   status of the ingestion.
      */
     suspend fun ingestAsync(
+        database: String,
+        table: String,
         sources: List<IngestionSource>,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse
 
     /**
