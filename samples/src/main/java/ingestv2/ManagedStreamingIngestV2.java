@@ -14,6 +14,7 @@ import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus;
 import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
@@ -49,21 +50,20 @@ public class ManagedStreamingIngestV2 {
 
     private static String database;
     private static String table;
-    private static String mapping;
+    private static String mappingName;
     private static ManagedStreamingIngestClient managedStreamingIngestClient;
 
     public static void main(String[] args) {
         try {
             // Get configuration from system properties
-            String engineEndpoint =
-                    System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
+            String engineEndpoint = System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
             String appId = System.getProperty("app-id");
             String appKey = System.getProperty("appKey");
             String tenant = System.getProperty("tenant");
 
             database = System.getProperty("dbName");
             table = System.getProperty("tableName");
-            mapping = System.getProperty("dataMappingName");
+            mappingName = System.getProperty("dataMappingName");
 
             ChainedTokenCredential credential;
 
@@ -71,20 +71,18 @@ public class ManagedStreamingIngestV2 {
             if (StringUtils.isNotBlank(appId)
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(
-                                        new ClientSecretCredentialBuilder()
-                                                .clientId(appId)
-                                                .clientSecret(appKey)
-                                                .tenantId(tenant)
-                                                .build())
-                                .build();
+                credential = new ChainedTokenCredentialBuilder()
+                        .addFirst(
+                                new ClientSecretCredentialBuilder()
+                                        .clientId(appId)
+                                        .clientSecret(appKey)
+                                        .tenantId(tenant)
+                                        .build())
+                        .build();
             } else {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(new AzureCliCredentialBuilder().build())
-                                .build();
+                credential = new ChainedTokenCredentialBuilder()
+                        .addFirst(new AzureCliCredentialBuilder().build())
+                        .build();
             }
 
             if (engineEndpoint == null || engineEndpoint.isEmpty()) {
@@ -94,10 +92,9 @@ public class ManagedStreamingIngestV2 {
 
             // Create managed streaming ingest client using the new v2 API
             // The client will automatically handle streaming vs queued ingestion decisions
-            managedStreamingIngestClient =
-                    ManagedStreamingIngestClientBuilder.create(engineEndpoint)
-                            .withAuthentication(credential)
-                            .build();
+            managedStreamingIngestClient = ManagedStreamingIngestClientBuilder.create(engineEndpoint)
+                    .withAuthentication(credential)
+                    .build();
 
             System.out.println("Managed Streaming Ingest Client created successfully");
             System.out.println(
@@ -130,73 +127,62 @@ public class ManagedStreamingIngestV2 {
         System.out.println("\n=== Managed Streaming Ingestion from Streams ===");
 
         // Example 1: Ingest from in-memory CSV string (small data - will use streaming)
-        String csvData =
-                "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream csvInputStream =
-                new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
+        String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
-        StreamSource csvStreamSource =
-                new StreamSource(
-                        csvInputStream,
-                        Format.csv,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "csv-managed-stream",
-                        false);
+        StreamSource csvStreamSource = new StreamSource(
+                csvInputStream,
+                Format.csv,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                "csv-managed-stream",
+                false);
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting small CSV data from string...");
-        ExtendedIngestResponse csvResponse =
-                managedStreamingIngestClient.ingestAsync(csvStreamSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsync(database, table, csvStreamSource, csvProperties).get();
         printIngestionResult("CSV String", csvResponse);
 
         // Example 2: Ingest from compressed CSV file
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        FileInputStream compressedCsvStream =
-                new FileInputStream(resourcesDirectory + "dataset.csv.gz");
+        FileInputStream compressedCsvStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
 
-        StreamSource compressedStreamSource =
-                new StreamSource(
-                        compressedCsvStream,
-                        Format.csv,
-                        CompressionType.GZIP,
-                        UUID.randomUUID(),
-                        "compressed-csv-managed-stream",
-                        false);
+        StreamSource compressedStreamSource = new StreamSource(
+                compressedCsvStream,
+                Format.csv,
+                CompressionType.GZIP,
+                UUID.randomUUID(),
+                "compressed-csv-managed-stream",
+                false);
 
         System.out.println("Ingesting compressed CSV file...");
-        ExtendedIngestResponse compressedResponse =
-                managedStreamingIngestClient
-                        .ingestAsync(compressedStreamSource, csvProperties)
-                        .get();
+        ExtendedIngestResponse compressedResponse = managedStreamingIngestClient
+                .ingestAsync(database, table, compressedStreamSource, csvProperties)
+                .get();
         printIngestionResult("Compressed CSV", compressedResponse);
         compressedCsvStream.close();
 
         // Example 3: Ingest JSON with mapping
         FileInputStream jsonStream = new FileInputStream(resourcesDirectory + "dataset.json");
 
-        StreamSource jsonStreamSource =
-                new StreamSource(
-                        jsonStream,
-                        Format.json,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "json-managed-stream",
-                        false);
-
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        StreamSource jsonStreamSource = new StreamSource(
+                jsonStream,
+                Format.json,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                "json-managed-stream",
+                false);
+        IngestionMapping ingestionMapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(ingestionMapping)
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse =
-                managedStreamingIngestClient.ingestAsync(jsonStreamSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsync(database, table, jsonStreamSource, jsonProperties).get();
         printIngestionResult("JSON with Mapping", jsonResponse);
         jsonStream.close();
     }
@@ -212,42 +198,37 @@ public class ManagedStreamingIngestV2 {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Example 1: Ingest CSV file
-        FileSource csvFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "m-ds-csv");
+        FileSource csvFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.csv"),
+                Format.csv,
+                UUID.randomUUID(),
+                CompressionType.NONE,
+                "m-ds-csv");
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting CSV file...");
-        ExtendedIngestResponse csvResponse =
-                managedStreamingIngestClient.ingestAsync(csvFileSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsync(database, table, csvFileSource, csvProperties).get();
         printIngestionResult("CSV File", csvResponse);
 
         // Example 2: Ingest compressed JSON file with mapping
-        FileSource jsonFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
-                        Format.json,
-                        UUID.randomUUID(),
-                        CompressionType.GZIP,
-                        "m-ds-json-compressed");
+        FileSource jsonFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
+                Format.json,
+                UUID.randomUUID(),
+                CompressionType.GZIP,
+                "m-ds-json-compressed");
 
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        IngestionMapping ingestionMapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(ingestionMapping)
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting compressed JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse =
-                managedStreamingIngestClient.ingestAsync(jsonFileSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
         printIngestionResult("Compressed JSON File", jsonResponse);
     }
 
@@ -288,27 +269,24 @@ public class ManagedStreamingIngestV2 {
         // Mark the stream for potential retry (seekable stream)
         largeInputStream.mark(dataBytes.length);
 
-        StreamSource largeStreamSource =
-                new StreamSource(
-                        largeInputStream,
-                        Format.csv,
-                        CompressionType.NONE, // Will be auto-compressed by the client
-                        UUID.randomUUID(),
-                        "large-data-fallback-demo",
-                        false);
+        StreamSource largeStreamSource = new StreamSource(
+                largeInputStream,
+                Format.csv,
+                CompressionType.NONE, // Will be auto-compressed by the client
+                UUID.randomUUID(),
+                "large-data-fallback-demo",
+                false);
 
-        IngestRequestProperties properties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties properties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println(
                 "Ingesting large dataset (" + formatBytes(dataBytes.length) + " uncompressed)...");
         System.out.println("(Watch for fallback log messages from ManagedStreamingIngestClient)");
         System.out.println();
 
-        ExtendedIngestResponse response =
-                managedStreamingIngestClient.ingestAsync(largeStreamSource, properties).get();
+        ExtendedIngestResponse response = managedStreamingIngestClient.ingestAsync(database, table, largeStreamSource, properties).get();
         printIngestionResult("Large Data Ingestion", response);
 
         // The large data should trigger queued fallback
@@ -316,26 +294,23 @@ public class ManagedStreamingIngestV2 {
             System.out.println("SUCCESS: Large data correctly triggered QUEUED fallback!");
             System.out.println("This demonstrates the automatic size-based routing.\n");
 
-            IngestionOperation operation =
-                    new IngestionOperation(
-                            Objects.requireNonNull(
-                                    response.getIngestResponse().getIngestionOperationId()),
-                            database,
-                            table,
-                            response.getIngestionType());
+            IngestionOperation operation = new IngestionOperation(
+                    Objects.requireNonNull(
+                            response.getIngestResponse().getIngestionOperationId()),
+                    database,
+                    table,
+                    response.getIngestionType());
 
             // Get initial operation details
-            CompletableFuture<StatusResponse> detailsFuture =
-                    managedStreamingIngestClient.getOperationDetailsAsync(operation);
+            CompletableFuture<StatusResponse> detailsFuture = managedStreamingIngestClient.getOperationDetailsAsync(operation);
             StatusResponse details = detailsFuture.get();
             printStatusResponse("Initial Status", details);
 
             // Poll for completion using getOperationDetailsAsync
             System.out.println(
                     "\nPolling for completion (checking every 30 seconds, timeout 2 minutes)...");
-            StatusResponse finalStatus =
-                    pollForCompletionManually(
-                            operation, Duration.ofSeconds(30), Duration.ofMinutes(2));
+            StatusResponse finalStatus = pollForCompletionManually(
+                    operation, Duration.ofSeconds(30), Duration.ofMinutes(2));
             printStatusResponse("Final Status", finalStatus);
 
         } else {
@@ -430,9 +405,12 @@ public class ManagedStreamingIngestV2 {
 
     /** Formats bytes into a human-readable string (e.g., "10.00 MB"). */
     private static @NotNull String formatBytes(long bytes) {
-        if (bytes < 1024) return bytes + " B";
-        if (bytes < 1024 * 1024) return String.format("%.2f KB", bytes / 1024.0);
-        if (bytes < 1024 * 1024 * 1024) return String.format("%.2f MB", bytes / (1024.0 * 1024.0));
+        if (bytes < 1024)
+            return bytes + " B";
+        if (bytes < 1024 * 1024)
+            return String.format("%.2f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024)
+            return String.format("%.2f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
     }
 
@@ -450,8 +428,7 @@ public class ManagedStreamingIngestV2 {
         long intervalMillis = pollingInterval.toMillis();
 
         while (System.currentTimeMillis() - startTime < timeoutMillis) {
-            StatusResponse status =
-                    managedStreamingIngestClient.getOperationDetailsAsync(operation).get();
+            StatusResponse status = managedStreamingIngestClient.getOperationDetailsAsync(operation).get();
 
             // Check if completed (no more in-progress items)
             Status summary = status.getStatus();
@@ -479,8 +456,7 @@ public class ManagedStreamingIngestV2 {
     /** Prints the ingestion result including which method (streaming or queued) was used. */
     private static void printIngestionResult(
             String operationName, @NotNull ExtendedIngestResponse response) {
-        String ingestionMethod =
-                response.getIngestionType() == IngestKind.STREAMING ? "STREAMING" : "QUEUED";
+        String ingestionMethod = response.getIngestionType() == IngestKind.STREAMING ? "STREAMING" : "QUEUED";
         System.out.println(
                 "["
                         + operationName

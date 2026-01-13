@@ -3,9 +3,8 @@
 
 package ingestv2;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
-import com.azure.identity.ChainedTokenCredential;
-import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder;
@@ -13,11 +12,8 @@ import com.microsoft.azure.kusto.ingest.v2.client.IngestionOperation;
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
-import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus;
-import com.microsoft.azure.kusto.ingest.v2.models.Format;
-import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
-import com.microsoft.azure.kusto.ingest.v2.models.Status;
-import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
+import com.microsoft.azure.kusto.ingest.v2.models.*;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource;
@@ -45,42 +41,35 @@ public class QueuedIngestV2 {
 
     private static String database;
     private static String table;
-    private static String mapping;
+    private static String mappingName;
     private static QueuedIngestClient queuedIngestClient;
 
     public static void main(String[] args) {
         try {
             // Get configuration from system properties
-            String engineEndpoint =
-                    System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
+            String engineEndpoint = System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
             String appId = System.getProperty("app-id");
             String appKey = System.getProperty("appKey");
             String tenant = System.getProperty("tenant");
 
             database = System.getProperty("dbName");
             table = System.getProperty("tableName");
-            mapping = System.getProperty("dataMappingName");
+            mappingName = System.getProperty("dataMappingName");
 
-            ChainedTokenCredential credential;
+            TokenCredential credential;
 
             // Create Azure AD credential
             if (StringUtils.isNotBlank(appId)
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(
-                                        new ClientSecretCredentialBuilder()
-                                                .clientId(appId)
-                                                .clientSecret(appKey)
-                                                .tenantId(tenant)
-                                                .build())
-                                .build();
+                credential = new ClientSecretCredentialBuilder()
+                        .clientId(appId)
+                        .clientSecret(appKey)
+                        .tenantId(tenant)
+                        .build();
             } else {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(new AzureCliCredentialBuilder().build())
-                                .build();
+                // If there is no app credentials were passed, use AzCli be used for auth
+                credential = new AzureCliCredentialBuilder().build();
             }
 
             if (engineEndpoint == null || engineEndpoint.isEmpty()) {
@@ -89,11 +78,10 @@ public class QueuedIngestV2 {
             }
 
             // Create queued ingest client using the new v2 API
-            queuedIngestClient =
-                    QueuedIngestClientBuilder.create(engineEndpoint)
-                            .withAuthentication(credential)
-                            .withMaxConcurrency(10) // Set maximum concurrent uploads
-                            .build();
+            queuedIngestClient = QueuedIngestClientBuilder.create(engineEndpoint)
+                    .withAuthentication(credential)
+                    .withMaxConcurrency(10) // Set maximum concurrent uploads
+                    .build();
 
             System.out.println("Queued Ingest Client created successfully");
 
@@ -106,8 +94,7 @@ public class QueuedIngestV2 {
             allFutures.add(ingestMultipleSources());
 
             // Wait for all operations to complete
-            CompletableFuture<Void> allOf =
-                    CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]));
+            CompletableFuture<Void> allOf = CompletableFuture.allOf(allFutures.toArray(new CompletableFuture[0]));
 
             System.out.println("\nWaiting for all ingestion operations to complete...");
             allOf.get(5, TimeUnit.MINUTES);
@@ -134,102 +121,90 @@ public class QueuedIngestV2 {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         // Example 1: Ingest from in-memory CSV string
-        String csvData =
-                "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream csvInputStream =
-                new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
+        String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
-        StreamSource csvStreamSource =
-                new StreamSource(
-                        csvInputStream,
-                        Format.csv,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "csv-queued-stream",
-                        false);
+        StreamSource csvStreamSource = new StreamSource(
+                csvInputStream,
+                Format.csv,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                "csv-queued-stream",
+                false);
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create()
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Queueing CSV data from string...");
-        CompletableFuture<Void> csvFuture =
-                queuedIngestClient
-                        .ingestAsync(database,table,csvStreamSource, csvProperties)
-                        .thenCompose(
-                                response -> {
-                                    System.out.println(
-                                            "CSV ingestion queued. Operation ID: "
-                                                    + response.getIngestResponse()
-                                                            .getIngestionOperationId());
-                                    return trackIngestionOperation(response, "CSV Stream");
-                                })
-                        .whenComplete((unused, throwable) -> closeQuietly(csvInputStream));
+        CompletableFuture<Void> csvFuture = queuedIngestClient
+                .ingestAsync(database, table, csvStreamSource, csvProperties)
+                .thenCompose(
+                        response -> {
+                            System.out.println(
+                                    "CSV ingestion queued. Operation ID: "
+                                            + response.getIngestResponse()
+                                                    .getIngestionOperationId());
+                            return trackIngestionOperation(response, "CSV Stream");
+                        })
+                .whenComplete((unused, throwable) -> closeQuietly(csvInputStream));
         futures.add(csvFuture);
 
         // Example 2: Ingest from compressed CSV file
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        InputStream compressedCsvStream =
-                new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.csv.gz"));
+        InputStream compressedCsvStream = new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.csv.gz"));
 
-        StreamSource compressedStreamSource =
-                new StreamSource(
-                        compressedCsvStream,
-                        Format.csv,
-                        CompressionType.GZIP,
-                        UUID.randomUUID(),
-                        "compressed-csv-queued-stream",
-                        false);
+        StreamSource compressedStreamSource = new StreamSource(
+                compressedCsvStream,
+                Format.csv,
+                CompressionType.GZIP,
+                UUID.randomUUID(),
+                "compressed-csv-queued-stream",
+                false);
 
         System.out.println("Queueing compressed CSV file...");
-        CompletableFuture<Void> compressedFuture =
-                queuedIngestClient
-                        .ingestAsync(database,table,compressedStreamSource, csvProperties)
-                        .thenCompose(
-                                response -> {
-                                    System.out.println(
-                                            "Compressed CSV ingestion queued. Operation ID: "
-                                                    + response.getIngestResponse()
-                                                            .getIngestionOperationId());
-                                    return trackIngestionOperation(
-                                            response, "Compressed CSV Stream");
-                                })
-                        .whenComplete((unused, throwable) -> closeQuietly(compressedCsvStream));
+        CompletableFuture<Void> compressedFuture = queuedIngestClient
+                .ingestAsync(database, table, compressedStreamSource, csvProperties)
+                .thenCompose(
+                        response -> {
+                            System.out.println(
+                                    "Compressed CSV ingestion queued. Operation ID: "
+                                            + response.getIngestResponse()
+                                                    .getIngestionOperationId());
+                            return trackIngestionOperation(
+                                    response, "Compressed CSV Stream");
+                        })
+                .whenComplete((unused, throwable) -> closeQuietly(compressedCsvStream));
         futures.add(compressedFuture);
 
         // Example 3: Ingest JSON with mapping
-        InputStream jsonStream =
-                new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.json"));
+        InputStream jsonStream = new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.json"));
 
-        StreamSource jsonStreamSource =
-                new StreamSource(
-                        jsonStream,
-                        Format.json,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "json-queued-stream",
-                        false);
-
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create()
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        StreamSource jsonStreamSource = new StreamSource(
+                jsonStream,
+                Format.json,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                "json-queued-stream",
+                false);
+        IngestionMapping mapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(mapping)
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Queueing JSON file with mapping...");
-        CompletableFuture<Void> jsonFuture =
-                queuedIngestClient
-                        .ingestAsync(database,table,jsonStreamSource, jsonProperties)
-                        .thenCompose(
-                                response -> {
-                                    System.out.println(
-                                            "JSON ingestion queued. Operation ID: "
-                                                    + response.getIngestResponse()
-                                                            .getIngestionOperationId());
-                                    return trackIngestionOperation(response, "JSON Stream");
-                                })
-                        .whenComplete((unused, throwable) -> closeQuietly(jsonStream));
+        CompletableFuture<Void> jsonFuture = queuedIngestClient
+                .ingestAsync(database, table, jsonStreamSource, jsonProperties)
+                .thenCompose(
+                        response -> {
+                            System.out.println(
+                                    "JSON ingestion queued. Operation ID: "
+                                            + response.getIngestResponse()
+                                                    .getIngestionOperationId());
+                            return trackIngestionOperation(response, "JSON Stream");
+                        })
+                .whenComplete((unused, throwable) -> closeQuietly(jsonStream));
         futures.add(jsonFuture);
 
         return futures;
@@ -247,61 +222,55 @@ public class QueuedIngestV2 {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Example 1: Ingest CSV file
-        FileSource csvFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "dataset.csv");
+        FileSource csvFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.csv"),
+                Format.csv,
+                UUID.randomUUID(),
+                CompressionType.NONE,
+                "dataset.csv");
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create()
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Queueing CSV file...");
-        CompletableFuture<Void> csvFuture =
-                queuedIngestClient
-                        .ingestAsync(database,table,csvFileSource, csvProperties)
-                        .thenCompose(
-                                response -> {
-                                    System.out.println(
-                                            "CSV file ingestion queued. Operation ID: "
-                                                    + response.getIngestResponse()
-                                                            .getIngestionOperationId());
-                                    return trackIngestionOperation(response, "CSV File");
-                                });
+        CompletableFuture<Void> csvFuture = queuedIngestClient
+                .ingestAsync(database, table, csvFileSource, csvProperties)
+                .thenCompose(
+                        response -> {
+                            System.out.println(
+                                    "CSV file ingestion queued. Operation ID: "
+                                            + response.getIngestResponse()
+                                                    .getIngestionOperationId());
+                            return trackIngestionOperation(response, "CSV File");
+                        });
         futures.add(csvFuture);
 
         // Example 2: Ingest compressed JSON file with mapping
-        FileSource jsonFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
-                        Format.json,
-                        UUID.randomUUID(),
-                        CompressionType.GZIP,
-                        "dataset.jsonz");
-
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create()
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        FileSource jsonFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
+                Format.json,
+                UUID.randomUUID(),
+                CompressionType.GZIP,
+                "dataset.jsonz");
+        IngestionMapping mapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(mapping)
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Queueing compressed JSON file with mapping...");
-        CompletableFuture<Void> jsonFuture =
-                queuedIngestClient
-                        .ingestAsync(database,table,jsonFileSource, jsonProperties)
-                        .thenCompose(
-                                response -> {
-                                    System.out.println(
-                                            "Compressed JSON file ingestion queued. Operation ID: "
-                                                    + response.getIngestResponse()
-                                                            .getIngestionOperationId());
-                                    return trackIngestionOperation(
-                                            response, "Compressed JSON File");
-                                });
+        CompletableFuture<Void> jsonFuture = queuedIngestClient
+                .ingestAsync(database, table, jsonFileSource, jsonProperties)
+                .thenCompose(
+                        response -> {
+                            System.out.println(
+                                    "Compressed JSON file ingestion queued. Operation ID: "
+                                            + response.getIngestResponse()
+                                                    .getIngestionOperationId());
+                            return trackIngestionOperation(
+                                    response, "Compressed JSON File");
+                        });
         futures.add(jsonFuture);
 
         return futures;
@@ -317,32 +286,29 @@ public class QueuedIngestV2 {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Create multiple file sources
-        FileSource source1 =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "dataset.csv");
+        FileSource source1 = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.csv"),
+                Format.csv,
+                UUID.randomUUID(),
+                CompressionType.NONE,
+                "dataset.csv");
 
-        FileSource source2 =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv.gz"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.GZIP,
-                        "dataset.csv.gz");
+        FileSource source2 = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.csv.gz"),
+                Format.csv,
+                UUID.randomUUID(),
+                CompressionType.GZIP,
+                "dataset.csv.gz");
 
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 
-        IngestRequestProperties properties =
-                IngestRequestPropertiesBuilder.create()
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties properties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Queueing multiple sources in batch...");
         return queuedIngestClient
-                .ingestAsync(database,table,sources, properties)
+                .ingestAsync(database, table, sources, properties)
                 .thenCompose(
                         response -> {
                             System.out.println(
@@ -360,13 +326,12 @@ public class QueuedIngestV2 {
      */
     private static CompletableFuture<Void> trackIngestionOperation(
             ExtendedIngestResponse response, String operationName) {
-        IngestionOperation operation =
-                new IngestionOperation(
-                        Objects.requireNonNull(
-                                response.getIngestResponse().getIngestionOperationId()),
-                        database,
-                        table,
-                        response.getIngestionType());
+        IngestionOperation operation = new IngestionOperation(
+                Objects.requireNonNull(
+                        response.getIngestResponse().getIngestionOperationId()),
+                database,
+                table,
+                response.getIngestionType());
 
         System.out.println("\n--- Tracking " + operationName + " ---");
 
@@ -411,7 +376,9 @@ public class QueuedIngestV2 {
                         });
     }
 
-    /** Prints detailed status information from a StatusResponse */
+    /**
+     * Prints detailed status information from a StatusResponse
+     */
     private static void printStatusResponse(StatusResponse statusResponse) {
         if (statusResponse == null) {
             System.out.println("  Status: null");
