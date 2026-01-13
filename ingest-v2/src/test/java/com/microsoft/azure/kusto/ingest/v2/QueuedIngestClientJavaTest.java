@@ -18,6 +18,9 @@ import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -49,8 +52,9 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Operation can be tracked
      * - Data appears in the table after processing
      */
-    @Test
-    public void testBasicQueuedIngest() throws Exception {
+    @ParameterizedTest(name = "Queued Ingest Basic Test - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true,false})
+    public void testBasicQueuedIngest(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java queued ingest regression test");
 
         // Create queued client
@@ -74,50 +78,52 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
             IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
                     IngestionMapping.IngestionMappingType.JSON);
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
+            IngestRequestProperties properties = useIngestRequestProperties ?IngestRequestPropertiesBuilder
                     .create()
                     .withIngestionMapping(mappingReference)
                     .withEnableTracking(true)
-                    .build();
+                    .build(): null;
 
             // Queue data for ingestion
             logger.info("Queueing data for ingestion...");
             ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            assertNotNull(response.getIngestResponse().getIngestionOperationId(),
-                    "Operation ID should not be null");
+            if(useIngestRequestProperties) {
 
-            logger.info("Data queued. Operation ID: {}",
-                    response.getIngestResponse().getIngestionOperationId());
+                assertNotNull(response.getIngestResponse().getIngestionOperationId(),
+                        "Operation ID should not be null");
 
-            // Track the operation
-            IngestionOperation operation = new IngestionOperation(
-                    response.getIngestResponse().getIngestionOperationId(),
-                    database,
-                    targetTable,
-                    response.getIngestionType()
-            );
+                logger.info("Data queued. Operation ID: {}",
+                        response.getIngestResponse().getIngestionOperationId());
 
-            // Get initial status
-            StatusResponse initialStatus = client.getOperationDetailsAsync(operation).get();
-            assertNotNull(initialStatus, "Initial status should not be null");
-            logger.info("Initial status retrieved");
+                // Track the operation
+                IngestionOperation operation = new IngestionOperation(
+                        response.getIngestResponse().getIngestionOperationId(),
+                        database,
+                        targetTable,
+                        response.getIngestionType()
+                );
 
-            // Poll for completion
-            logger.info("Polling for completion...");
-            StatusResponse finalStatus = client.pollForCompletion(
-                    operation,
-                    Duration.ofSeconds(30),
-                    Duration.ofMinutes(2)
-            ).get();
+                // Get initial status
+                StatusResponse initialStatus = client.getOperationDetailsAsync(operation).get();
+                assertNotNull(initialStatus, "Initial status should not be null");
+                logger.info("Initial status retrieved");
 
-            assertNotNull(finalStatus, "Final status should not be null");
-            assertNotNull(finalStatus.getStatus(), "Final status summary should not be null");
-            assertEquals(0, finalStatus.getStatus().getFailed(), "Ingestion should not record failures");
-            assertTrue(finalStatus.getStatus().getSucceeded()!=null && finalStatus.getStatus().getSucceeded() >= 1, "At least one ingestion should succeed");
-            logger.info("Polling completed");
+                // Poll for completion
+                logger.info("Polling for completion...");
+                StatusResponse finalStatus = client.pollForCompletion(
+                        operation,
+                        Duration.ofSeconds(30),
+                        Duration.ofMinutes(2)
+                ).get();
 
+                assertNotNull(finalStatus, "Final status should not be null");
+                assertNotNull(finalStatus.getStatus(), "Final status summary should not be null");
+                assertEquals(0, finalStatus.getStatus().getFailed(), "Ingestion should not record failures");
+                assertTrue(finalStatus.getStatus().getSucceeded() != null && finalStatus.getStatus().getSucceeded() >= 1, "At least one ingestion should succeed");
+                logger.info("Polling completed");
+            }
             // Verify data appeared in table
             String query = String.format("%s | summarize count=count()", targetTable);
             awaitAndQuery(query, 1);

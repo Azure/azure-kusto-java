@@ -9,6 +9,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestRequestExcept
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestServiceException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -130,7 +131,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         database: String,
         table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
             ingestAsyncInternal(
@@ -190,11 +191,14 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
         // Inject format from source into properties
         val effectiveProperties =
             ingestRequestProperties?.withFormatFromSource(source)
+                ?: IngestRequestPropertiesBuilder.create()
+                    .build()
+                    .withFormatFromSource(source)
         // Streaming ingestion processes one source at a time
         val maxSize =
             getMaxStreamingIngestSize(
                 compressionType = source.compressionType,
-                format = effectiveProperties?.format ?: Format.csv,
+                format = effectiveProperties.format,
             )
         val operationId = UUID.randomUUID().toString()
         when (source) {

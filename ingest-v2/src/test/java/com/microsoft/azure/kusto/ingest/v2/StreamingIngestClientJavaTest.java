@@ -12,9 +12,10 @@ import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -44,8 +45,9 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Simple CSV data can be ingested via streaming
      * - Data appears in the table after ingestion
      */
-    @Test
-    public void testBasicStreamingIngest() throws Exception {
+    @ParameterizedTest(name = "Streaming Ingest Basic Test - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true, false})
+    public void testBasicStreamingIngest(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java streaming ingest regression test");
 
         // Enable streaming ingestion on the table
@@ -72,21 +74,23 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
             IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
                     IngestionMapping.IngestionMappingType.JSON);
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
+            IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder
                     .create()
                     .withIngestionMapping(mappingReference)
-                    .build();
+                    .build() : null;
 
             // Ingest data
             logger.info("Ingesting data via streaming...");
             ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            assertNotNull(response.getIngestResponse().getIngestionOperationId(),
-                    "Operation ID should not be null");
+            if (useIngestRequestProperties) {
+                assertNotNull(response.getIngestResponse().getIngestionOperationId(),
+                        "Operation ID should not be null");
 
-            logger.info("Streaming ingestion completed. Operation ID: {}",
-                    response.getIngestResponse().getIngestionOperationId());
+                logger.info("Streaming ingestion completed. Operation ID: {}",
+                        response.getIngestResponse().getIngestionOperationId());
+            }
 
             // Verify data appeared in table
             String query = String.format("%s | summarize count=count()", targetTable);
@@ -101,8 +105,9 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * Test streaming ingestion with compressed data from Java.
      * Verifies that compression handling works correctly from Java.
      */
-    @Test
-    public void testStreamingIngestWithCompression() throws Exception {
+    @ParameterizedTest(name = "Streaming Ingest with Compression - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true, false})
+    public void testStreamingIngestWithCompression(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java streaming ingest with compression test");
 
         alterTableToEnableStreaming();
@@ -131,16 +136,18 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     false
             );
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
+            IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder
                     .create()
-                    .build();
+                    .build() : null;
 
             logger.info("Ingesting compressed data...");
             ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            logger.info("Compressed streaming ingestion completed. Operation ID: {}",
-                    response.getIngestResponse().getIngestionOperationId());
+            if (useIngestRequestProperties) {
+                logger.info("Compressed streaming ingestion completed. Operation ID: {}",
+                        response.getIngestResponse().getIngestionOperationId());
+            }
 
             fileStream.close();
 

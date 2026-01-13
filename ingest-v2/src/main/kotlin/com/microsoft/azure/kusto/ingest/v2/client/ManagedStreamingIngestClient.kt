@@ -12,6 +12,8 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientExcepti
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status
@@ -95,20 +97,26 @@ internal constructor(
         }
         requireNotNull(table.trim().isNotEmpty()) { "table cannot be blank" }
 
+        val effectiveProperties =
+            ingestRequestProperties?.withFormatFromSource(source)
+                ?: IngestRequestPropertiesBuilder.create()
+                    .build()
+                    .withFormatFromSource(source)
+
         return when (source) {
             is BlobSource ->
                 ingestBlobAsync(
                     source,
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveProperties,
                 )
             is LocalSource ->
                 ingestLocalAsync(
                     source,
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveProperties,
                 )
             else ->
                 throw IllegalArgumentException(
@@ -175,7 +183,7 @@ internal constructor(
         database: String,
         table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
             ingestAsync(database, table, source, ingestRequestProperties)

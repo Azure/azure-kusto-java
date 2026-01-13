@@ -10,6 +10,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -135,7 +136,7 @@ internal constructor(
         database: String,
         table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
             ingestAsyncSingleInternal(
@@ -266,6 +267,9 @@ internal constructor(
         // Extract format from the first source (all sources have same format as validated above)
         val effectiveProperties =
             ingestRequestProperties?.withFormatFromSource(sources.first())
+                ?: IngestRequestPropertiesBuilder.create()
+                    .build()
+                    .withFormatFromSource(sources.first())
 
         val ingestRequest =
             IngestRequest(
