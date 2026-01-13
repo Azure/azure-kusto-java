@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
-import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties

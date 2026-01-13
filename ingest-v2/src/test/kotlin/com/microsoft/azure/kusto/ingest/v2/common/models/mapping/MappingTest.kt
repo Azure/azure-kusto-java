@@ -64,7 +64,6 @@ class MappingTest {
     @Test
     fun `ColumnMapping should set and get ordinal`() {
         val mapping = ColumnMapping("col1", "string")
-
         mapping.setOrdinal(5)
         assertEquals(5, mapping.getOrdinal())
     }

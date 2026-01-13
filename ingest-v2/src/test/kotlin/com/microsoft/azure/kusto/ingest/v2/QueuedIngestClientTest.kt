@@ -211,10 +211,6 @@ class QueuedIngestClientTest :
                             .IngestionMappingType
                             .JSON,
                     )
-                val ingestionMappingString =
-                    jsonPrinter.encodeToString(
-                        inlineIngestionMapping.columnMappings,
-                    )
                 IngestRequestPropertiesBuilder.create()
                     .withIngestionMapping(inlineIngestionMapping)
                     .withEnableTracking(true)
@@ -551,6 +547,7 @@ class QueuedIngestClientTest :
         "json,compression/sample.json,NONE,3",
         "parquet,compression/sample.parquet,NONE,1",
         "avro,compression/sample.avro,NONE,1",
+        "csv,compression/sample.csv,NONE,1",
     )
     fun `E2E - compression format tests`(
         formatName: String,
@@ -600,22 +597,35 @@ class QueuedIngestClientTest :
                         .minusHours((1..5L).random())
                 val extentTags =
                     listOf("ingest-by:i-tag") + listOf("drop-by:d-tag")
+
+                // really want to squeeze in that test for CSV mapping as this uses ordinal types
+                // for tests
+
+                val irpBuilder =
+                    IngestRequestPropertiesBuilder.create()
+                        .withEnableTracking(true)
+                        .withIngestByTags(listOf("i-tag"))
+                        .withDropByTags(listOf("d-tag"))
+                        .withCreationTime(createdTimeTag)
+                val irp =
+                    if (formatName == Format.csv.value) {
+                        // use inline mapping and ignore the first record
+                        irpBuilder
+                            .withIngestionMapping(
+                                getInlineCsvMapping(),
+                            )
+                            .withIgnoreFirstRecord(true)
+                    } else {
+                        irpBuilder
+                    }
+                        .build()
+
                 val response =
                     queuedIngestClient.ingestAsync(
                         database = database,
                         table = targetTable,
                         sources = listOf(source),
-                        ingestRequestProperties =
-                        IngestRequestPropertiesBuilder.create()
-                            .withEnableTracking(true)
-                            .withIngestByTags(
-                                listOf("i-tag"),
-                            )
-                            .withDropByTags(listOf("d-tag"))
-                            .withCreationTime(
-                                createdTimeTag,
-                            )
-                            .build(),
+                        ingestRequestProperties = irp,
                     )
 
                 val operationId =
@@ -646,9 +656,17 @@ class QueuedIngestClientTest :
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
                 )
+
+                val targetQuery =
+                    if (formatName == Format.csv.value) {
+                        "$targetTable | where format == '$format' and Type == 'IngestionMapping' and " +
+                            "isnotempty(SourceLocation) | summarize count=count() by format"
+                    } else {
+                        "$targetTable | where format == '$format' | summarize count=count() by format"
+                    }
+
                 awaitAndQuery(
-                    query =
-                    "$targetTable | where format == '$format' |summarize count=count() by format",
+                    query = targetQuery,
                     expectedResultsCount = expectedRecordCount.toLong(),
                     testName = "$formatName format test",
                 )
@@ -706,6 +724,52 @@ class QueuedIngestClientTest :
                 throw e
             }
         }
+    }
+
+    private fun getInlineCsvMapping(): IngestionMapping {
+        var ordinal = 0
+        columnNamesToTypes.keys
+            .map { col ->
+                when (col) {
+                    "SourceLocation" ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType = "string",
+                        )
+                            .apply {
+                                setTransform(
+                                    TransformationMethod
+                                        .SourceLocation,
+                                )
+                            }
+
+                    "Type" ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType = "string",
+                        )
+                            .apply {
+                                setConstantValue("IngestionMapping")
+                            }
+
+                    else ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType =
+                            columnNamesToTypes[
+                                col,
+                            ]!!,
+                        )
+                            .apply { setOrdinal(ordinal++) }
+                }
+            }
+            .let { ingestionColumnMappings ->
+                return IngestionMapping(
+                    columnMappings = ingestionColumnMappings,
+                    ingestionMappingType =
+                    IngestionMapping.IngestionMappingType.CSV,
+                )
+            }
     }
 
     @Test

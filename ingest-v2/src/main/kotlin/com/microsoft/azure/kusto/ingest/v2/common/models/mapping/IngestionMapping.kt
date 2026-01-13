@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2.common.models.mapping
 
 import com.microsoft.azure.kusto.ingest.v2.models.Format
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.collections.emptyList
 import kotlinx.serialization.Serializable as KSerializable
