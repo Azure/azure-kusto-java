@@ -22,6 +22,8 @@ import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
 import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -147,14 +149,14 @@ public class QueuedIngestV2 {
                         false);
 
         IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
+                IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build();
 
         System.out.println("Queueing CSV data from string...");
         CompletableFuture<Void> csvFuture =
                 queuedIngestClient
-                        .ingestAsync(csvStreamSource, csvProperties)
+                        .ingestAsync(database,table,csvStreamSource, csvProperties)
                         .thenCompose(
                                 response -> {
                                     System.out.println(
@@ -183,7 +185,7 @@ public class QueuedIngestV2 {
         System.out.println("Queueing compressed CSV file...");
         CompletableFuture<Void> compressedFuture =
                 queuedIngestClient
-                        .ingestAsync(compressedStreamSource, csvProperties)
+                        .ingestAsync(database,table,compressedStreamSource, csvProperties)
                         .thenCompose(
                                 response -> {
                                     System.out.println(
@@ -210,7 +212,7 @@ public class QueuedIngestV2 {
                         false);
 
         IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
+                IngestRequestPropertiesBuilder.create()
                         .withIngestionMappingReference(mapping)
                         .withEnableTracking(true)
                         .build();
@@ -218,7 +220,7 @@ public class QueuedIngestV2 {
         System.out.println("Queueing JSON file with mapping...");
         CompletableFuture<Void> jsonFuture =
                 queuedIngestClient
-                        .ingestAsync(jsonStreamSource, jsonProperties)
+                        .ingestAsync(database,table,jsonStreamSource, jsonProperties)
                         .thenCompose(
                                 response -> {
                                     System.out.println(
@@ -254,14 +256,14 @@ public class QueuedIngestV2 {
                         "dataset.csv");
 
         IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
+                IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build();
 
         System.out.println("Queueing CSV file...");
         CompletableFuture<Void> csvFuture =
                 queuedIngestClient
-                        .ingestAsync(csvFileSource, csvProperties)
+                        .ingestAsync(database,table,csvFileSource, csvProperties)
                         .thenCompose(
                                 response -> {
                                     System.out.println(
@@ -282,7 +284,7 @@ public class QueuedIngestV2 {
                         "dataset.jsonz");
 
         IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
+                IngestRequestPropertiesBuilder.create()
                         .withIngestionMappingReference(mapping)
                         .withEnableTracking(true)
                         .build();
@@ -290,7 +292,7 @@ public class QueuedIngestV2 {
         System.out.println("Queueing compressed JSON file with mapping...");
         CompletableFuture<Void> jsonFuture =
                 queuedIngestClient
-                        .ingestAsync(jsonFileSource, jsonProperties)
+                        .ingestAsync(database,table,jsonFileSource, jsonProperties)
                         .thenCompose(
                                 response -> {
                                     System.out.println(
@@ -309,7 +311,7 @@ public class QueuedIngestV2 {
      * Demonstrates batch ingestion from multiple sources in a single operation. This is more
      * efficient than ingesting sources one by one when you have multiple files.
      */
-    static CompletableFuture<Void> ingestMultipleSources() {
+    static @NotNull CompletableFuture<Void> ingestMultipleSources() {
         System.out.println("\n=== Queued Ingestion from Multiple Sources (Batch) ===");
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
@@ -334,13 +336,13 @@ public class QueuedIngestV2 {
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 
         IngestRequestProperties properties =
-                IngestRequestPropertiesBuilder.create(database, table)
+                IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build();
 
         System.out.println("Queueing multiple sources in batch...");
         return queuedIngestClient
-                .ingestAsync(sources, properties)
+                .ingestAsync(database,table,sources, properties)
                 .thenCompose(
                         response -> {
                             System.out.println(

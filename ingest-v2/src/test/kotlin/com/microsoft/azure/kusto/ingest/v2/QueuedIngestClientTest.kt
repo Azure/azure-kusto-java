@@ -10,7 +10,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
-import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
@@ -155,8 +155,13 @@ class QueuedIngestClientTest :
         val properties =
             if (useMappingReference) {
                 IngestRequestPropertiesBuilder.create()
-                    .withIngestionMappingReference(
-                        "${targetTable}_mapping",
+                    .withIngestionMapping(
+                        IngestionMapping(
+                            "${targetTable}_mapping",
+                            IngestionMapping
+                                .IngestionMappingType
+                                .JSON,
+                        ),
                     )
                     .withEnableTracking(true)
                     .build()
@@ -198,20 +203,20 @@ class QueuedIngestClientTest :
                                     .apply { setPath("$.$col") }
                         }
                     }
-                val inlineIngestionMappingInline =
-                    InlineIngestionMapping(
+                val inlineIngestionMapping =
+                    IngestionMapping(
                         columnMappings = ingestionColumnMappings,
                         ingestionMappingType =
-                        InlineIngestionMapping
+                        IngestionMapping
                             .IngestionMappingType
                             .JSON,
                     )
                 val ingestionMappingString =
                     jsonPrinter.encodeToString(
-                        inlineIngestionMappingInline.columnMappings,
+                        inlineIngestionMapping.columnMappings,
                     )
                 IngestRequestPropertiesBuilder.create()
-                    .withIngestionMapping(ingestionMappingString)
+                    .withIngestionMapping(inlineIngestionMapping)
                     .withEnableTracking(true)
                     .build()
             } else {

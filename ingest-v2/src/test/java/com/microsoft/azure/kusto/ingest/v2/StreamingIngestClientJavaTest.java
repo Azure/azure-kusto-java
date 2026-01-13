@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder
 import com.microsoft.azure.kusto.ingest.v2.client.StreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
@@ -68,10 +69,12 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     "java-streaming-test",
                     false
             );
+            IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
+                    IngestionMapping.IngestionMappingType.JSON);
 
             IngestRequestProperties properties = IngestRequestPropertiesBuilder
                     .create()
-                    .withIngestionMappingReference(targetTable + "_mapping")
+                    .withIngestionMapping(mappingReference)
                     .build();
 
             // Ingest data

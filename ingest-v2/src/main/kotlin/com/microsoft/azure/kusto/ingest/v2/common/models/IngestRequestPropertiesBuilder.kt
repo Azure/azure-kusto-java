@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import java.time.OffsetDateTime
@@ -14,8 +16,7 @@ import java.time.OffsetDateTime
  *
  * Example usage:
  * ```kotlin
- * val properties = IngestRequestPropertiesBuilder.create(database = "db", table = "table")
- *     .withFormat(Format.json)
+ * val properties = IngestRequestPropertiesBuilder.create()
  *     .withDropByTags(listOf("tag1", "tag2"))
  *     .withIngestByTags(listOf("tag3"))
  *     .withEnableTracking(true)
@@ -32,7 +33,8 @@ class IngestRequestPropertiesBuilder private constructor() {
     private var skipBatching: Boolean? = null
     private var deleteAfterDownload: Boolean? = null
     private var ingestionMappingReference: String? = null
-    private var ingestionMapping: String? = null
+    private var inlineIngestionMapping: String? = null
+    private var ingestionMapping: IngestionMapping? = null
     private var validationPolicy: String? = null
     private var ignoreSizeLimit: Boolean? = null
     private var ignoreFirstRecord: Boolean? = null
@@ -85,12 +87,20 @@ class IngestRequestPropertiesBuilder private constructor() {
         this.deleteAfterDownload = value
     }
 
-    fun withIngestionMappingReference(value: String) = apply {
-        this.ingestionMappingReference = value
-    }
-
-    fun withIngestionMapping(value: String) = apply {
+    fun withIngestionMapping(value: IngestionMapping) = apply {
         this.ingestionMapping = value
+        // Set format from mapping type if not already set
+        if (this.format == null) {
+            this.format = value.ingestionMappingType.format
+        }
+        // Only set reference OR inline mapping, not both
+        if (value.ingestionMappingReference.isNotBlank()) {
+            this.ingestionMappingReference = value.ingestionMappingReference
+            this.inlineIngestionMapping = null
+        } else if (value.columnMappings.isNotEmpty()) {
+            this.inlineIngestionMapping = value.serializeColumnMappingsToJson()
+            this.ingestionMappingReference = null
+        }
     }
 
     fun withValidationPolicy(value: String) = apply {
@@ -122,9 +132,8 @@ class IngestRequestPropertiesBuilder private constructor() {
     }
 
     /**
-     * Builds the
-     * [com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties] with
-     * combined tags from dropByTags, ingestByTags, and additionalTags.
+     * Builds the [IngestRequestProperties] with combined tags from dropByTags,
+     * ingestByTags, and additionalTags.
      *
      * The built properties will have database and table information stored in
      * the underlying map for retrieval by client implementations.
@@ -153,7 +162,7 @@ class IngestRequestPropertiesBuilder private constructor() {
                 skipBatching = skipBatching,
                 deleteAfterDownload = deleteAfterDownload,
                 ingestionMappingReference = ingestionMappingReference,
-                ingestionMapping = ingestionMapping,
+                ingestionMapping = inlineIngestionMapping,
                 validationPolicy = validationPolicy,
                 ignoreSizeLimit = ignoreSizeLimit,
                 ignoreFirstRecord = ignoreFirstRecord,
