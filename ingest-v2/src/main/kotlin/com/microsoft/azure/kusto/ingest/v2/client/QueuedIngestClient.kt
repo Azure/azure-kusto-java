@@ -116,7 +116,7 @@ internal constructor(
         database: String,
         table: String,
         sources: List<IngestionSource>,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
             ingestAsyncInternal(

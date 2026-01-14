@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
@@ -143,8 +144,24 @@ class IngestRequestPropertiesBuilder private constructor() {
      * build and will be overridden with the actual source format.
      *
      * @return The built IngestRequestProperties
+     * @throws IngestClientException if both ingestionMappingReference and
+     *   inlineIngestionMapping are set
      */
     fun build(): IngestRequestProperties {
+        // Validate that both mapping reference and inline mapping are not set simultaneously
+        if (
+            !ingestionMappingReference.isNullOrBlank() &&
+            !inlineIngestionMapping.isNullOrBlank()
+        ) {
+            throw IngestClientException(
+                message =
+                "Both mapping reference and column mappings were defined. " +
+                    "Please provide either a mapping reference OR column mappings, not both.",
+                isPermanent = true,
+                failureCode = 400,
+            )
+        }
+
         // Combine all tags: additional tags + prefixed ingest-by tags + prefixed drop-by tags
         val combinedTags = mutableListOf<String>()
         additionalTags?.let { combinedTags.addAll(it) }

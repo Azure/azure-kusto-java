@@ -3,6 +3,7 @@
 
 package ingestv2;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
 import com.azure.identity.ChainedTokenCredential;
 import com.azure.identity.ChainedTokenCredentialBuilder;
@@ -49,24 +50,19 @@ public class StreamingIngestV2 {
             table = System.getProperty("tableName");
             mappingName = System.getProperty("dataMappingName");
 
-            ChainedTokenCredential credential;
+            TokenCredential credential;
 
             // Create Azure AD credential
             if (StringUtils.isNotBlank(appId)
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
-                credential = new ChainedTokenCredentialBuilder()
-                        .addFirst(
-                                new ClientSecretCredentialBuilder()
+                credential = new ClientSecretCredentialBuilder()
                                         .clientId(appId)
                                         .clientSecret(appKey)
                                         .tenantId(tenant)
-                                        .build())
-                        .build();
+                                        .build();
             } else {
-                credential = new ChainedTokenCredentialBuilder()
-                        .addFirst(new AzureCliCredentialBuilder().build())
-                        .build();
+                credential = new AzureCliCredentialBuilder().build();
             }
 
             // Create streaming ingest client using the new v2 API
@@ -103,7 +99,6 @@ public class StreamingIngestV2 {
                 Format.csv,
                 CompressionType.NONE,
                 UUID.randomUUID(),
-                "csv-test-src",
                 false);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
@@ -125,7 +120,6 @@ public class StreamingIngestV2 {
                 Format.csv,
                 CompressionType.GZIP,
                 UUID.randomUUID(),
-                "compressed-csv-stream",
                 false);
         System.out.println("Ingesting compressed CSV file...");
         ExtendedIngestResponse compressedResponse = streamingIngestClient.ingestAsync(database, table, compressedStreamSource, csvProperties).get();
@@ -142,7 +136,6 @@ public class StreamingIngestV2 {
                 Format.json,
                 CompressionType.NONE,
                 UUID.randomUUID(),
-                "json-data-stream",
                 false);
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
@@ -172,8 +165,7 @@ public class StreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE,
-                "jcsv-file-source");
+                CompressionType.NONE);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
@@ -190,8 +182,7 @@ public class StreamingIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP,
-                "sjson-compressed-file");
+                CompressionType.GZIP);
 
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
                 .withIngestionMapping(new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON))
