@@ -129,7 +129,6 @@ public class QueuedIngestV2 {
                 Format.csv,
                 CompressionType.NONE,
                 UUID.randomUUID(),
-                "csv-queued-stream",
                 false);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
@@ -159,7 +158,6 @@ public class QueuedIngestV2 {
                 Format.csv,
                 CompressionType.GZIP,
                 UUID.randomUUID(),
-                "compressed-csv-queued-stream",
                 false);
 
         System.out.println("Queueing compressed CSV file...");
@@ -185,7 +183,6 @@ public class QueuedIngestV2 {
                 Format.json,
                 CompressionType.NONE,
                 UUID.randomUUID(),
-                "json-queued-stream",
                 false);
         IngestionMapping mapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
@@ -226,8 +223,7 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE,
-                "dataset.csv");
+                CompressionType.NONE);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
@@ -251,8 +247,7 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
                 Format.json,
                 UUID.randomUUID(),
-                CompressionType.GZIP,
-                "dataset.jsonz");
+                CompressionType.GZIP);
         IngestionMapping mapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
                 .withIngestionMapping(mapping)
@@ -290,15 +285,13 @@ public class QueuedIngestV2 {
                 Paths.get(resourcesDirectory + "dataset.csv"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.NONE,
-                "dataset.csv");
+                CompressionType.NONE);
 
         FileSource source2 = new FileSource(
                 Paths.get(resourcesDirectory + "dataset.csv.gz"),
                 Format.csv,
                 UUID.randomUUID(),
-                CompressionType.GZIP,
-                "dataset.csv.gz");
+                CompressionType.GZIP);
 
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 

@@ -7,6 +7,7 @@ import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
@@ -34,6 +35,7 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.semconv.ResourceAttributes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -62,7 +64,7 @@ enum SourceType {
         this.source = source;
     }
 
-    public static SourceType valueOfLabel(String label) {
+    public static @Nullable SourceType valueOfLabel(String label) {
         for (SourceType e : values()) {
             if (e.source.equals(label)) {
                 return e;
@@ -477,8 +479,7 @@ public class SampleApp {
     private static ConfigJson loadConfigs() {
         Path configPath = locateConfigFile();
         try {
-            ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
-            mapper.configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true);
+            ObjectMapper mapper = JsonMapper.builder().configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true).build();
             return mapper.readValue(configPath.toFile(), ConfigJson.class);
         } catch (Exception e) {
             Utils.errorHandler(String.format("Couldn't read config file from file '%s'", configPath), e);
@@ -777,7 +778,7 @@ public class SampleApp {
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
         String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream csvStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
-        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), "csv-stream", false);
+        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), false);
         futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvSource, csvProps)
                 .thenCompose(response -> {
                     closeQuietly(csvStream);
@@ -786,7 +787,7 @@ public class SampleApp {
                 }));
 
         InputStream jsonStream = Files.newInputStream(resolveQuickstartPath("dataset.json"));
-        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), "json-stream", false);
+        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), false);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
         futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonSource, jsonProps)
                 .thenCompose(response -> {
@@ -804,14 +805,14 @@ public class SampleApp {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
-        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "csv-file");
+        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
         futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvFileSource, csvProps)
                 .thenCompose(response -> {
                     System.out.println("CSV file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV File");
                 }));
 
-        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE, "json-file");
+        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
         futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonFileSource, jsonProps)
                 .thenCompose(response -> {
@@ -825,8 +826,8 @@ public class SampleApp {
     private static @NotNull CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
             @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from multiple sources (ingest-v2 batch) ===");
-        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-1");
-        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-2");
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
         List<IngestionSource> sources = Arrays.asList(source1, source2);
 
         IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);
