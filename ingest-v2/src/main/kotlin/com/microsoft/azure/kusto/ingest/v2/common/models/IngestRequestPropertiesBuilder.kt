@@ -188,7 +188,6 @@ class IngestRequestPropertiesBuilder private constructor() {
                 extendSchema = extendSchema,
                 recreateSchema = recreateSchema,
             )
-        // Store database and table in the HashMap for retrieval
         return properties
     }
 }
