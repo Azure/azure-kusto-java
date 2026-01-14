@@ -5,8 +5,6 @@ package ingestv2;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
-import com.azure.identity.ChainedTokenCredential;
-import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.v2.builders.ManagedStreamingIngestClientBuilder;

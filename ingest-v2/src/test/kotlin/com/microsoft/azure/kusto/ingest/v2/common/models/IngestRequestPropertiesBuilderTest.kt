@@ -101,7 +101,7 @@ class IngestRequestPropertiesBuilderTest {
         assertNull(properties.ingestionMappingReference)
         assertNotNull(properties.ingestionMapping)
         assertTrue(properties.ingestionMapping!!.contains("col1"))
-        assertTrue(properties.ingestionMapping!!.contains("col2"))
+        assertTrue(properties.ingestionMapping.contains("col2"))
     }
 
     @Test
