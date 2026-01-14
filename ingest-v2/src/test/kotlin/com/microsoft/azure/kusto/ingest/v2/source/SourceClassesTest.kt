@@ -112,7 +112,6 @@ class SourceClassesTest {
                 format = Format.json,
                 sourceCompression = CompressionType.NONE,
                 sourceId = UUID.randomUUID(),
-                baseName = "test-stream",
                 leaveOpen = false,
             )
 

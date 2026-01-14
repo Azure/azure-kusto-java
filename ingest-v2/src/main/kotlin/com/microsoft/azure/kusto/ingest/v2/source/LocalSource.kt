@@ -11,9 +11,8 @@ abstract class LocalSource(
     format: Format,
     val leaveOpen: Boolean,
     compressionType: CompressionType = CompressionType.NONE,
-    baseName: String? = null,
     sourceId: UUID = UUID.randomUUID(),
-) : IngestionSource(format, compressionType, baseName, sourceId) {
+) : IngestionSource(format, compressionType, sourceId) {
     protected var mStream: InputStream? = null
 
     /**

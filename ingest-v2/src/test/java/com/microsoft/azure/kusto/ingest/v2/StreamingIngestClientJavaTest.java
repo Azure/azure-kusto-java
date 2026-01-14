@@ -68,7 +68,6 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     dataStream,
                     Format.json, CompressionType.NONE,
                     UUID.randomUUID(),
-                    "java-streaming-test",
                     false
             );
             IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
@@ -132,7 +131,6 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     fileStream,
                     Format.multijson, CompressionType.GZIP,
                     UUID.randomUUID(),
-                    "java-compressed-stream-test",
                     false
             );
 

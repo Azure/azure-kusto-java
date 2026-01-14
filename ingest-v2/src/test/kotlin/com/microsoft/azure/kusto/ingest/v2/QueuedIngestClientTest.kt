@@ -328,7 +328,6 @@ class QueuedIngestClientTest :
             stream = ByteArrayInputStream(data),
             format = Format.multijson,
             sourceCompression = CompressionType.NONE,
-            baseName = name,
         )
     }
 
@@ -794,7 +793,6 @@ test2,456,2024-01-02"""
                     ),
                     format = Format.json,
                     sourceCompression = CompressionType.NONE,
-                    baseName = "format_json.json",
                 ),
                 StreamSource(
                     stream =
@@ -803,7 +801,6 @@ test2,456,2024-01-02"""
                     ),
                     format = Format.csv,
                     sourceCompression = CompressionType.NONE,
-                    baseName = "format_csv.csv",
                 ),
                 StreamSource(
                     stream =
@@ -812,7 +809,6 @@ test2,456,2024-01-02"""
                     ),
                     format = Format.json,
                     sourceCompression = CompressionType.NONE,
-                    baseName = "format_json2.json",
                 ),
             )
 
@@ -884,7 +880,6 @@ test2,456,2024-01-02"""
                         ),
                         format = targetFormat,
                         sourceCompression = CompressionType.NONE,
-                        baseName = fileName,
                     )
                 else -> error("Unknown sourceType: $sourceType")
             }

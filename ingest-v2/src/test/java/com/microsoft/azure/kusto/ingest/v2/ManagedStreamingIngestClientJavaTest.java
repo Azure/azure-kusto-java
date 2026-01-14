@@ -69,7 +69,6 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     dataStream,
                     Format.json, CompressionType.NONE,
                     UUID.randomUUID(),
-                    "java-managed-streaming-small",
                     false
             );
 
@@ -145,7 +144,6 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     dataStream,
                     Format.multijson, CompressionType.NONE,
                     UUID.randomUUID(),
-                    "java-managed-streaming-fallback",
                     false
             );
 
@@ -223,8 +221,7 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                             filePath,
                             Format.multijson,
                             UUID.randomUUID(),
-                            CompressionType.NONE,
-                            null
+                            CompressionType.NONE
                     );
 
             IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder

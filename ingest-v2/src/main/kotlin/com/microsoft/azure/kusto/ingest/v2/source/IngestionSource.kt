@@ -10,7 +10,6 @@ import java.util.UUID
 abstract class IngestionSource(
     open val format: Format,
     open val compressionType: CompressionType,
-    baseName: String? = null,
     open val sourceId: UUID = UUID.randomUUID(),
 ) : Closeable {
 
@@ -18,18 +17,18 @@ abstract class IngestionSource(
         private set
 
     init {
-        name = initName(baseName)
+        name = initName()
     }
 
     override fun close() {
         // No-op by default, override if needed
     }
 
-    protected fun initName(baseName: String? = null): String {
+    protected fun initName(): String {
         val type =
             this::class.simpleName?.removeSuffix("Source")?.lowercase()
                 ?: "source"
-        return "${type}_${PathUtils.sanitizeFileName(baseName, sourceId)}${format.value}$compressionType"
+        return "${type}_${PathUtils.sanitizeFileName(sourceId)}${format.value}$compressionType"
     }
 
     override fun toString(): String {
