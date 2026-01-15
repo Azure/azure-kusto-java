@@ -19,13 +19,22 @@ import com.microsoft.azure.kusto.ingest.IngestionProperties;
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder;
 import com.microsoft.azure.kusto.ingest.v2.client.IngestionOperation;
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient;
+import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache;
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache;
+import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy;
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
 import com.microsoft.azure.kusto.ingest.v2.models.*;
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSource;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
-import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource;
+import com.microsoft.azure.kusto.ingest.v2.source.LocalSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
+import com.microsoft.azure.kusto.ingest.v2.uploader.ManagedUploader;
+import com.microsoft.azure.kusto.ingest.v2.uploader.UploadMethod;
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult;
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.exporters.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
@@ -823,17 +832,82 @@ public class SampleApp {
 
     private static @NotNull CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
                                                                            @NotNull QueuedIngestClient queuedIngestClient) {
-        System.out.println("\n=== Queued ingestion from multiple sources (ingest-v2 batch) ===");
-        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-1");
-        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "source-2");
-        List<IngestionSource> sources = Arrays.asList(source1, source2);
+        System.out.println("\n=== Queued batch ingestion: Upload local files to blob, then ingest (ingest-v2) ===");
+        String clusterPath = ingestV2Config.getClusterPath();
+        ChainedTokenCredential credential = buildIngestV2Credential(ingestV2Config);
+
+        ConfigurationCache configCache = DefaultConfigurationCache.create(
+                clusterPath,
+                credential,
+                new ClientDetails("SampleApp", "1.0", "quickstart-sample"));
+
+        ManagedUploader uploader = ManagedUploader.builder()
+                .withConfigurationCache(configCache)
+                .withRetryPolicy(new SimpleRetryPolicy())
+                .withMaxConcurrency(ingestV2Config.getMaxConcurrency())
+                .withMaxDataSize(4L * 1024 * 1024 * 1024) // 4GB max size
+                .withUploadMethod(UploadMethod.STORAGE)
+                .withTokenCredential(credential)
+                .build();
+
+        System.out.println("ManagedUploader created for batch upload");
+
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "batch-source-1");
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "batch-source-2");
+        List<LocalSource> localSources = Arrays.asList(source1, source2);
+
+        System.out.println("Prepared " + localSources.size() + " local files for upload:");
+        for (LocalSource source : localSources) {
+            System.out.println("  - " + source.getName() + " (format: " + source.getFormat() + ")");
+        }
 
         IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);
-        return queuedIngestClient.ingestAsync(sources, props)
-                .thenCompose(response -> {
-                    System.out.println("Batch ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
-                    System.out.println("Number of sources in batch: " + sources.size());
-                    return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "Batch Ingestion");
+
+
+        System.out.println("Uploading " + localSources.size() + " files to blob storage...");
+
+        return uploader.uploadManyAsync(localSources)
+                .thenCompose(uploadResults -> {
+                    System.out.println("Upload completed:");
+                    System.out.println("  Successes: " + uploadResults.getSuccesses().size());
+                    System.out.println("  Failures: " + uploadResults.getFailures().size());
+
+                    for (UploadResult.Failure failure : uploadResults.getFailures()) {
+                        System.err.println("  Upload failed for " + failure.getSourceName()
+                                + ": " + failure.getErrorMessage());
+                    }
+
+                    List<BlobSource> blobSources = new ArrayList<>();
+                    for (UploadResult.Success success : uploadResults.getSuccesses()) {
+                        System.out.println("  Uploaded: " + success.getSourceName()
+                                + " -> " + success.getBlobUrl().split("\\?")[0]); // Hide SAS token in log
+
+                        BlobSource blobSource = new BlobSource(
+                                success.getBlobUrl(),
+                                Format.csv,  // All our files are CSV format
+                                UUID.randomUUID(),
+                                CompressionType.GZIP,  // Uploader auto-compresses to GZIP
+                                success.getSourceName());
+                        blobSources.add(blobSource);
+                    }
+
+                    if (blobSources.isEmpty()) {
+                        return CompletableFuture.<Void>failedFuture(
+                                new RuntimeException("All uploads failed - nothing to ingest"));
+                    }
+
+                    System.out.println("Ingesting " + blobSources.size() + " blobs as a batch...");
+                    return queuedIngestClient.ingestAsync(blobSources, props)
+                            .thenCompose(response -> {
+                                System.out.println("Batch ingestion queued. Operation ID: "
+                                        + response.getIngestResponse().getIngestionOperationId());
+                                System.out.println("Number of sources in batch: " + blobSources.size());
+                                return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "Batch Upload & Ingest");
+                            });
+                })
+                .whenComplete((unused, throwable) -> {
+                    uploader.close();
+                    System.out.println("ManagedUploader closed");
                 });
     }
 

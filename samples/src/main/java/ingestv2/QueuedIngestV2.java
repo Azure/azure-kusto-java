@@ -11,6 +11,9 @@ import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder;
 import com.microsoft.azure.kusto.ingest.v2.client.IngestionOperation;
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient;
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache;
+import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy;
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus;
@@ -18,10 +21,16 @@ import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.models.Status;
 import com.microsoft.azure.kusto.ingest.v2.models.StatusResponse;
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSource;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
-import com.microsoft.azure.kusto.ingest.v2.source.IngestionSource;
+import com.microsoft.azure.kusto.ingest.v2.source.LocalSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
+import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader;
+import com.microsoft.azure.kusto.ingest.v2.uploader.ManagedUploader;
+import com.microsoft.azure.kusto.ingest.v2.uploader.UploadMethod;
+import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -125,26 +134,22 @@ public class QueuedIngestV2 {
     /**
      * Demonstrates ingestion from various stream sources including: - In-memory string data as CSV
      * - Compressed file stream (CSV) - JSON file stream with mapping
+     *
+     * <p>Shows both source configuration with defaults) and source configuration with full control) approaches.
      */
     static List<CompletableFuture<Void>> ingestFromStream() throws Exception {
         System.out.println("\n=== Queued Ingestion from Streams ===");
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        // Example 1: Ingest from in-memory CSV string
+        // Example 1: Ingest from in-memory CSV string (only 2 required parameters)
+        // sourceCompression defaults to CompressionType.NONE, sourceId auto-generated, baseName null, leaveOpen false
         String csvData =
                 "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream csvInputStream =
                 new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
-        StreamSource csvStreamSource =
-                new StreamSource(
-                        csvInputStream,
-                        Format.csv,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "csv-queued-stream",
-                        false);
+        StreamSource csvStreamSource = new StreamSource(csvInputStream, Format.csv);
 
         IngestRequestProperties csvProperties =
                 IngestRequestPropertiesBuilder.create(database, table)
@@ -166,8 +171,9 @@ public class QueuedIngestV2 {
                         .whenComplete((unused, throwable) -> closeQuietly(csvInputStream));
         futures.add(csvFuture);
 
-        // Example 2: Ingest from compressed CSV file
-        String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
+        // Example 2: Ingest from compressed CSV file (all 6 parameters needed)
+        // Explicitly specify compression, sourceId, baseName, and leaveOpen
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/main/resources/";
         InputStream compressedCsvStream =
                 new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.csv.gz"));
 
@@ -196,18 +202,12 @@ public class QueuedIngestV2 {
                         .whenComplete((unused, throwable) -> closeQuietly(compressedCsvStream));
         futures.add(compressedFuture);
 
-        // Example 3: Ingest JSON with mapping
+        // Example 3: Ingest JSON with mapping - with defaults
+        // Uses defaults: sourceCompression=NONE, auto-generated sourceId, baseName=null, leaveOpen=false
         InputStream jsonStream =
                 new ByteArrayInputStream(readResourceBytes(resourcesDirectory, "dataset.json"));
 
-        StreamSource jsonStreamSource =
-                new StreamSource(
-                        jsonStream,
-                        Format.json,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "json-queued-stream",
-                        false);
+        StreamSource jsonStreamSource = new StreamSource(jsonStream, Format.json);
 
         IngestRequestProperties jsonProperties =
                 IngestRequestPropertiesBuilder.create(database, table)
@@ -236,22 +236,19 @@ public class QueuedIngestV2 {
     /**
      * Demonstrates ingestion from file sources including: - CSV file - Compressed JSON file with
      * mapping
+     *
+     * Shows both source configuration with defaults and source configuration with all params approaches.
      */
     static List<CompletableFuture<Void>> ingestFromFile() {
         System.out.println("\n=== Queued Ingestion from Files ===");
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/main/resources/";
 
-        // Example 1: Ingest CSV file
-        FileSource csvFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "dataset.csv");
+        // Example 1: Ingest CSV file - with defaults
+        // compressionType auto-detected from filename (.csv = NONE), sourceId auto-generated, baseName auto-extracted
+        FileSource csvFileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
 
         IngestRequestProperties csvProperties =
                 IngestRequestPropertiesBuilder.create(database, table)
@@ -272,7 +269,8 @@ public class QueuedIngestV2 {
                                 });
         futures.add(csvFuture);
 
-        // Example 2: Ingest compressed JSON file with mapping
+        // Example 2: Ingest compressed JSON file with mapping - with all parameters specified
+        // Explicitly specify sourceId, compression (auto-detected from .gz), and baseName for full control
         FileSource jsonFileSource =
                 new FileSource(
                         Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
@@ -306,50 +304,187 @@ public class QueuedIngestV2 {
     }
 
     /**
-     * Demonstrates batch ingestion from multiple sources in a single operation. This is more
-     * efficient than ingesting sources one by one when you have multiple files.
+     * Demonstrates batch ingestion from multiple blob sources in a single operation.
+     * 
+     * <p><b>IMPORTANT:</b> Multi-source ingestion only accepts BlobSource. For local sources
+     * (FileSource, StreamSource), you must either:
+     * <ol>
+     *   <li>Ingest them one by one using the single-source ingestAsync method, or</li>
+     *   <li>First upload them to blob storage using uploadManyAsync, then pass the resulting
+     *       BlobSource list to ingestAsync</li>
+     * </ol>
+     * 
+     * <p>This example uses public blob URLs from the Kusto sample files to demonstrate 
+     * multi-blob batch ingestion. All blobs must have the same format.
      */
     static CompletableFuture<Void> ingestMultipleSources() {
-        System.out.println("\n=== Queued Ingestion from Multiple Sources (Batch) ===");
+        System.out.println("\n=== Queued Ingestion from Multiple Blob Sources (Batch) ===");
 
-        String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
+        // Multi-source API only accepts BlobSource - not FileSource or StreamSource.
+        // If you have local files, you must upload them to blob storage first.
+        // Here we use public sample blob URLs from Kusto sample files to demonstrate the pattern.
+        
+        // IMPORTANT: All sources in a batch must have the same format!
+        // BlobSource constructor requires: blobPath, format, sourceId, compressionType, baseName
+        
+        // Using multiple JSON files from Kusto public sample files
+        // All files are JSON format - this is required for batch ingestion
+        BlobSource blob1 = new BlobSource(
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
+                Format.json,
+                UUID.randomUUID(),
+                CompressionType.NONE,
+                "simple.json");
+        
+        BlobSource blob2 = new BlobSource(
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/array.json",
+                Format.json,
+                UUID.randomUUID(),
+                CompressionType.NONE,
+                "array.json");
 
-        // Create multiple file sources
-        FileSource source1 =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "dataset.csv");
+        // Create list with all blob sources - all must have identical format
+        List<BlobSource> blobSources = Arrays.asList(blob1, blob2);
 
-        FileSource source2 =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv.gz"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.GZIP,
-                        "dataset.csv.gz");
+        IngestRequestProperties properties =
+                IngestRequestPropertiesBuilder.create(database, table)
+                        .withIngestionMappingReference(mapping)
+                        .withEnableTracking(true)
+                        .build();
 
-        List<IngestionSource> sources = Arrays.asList(source1, source2);
+        System.out.println("Queueing " + blobSources.size() + " blob sources in batch...");
+        for (int i = 0; i < blobSources.size(); i++) {
+            System.out.println("  Blob " + (i + 1) + ": " + blobSources.get(i).getName());
+        }
+        
+        return queuedIngestClient
+                .ingestAsync(blobSources, properties)
+                .thenCompose(response -> {
+                    System.out.println(
+                            "Batch ingestion queued. Operation ID: "
+                                    + response.getIngestResponse().getIngestionOperationId());
+                    System.out.println("Number of sources in batch: " + blobSources.size());
+                    return trackIngestionOperation(response, "Batch Blob Ingestion");
+                });
+    }
+    
+    /**
+     * Demonstrates ingesting multiple local files by uploading them to blob storage first,
+     * then ingesting them as a batch using the multi-source ingestAsync API.
+     * 
+     * <p>Pattern:
+     * <ol>
+     *   <li>Create a ManagedUploader with proper configuration</li>
+     *   <li>Create list of LocalSource (FileSource) objects</li>
+     *   <li>Call uploader.uploadManyAsyncJava(localSources) to upload all files to blob storage</li>
+     *   <li>Convert successful upload results to BlobSource list</li>
+     *   <li>Call queuedIngestClient.ingestAsync(blobSources, properties) to ingest as a batch</li>
+     * </ol>
+     * 
+     * <p>This approach allows batch ingestion of local files by first uploading them 
+     * to blob storage, which is required because the multi-source API only accepts BlobSource.
+     */
+    static CompletableFuture<Void> ingestMultipleLocalFilesViaBlobUpload(
+            String engineEndpoint, ChainedTokenCredential credential) {
+        System.out.println("\n=== Queued Ingestion: Upload Local Files to Blob, Then Ingest ===");
+        
+        // Step 1: Create configuration cache (needed for ManagedUploader)
+        String dmUrl = engineEndpoint.replace(".kusto.", ".ingest-");
+        
+        ConfigurationCache configCache =
+                DefaultConfigurationCache.create(
+                        dmUrl,
+                        credential,
+                        new ClientDetails("QueuedIngestV2Sample", "1.0", "ingest-v2-sample"));
+
+        // Step 2: Create ManagedUploader for batch uploading local files to blob storage
+        ManagedUploader uploader =
+                ManagedUploader.builder()
+                        .withConfigurationCache(configCache)
+                        .withRetryPolicy(new SimpleRetryPolicy())
+                        .withMaxConcurrency(10)
+                        .withMaxDataSize(4L * 1024 * 1024 * 1024) // 4GB max size
+                        .withUploadMethod(UploadMethod.STORAGE)
+                        .withTokenCredential(credential)
+                        .build();
+
+        System.out.println("ManagedUploader created for batch upload");
+
+        // Step 3: Prepare list of local files to upload (all same format - CSV)
+        String resourcesDirectory = System.getProperty("user.dir") + "/src/main/resources/";
+        
+        // IMPORTANT: All files must have the same format for batch ingestion!
+        FileSource file1 = new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
+        FileSource file2 = new FileSource(Paths.get(resourcesDirectory + "dataset.csv.gz"), Format.csv);
+        
+        List<LocalSource> localSources = Arrays.asList(file1, file2);
+        
+        System.out.println("Prepared " + localSources.size() + " local files for upload:");
+        for (LocalSource source : localSources) {
+            System.out.println("  - " + source.getName() + " (format: " + source.getFormat() + ")");
+        }
 
         IngestRequestProperties properties =
                 IngestRequestPropertiesBuilder.create(database, table)
                         .withEnableTracking(true)
                         .build();
 
-        System.out.println("Queueing multiple sources in batch...");
-        return queuedIngestClient
-                .ingestAsync(sources, properties)
-                .thenCompose(
-                        response -> {
-                            System.out.println(
-                                    "Batch ingestion queued. Operation ID: "
-                                            + response.getIngestResponse()
-                                                    .getIngestionOperationId());
-                            System.out.println("Number of sources in batch: " + sources.size());
-                            return trackIngestionOperation(response, "Batch Ingestion");
-                        });
+        // Step 4: Upload all local files to blob storage using uploadManyAsync
+        // Note: The Kotlin suspend function uploadManyAsync is exposed to Java as uploadManyAsync
+        // (via @JvmName annotation) and returns CompletableFuture<UploadResults>
+        System.out.println("Uploading " + localSources.size() + " files to blob storage...");
+        
+        return uploader.uploadManyAsync(localSources)
+                .thenCompose(uploadResults -> {
+                    // Step 5: Process upload results
+                    System.out.println("Upload completed:");
+                    System.out.println("  Successes: " + uploadResults.getSuccesses().size());
+                    System.out.println("  Failures: " + uploadResults.getFailures().size());
+                    
+                    // Log any failures
+                    for (var failure : uploadResults.getFailures()) {
+                        System.err.println("  Upload failed for " + failure.getSourceName() 
+                                + ": " + failure.getErrorMessage());
+                    }
+                    
+                    // Step 6: Convert successful uploads to BlobSource list
+                    List<BlobSource> blobSources = new ArrayList<>();
+                    for (var success : uploadResults.getSuccesses()) {
+                        System.out.println("  Uploaded: " + success.getSourceName() 
+                                + " -> " + success.getBlobUrl().split("\\?")[0]); // Hide SAS token in log
+                        
+                        // Create BlobSource from upload result
+                        // Match format from original FileSource (CSV in this case)
+                        BlobSource blobSource = new BlobSource(
+                                success.getBlobUrl(),
+                                Format.csv,  // All our files are CSV format
+                                UUID.randomUUID(),
+                                CompressionType.GZIP,  // Uploader auto-compresses to GZIP
+                                success.getSourceName());
+                        blobSources.add(blobSource);
+                    }
+                    
+                    if (blobSources.isEmpty()) {
+                        return CompletableFuture.<Void>failedFuture(
+                                new RuntimeException("All uploads failed - nothing to ingest"));
+                    }
+                    
+                    // Step 7: Ingest all blobs as a batch
+                    System.out.println("Ingesting " + blobSources.size() + " blobs as a batch...");
+                    return queuedIngestClient.ingestAsync(blobSources, properties)
+                            .thenCompose(response -> {
+                                System.out.println(
+                                        "Batch ingestion queued. Operation ID: "
+                                                + response.getIngestResponse().getIngestionOperationId());
+                                System.out.println("Number of sources in batch: " + blobSources.size());
+                                return trackIngestionOperation(response, "Local Files Via Blob Upload");
+                            });
+                })
+                .whenComplete((unused, throwable) -> {
+                    // Clean up uploader
+                    uploader.close();
+                    System.out.println("ManagedUploader closed");
+                });
     }
 
     /**

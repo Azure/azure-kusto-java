@@ -26,11 +26,15 @@ import com.microsoft.azure.kusto.ingest.v2.uploader.compression.CompressionExcep
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadErrorCode
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult
 import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.future.future
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -41,6 +45,8 @@ import java.io.PipedOutputStream
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.GZIPOutputStream
 
 /** Represents an abstract base class for uploaders to storage containers. */
@@ -58,6 +64,12 @@ abstract class ContainerUploaderBase(
 
     private val effectiveMaxConcurrency: Int =
         minOf(maxConcurrency, Runtime.getRuntime().availableProcessors())
+
+    /**
+     * Atomic counter for round-robin container selection. Increments on each
+     * upload to distribute load evenly across containers.
+     */
+    private val containerIndexCounter = AtomicInteger(0)
 
     override var ignoreSizeLimit: Boolean = false
 
@@ -251,9 +263,10 @@ abstract class ContainerUploaderBase(
     )
 
     /**
-     * Uploads a stream with retry logic and container cycling. Randomly selects
-     * a starting container and cycles through containers on each retry. For
-     * example, with 2 containers and 3 retries: 1->2->1 or 2->1->2
+     * Uploads a stream with retry logic and container cycling. Uses an
+     * incrementing counter (mod container count) for round-robin container
+     * selection, ensuring even load distribution across containers on each
+     * retry. For example, with 2 containers and 3 retries: 0->1->0 or 1->0->1
      */
     private suspend fun uploadWithRetries(
         local: LocalSource,
@@ -262,11 +275,12 @@ abstract class ContainerUploaderBase(
         containers: List<ExtendedContainerInfo>,
         effectiveCompressionType: CompressionType = local.compressionType,
     ): BlobSource {
-        // Select random starting container index
-        var containerIndex = (0 until containers.size).random()
+        // Select container using incrementing counter for round-robin distribution
+        var containerIndex =
+            containerIndexCounter.getAndIncrement() % containers.size
 
         logger.debug(
-            "Starting upload with {} containers, random start index: {}",
+            "Starting upload with {} containers, round-robin index: {}",
             containers.size,
             containerIndex,
         )
@@ -373,73 +387,54 @@ abstract class ContainerUploaderBase(
             localSources.size,
             maxConcurrency,
         )
-        // Process sources in chunks to respect maxConcurrency at file level
-        val results =
-            localSources.chunked(maxConcurrency).flatMap { chunk ->
-                chunk.map { source ->
-                    async {
-                        val startedAt =
-                            Instant.now(Clock.systemUTC())
-                        try {
-                            val blobSource = uploadAsync(source)
-                            val completedAt =
-                                Instant.now(Clock.systemUTC())
-                            UploadResult.Success(
-                                sourceName = source.name,
-                                startedAt = startedAt,
-                                completedAt = completedAt,
-                                blobUrl = blobSource.blobPath,
-                                sizeBytes = source.size() ?: -1,
-                            )
-                        } catch (e: Exception) {
-                            val completedAt =
-                                Instant.now(Clock.systemUTC())
-                            val errorCode =
-                                when {
-                                    e.message?.contains(
-                                        "size",
-                                    ) == true ->
-                                        UploadErrorCode
-                                            .SOURCE_SIZE_LIMIT_EXCEEDED
-                                    e.message?.contains(
-                                        "readable",
-                                    ) == true ->
-                                        UploadErrorCode
-                                            .SOURCE_NOT_READABLE
-                                    e.message?.contains(
-                                        "empty",
-                                    ) == true ->
-                                        UploadErrorCode
-                                            .SOURCE_IS_EMPTY
-                                    e.message?.contains(
-                                        "container",
-                                    ) == true ->
-                                        UploadErrorCode
-                                            .NO_CONTAINERS_AVAILABLE
-                                    else ->
-                                        UploadErrorCode
-                                            .UPLOAD_FAILED
-                                }
-
-                            UploadResult.Failure(
-                                sourceName = source.name,
-                                startedAt = startedAt,
-                                completedAt = completedAt,
-                                errorCode = errorCode,
-                                errorMessage =
-                                e.message
-                                    ?: "Upload failed",
-                                exception = e,
-                                isPermanent =
-                                e is IngestException &&
-                                    e.isPermanent ==
-                                    true,
-                            )
+        // TODO check and validate failure scenarios
+        // Use semaphore for true streaming parallelism
+        // This allows up to maxConcurrency concurrent uploads, starting new ones as soon as slots are available
+        val semaphore = Semaphore(maxConcurrency)
+        
+        // Launch all uploads concurrently, but semaphore limits actual concurrent execution
+        val results = localSources.map { source ->
+            async {
+                semaphore.withPermit {
+                    val startedAt = Instant.now(Clock.systemUTC())
+                    try {
+                        val blobSource = uploadAsync(source)
+                        val completedAt = Instant.now(Clock.systemUTC())
+                        UploadResult.Success(
+                            sourceName = source.name,
+                            startedAt = startedAt,
+                            completedAt = completedAt,
+                            blobUrl = blobSource.blobPath,
+                            sizeBytes = source.size() ?: -1,
+                        )
+                    } catch (e: Exception) {
+                        val completedAt = Instant.now(Clock.systemUTC())
+                        val errorCode = when {
+                            e.message?.contains("size") == true ->
+                                UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
+                            e.message?.contains("readable") == true ->
+                                UploadErrorCode.SOURCE_NOT_READABLE
+                            e.message?.contains("empty") == true ->
+                                UploadErrorCode.SOURCE_IS_EMPTY
+                            e.message?.contains("container") == true ->
+                                UploadErrorCode.NO_CONTAINERS_AVAILABLE
+                            else ->
+                                UploadErrorCode.UPLOAD_FAILED
                         }
+
+                        UploadResult.Failure(
+                            sourceName = source.name,
+                            startedAt = startedAt,
+                            completedAt = completedAt,
+                            errorCode = errorCode,
+                            errorMessage = e.message ?: "Upload failed",
+                            exception = e,
+                            isPermanent = e is IngestException && e.isPermanent == true,
+                        )
                     }
                 }
-                    .awaitAll()
             }
+        }.awaitAll()
 
         val successes = results.filterIsInstance<UploadResult.Success>()
         val failures = results.filterIsInstance<UploadResult.Failure>()
@@ -704,6 +699,34 @@ abstract class ContainerUploaderBase(
             )
         }
     }
+
+    /**
+     * Uploads the specified local source asynchronously.
+     * This is the Java-compatible version that returns a CompletableFuture.
+     *
+     * @param local The local source to upload.
+     * @return A CompletableFuture that will complete with the uploaded blob source.
+     */
+    @JvmName("uploadAsync")
+    fun uploadAsyncJava(local: LocalSource): CompletableFuture<BlobSource> =
+        CoroutineScope(Dispatchers.IO).future {
+            uploadAsync(local)
+        }
+
+    /**
+     * Uploads the specified local sources asynchronously.
+     * This is the Java-compatible version that returns a CompletableFuture.
+     *
+     * @param localSources List of the local sources to upload.
+     * @return A CompletableFuture that will complete with the upload results.
+     */
+    @JvmName("uploadManyAsync")
+    fun uploadManyAsyncJava(
+        localSources: List<LocalSource>,
+    ): CompletableFuture<UploadResults> =
+        CoroutineScope(Dispatchers.IO).future {
+            uploadManyAsync(localSources)
+        }
 
     /**
      * Selects the appropriate containers for upload based on the provided

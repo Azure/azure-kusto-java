@@ -29,9 +29,6 @@ import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.withTimeoutOrNull
@@ -75,11 +72,15 @@ internal constructor(
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
 
     /**
-     * Ingests data from multiple sources with the given properties. This is the
+     * Ingests data from multiple blob sources with the given properties. This is the
      * suspend function for Kotlin callers.
+     *
+     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to already
+     * exist in blob storage, so no upload is performed - the request is sent directly
+     * to the Data Management service.
      */
     override suspend fun ingestAsync(
-        sources: List<IngestionSource>,
+        sources: List<BlobSource>,
         ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse =
         ingestAsyncInternal(sources, ingestRequestProperties)
@@ -95,12 +96,16 @@ internal constructor(
         ingestAsyncSingleInternal(source, ingestRequestProperties)
 
     /**
-     * Ingests data from multiple sources with the given properties. This is the
+     * Ingests data from multiple blob sources with the given properties. This is the
      * Java-friendly version that returns a CompletableFuture.
+     *
+     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to already
+     * exist in blob storage, so no upload is performed - the request is sent directly
+     * to the Data Management service.
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
-        sources: List<IngestionSource>,
+        sources: List<BlobSource>,
         ingestRequestProperties: IngestRequestProperties,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
@@ -170,9 +175,14 @@ internal constructor(
             )
         }
 
-    /** Internal implementation of ingestAsync for multiple sources. */
+    /**
+     * Internal implementation of ingestAsync for multiple blob sources.
+     *
+     * This method only accepts [BlobSource] - no upload is performed.
+     * The blobs are assumed to already exist in blob storage.
+     */
     private suspend fun ingestAsyncInternal(
-        sources: List<IngestionSource>,
+        sources: List<BlobSource>,
         ingestRequestProperties: IngestRequestProperties,
     ): ExtendedIngestResponse {
         // Extract database and table from properties
@@ -202,16 +212,13 @@ internal constructor(
                 differentFormatBlob.joinToString(", "),
             )
             throw IngestClientException(
-                "All blobs in the request must have the same format. All blobs in the request must have the same format.Received formats: $differentFormatBlob",
+                message = "All blobs in the request must have the same format. Received formats: $differentFormatBlob",
             )
         }
 
-        // Split sources and upload local sources in parallel
-        val blobSources = uploadLocalSourcesAsync(sources)
-
         // Check for duplicate blob URLs
         val duplicates =
-            blobSources
+            sources
                 .groupBy { sanitizeBlobUrl(it.blobPath) }
                 .filter { it.value.size > 1 }
 
@@ -225,12 +232,13 @@ internal constructor(
                     "{Url: $url, Source Ids: [$sourceIds]}"
                 }
             throw IngestClientException(
-                "Duplicate blob sources detected in the request: [$duplicateInfo]",
+                message = "Duplicate blob sources detected in the request: [$duplicateInfo]",
             )
         }
 
+        // Create blob objects for the request
         val blobs =
-            blobSources.map {
+            sources.map {
                 Blob(
                     it.blobPath,
                     sourceId = it.sourceId.toString(),
@@ -299,7 +307,7 @@ internal constructor(
             }
             else -> {
                 throw IngestClientException(
-                    "Unsupported ingestion source type: ${source::class.simpleName}",
+                    message = "Unsupported ingestion source type: ${source::class.simpleName}",
                 )
             }
         }
@@ -339,55 +347,6 @@ internal constructor(
         if (shouldDisposeUploader) {
             uploader.close()
         }
-    }
-
-    /**
-     * Splits sources into BlobSources and LocalSources, uploads LocalSources in
-     * parallel, and returns a unified list of BlobSources.
-     *
-     * @param sources The list of ingestion sources to process
-     * @return A list of BlobSources including both original BlobSources and
-     *   uploaded LocalSources
-     * @throws IngestClientException if an unsupported source type is
-     *   encountered
-     */
-    private suspend fun uploadLocalSourcesAsync(
-        sources: List<IngestionSource>,
-    ): List<BlobSource> {
-        // Split sources into BlobSources and LocalSources
-        val blobSources = mutableListOf<BlobSource>()
-        val localSources = mutableListOf<LocalSource>()
-
-        sources.forEach { source ->
-            when (source) {
-                is BlobSource -> blobSources.add(source)
-                is LocalSource -> localSources.add(source)
-                else ->
-                    throw IngestClientException(
-                        "Unsupported ingestion source type: ${source::class.simpleName}",
-                    )
-            }
-        }
-
-        // Upload LocalSources in parallel and collect the resulting BlobSources
-        if (localSources.isNotEmpty()) {
-            logger.info(
-                "Uploading ${localSources.size} local source(s) to blob storage",
-            )
-            val uploadedBlobs = coroutineScope {
-                localSources
-                    .map { localSource ->
-                        async { uploader.uploadAsync(localSource) }
-                    }
-                    .awaitAll()
-            }
-            blobSources.addAll(uploadedBlobs)
-            logger.info(
-                "Successfully uploaded ${uploadedBlobs.size} local source(s)",
-            )
-        }
-
-        return blobSources
     }
 
     /**
