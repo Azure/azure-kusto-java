@@ -84,6 +84,9 @@ public class StreamingIngestV2 {
     /**
      * Demonstrates ingestion from various stream sources including: - In-memory string data as CSV
      * - Compressed file stream (CSV) - JSON file stream with mapping
+     *
+     * <p>NOTE: This example shows both source creation with defaults and source creation with full control
+     * StreamSource defaults: compression=NONE, sourceId=auto-generated, baseName=null, leaveOpen=false
      */
     static void ingestFromStream() throws Exception {
         System.out.println("\n=== Ingesting from Streams ===");
@@ -127,15 +130,14 @@ public class StreamingIngestV2 {
         compressedCsvStream.close();
 
         // Example 3: Ingest JSON with mapping
+        // Demonstrating minimal parameters for quick prototyping
         FileInputStream jsonStream = new FileInputStream(resourcesDirectory + "dataset.json");
 
         StreamSource jsonStreamSource = new StreamSource(
                 jsonStream,
-                Format.json,
-                CompressionType.NONE,
-                UUID.randomUUID(),
-                false);
+                Format.json);
 
+        IngestionMapping mapping = new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON);
         IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
                 .withIngestionMapping(new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON))
                 .withEnableTracking(true)
@@ -152,18 +154,20 @@ public class StreamingIngestV2 {
     /**
      * Demonstrates ingestion from file sources including: - CSV file - Compressed JSON file with
      * mapping
+     *
+     * <p>NOTE: This example shows both source creation with defaults and source creation with full control.
+     * FileSource defaults: sourceId=auto-generated, compression=auto-detected from extension, baseName=from-filename
      */
     static void ingestFromFile() throws Exception {
         System.out.println("\n=== Ingesting from Files ===");
 
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
-        // Example 1: Ingest CSV file
-        FileSource csvFileSource = new FileSource(
-                Paths.get(resourcesDirectory + "dataset.csv"),
-                Format.csv,
-                UUID.randomUUID(),
-                CompressionType.NONE);
+        // Example 1: Ingest CSV file using with defaults
+        // Only providing required parameters: path and format
+        // Defaults: sourceId=auto-generated, compression=auto-detected (NONE for .csv), baseName="dataset.csv"
+        FileSource csvFileSource =
+                new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
