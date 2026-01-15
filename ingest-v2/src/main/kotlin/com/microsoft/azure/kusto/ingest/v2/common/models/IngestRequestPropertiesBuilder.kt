@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.common.models
 
+import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientException
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
+import com.microsoft.azure.kusto.ingest.v2.models.Format
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import java.time.OffsetDateTime
 
@@ -13,18 +16,15 @@ import java.time.OffsetDateTime
  *
  * Example usage:
  * ```kotlin
- * val properties = IngestRequestPropertiesBuilder.create(database = "db", table = "table")
- *     .withFormat(Format.json)
+ * val properties = IngestRequestPropertiesBuilder.create()
  *     .withDropByTags(listOf("tag1", "tag2"))
  *     .withIngestByTags(listOf("tag3"))
  *     .withEnableTracking(true)
  *     .build()
  * ```
  */
-class IngestRequestPropertiesBuilder
-private constructor(private val database: String, private val table: String) {
-    private var format: com.microsoft.azure.kusto.ingest.v2.models.Format? =
-        null
+class IngestRequestPropertiesBuilder private constructor() {
+    private var format: Format? = null
     private var enableTracking: Boolean? = null
     private var additionalTags: List<String>? = null
     private var dropByTags: List<String>? = null
@@ -33,7 +33,8 @@ private constructor(private val database: String, private val table: String) {
     private var skipBatching: Boolean? = null
     private var deleteAfterDownload: Boolean? = null
     private var ingestionMappingReference: String? = null
-    private var ingestionMapping: String? = null
+    private var inlineIngestionMapping: String? = null
+    private var ingestionMapping: IngestionMapping? = null
     private var validationPolicy: String? = null
     private var ignoreSizeLimit: Boolean? = null
     private var ignoreFirstRecord: Boolean? = null
@@ -44,22 +45,9 @@ private constructor(private val database: String, private val table: String) {
     private var recreateSchema: Boolean? = null
 
     companion object {
-        internal const val DATABASE_KEY = "_database"
-        internal const val TABLE_KEY = "_table"
-
-        /**
-         * Creates a new builder for IngestRequestProperties.
-         *
-         * @param database The target database name
-         * @param table The target table name
-         * @return A new IngestRequestPropertiesBuilder instance
-         */
         @JvmStatic
-        fun create(
-            database: String,
-            table: String,
-        ): IngestRequestPropertiesBuilder {
-            return IngestRequestPropertiesBuilder(database, table)
+        fun create(): IngestRequestPropertiesBuilder {
+            return IngestRequestPropertiesBuilder()
         }
     }
 
@@ -99,12 +87,20 @@ private constructor(private val database: String, private val table: String) {
         this.deleteAfterDownload = value
     }
 
-    fun withIngestionMappingReference(value: String) = apply {
-        this.ingestionMappingReference = value
-    }
-
-    fun withIngestionMapping(value: String) = apply {
+    fun withIngestionMapping(value: IngestionMapping) = apply {
         this.ingestionMapping = value
+        // Set format from mapping type if not already set
+        if (this.format == null) {
+            this.format = value.ingestionMappingType.format
+        }
+        // Only set reference OR inline mapping, not both
+        if (value.ingestionMappingReference.isNotBlank()) {
+            this.ingestionMappingReference = value.ingestionMappingReference
+            this.inlineIngestionMapping = null
+        } else if (value.columnMappings.isNotEmpty()) {
+            this.inlineIngestionMapping = value.serializeColumnMappingsToJson()
+            this.ingestionMappingReference = null
+        }
     }
 
     fun withValidationPolicy(value: String) = apply {
@@ -136,9 +132,8 @@ private constructor(private val database: String, private val table: String) {
     }
 
     /**
-     * Builds the
-     * [com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties] with
-     * combined tags from dropByTags, ingestByTags, and additionalTags.
+     * Builds the [IngestRequestProperties] with combined tags from dropByTags,
+     * ingestByTags, and additionalTags.
      *
      * The built properties will have database and table information stored in
      * the underlying map for retrieval by client implementations.
@@ -149,21 +144,31 @@ private constructor(private val database: String, private val table: String) {
      * build and will be overridden with the actual source format.
      *
      * @return The built IngestRequestProperties
+     * @throws IngestClientException if both ingestionMappingReference and
+     *   inlineIngestionMapping are set
      */
     fun build(): IngestRequestProperties {
+        // Validate that both mapping reference and inline mapping are not set simultaneously
+        if (
+            !ingestionMappingReference.isNullOrBlank() &&
+            !inlineIngestionMapping.isNullOrBlank()
+        ) {
+            throw IngestClientException(
+                message =
+                "Both mapping reference and column mappings were defined. " +
+                    "Please provide either a mapping reference OR column mappings, not both.",
+                isPermanent = true,
+                failureCode = 400,
+            )
+        }
+
         // Combine all tags: additional tags + prefixed ingest-by tags + prefixed drop-by tags
         val combinedTags = mutableListOf<String>()
-
         additionalTags?.let { combinedTags.addAll(it) }
-
         ingestByTags?.forEach { tag -> combinedTags.add("ingest-by:$tag") }
-
         dropByTags?.forEach { tag -> combinedTags.add("drop-by:$tag") }
-
         // Use format if explicitly set, otherwise use placeholder (will be overridden from source)
-        val effectiveFormat =
-            format ?: com.microsoft.azure.kusto.ingest.v2.models.Format.csv
-
+        val effectiveFormat = format ?: Format.csv
         val properties =
             IngestRequestProperties(
                 format = effectiveFormat,
@@ -173,7 +178,7 @@ private constructor(private val database: String, private val table: String) {
                 skipBatching = skipBatching,
                 deleteAfterDownload = deleteAfterDownload,
                 ingestionMappingReference = ingestionMappingReference,
-                ingestionMapping = ingestionMapping,
+                ingestionMapping = inlineIngestionMapping,
                 validationPolicy = validationPolicy,
                 ignoreSizeLimit = ignoreSizeLimit,
                 ignoreFirstRecord = ignoreFirstRecord,
@@ -183,11 +188,6 @@ private constructor(private val database: String, private val table: String) {
                 extendSchema = extendSchema,
                 recreateSchema = recreateSchema,
             )
-
-        // Store database and table in the HashMap for retrieval
-        properties.put(DATABASE_KEY, database)
-        properties.put(TABLE_KEY, table)
-
         return properties
     }
 }

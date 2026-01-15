@@ -10,8 +10,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestSizeLimitExceededException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.database
-import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.utils.IngestionResultUtils
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
@@ -80,20 +79,34 @@ internal constructor(
      * to the Data Management service.
      */
     override suspend fun ingestAsync(
+        database: String,
+        table: String,
         sources: List<BlobSource>,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse =
-        ingestAsyncInternal(sources, ingestRequestProperties)
+        ingestAsyncInternal(
+            database,
+            table,
+            sources,
+            ingestRequestProperties,
+        )
 
     /**
      * Ingests data from a single source with the given properties. This is the
      * suspend function for Kotlin callers.
      */
     override suspend fun ingestAsync(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse =
-        ingestAsyncSingleInternal(source, ingestRequestProperties)
+        ingestAsyncSingleInternal(
+            database,
+            table,
+            source,
+            ingestRequestProperties,
+        )
 
     /**
      * Ingests data from multiple blob sources with the given properties. This is the
@@ -105,11 +118,18 @@ internal constructor(
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
+        database: String,
+        table: String,
         sources: List<BlobSource>,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
-            ingestAsyncInternal(sources, ingestRequestProperties)
+            ingestAsyncInternal(
+                database,
+                table,
+                sources,
+                ingestRequestProperties,
+            )
         }
 
     /**
@@ -118,11 +138,18 @@ internal constructor(
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
-            ingestAsyncSingleInternal(source, ingestRequestProperties)
+            ingestAsyncSingleInternal(
+                database,
+                table,
+                source,
+                ingestRequestProperties,
+            )
         }
 
     /**
@@ -182,13 +209,11 @@ internal constructor(
      * The blobs are assumed to already exist in blob storage.
      */
     private suspend fun ingestAsyncInternal(
+        database: String,
+        table: String,
         sources: List<BlobSource>,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse {
-        // Extract database and table from properties
-        val database = ingestRequestProperties.database
-        val table = ingestRequestProperties.table
-
         // Validate sources list is not empty
         require(sources.isNotEmpty()) { "sources list cannot be empty" }
         val maxBlobsPerBatch = getMaxSourcesPerMultiIngest()
@@ -248,7 +273,10 @@ internal constructor(
 
         // Extract format from the first source (all sources have same format as validated above)
         val effectiveProperties =
-            ingestRequestProperties.withFormatFromSource(sources.first())
+            ingestRequestProperties?.withFormatFromSource(sources.first())
+                ?: IngestRequestPropertiesBuilder.create()
+                    .build()
+                    .withFormatFromSource(sources.first())
 
         val ingestRequest =
             IngestRequest(
@@ -290,20 +318,32 @@ internal constructor(
 
     /** Internal implementation of ingestAsync for a single source. */
     private suspend fun ingestAsyncSingleInternal(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         when (source) {
             is BlobSource -> {
                 // Pass the source to multi-source method which will extract format
-                return ingestAsync(listOf(source), ingestRequestProperties)
+                return ingestAsync(
+                    database,
+                    table,
+                    listOf(source),
+                    ingestRequestProperties,
+                )
             }
             is LocalSource -> {
                 // Upload the local source to blob storage, then ingest
                 // Note: We pass the original LocalSource to preserve format information
                 val blobSource = uploader.uploadAsync(source)
                 // Use the original source's format
-                return ingestAsync(listOf(blobSource), ingestRequestProperties)
+                return ingestAsync(
+                    database,
+                    table,
+                    listOf(blobSource),
+                    ingestRequestProperties,
+                )
             }
             else -> {
                 throw IngestClientException(

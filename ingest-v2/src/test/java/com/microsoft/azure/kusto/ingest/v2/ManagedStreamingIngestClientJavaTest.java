@@ -8,14 +8,16 @@ import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
 import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -46,8 +48,9 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Small data triggers streaming ingestion
      * - Data appears in the table after ingestion
      */
-    @Test
-    public void testManagedStreamingIngestSmallData() throws Exception {
+    @ParameterizedTest(name = "Managed Streaming Ingest Small Data - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true, false})
+    public void testManagedStreamingIngestSmallData(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java managed streaming ingest (small data) regression test");
 
         // Enable streaming ingestion on the table
@@ -66,34 +69,38 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     dataStream,
                     Format.json, CompressionType.NONE,
                     UUID.randomUUID(),
-                    "java-managed-streaming-small",
                     false
             );
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
-                    .withIngestionMappingReference(targetTable + "_mapping")
+            IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
+                    IngestionMapping.IngestionMappingType.JSON);
+
+            IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder
+                    .create()
+                    .withIngestionMapping(mappingReference)
                     .withEnableTracking(true)
-                    .build();
+                    .build() : null;
 
             // Ingest data (should use streaming for small data)
             logger.info("Ingesting small data via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            assertNotNull(response.getIngestResponse().getIngestionOperationId(),
-                    "Operation ID should not be null");
+            if (useIngestRequestProperties) {
+                assertNotNull(response.getIngestResponse().getIngestionOperationId(),
+                        "Operation ID should not be null");
 
-            // Verify it used streaming ingestion
-            IngestKind ingestionType = response.getIngestionType();
-            logger.info("Ingest completed using {} method. Operation ID: {}",
-                    ingestionType, response.getIngestResponse().getIngestionOperationId());
+                // Verify it used streaming ingestion
+                IngestKind ingestionType = response.getIngestionType();
+                logger.info("Ingest completed using {} method. Operation ID: {}",
+                        ingestionType, response.getIngestResponse().getIngestionOperationId());
 
-            // Small data typically uses streaming, but fallback to queued is acceptable
-            assertTrue(
-                    ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
-                    "Ingestion type should be either STREAMING or QUEUED"
-            );
+                // Small data typically uses streaming, but fallback to queued is acceptable
+                assertTrue(
+                        ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
+                        "Ingestion type should be either STREAMING or QUEUED"
+                );
+            }
 
             // Verify data appeared in table
             String query = String.format("%s | summarize count=count()", targetTable);
@@ -110,8 +117,9 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * - Larger data automatically falls back to queued ingestion
      * - Fallback mechanism works correctly from Java
      */
-    @Test
-    public void testManagedStreamingIngestWithFallback() throws Exception {
+    @ParameterizedTest(name = "Managed Streaming Ingest with Fallback - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true, false})
+    public void testManagedStreamingIngestWithFallback(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java managed streaming ingest with fallback test");
 
         alterTableToEnableStreaming();
@@ -136,35 +144,39 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     dataStream,
                     Format.multijson, CompressionType.NONE,
                     UUID.randomUUID(),
-                    "java-managed-streaming-fallback",
                     false
             );
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
-                    .withIngestionMappingReference(targetTable + "_mapping")
+            IngestionMapping mappingReference = new IngestionMapping(targetTable + "_mapping",
+                    IngestionMapping.IngestionMappingType.JSON);
+
+            IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder
+                    .create()
+                    .withIngestionMapping(mappingReference)
                     .withEnableTracking(true)
-                    .build();
+                    .build() : null;
 
             logger.info("Ingesting larger data via managed streaming (may trigger fallback)...");
-            ExtendedIngestResponse response = client.ingestAsync(source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
 
-            IngestKind ingestionType = response.getIngestionType();
-            logger.info("Ingestion completed using {} method. Operation ID: {}",
-                    ingestionType, response.getIngestResponse().getIngestionOperationId());
+            if (useIngestRequestProperties) {
+                IngestKind ingestionType = response.getIngestionType();
+                logger.info("Ingestion completed using {} method. Operation ID: {}",
+                        ingestionType, response.getIngestResponse().getIngestionOperationId());
 
-            // Both streaming and queued are valid outcomes
-            assertTrue(
-                    ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
-                    "Ingestion type should be either STREAMING or QUEUED"
-            );
+                // Both streaming and queued are valid outcomes
+                assertTrue(
+                        ingestionType == IngestKind.STREAMING || ingestionType == IngestKind.QUEUED,
+                        "Ingestion type should be either STREAMING or QUEUED"
+                );
 
-            if (ingestionType == IngestKind.QUEUED) {
-                logger.info("Fallback to QUEUED ingestion triggered (expected for larger data)");
-            } else {
-                logger.info("Data ingested via STREAMING (compression may have kept size small)");
+                if (ingestionType == IngestKind.QUEUED) {
+                    logger.info("Fallback to QUEUED ingestion triggered (expected for larger data)");
+                } else {
+                    logger.info("Data ingested via STREAMING (compression may have kept size small)");
+                }
             }
 
             String query = String.format("%s | summarize count=count()", targetTable);
@@ -179,8 +191,9 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
      * Test managed streaming with file source from Java.
      * Verifies that file-based ingestion works correctly with managed streaming.
      */
-    @Test
-    public void testManagedStreamingIngestFromFileSource() throws Exception {
+    @ParameterizedTest(name = "Managed Streaming Ingest from File - useIngestRequestProperties={0}")
+    @ValueSource(booleans = {true, false})
+    public void testManagedStreamingIngestFromFileSource(boolean useIngestRequestProperties) throws Exception {
         logger.info("Running Java managed streaming ingest from file source test");
 
         alterTableToEnableStreaming();
@@ -208,24 +221,25 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                             filePath,
                             Format.multijson,
                             UUID.randomUUID(),
-                            CompressionType.NONE,
-                            null
+                            CompressionType.NONE
                     );
 
-            IngestRequestProperties properties = IngestRequestPropertiesBuilder
-                    .create(database, targetTable)
+            IngestRequestProperties properties = useIngestRequestProperties ? IngestRequestPropertiesBuilder
+                    .create()
                     .withEnableTracking(true)
-                    .build();
+                    .build() : null;
 
             logger.info("Ingesting file via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(fileSource, properties).get();
+            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
-            assertNotNull(response.getIngestResponse().getIngestionOperationId(), "Operation ID should not be null");
+            if (useIngestRequestProperties) {
+                assertNotNull(response.getIngestResponse().getIngestionOperationId(), "Operation ID should not be null");
 
-            IngestKind ingestionType = response.getIngestionType();
-            logger.info("File ingestion completed using {} method. Operation ID: {}",
-                    ingestionType, response.getIngestResponse().getIngestionOperationId());
+                IngestKind ingestionType = response.getIngestionType();
+                logger.info("File ingestion completed using {} method. Operation ID: {}",
+                        ingestionType, response.getIngestResponse().getIngestionOperationId());
+            }
 
             String query = String.format("%s | summarize count=count()", targetTable);
             awaitAndQuery(query, 1);

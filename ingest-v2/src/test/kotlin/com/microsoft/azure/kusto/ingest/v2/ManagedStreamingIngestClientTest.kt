@@ -77,13 +77,15 @@ class ManagedStreamingIngestClientTest :
             }
         val testSources = BlobSource(blobUrl, format = format)
         val ingestRequestProperties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
         try {
             // Ingest data - should attempt streaming first
             val ingestionResponse =
                 managedClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = testSources,
                     ingestRequestProperties = ingestRequestProperties,
                 )
@@ -192,17 +194,18 @@ class ManagedStreamingIngestClientTest :
                 stream = ByteArrayInputStream(testData.toByteArray()),
                 format = targetTestFormat,
                 sourceCompression = CompressionType.NONE,
-                baseName = "test-custom-policy",
             )
 
         val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
 
         try {
             val ingestionResponse =
                 customManagedClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = source,
                     ingestRequestProperties = properties,
                 )
@@ -275,11 +278,13 @@ class ManagedStreamingIngestClientTest :
                 format = Format.multijson,
             )
         val ingestRequestProperties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
         val ingestionResponse =
             customManagedClient.ingestAsync(
+                database = database,
+                table = targetTable,
                 source = testSource,
                 ingestRequestProperties = ingestRequestProperties,
             )

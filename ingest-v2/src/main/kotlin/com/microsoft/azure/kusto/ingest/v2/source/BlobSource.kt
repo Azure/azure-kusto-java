@@ -14,8 +14,7 @@ class BlobSource(
     format: Format = Format.csv,
     sourceId: UUID = UUID.randomUUID(),
     compressionType: CompressionType = CompressionType.NONE,
-    baseName: String? = null,
-) : IngestionSource(format, compressionType, baseName, sourceId) {
+) : IngestionSource(format, compressionType, sourceId) {
 
     /**
      * The exact size of the blob in bytes if available. This is only set when

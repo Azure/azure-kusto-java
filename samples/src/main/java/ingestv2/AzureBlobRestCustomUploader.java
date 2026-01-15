@@ -8,6 +8,7 @@ import com.azure.identity.ChainedTokenCredential;
 import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.kusto.data.StringUtils;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
 import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
@@ -203,8 +204,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             resultBlobUrl,
             local.getFormat(),
             local.getSourceId(),
-            local.getCompressionType(),
-            blobName
+            local.getCompressionType()
         );
     }
     
@@ -378,15 +378,17 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             
             // Try CSV file first
             FileSource fileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
-            
+
+            IngestionMapping ingestionMapping = new IngestionMapping(mapping, IngestionMapping.IngestionMappingType.CSV);
+
             IngestRequestProperties properties;
             if (mapping != null && !mapping.isEmpty()) {
-                properties = IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
+                properties = IngestRequestPropertiesBuilder.create()
+                        .withIngestionMapping(ingestionMapping)
                         .withEnableTracking(true)
                         .build();
             } else {
-                properties = IngestRequestPropertiesBuilder.create(database, table)
+                properties = IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build();
             }
@@ -395,24 +397,25 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("   (This will use the custom uploader to upload to Azure Blob Storage!)");
             
             // Perform ingestion - the custom uploader handles the upload!
-            var response = queuedIngestClient.ingestAsync(fileSource, properties).get();
+            var response = queuedIngestClient.ingestAsync(database, table, fileSource, properties).get();
             
             System.out.println("\n5. Ingestion queued successfully!");
             System.out.println("   Operation ID: " + response.getIngestResponse().getIngestionOperationId());
             System.out.println("   Ingestion Type: " + response.getIngestionType());
-            
+
+            IngestionMapping jsonMapping = new IngestionMapping(mapping, IngestionMapping.IngestionMappingType.JSON);
             // Also demonstrate JSON ingestion with mapping
             if (mapping != null && !mapping.isEmpty()) {
                 FileSource jsonFileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.json"), Format.json);
                 
-                IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
+                IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                        .withIngestionMapping(jsonMapping)
                         .withEnableTracking(true)
                         .build();
                 
                 System.out.println("\n6. Ingesting JSON file with mapping: " + resourcesDirectory + "dataset.json");
                 
-                var jsonResponse = queuedIngestClient.ingestAsync(jsonFileSource, jsonProperties).get();
+                var jsonResponse = queuedIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
                 
                 System.out.println("   JSON Ingestion queued successfully!");
                 System.out.println("   Operation ID: " + jsonResponse.getIngestResponse().getIngestionOperationId());
@@ -424,13 +427,13 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             
             StreamSource streamSource = new StreamSource(csvInputStream, Format.csv);
             
-            IngestRequestProperties streamProperties = IngestRequestPropertiesBuilder.create(database, table)
+            IngestRequestProperties streamProperties = IngestRequestPropertiesBuilder.create()
                     .withEnableTracking(true)
                     .build();
             
             System.out.println("\n7. Ingesting from stream (CSV data)");
             
-            var streamResponse = queuedIngestClient.ingestAsync(streamSource, streamProperties).get();
+            var streamResponse = queuedIngestClient.ingestAsync(database, table,streamSource, streamProperties).get();
             
             System.out.println("   Stream Ingestion queued successfully!");
             System.out.println("   Operation ID: " + streamResponse.getIngestResponse().getIngestionOperationId());

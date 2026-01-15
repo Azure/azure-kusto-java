@@ -34,7 +34,7 @@ public abstract class IngestV2JavaTestBase {
     protected final String database;
     protected final String dmEndpoint;
     protected final String engineEndpoint;
-    protected final String targetTable;
+    protected String targetTable;
     protected final Map<String, String> columnNamesToTypes;
     protected Client adminClusterClient;
 
@@ -54,10 +54,7 @@ public abstract class IngestV2JavaTestBase {
         
         this.engineEndpoint = dmEndpoint.replace("https://ingest-", "https://");
         
-        // Generate unique table name for this test run
-        this.targetTable = "V2_Java_Tests_Sensor_" + 
-            UUID.randomUUID().toString().replace("-", "").substring(0, 8);
-        
+
         // Define table schema
         this.columnNamesToTypes = new LinkedHashMap<>();
         columnNamesToTypes.put("timestamp", "datetime");
@@ -72,6 +69,10 @@ public abstract class IngestV2JavaTestBase {
 
     @BeforeEach
     public void createTables() throws Exception {
+        // Generate unique table name for this test run
+        this.targetTable = "V2_Java_Tests_Sensor_" +
+                UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+
         // Build create table script
         StringBuilder columnsBuilder = new StringBuilder();
         boolean first = true;

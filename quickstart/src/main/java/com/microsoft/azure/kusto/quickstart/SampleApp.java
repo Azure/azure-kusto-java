@@ -7,6 +7,7 @@ import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
@@ -43,6 +44,7 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.semconv.ResourceAttributes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -71,7 +73,7 @@ enum SourceType {
         this.source = source;
     }
 
-    public static SourceType valueOfLabel(String label) {
+    public static @Nullable SourceType valueOfLabel(String label) {
         for (SourceType e : values()) {
             if (e.source.equals(label)) {
                 return e;
@@ -485,8 +487,7 @@ public class SampleApp {
     private static ConfigJson loadConfigs() {
         Path configPath = locateConfigFile();
         try {
-            ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
-            mapper.configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true);
+            ObjectMapper mapper = JsonMapper.builder().configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true).build();
             return mapper.readValue(configPath.toFile(), ConfigJson.class);
         } catch (Exception e) {
             Utils.errorHandler(String.format("Couldn't read config file from file '%s'", configPath), e);
@@ -778,15 +779,15 @@ public class SampleApp {
     }
 
     private static @NotNull List<CompletableFuture<Void>> ingestV2FromStreams(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-                                                                              @NotNull QueuedIngestClient queuedIngestClient) throws IOException {
+            @NotNull QueuedIngestClient queuedIngestClient) throws IOException {
         System.out.println("\n=== Queued ingestion from streams (ingest-v2) ===");
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
         String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream csvStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
-        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), "csv-stream", false);
-        futures.add(queuedIngestClient.ingestAsync(csvSource, csvProps)
+        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), false);
+        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvSource, csvProps)
                 .thenCompose(response -> {
                     closeQuietly(csvStream);
                     System.out.println("CSV stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
@@ -794,9 +795,9 @@ public class SampleApp {
                 }));
 
         InputStream jsonStream = Files.newInputStream(resolveQuickstartPath("dataset.json"));
-        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), "json-stream", false);
+        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), false);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
-        futures.add(queuedIngestClient.ingestAsync(jsonSource, jsonProps)
+        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonSource, jsonProps)
                 .thenCompose(response -> {
                     closeQuietly(jsonStream);
                     System.out.println("JSON stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
@@ -807,21 +808,21 @@ public class SampleApp {
     }
 
     private static @NotNull List<CompletableFuture<Void>> ingestV2FromFiles(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-                                                                            @NotNull QueuedIngestClient queuedIngestClient) {
+            @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued ingestion from files (ingest-v2) ===");
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
-        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "csv-file");
-        futures.add(queuedIngestClient.ingestAsync(csvFileSource, csvProps)
+        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvFileSource, csvProps)
                 .thenCompose(response -> {
                     System.out.println("CSV file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV File");
                 }));
 
-        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE, "json-file");
+        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
-        futures.add(queuedIngestClient.ingestAsync(jsonFileSource, jsonProps)
+        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonFileSource, jsonProps)
                 .thenCompose(response -> {
                     System.out.println("JSON file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "JSON File");
@@ -852,8 +853,8 @@ public class SampleApp {
 
         System.out.println("ManagedUploader created for batch upload");
 
-        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "batch-source-1");
-        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE, "batch-source-2");
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
         List<LocalSource> localSources = Arrays.asList(source1, source2);
 
         System.out.println("Prepared " + localSources.size() + " local files for upload:");
@@ -886,8 +887,7 @@ public class SampleApp {
                                 success.getBlobUrl(),
                                 Format.csv,  // All our files are CSV format
                                 UUID.randomUUID(),
-                                CompressionType.GZIP,  // Uploader auto-compresses to GZIP
-                                success.getSourceName());
+                                CompressionType.GZIP);
                         blobSources.add(blobSource);
                     }
 
@@ -897,7 +897,7 @@ public class SampleApp {
                     }
 
                     System.out.println("Ingesting " + blobSources.size() + " blobs as a batch...");
-                    return queuedIngestClient.ingestAsync(blobSources, props)
+                    return queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), blobSources, props)
                             .thenCompose(response -> {
                                 System.out.println("Batch ingestion queued. Operation ID: "
                                         + response.getIngestResponse().getIngestionOperationId());
@@ -911,18 +911,23 @@ public class SampleApp {
                 });
     }
 
-    private static @NotNull IngestRequestProperties buildIngestV2RequestProperties(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config, String mappingName) {
+    private static @NotNull IngestRequestProperties buildIngestV2RequestProperties(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config,
+            String mappingName) {
         IngestRequestPropertiesBuilder builder = IngestRequestPropertiesBuilder
-                .create(config.getDatabaseName(), config.getTableName())
+                .create()
                 .withEnableTracking(ingestV2Config.isTrackingEnabled());
         if (StringUtils.isNotBlank(mappingName)) {
-            builder.withIngestionMappingReference(mappingName);
+            // Only JSON samples are shown in the sample
+            com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping mapping = new com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping(
+                    mappingName,
+                    com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping.IngestionMappingType.JSON);
+            builder.withIngestionMapping(mapping);
         }
         return builder.build();
     }
 
     private static @NotNull CompletableFuture<Void> trackIngestV2Operation(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config,
-                                                                           @NotNull QueuedIngestClient queuedIngestClient, @NotNull ExtendedIngestResponse response, String operationName) {
+            @NotNull QueuedIngestClient queuedIngestClient, @NotNull ExtendedIngestResponse response, String operationName) {
         IngestionOperation operation = new IngestionOperation(
                 Objects.requireNonNull(response.getIngestResponse().getIngestionOperationId()),
                 config.getDatabaseName(),

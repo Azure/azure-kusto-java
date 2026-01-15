@@ -78,9 +78,27 @@ open class IngestClientException(
     cause: Throwable? = null,
 ) : IngestException(message, cause, failureCode, failureSubCode, isPermanent) {
     override val message: String
-        get() =
-            creationMessage
-                ?: "An error occurred for source: '${ingestionSource ?: ""}'. Error: '${error ?: ""}'"
+        get() {
+            creationMessage?.let {
+                return it
+            }
+            // Fallback message with all fields
+            return buildString {
+                append("IngestClientException occurred")
+                if (!ingestionSourceId.isNullOrBlank()) {
+                    append(" [ID: $ingestionSourceId]")
+                }
+                if (!ingestionSource.isNullOrBlank()) {
+                    append(" for source: '$ingestionSource'")
+                }
+                if (!error.isNullOrBlank()) append(". Error: '$error'")
+                if (failureCode != null) append(" (Failure code: $failureCode")
+                if (!failureSubCode.isNullOrBlank()) {
+                    append(", Sub-code: $failureSubCode")
+                }
+                if (failureCode != null) append(")")
+            }
+        }
 }
 
 class IngestSizeLimitExceededException(

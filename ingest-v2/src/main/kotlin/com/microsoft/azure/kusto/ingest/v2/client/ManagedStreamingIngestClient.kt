@@ -12,8 +12,8 @@ import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestClientExcepti
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestKind
-import com.microsoft.azure.kusto.ingest.v2.common.models.database
-import com.microsoft.azure.kusto.ingest.v2.common.models.table
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
+import com.microsoft.azure.kusto.ingest.v2.common.models.withFormatFromSource
 import com.microsoft.azure.kusto.ingest.v2.common.runWithRetry
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties
 import com.microsoft.azure.kusto.ingest.v2.models.Status
@@ -85,17 +85,23 @@ internal constructor(
     }
 
     override suspend fun ingestAsync(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         // Extract database and table from properties
-        val database = ingestRequestProperties.database
-        val table = ingestRequestProperties.table
 
         requireNotNull(database.trim().isNotEmpty()) {
             "database cannot be blank"
         }
         requireNotNull(table.trim().isNotEmpty()) { "table cannot be blank" }
+
+        val effectiveProperties =
+            ingestRequestProperties?.withFormatFromSource(source)
+                ?: IngestRequestPropertiesBuilder.create()
+                    .build()
+                    .withFormatFromSource(source)
 
         return when (source) {
             is BlobSource ->
@@ -103,14 +109,14 @@ internal constructor(
                     source,
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveProperties,
                 )
             is LocalSource ->
                 ingestLocalAsync(
                     source,
                     database,
                     table,
-                    ingestRequestProperties,
+                    effectiveProperties,
                 )
             else ->
                 throw IllegalArgumentException(
@@ -174,11 +180,13 @@ internal constructor(
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
+        database: String,
+        table: String,
         source: IngestionSource,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
-            ingestAsync(source, ingestRequestProperties)
+            ingestAsync(database, table, source, ingestRequestProperties)
         }
 
     /**
@@ -216,7 +224,7 @@ internal constructor(
         blobSource: BlobSource,
         database: String,
         table: String,
-        ingestRequestProperties: IngestRequestProperties,
+        ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         if (
             shouldUseQueuedIngestByPolicy(
@@ -227,6 +235,8 @@ internal constructor(
             )
         ) {
             return invokeQueuedIngestionAsync(
+                database,
+                table,
                 blobSource,
                 ingestRequestProperties,
             )
@@ -243,7 +253,7 @@ internal constructor(
         source: LocalSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         val stream = source.data()
         if (!stream.isValidForIngest()) {
@@ -266,7 +276,7 @@ internal constructor(
                 props,
             )
         ) {
-            return invokeQueuedIngestionAsync(source, props)
+            return invokeQueuedIngestionAsync(database, table, source, props)
         }
         return invokeStreamingIngestionAsync(source, database, table, props)
     }
@@ -292,7 +302,7 @@ internal constructor(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): ExtendedIngestResponse {
         var startTime: Long
         var currentAttempt = 1u
@@ -306,6 +316,8 @@ internal constructor(
                     currentAttempt = attempt
                     val result =
                         streamingIngestClient.ingestAsync(
+                            database,
+                            table,
                             source,
                             props,
                         )
@@ -361,7 +373,7 @@ internal constructor(
             currentAttempt,
             lastException?.message,
         )
-        return invokeQueuedIngestionAsync(source, props)
+        return invokeQueuedIngestionAsync(database, table, source, props)
     }
 
     private fun resetLocalSourceIfPossible(source: IngestionSource) {
@@ -381,7 +393,7 @@ internal constructor(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         isPermanent: Boolean,
         ex: Exception,
     ): RetryDecision {
@@ -416,17 +428,19 @@ internal constructor(
     }
 
     private suspend fun invokeQueuedIngestionAsync(
+        database: String,
+        table: String,
         source: IngestionSource,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): ExtendedIngestResponse {
-        return queuedIngestClient.ingestAsync(source, props)
+        return queuedIngestClient.ingestAsync(database, table, source, props)
     }
 
     private fun shouldUseQueuedIngestByPolicy(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): Boolean {
         if (
             managedStreamingPolicy.shouldDefaultToQueuedIngestion(
@@ -449,7 +463,7 @@ internal constructor(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         ex: Exception,
     ) {
         val failureDetails =
@@ -484,7 +498,7 @@ internal constructor(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         ex: Exception,
     ) {
         logger.error("Unexpected error occurred during streaming ingestion", ex)
@@ -508,7 +522,7 @@ internal constructor(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): Boolean {
         val failureDetails =
             ManagedStreamingRequestFailureDetails(

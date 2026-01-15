@@ -10,7 +10,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.ColumnMapping
-import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.InlineIngestionMapping
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.TransformationMethod
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import com.microsoft.azure.kusto.ingest.v2.models.BlobStatus
@@ -154,9 +154,14 @@ class QueuedIngestClientTest :
 
         val properties =
             if (useMappingReference) {
-                IngestRequestPropertiesBuilder.create(database, targetTable)
-                    .withIngestionMappingReference(
-                        "${targetTable}_mapping",
+                IngestRequestPropertiesBuilder.create()
+                    .withIngestionMapping(
+                        IngestionMapping(
+                            "${targetTable}_mapping",
+                            IngestionMapping
+                                .IngestionMappingType
+                                .JSON,
+                        ),
                     )
                     .withEnableTracking(true)
                     .build()
@@ -198,24 +203,20 @@ class QueuedIngestClientTest :
                                     .apply { setPath("$.$col") }
                         }
                     }
-                val inlineIngestionMappingInline =
-                    InlineIngestionMapping(
+                val inlineIngestionMapping =
+                    IngestionMapping(
                         columnMappings = ingestionColumnMappings,
                         ingestionMappingType =
-                        InlineIngestionMapping
+                        IngestionMapping
                             .IngestionMappingType
                             .JSON,
                     )
-                val ingestionMappingString =
-                    jsonPrinter.encodeToString(
-                        inlineIngestionMappingInline.columnMappings,
-                    )
-                IngestRequestPropertiesBuilder.create(database, targetTable)
-                    .withIngestionMapping(ingestionMappingString)
+                IngestRequestPropertiesBuilder.create()
+                    .withIngestionMapping(inlineIngestionMapping)
                     .withEnableTracking(true)
                     .build()
             } else {
-                IngestRequestPropertiesBuilder.create(database, targetTable)
+                IngestRequestPropertiesBuilder.create()
                     .withEnableTracking(true)
                     .build()
             }
@@ -223,6 +224,8 @@ class QueuedIngestClientTest :
         try {
             val ingestionResponse =
                 ingestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = testSources,
                     ingestRequestProperties = properties,
                 )
@@ -325,7 +328,6 @@ class QueuedIngestClientTest :
             stream = ByteArrayInputStream(data),
             format = Format.multijson,
             sourceCompression = CompressionType.NONE,
-            baseName = name,
         )
     }
 
@@ -342,12 +344,11 @@ class QueuedIngestClientTest :
                 createTestStreamSource(1024, "combined_small.json")
             val smallResponse =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = smallSource,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -382,12 +383,11 @@ class QueuedIngestClientTest :
                 )
             val largeResponse =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     source = largeSource,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -446,12 +446,11 @@ class QueuedIngestClientTest :
         try {
             val response =
                 queuedIngestClient.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = blobSources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -513,6 +512,7 @@ class QueuedIngestClientTest :
         "json,compression/sample.json,NONE,3",
         "parquet,compression/sample.parquet,NONE,1",
         "avro,compression/sample.avro,NONE,1",
+        "csv,compression/sample.csv,NONE,1",
     )
     fun `E2E - compression format tests`(
         formatName: String,
@@ -562,23 +562,35 @@ class QueuedIngestClientTest :
                         .minusHours((1..5L).random())
                 val extentTags =
                     listOf("ingest-by:i-tag") + listOf("drop-by:d-tag")
+
+                // really want to squeeze in that test for CSV mapping as this uses ordinal types
+                // for tests
+
+                val irpBuilder =
+                    IngestRequestPropertiesBuilder.create()
+                        .withEnableTracking(true)
+                        .withIngestByTags(listOf("i-tag"))
+                        .withDropByTags(listOf("d-tag"))
+                        .withCreationTime(createdTimeTag)
+                val irp =
+                    if (formatName == Format.csv.value) {
+                        // use inline mapping and ignore the first record
+                        irpBuilder
+                            .withIngestionMapping(
+                                getInlineCsvMapping(),
+                            )
+                            .withIgnoreFirstRecord(true)
+                    } else {
+                        irpBuilder
+                    }
+                        .build()
+
                 val response =
                     queuedIngestClient.ingestAsync(
+                        database = database,
+                        table = targetTable,
                         source = source,
-                        ingestRequestProperties =
-                        IngestRequestPropertiesBuilder.create(
-                            database,
-                            targetTable,
-                        )
-                            .withEnableTracking(true)
-                            .withIngestByTags(
-                                listOf("i-tag"),
-                            )
-                            .withDropByTags(listOf("d-tag"))
-                            .withCreationTime(
-                                createdTimeTag,
-                            )
-                            .build(),
+                        ingestRequestProperties = irp,
                     )
 
                 val operationId =
@@ -609,9 +621,17 @@ class QueuedIngestClientTest :
                 logger.info(
                     "$formatName format test: passed ($succeededCount succeeded)",
                 )
+
+                val targetQuery =
+                    if (formatName == Format.csv.value) {
+                        "$targetTable | where format == '$format' and Type == 'IngestionMapping' and " +
+                            "isnotempty(SourceLocation) | summarize count=count() by format"
+                    } else {
+                        "$targetTable | where format == '$format' | summarize count=count() by format"
+                    }
+
                 awaitAndQuery(
-                    query =
-                    "$targetTable | where format == '$format' |summarize count=count() by format",
+                    query = targetQuery,
                     expectedResultsCount = expectedRecordCount.toLong(),
                     testName = "$formatName format test",
                 )
@@ -671,6 +691,52 @@ class QueuedIngestClientTest :
         }
     }
 
+    private fun getInlineCsvMapping(): IngestionMapping {
+        var ordinal = 0
+        columnNamesToTypes.keys
+            .map { col ->
+                when (col) {
+                    "SourceLocation" ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType = "string",
+                        )
+                            .apply {
+                                setTransform(
+                                    TransformationMethod
+                                        .SourceLocation,
+                                )
+                            }
+
+                    "Type" ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType = "string",
+                        )
+                            .apply {
+                                setConstantValue("IngestionMapping")
+                            }
+
+                    else ->
+                        ColumnMapping(
+                            columnName = col,
+                            columnType =
+                            columnNamesToTypes[
+                                col,
+                            ]!!,
+                        )
+                            .apply { setOrdinal(ordinal++) }
+                }
+            }
+            .let { ingestionColumnMappings ->
+                return IngestionMapping(
+                    columnMappings = ingestionColumnMappings,
+                    ingestionMappingType =
+                    IngestionMapping.IngestionMappingType.CSV,
+                )
+            }
+    }
+
     @Test
     fun `E2E - duplicate blob URLs should be rejected`(): Unit = runBlocking {
         logger.info("E2E: Testing duplicate blob URL detection")
@@ -692,12 +758,11 @@ class QueuedIngestClientTest :
         val exception =
             assertThrows<IngestClientException> {
                 client.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = sources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -737,12 +802,11 @@ class QueuedIngestClientTest :
         val exception =
             assertThrows<IngestClientException> {
                 client.ingestAsync(
+                    database = database,
+                    table = targetTable,
                     sources = sources,
                     ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create(
-                        database,
-                        targetTable,
-                    )
+                    IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
@@ -803,20 +867,21 @@ class QueuedIngestClientTest :
                         ),
                         format = targetFormat,
                         sourceCompression = CompressionType.NONE,
-                        baseName = fileName,
                     )
                 else -> error("Unknown sourceType: $sourceType")
             }
 
         val queuedIngestClient = createTestClient()
         val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
 
         // Use single-source API for LocalSource
         val ingestionResponse =
             queuedIngestClient.ingestAsync(
+                database = database,
+                table = targetTable,
                 source = source,
                 ingestRequestProperties = properties,
             )
@@ -890,12 +955,11 @@ class QueuedIngestClientTest :
             try {
                 val response =
                     oneLakeIngestClient.ingestAsync(
+                        database = database,
+                        table = targetTable,
                         source = source,
                         ingestRequestProperties =
-                        IngestRequestPropertiesBuilder.create(
-                            database,
-                            targetTable,
-                        )
+                        IngestRequestPropertiesBuilder.create()
                             .withEnableTracking(true)
                             .build(),
                     )
