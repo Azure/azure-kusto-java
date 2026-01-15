@@ -91,9 +91,7 @@ class StreamingIngestClientTest :
                 .withClientDetails("BuilderStreamingE2ETest", "1.0")
                 .build()
 
-        val ingestProps =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
-                .build()
+        val ingestProps = IngestRequestPropertiesBuilder.create().build()
         if (isException) {
             if (blobUrl != null) {
                 logger.info(
@@ -109,6 +107,8 @@ class StreamingIngestClientTest :
                                 format = targetTestFormat,
                             )
                         client.ingestAsync(
+                            database = database,
+                            table = targetTable,
                             source = ingestionSource,
                             ingestRequestProperties = ingestProps,
                         )
@@ -138,6 +138,8 @@ class StreamingIngestClientTest :
                     )
                 }
             client.ingestAsync(
+                database = database,
+                table = targetTable,
                 source = ingestionSource,
                 ingestRequestProperties = ingestProps,
             )
@@ -173,12 +175,7 @@ class StreamingIngestClientTest :
                     .withClientDetails("ErrorParsingE2ETest", "1.0")
                     .build()
 
-            val properties =
-                IngestRequestPropertiesBuilder.create(
-                    database,
-                    targetTable,
-                )
-                    .build()
+            val properties = IngestRequestPropertiesBuilder.create().build()
 
             // Send invalid text data claiming to be JSON - this triggers a data format error
             val invalidData = "this is not valid json { broken"
@@ -195,6 +192,8 @@ class StreamingIngestClientTest :
             val exception =
                 assertThrows<IngestException> {
                     client.ingestAsync(
+                        database = database,
+                        table = targetTable,
                         source = streamSource,
                         ingestRequestProperties = properties,
                     )
@@ -263,12 +262,14 @@ class StreamingIngestClientTest :
             )
 
         val properties =
-            IngestRequestPropertiesBuilder.create(database, targetTable)
+            IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
                 .build()
 
         val response =
             client.ingestAsync(
+                database = database,
+                table = targetTable,
                 source = fileSource,
                 ingestRequestProperties = properties,
             )

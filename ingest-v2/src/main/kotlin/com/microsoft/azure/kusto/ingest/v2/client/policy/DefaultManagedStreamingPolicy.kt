@@ -58,7 +58,7 @@ class DefaultManagedStreamingPolicy(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
     ): Boolean {
         val key = "$database-$table"
 
@@ -83,11 +83,10 @@ class DefaultManagedStreamingPolicy(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         failureDetails: ManagedStreamingRequestFailureDetails,
     ) {
         val key = "$database-$table"
-
         when (failureDetails.errorCategory) {
             ManagedStreamingErrorCategory.STREAMING_INGESTION_OFF,
             ManagedStreamingErrorCategory
@@ -119,7 +118,7 @@ class DefaultManagedStreamingPolicy(
         source: IngestionSource,
         database: String,
         table: String,
-        props: IngestRequestProperties,
+        props: IngestRequestProperties?,
         successDetails: ManagedStreamingRequestSuccessDetails,
     ) {
         // Default implementation does nothing

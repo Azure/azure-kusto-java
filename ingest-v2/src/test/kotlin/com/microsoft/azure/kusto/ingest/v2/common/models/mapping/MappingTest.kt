@@ -64,7 +64,6 @@ class MappingTest {
     @Test
     fun `ColumnMapping should set and get ordinal`() {
         val mapping = ColumnMapping("col1", "string")
-
         mapping.setOrdinal(5)
         assertEquals(5, mapping.getOrdinal())
     }
@@ -261,7 +260,7 @@ class MappingTest {
 
     @Test
     fun `TransformationMethod should have all expected values`() {
-        val values = TransformationMethod.values()
+        val values = TransformationMethod.entries.toTypedArray()
         assertTrue(values.contains(TransformationMethod.None))
         assertTrue(
             values.contains(
@@ -305,25 +304,17 @@ class MappingTest {
             )
 
         val mapping =
-            InlineIngestionMapping(
+            IngestionMapping(
                 columnMappings = columnMappings,
                 ingestionMappingType =
-                InlineIngestionMapping.IngestionMappingType.JSON,
+                IngestionMapping.IngestionMappingType.JSON,
             )
 
-        assertEquals(2, mapping.columnMappings?.size)
+        assertEquals(2, mapping.columnMappings.size)
         assertEquals(
-            InlineIngestionMapping.IngestionMappingType.JSON,
+            IngestionMapping.IngestionMappingType.JSON,
             mapping.ingestionMappingType,
         )
-    }
-
-    @Test
-    fun `InlineIngestionMapping should support null values`() {
-        val mapping = InlineIngestionMapping()
-
-        assertNull(mapping.columnMappings)
-        assertNull(mapping.ingestionMappingType)
     }
 
     @Test
@@ -336,44 +327,25 @@ class MappingTest {
             )
 
         val original =
-            InlineIngestionMapping(
+            IngestionMapping(
                 columnMappings = columnMappings,
                 ingestionMappingType =
-                InlineIngestionMapping.IngestionMappingType.JSON,
+                IngestionMapping.IngestionMappingType.JSON,
             )
 
-        val copied = InlineIngestionMapping(original)
+        val copied = IngestionMapping(original)
 
-        assertEquals(original.columnMappings?.size, copied.columnMappings?.size)
+        assertEquals(original.columnMappings.size, copied.columnMappings.size)
         assertEquals(original.ingestionMappingType, copied.ingestionMappingType)
-        assertEquals("col1", copied.columnMappings?.get(0)?.columnName)
-    }
-
-    @Test
-    fun `InlineIngestionMapping copy constructor should handle null columnMappings`() {
-        val original =
-            InlineIngestionMapping(
-                columnMappings = null,
-                ingestionMappingType =
-                InlineIngestionMapping.IngestionMappingType.CSV,
-            )
-
-        val copied = InlineIngestionMapping(original)
-
-        assertNull(copied.columnMappings)
-        assertEquals(
-            InlineIngestionMapping.IngestionMappingType.CSV,
-            copied.ingestionMappingType,
-        )
+        assertEquals("col1", copied.columnMappings[0].columnName)
     }
 
     // ==================== IngestionMappingType Tests ====================
-
     @Test
     fun `IngestionMappingType CSV should have correct kusto value`() {
         assertEquals(
             "Csv",
-            InlineIngestionMapping.IngestionMappingType.CSV.kustoValue,
+            IngestionMapping.IngestionMappingType.CSV.kustoValue,
         )
     }
 
@@ -381,7 +353,7 @@ class MappingTest {
     fun `IngestionMappingType JSON should have correct kusto value`() {
         assertEquals(
             "Json",
-            InlineIngestionMapping.IngestionMappingType.JSON.kustoValue,
+            IngestionMapping.IngestionMappingType.JSON.kustoValue,
         )
     }
 
@@ -389,7 +361,7 @@ class MappingTest {
     fun `IngestionMappingType AVRO should have correct kusto value`() {
         assertEquals(
             "Avro",
-            InlineIngestionMapping.IngestionMappingType.AVRO.kustoValue,
+            IngestionMapping.IngestionMappingType.AVRO.kustoValue,
         )
     }
 
@@ -397,7 +369,7 @@ class MappingTest {
     fun `IngestionMappingType PARQUET should have correct kusto value`() {
         assertEquals(
             "Parquet",
-            InlineIngestionMapping.IngestionMappingType.PARQUET.kustoValue,
+            IngestionMapping.IngestionMappingType.PARQUET.kustoValue,
         )
     }
 
@@ -405,7 +377,7 @@ class MappingTest {
     fun `IngestionMappingType SSTREAM should have correct kusto value`() {
         assertEquals(
             "SStream",
-            InlineIngestionMapping.IngestionMappingType.SSTREAM.kustoValue,
+            IngestionMapping.IngestionMappingType.SSTREAM.kustoValue,
         )
     }
 
@@ -413,7 +385,7 @@ class MappingTest {
     fun `IngestionMappingType ORC should have correct kusto value`() {
         assertEquals(
             "Orc",
-            InlineIngestionMapping.IngestionMappingType.ORC.kustoValue,
+            IngestionMapping.IngestionMappingType.ORC.kustoValue,
         )
     }
 
@@ -421,8 +393,7 @@ class MappingTest {
     fun `IngestionMappingType APACHEAVRO should have correct kusto value`() {
         assertEquals(
             "ApacheAvro",
-            InlineIngestionMapping.IngestionMappingType.APACHEAVRO
-                .kustoValue,
+            IngestionMapping.IngestionMappingType.APACHEAVRO.kustoValue,
         )
     }
 
@@ -430,14 +401,14 @@ class MappingTest {
     fun `IngestionMappingType W3CLOGFILE should have correct kusto value`() {
         assertEquals(
             "W3CLogFile",
-            InlineIngestionMapping.IngestionMappingType.W3CLOGFILE
-                .kustoValue,
+            IngestionMapping.IngestionMappingType.W3CLOGFILE.kustoValue,
         )
     }
 
     @Test
     fun `IngestionMappingType should have all expected values`() {
-        val values = InlineIngestionMapping.IngestionMappingType.values()
+        val values =
+            IngestionMapping.IngestionMappingType.entries.toTypedArray()
         assertEquals(8, values.size)
     }
 

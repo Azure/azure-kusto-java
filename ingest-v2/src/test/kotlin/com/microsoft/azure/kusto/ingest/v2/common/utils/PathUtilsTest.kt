@@ -12,47 +12,19 @@ import java.util.*
 class PathUtilsTest {
 
     @Test
-    fun `sanitizeFileName creates valid name with baseName and sourceId`() {
+    fun `sanitizeFileName creates valid name with sourceId`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
-        val result = PathUtils.sanitizeFileName("myfile.csv", sourceId)
+        val result = PathUtils.sanitizeFileName(sourceId)
 
         assertTrue(result.contains("e493b23d-684f-4f4c-8ba8-3edfaca09427"))
-        assertTrue(result.contains("myfile-csv"))
     }
 
     @Test
-    fun `sanitizeFileName handles null baseName`() {
+    fun `sanitizeFileName returns sanitized sourceId`() {
         val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
-        val result = PathUtils.sanitizeFileName(null, sourceId)
+        val result = PathUtils.sanitizeFileName(sourceId)
 
         assertEquals("e493b23d-684f-4f4c-8ba8-3edfaca09427", result)
-    }
-
-    @Test
-    fun `sanitizeFileName handles empty baseName`() {
-        val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
-        val result = PathUtils.sanitizeFileName("", sourceId)
-
-        assertEquals("e493b23d-684f-4f4c-8ba8-3edfaca09427", result)
-    }
-
-    @Test
-    fun `sanitizeFileName replaces forbidden characters`() {
-        val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
-        val result = PathUtils.sanitizeFileName("my file@#\$%.csv", sourceId)
-
-        assertTrue(result.contains("my-file"))
-        assertTrue(result.contains("csv"))
-    }
-
-    @Test
-    fun `sanitizeFileName truncates long names`() {
-        val sourceId = UUID.fromString("e493b23d-684f-4f4c-8ba8-3edfaca09427")
-        val longName = "a".repeat(150) + ".csv"
-        val result = PathUtils.sanitizeFileName(longName, sourceId)
-
-        assertTrue(result.contains("__trunc"))
-        assertTrue(result.length <= 160)
     }
 
     @Test
@@ -158,22 +130,6 @@ class PathUtilsTest {
                 "https://account.blob.core.windows.net/container/file.csv.gz?sp=r&st=2024",
             )
         assertEquals("file.csv.gz", result)
-    }
-
-    @Test
-    fun `sanitizeFileName preserves hyphens and underscores`() {
-        val sourceId = UUID.randomUUID()
-        val result = PathUtils.sanitizeFileName("my-file_name.csv", sourceId)
-
-        assertTrue(result.contains("my-file_name-csv"))
-    }
-
-    @Test
-    fun `sanitizeFileName preserves alphanumeric characters`() {
-        val sourceId = UUID.randomUUID()
-        val result = PathUtils.sanitizeFileName("file123ABC.csv", sourceId)
-
-        assertTrue(result.contains("file123ABC-csv"))
     }
 
     @Test

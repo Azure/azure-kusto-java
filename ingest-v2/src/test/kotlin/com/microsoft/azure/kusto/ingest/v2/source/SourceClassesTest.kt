@@ -112,7 +112,6 @@ class SourceClassesTest {
                 format = Format.json,
                 sourceCompression = CompressionType.NONE,
                 sourceId = UUID.randomUUID(),
-                baseName = "test-stream",
                 leaveOpen = false,
             )
 
@@ -141,10 +140,22 @@ class SourceClassesTest {
 
     @Test
     fun `CompressionType enum should have expected values`() {
-        assertEquals(3, CompressionType.values().size)
-        assertTrue(CompressionType.values().contains(CompressionType.NONE))
-        assertTrue(CompressionType.values().contains(CompressionType.GZIP))
-        assertTrue(CompressionType.values().contains(CompressionType.ZIP))
+        assertEquals(3, CompressionType.entries.size)
+        assertTrue(
+            CompressionType.entries
+                .toTypedArray()
+                .contains(CompressionType.NONE),
+        )
+        assertTrue(
+            CompressionType.entries
+                .toTypedArray()
+                .contains(CompressionType.GZIP),
+        )
+        assertTrue(
+            CompressionType.entries
+                .toTypedArray()
+                .contains(CompressionType.ZIP),
+        )
     }
 
     @Test

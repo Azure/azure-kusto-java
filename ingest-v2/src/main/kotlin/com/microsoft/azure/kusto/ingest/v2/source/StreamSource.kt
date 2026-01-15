@@ -12,13 +12,11 @@ class StreamSource(
     format: Format,
     sourceCompression: CompressionType,
     sourceId: UUID = UUID.randomUUID(),
-    baseName: String? = null,
     leaveOpen: Boolean = false,
-) : LocalSource(format, leaveOpen, sourceCompression, baseName, sourceId) {
+) : LocalSource(format, leaveOpen, sourceCompression, sourceId) {
 
     init {
         mStream = stream
-        initName(baseName)
     }
 
     override fun data(): InputStream {

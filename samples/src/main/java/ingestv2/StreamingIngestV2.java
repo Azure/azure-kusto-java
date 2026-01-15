@@ -3,15 +3,15 @@
 
 package ingestv2;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
-import com.azure.identity.ChainedTokenCredential;
-import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.kusto.data.StringUtils;
 import com.microsoft.azure.kusto.ingest.v2.builders.StreamingIngestClientBuilder;
 import com.microsoft.azure.kusto.ingest.v2.client.StreamingIngestClient;
 import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
 import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
+import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.models.Format;
 import com.microsoft.azure.kusto.ingest.v2.models.IngestRequestProperties;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
@@ -33,49 +33,40 @@ public class StreamingIngestV2 {
 
     private static String database;
     private static String table;
-    private static String mapping;
+    private static String mappingName;
     private static StreamingIngestClient streamingIngestClient;
 
     public static void main(String[] args) {
         try {
             // Get configuration from system properties
-            String engineEndpoint =
-                    System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
+            String engineEndpoint = System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
             String appId = System.getProperty("app-id");
             String appKey = System.getProperty("appKey");
             String tenant = System.getProperty("tenant");
 
             database = System.getProperty("dbName");
             table = System.getProperty("tableName");
-            mapping = System.getProperty("dataMappingName");
+            mappingName = System.getProperty("dataMappingName");
 
-            ChainedTokenCredential credential;
+            TokenCredential credential;
 
             // Create Azure AD credential
             if (StringUtils.isNotBlank(appId)
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(
-                                        new ClientSecretCredentialBuilder()
-                                                .clientId(appId)
-                                                .clientSecret(appKey)
-                                                .tenantId(tenant)
-                                                .build())
-                                .build();
+                credential = new ClientSecretCredentialBuilder()
+                                        .clientId(appId)
+                                        .clientSecret(appKey)
+                                        .tenantId(tenant)
+                                        .build();
             } else {
-                credential =
-                        new ChainedTokenCredentialBuilder()
-                                .addFirst(new AzureCliCredentialBuilder().build())
-                                .build();
+                credential = new AzureCliCredentialBuilder().build();
             }
 
             // Create streaming ingest client using the new v2 API
-            streamingIngestClient =
-                    StreamingIngestClientBuilder.create(engineEndpoint)
-                            .withAuthentication(credential)
-                            .build();
+            streamingIngestClient = StreamingIngestClientBuilder.create(engineEndpoint)
+                    .withAuthentication(credential)
+                    .build();
 
             System.out.println("Streaming Ingest Client created successfully");
 
@@ -98,48 +89,38 @@ public class StreamingIngestV2 {
         System.out.println("\n=== Ingesting from Streams ===");
 
         // Example 1: Ingest from in-memory CSV string
-        String csvData =
-                "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream csvInputStream =
-                new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
+        String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
-        StreamSource csvStreamSource =
-                new StreamSource(
-                        csvInputStream,
-                        Format.csv,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "csv-test-src",
-                        false);
+        StreamSource csvStreamSource = new StreamSource(
+                csvInputStream,
+                Format.csv,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                false);
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting CSV data from string...");
-        ExtendedIngestResponse ingestResponse =
-                streamingIngestClient.ingestAsync(csvStreamSource, csvProperties).get();
+        ExtendedIngestResponse ingestResponse = streamingIngestClient.ingestAsync(database, table, csvStreamSource, csvProperties).get();
         System.out.println(
                 "CSV ingestion completed. Operation ID: "
                         + ingestResponse.getIngestResponse().getIngestionOperationId());
 
         // Example 2: Ingest from compressed CSV file
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-        FileInputStream compressedCsvStream =
-                new FileInputStream(resourcesDirectory + "dataset.csv.gz");
+        FileInputStream compressedCsvStream = new FileInputStream(resourcesDirectory + "dataset.csv.gz");
 
-        StreamSource compressedStreamSource =
-                new StreamSource(
-                        compressedCsvStream,
-                        Format.csv,
-                        CompressionType.GZIP,
-                        UUID.randomUUID(),
-                        "compressed-csv-stream",
-                        false);
+        StreamSource compressedStreamSource = new StreamSource(
+                compressedCsvStream,
+                Format.csv,
+                CompressionType.GZIP,
+                UUID.randomUUID(),
+                false);
         System.out.println("Ingesting compressed CSV file...");
-        ExtendedIngestResponse compressedResponse =
-                streamingIngestClient.ingestAsync(compressedStreamSource, csvProperties).get();
+        ExtendedIngestResponse compressedResponse = streamingIngestClient.ingestAsync(database, table, compressedStreamSource, csvProperties).get();
         System.out.println(
                 "Compressed CSV ingestion completed. Operation ID: "
                         + compressedResponse.getIngestResponse().getIngestionOperationId());
@@ -148,24 +129,20 @@ public class StreamingIngestV2 {
         // Example 3: Ingest JSON with mapping
         FileInputStream jsonStream = new FileInputStream(resourcesDirectory + "dataset.json");
 
-        StreamSource jsonStreamSource =
-                new StreamSource(
-                        jsonStream,
-                        Format.json,
-                        CompressionType.NONE,
-                        UUID.randomUUID(),
-                        "json-data-stream",
-                        false);
+        StreamSource jsonStreamSource = new StreamSource(
+                jsonStream,
+                Format.json,
+                CompressionType.NONE,
+                UUID.randomUUID(),
+                false);
 
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON))
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse =
-                streamingIngestClient.ingestAsync(jsonStreamSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsync(database, table, jsonStreamSource, jsonProperties).get();
         System.out.println(
                 "JSON ingestion completed. Operation ID: "
                         + jsonResponse.getIngestResponse().getIngestionOperationId());
@@ -182,44 +159,36 @@ public class StreamingIngestV2 {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Example 1: Ingest CSV file
-        FileSource csvFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.csv"),
-                        Format.csv,
-                        UUID.randomUUID(),
-                        CompressionType.NONE,
-                        "jcsv-file-source");
+        FileSource csvFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.csv"),
+                Format.csv,
+                UUID.randomUUID(),
+                CompressionType.NONE);
 
-        IngestRequestProperties csvProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting CSV file...");
-        ExtendedIngestResponse csvResponse =
-                streamingIngestClient.ingestAsync(csvFileSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = streamingIngestClient.ingestAsync(database, table, csvFileSource, csvProperties).get();
         System.out.println(
                 "CSV file ingestion completed. Operation ID: "
                         + csvResponse.getIngestResponse().getIngestionOperationId());
 
         // Example 2: Ingest compressed JSON file with mapping
-        FileSource jsonFileSource =
-                new FileSource(
-                        Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
-                        Format.json,
-                        UUID.randomUUID(),
-                        CompressionType.GZIP,
-                        "sjson-compressed-file");
+        FileSource jsonFileSource = new FileSource(
+                Paths.get(resourcesDirectory + "dataset.jsonz.gz"),
+                Format.json,
+                UUID.randomUUID(),
+                CompressionType.GZIP);
 
-        IngestRequestProperties jsonProperties =
-                IngestRequestPropertiesBuilder.create(database, table)
-                        .withIngestionMappingReference(mapping)
-                        .withEnableTracking(true)
-                        .build();
+        IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
+                .withIngestionMapping(new IngestionMapping(mappingName, IngestionMapping.IngestionMappingType.JSON))
+                .withEnableTracking(true)
+                .build();
 
         System.out.println("Ingesting compressed JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse =
-                streamingIngestClient.ingestAsync(jsonFileSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
         System.out.println(
                 "Compressed JSON file ingestion completed. Operation ID: "
                         + jsonResponse.getIngestResponse().getIngestionOperationId());
