@@ -10,7 +10,9 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
+import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
 
 /**
  * Interface for caching configuration data.
@@ -97,25 +99,50 @@ class DefaultConfigurationCache(
             }
 
     /**
-     * Holds both the configuration and its refresh timestamp atomically. This
-     * prevents race conditions between checking expiration and updating.
+     * Holds the configuration, its refresh timestamp, and the effective refresh
+     * interval atomically. This prevents race conditions between checking
+     * expiration and updating, and ensures we use the correct refresh interval
+     * from when the config was fetched.
      */
     private data class CachedData(
         val configuration: ConfigurationResponse,
         val timestamp: Long,
+        val refreshInterval: Long,
     )
 
     private val cache = AtomicReference<CachedData?>(null)
 
+    /**
+     * Helper function to calculate effective refresh interval from a
+     * configuration response. If the configuration specifies a refresh
+     * interval, use the minimum of that and the default. Otherwise, use the
+     * default refresh interval.
+     */
+    private fun calculateEffectiveRefreshInterval(
+        config: ConfigurationResponse?,
+    ): Long {
+        val configRefreshInterval = config?.containerSettings?.refreshInterval
+        return if (configRefreshInterval?.isNotEmpty() == true) {
+            min(
+                this.refreshInterval.toMillis(),
+                LocalTime.parse(configRefreshInterval).toSecondOfDay() *
+                    1000L,
+            )
+        } else {
+            this.refreshInterval.toMillis()
+        }
+    }
+
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
-        val cached = cache.get()
+        val cachedData = cache.get()
 
-        // Check if we need to refresh
+        // Check if we need to refresh based on the effective refresh interval
+        // stored with the cached data
         val needsRefresh =
-            cached == null ||
-                (currentTime - cached.timestamp) >=
-                refreshInterval.toMillis()
+            cachedData == null ||
+                (currentTime - cachedData.timestamp) >=
+                cachedData.refreshInterval
 
         if (needsRefresh) {
             // Attempt to refresh - only one thread will succeed
@@ -123,19 +150,27 @@ class DefaultConfigurationCache(
                 runCatching { provider() }
                     .getOrElse {
                         // If fetch fails, return cached if available, otherwise rethrow
-                        cached?.configuration ?: throw it
+                        cachedData?.configuration ?: throw it
                     }
+
+            // Calculate effective refresh interval from the NEW configuration
+            val newEffectiveRefreshInterval =
+                calculateEffectiveRefreshInterval(newConfig)
 
             // Atomically update if still needed (prevents thundering herd)
             cache.updateAndGet { current ->
-                val currentTimestamp = current?.timestamp ?: 0
-                // Only update if current is null or still stale
+                // Only update if current is null or still stale based on its
+                // stored effective interval
                 if (
                     current == null ||
-                    (currentTime - currentTimestamp) >=
-                    refreshInterval.toMillis()
+                    (currentTime - current.timestamp) >=
+                    current.refreshInterval
                 ) {
-                    CachedData(newConfig, currentTime)
+                    CachedData(
+                        newConfig,
+                        currentTime,
+                        newEffectiveRefreshInterval,
+                    )
                 } else {
                     // Another thread already refreshed
                     current
