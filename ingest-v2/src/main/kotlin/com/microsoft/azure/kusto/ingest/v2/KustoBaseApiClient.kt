@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.auth.endpoints.KustoTrustedEndpoints
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
@@ -36,6 +37,16 @@ open class KustoBaseApiClient(
     open val s2sFabricPrivateLinkAccessContext: String? = null,
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
+
+    init {
+        // Validate endpoint is trusted unless security checks are skipped
+        // Note: dmUrl might be empty/null in some test scenarios (e.g., mocked clients)
+        // Use @Suppress to handle potential platform nullability from Java interop
+        @Suppress("SENSELESS_COMPARISON")
+        if (!skipSecurityChecks && dmUrl != null && dmUrl.isNotBlank()) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(dmUrl)
+        }
+    }
 
     protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
         getClientConfig(config)
