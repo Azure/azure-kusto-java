@@ -10,7 +10,6 @@ import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
-import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
@@ -166,6 +165,55 @@ class DefaultConfigurationCache(
     private val cache = AtomicReference<CachedData?>(null)
 
     /**
+     * Parses a .NET TimeSpan format string to a Java Duration.
+     *
+     * Supports formats:
+     * - HH:mm:ss (e.g., "01:00:00" = 1 hour)
+     * - d.HH:mm:ss (e.g., "1.02:30:00" = 1 day, 2 hours, 30 minutes)
+     * - HH:mm:ss.fffffff (with fractional seconds)
+     *
+     * @param timeSpan The TimeSpan string to parse
+     * @return The parsed Duration, or null if parsing fails
+     */
+    private fun parseTimeSpanToDuration(timeSpan: String): Duration? {
+        return try {
+            // Split by '.' to handle days (format: "d.HH:mm:ss")
+            val parts = timeSpan.split('.')
+            val timePart = if (parts.size > 1) parts[1] else parts[0]
+            val days = if (parts.size > 1) parts[0].toLongOrNull() ?: 0L else 0L
+
+            // Split time part by ':' to get hours, minutes, seconds
+            val timeParts = timePart.split(':')
+            if (timeParts.size < 3) return null
+
+            val hours = timeParts[0].toLongOrNull() ?: return null
+            val minutes = timeParts[1].toLongOrNull() ?: return null
+
+            // Handle fractional seconds (e.g., "30.1234567")
+            val secondsPart = timeParts[2]
+            val secondsValue = secondsPart.toDoubleOrNull() ?: return null
+
+            // Build duration
+            var duration =
+                Duration.ofDays(days)
+                    .plusHours(hours)
+                    .plusMinutes(minutes)
+                    .plusSeconds(secondsValue.toLong())
+
+            // Add fractional seconds if present
+            val fractionalSeconds = (secondsValue - secondsValue.toLong())
+            if (fractionalSeconds > 0) {
+                duration =
+                    duration.plusMillis((fractionalSeconds * 1000).toLong())
+            }
+
+            duration
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * Helper function to calculate effective refresh interval from a
      * configuration response. If the configuration specifies a refresh
      * interval, use the minimum of that and the default. Otherwise, use the
@@ -176,11 +224,13 @@ class DefaultConfigurationCache(
     ): Long {
         val configRefreshInterval = config?.containerSettings?.refreshInterval
         return if (configRefreshInterval?.isNotEmpty() == true) {
-            min(
-                this.refreshInterval.toMillis(),
-                LocalTime.parse(configRefreshInterval).toSecondOfDay() *
-                    1000L,
-            )
+            val parsedDuration = parseTimeSpanToDuration(configRefreshInterval)
+            if (parsedDuration != null) {
+                min(this.refreshInterval.toMillis(), parsedDuration.toMillis())
+            } else {
+                // If parsing fails, log warning and use default
+                this.refreshInterval.toMillis()
+            }
         } else {
             this.refreshInterval.toMillis()
         }

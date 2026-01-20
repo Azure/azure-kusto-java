@@ -278,7 +278,10 @@ abstract class ContainerUploaderBase(
         // Select container using incrementing counter for round-robin distribution
         // Note: Math.floorMod handles negative values correctly if overflow occurs
         var containerIndex =
-            Math.floorMod(containerIndexCounter.getAndIncrement(), containers.size)
+            Math.floorMod(
+                containerIndexCounter.getAndIncrement(),
+                containers.size,
+            )
 
         logger.debug(
             "Starting upload with {} containers, round-robin index: {}",
@@ -390,7 +393,8 @@ abstract class ContainerUploaderBase(
         )
         // TODO check and validate failure scenarios
         // Use semaphore for true streaming parallelism
-        // This allows up to effectiveMaxConcurrency concurrent uploads, starting new ones as soon as slots
+        // This allows up to effectiveMaxConcurrency concurrent uploads, starting new ones as soon
+        // as slots
         // are available
         val semaphore = Semaphore(effectiveMaxConcurrency)
 

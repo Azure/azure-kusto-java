@@ -41,7 +41,8 @@ open class KustoBaseApiClient(
     init {
         // Validate endpoint is trusted unless security checks are skipped
         // Note: dmUrl might be empty/null in some test scenarios (e.g., mocked clients)
-        // The null check is required for Java interop - Java callers can pass null despite Kotlin's non-null type
+        // The null check is required for Java interop - Java callers can pass null despite Kotlin's
+        // non-null type
         if (!skipSecurityChecks && dmUrl != null && dmUrl.isNotBlank()) {
             KustoTrustedEndpoints.validateTrustedEndpoint(dmUrl)
         }

@@ -38,7 +38,8 @@ class ManagedUploaderTest {
         selectedContainers.forEach {
             assertNotNull(it.containerInfo.path)
             // When the server configuration prefers Lake and the user does not specify (DEFAULT),
-            // ManagedUploader should honor the server preference and use Lake. If the user explicitly
+            // ManagedUploader should honor the server preference and use Lake. If the user
+            // explicitly
             // specifies a method (e.g., STORAGE), that explicit choice is respected.
             if (uploadMethod != UploadMethod.STORAGE) {
                 assertTrue(

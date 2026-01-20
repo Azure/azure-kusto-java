@@ -34,19 +34,27 @@ import kotlin.test.assertTrue
  * - KustoTrustedEndpoints object for validation logic
  * - KustoClientInvalidConnectionStringException for untrusted endpoints
  *
- * Note: This test class uses SAME_THREAD execution mode to prevent race conditions
- * when modifying the global enableWellKnownKustoEndpointsValidation flag.
+ * Note: This test class uses SAME_THREAD execution mode to prevent race
+ * conditions when modifying the global enableWellKnownKustoEndpointsValidation
+ * flag.
  */
 @Execution(ExecutionMode.SAME_THREAD)
 class TrustedEndpointValidationTest {
 
     // Mock token credential for testing
-    private val mockTokenCredential = TokenCredential { _: TokenRequestContext ->
-        Mono.just(AccessToken("mock-token", OffsetDateTime.now().plusHours(1)))
-    }
+    private val mockTokenCredential =
+        TokenCredential { _: TokenRequestContext ->
+            Mono.just(
+                AccessToken(
+                    "mock-token",
+                    OffsetDateTime.now().plusHours(1),
+                ),
+            )
+        }
 
     // Example of an adhoc/untrusted endpoint
-    private val untrustedEndpoint = "https://my-random-adhoc-cluster.example.com"
+    private val untrustedEndpoint =
+        "https://my-random-adhoc-cluster.example.com"
 
     // Example of a trusted Kusto endpoint (public cloud)
     private val trustedEndpoint = "https://mycluster.kusto.windows.net"
@@ -74,7 +82,9 @@ class TrustedEndpointValidationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("StreamingIngestClient: Untrusted endpoint throws exception without skipSecurityChecks")
+    @DisplayName(
+        "StreamingIngestClient: Untrusted endpoint throws exception without skipSecurityChecks",
+    )
     fun `streaming client - untrusted endpoint throws without skip security checks`() {
         val exception =
             assertThrows<KustoClientInvalidConnectionStringException> {
@@ -86,13 +96,16 @@ class TrustedEndpointValidationTest {
 
         assertTrue(
             exception.message?.contains("not trusted") == true ||
-                exception.message?.contains("kustotrustedendpoints") == true,
+                exception.message?.contains("kustotrustedendpoints") ==
+                true,
             "Exception should indicate endpoint is not trusted. Actual: ${exception.message}",
         )
     }
 
     @Test
-    @DisplayName("QueuedIngestClient: Untrusted endpoint throws exception without skipSecurityChecks")
+    @DisplayName(
+        "QueuedIngestClient: Untrusted endpoint throws exception without skipSecurityChecks",
+    )
     fun `queued client - untrusted endpoint throws without skip security checks`() {
         val exception =
             assertThrows<KustoClientInvalidConnectionStringException> {
@@ -104,7 +117,8 @@ class TrustedEndpointValidationTest {
 
         assertTrue(
             exception.message?.contains("not trusted") == true ||
-                exception.message?.contains("kustotrustedendpoints") == true,
+                exception.message?.contains("kustotrustedendpoints") ==
+                true,
             "Exception should indicate endpoint is not trusted. Actual: ${exception.message}",
         )
     }
@@ -114,7 +128,9 @@ class TrustedEndpointValidationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("StreamingIngestClient: Untrusted endpoint works with skipSecurityChecks")
+    @DisplayName(
+        "StreamingIngestClient: Untrusted endpoint works with skipSecurityChecks",
+    )
     fun `streaming client - untrusted endpoint works with skip security checks`() {
         assertDoesNotThrow {
             StreamingIngestClientBuilder.create(untrustedEndpoint)
@@ -125,7 +141,9 @@ class TrustedEndpointValidationTest {
     }
 
     @Test
-    @DisplayName("QueuedIngestClient: Untrusted endpoint works with skipSecurityChecks")
+    @DisplayName(
+        "QueuedIngestClient: Untrusted endpoint works with skipSecurityChecks",
+    )
     fun `queued client - untrusted endpoint works with skip security checks`() {
         assertDoesNotThrow {
             QueuedIngestClientBuilder.create(untrustedEndpoint)
@@ -140,7 +158,9 @@ class TrustedEndpointValidationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("StreamingIngestClient: Trusted Kusto endpoint works without skipSecurityChecks")
+    @DisplayName(
+        "StreamingIngestClient: Trusted Kusto endpoint works without skipSecurityChecks",
+    )
     fun `streaming client - trusted endpoint works without skip security checks`() {
         assertDoesNotThrow {
             StreamingIngestClientBuilder.create(trustedEndpoint)
@@ -150,7 +170,9 @@ class TrustedEndpointValidationTest {
     }
 
     @Test
-    @DisplayName("QueuedIngestClient: Trusted Kusto endpoint works without skipSecurityChecks")
+    @DisplayName(
+        "QueuedIngestClient: Trusted Kusto endpoint works without skipSecurityChecks",
+    )
     fun `queued client - trusted endpoint works without skip security checks`() {
         assertDoesNotThrow {
             QueuedIngestClientBuilder.create(trustedEndpoint)
@@ -221,7 +243,9 @@ class TrustedEndpointValidationTest {
             )
 
         localhostEndpoints.forEach { endpoint ->
-            assertDoesNotThrow("Localhost endpoint $endpoint should be trusted") {
+            assertDoesNotThrow(
+                "Localhost endpoint $endpoint should be trusted",
+            ) {
                 StreamingIngestClientBuilder.create(endpoint)
                     .withAuthentication(mockTokenCredential)
                     .build()
@@ -241,7 +265,9 @@ class TrustedEndpointValidationTest {
             "Public cloud endpoint should be trusted",
         )
         assertTrue(
-            KustoTrustedEndpoints.isTrusted("mycluster.kusto.fabric.microsoft.com"),
+            KustoTrustedEndpoints.isTrusted(
+                "mycluster.kusto.fabric.microsoft.com",
+            ),
             "Fabric endpoint should be trusted",
         )
         assertTrue(
@@ -255,18 +281,26 @@ class TrustedEndpointValidationTest {
     }
 
     @Test
-    @DisplayName("KustoTrustedEndpoints.validateTrustedEndpoint throws for untrusted")
+    @DisplayName(
+        "KustoTrustedEndpoints.validateTrustedEndpoint throws for untrusted",
+    )
     fun `validateTrustedEndpoint throws for untrusted endpoints`() {
         assertThrows<KustoClientInvalidConnectionStringException> {
-            KustoTrustedEndpoints.validateTrustedEndpoint("https://evil.example.com")
+            KustoTrustedEndpoints.validateTrustedEndpoint(
+                "https://evil.example.com",
+            )
         }
     }
 
     @Test
-    @DisplayName("KustoTrustedEndpoints.validateTrustedEndpoint passes for trusted")
+    @DisplayName(
+        "KustoTrustedEndpoints.validateTrustedEndpoint passes for trusted",
+    )
     fun `validateTrustedEndpoint passes for trusted endpoints`() {
         assertDoesNotThrow {
-            KustoTrustedEndpoints.validateTrustedEndpoint("https://mycluster.kusto.windows.net")
+            KustoTrustedEndpoints.validateTrustedEndpoint(
+                "https://mycluster.kusto.windows.net",
+            )
         }
     }
 }
