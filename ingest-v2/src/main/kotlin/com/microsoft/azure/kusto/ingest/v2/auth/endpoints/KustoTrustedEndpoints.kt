@@ -77,7 +77,6 @@ object KustoTrustedEndpoints {
      * @param matcher Rules that determine if a hostname is a valid/trusted
      *   Kusto endpoint (replaces existing rules)
      */
-    @JvmStatic
     fun setOverridePolicy(matcher: ((String) -> Boolean)?) {
         overrideMatcher = matcher
     }
@@ -87,7 +86,6 @@ object KustoTrustedEndpoints {
      * @param rules A set of rules
      * @param replace If true, nullifies the last added rules
      */
-    @JvmStatic
     fun addTrustedHosts(
         rules: List<MatchRule>?,
         replace: Boolean,
@@ -109,8 +107,6 @@ object KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against (optional, defaults to public cloud)
      * @throws KustoClientInvalidConnectionStringException if endpoint is not trusted
      */
-    @JvmStatic
-    @JvmOverloads
     fun validateTrustedEndpoint(
         uri: String,
         loginEndpoint: String = DEFAULT_PUBLIC_LOGIN_ENDPOINT,
@@ -128,7 +124,6 @@ object KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against
      * @throws KustoClientInvalidConnectionStringException if endpoint is not trusted
      */
-    @JvmStatic
     fun validateTrustedEndpoint(
         uri: URI,
         loginEndpoint: String,
@@ -207,8 +202,6 @@ object KustoTrustedEndpoints {
      * @param loginEndpoint The login endpoint to check against
      * @return true if the hostname is trusted
      */
-    @JvmStatic
-    @JvmOverloads
     fun isTrusted(
         hostname: String,
         loginEndpoint: String = DEFAULT_PUBLIC_LOGIN_ENDPOINT,

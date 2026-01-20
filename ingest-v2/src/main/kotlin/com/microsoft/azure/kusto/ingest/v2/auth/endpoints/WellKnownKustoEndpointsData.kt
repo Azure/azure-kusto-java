@@ -3,14 +3,14 @@
 package com.microsoft.azure.kusto.ingest.v2.auth.endpoints
 
 import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.Serializable as KSerializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 
 /**
  * Data class representing the structure of WellKnownKustoEndpoints.json
  */
-@Serializable
+@KSerializable
 data class AllowedEndpoints(
     @SerialName("AllowedKustoSuffixes")
     val allowedKustoSuffixes: List<String> = emptyList(),
@@ -18,7 +18,7 @@ data class AllowedEndpoints(
     val allowedKustoHostnames: List<String> = emptyList(),
 )
 
-@Serializable
+@KSerializable
 data class WellKnownKustoEndpointsData(
     @SerialName("_Comments")
     val comments: List<String> = emptyList(),

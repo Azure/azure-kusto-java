@@ -9,10 +9,6 @@ package com.microsoft.azure.kusto.ingest.v2.exceptions
 class KustoClientInvalidConnectionStringException : RuntimeException {
     constructor(message: String) : super(message)
 
-    constructor(message: String, cause: Throwable) : super(message, cause)
-
-    constructor(cause: Throwable) : super(cause)
-
     constructor(
         uri: String,
         message: String,
