@@ -7,10 +7,12 @@ import java.io.InputStream
 import java.util.UUID
 
 /** Represents a stream-based ingestion source. */
-class StreamSource(
+class StreamSource
+@JvmOverloads
+constructor(
     stream: InputStream,
     format: Format,
-    sourceCompression: CompressionType,
+    sourceCompression: CompressionType = CompressionType.NONE,
     sourceId: UUID = UUID.randomUUID(),
     leaveOpen: Boolean = false,
 ) : LocalSource(format, leaveOpen, sourceCompression, sourceId) {

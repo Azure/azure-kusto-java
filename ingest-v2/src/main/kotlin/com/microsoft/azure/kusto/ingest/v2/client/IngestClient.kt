@@ -80,18 +80,33 @@ interface IngestClient : Closeable {
 interface MultiIngestClient : IngestClient {
 
     /**
-     * Ingest data from multiple sources.
+     * Ingest data from multiple blob sources.
      *
-     * @param sources The sources to ingest.
+     * **Important:** Multi-blob ingestion only supports [BlobSource]. This
+     * design avoids partial failure scenarios where some local sources might be
+     * uploaded successfully while others fail, leaving the user in an
+     * inconsistent state.
+     *
+     * **For local files/streams**, you have two options:
+     * 1. **Single-source ingestion**: Use `ingestAsync(source, properties)`
+     *    with a single [com.microsoft.azure.kusto.ingest.v2.source.LocalSource]
+     *    (FileSource or StreamSource). The client handles upload internally.
+     * 2. **Multi-source ingestion**: Use
+     *    [com.microsoft.azure.kusto.ingest.v2.uploader.IUploader] to upload
+     *    local sources to blob storage first, then call this method with the
+     *    resulting [BlobSource] objects.
+     *
+     * @param sources The blob sources to ingest. All sources must be
+     *   [BlobSource] instances.
      * @param ingestRequestProperties Ingestion properties containing database,
      *   table, format, and other settings.
-     * @return An [IngestionOperation] object that can be used to track the
-     *   status of the ingestion.
+     * @return An [ExtendedIngestResponse] containing the ingestion operation
+     *   details.
      */
     suspend fun ingestAsync(
         database: String,
         table: String,
-        sources: List<IngestionSource>,
+        sources: List<BlobSource>,
         ingestRequestProperties: IngestRequestProperties?,
     ): ExtendedIngestResponse
 

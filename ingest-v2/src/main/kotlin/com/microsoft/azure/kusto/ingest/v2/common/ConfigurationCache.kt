@@ -69,6 +69,59 @@ class DefaultConfigurationCache(
     val clientDetails: ClientDetails,
     val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
 ) : ConfigurationCache {
+    companion object {
+        /**
+         * Creates a DefaultConfigurationCache for Java callers.
+         *
+         * This factory method provides a convenient way to create a cache from
+         * Java without dealing with Kotlin named parameters.
+         *
+         * @param dmUrl Data management endpoint URL
+         * @param tokenCredential Authentication credentials
+         * @param clientDetails Client identification details for tracking
+         * @return A new DefaultConfigurationCache instance
+         */
+        @JvmStatic
+        fun create(
+            dmUrl: String,
+            tokenCredential: TokenCredential,
+            clientDetails: ClientDetails,
+        ): DefaultConfigurationCache =
+            DefaultConfigurationCache(
+                dmUrl = dmUrl,
+                tokenCredential = tokenCredential,
+                clientDetails = clientDetails,
+            )
+
+        /**
+         * Creates a DefaultConfigurationCache with all options for Java
+         * callers.
+         *
+         * @param dmUrl Data management endpoint URL
+         * @param tokenCredential Authentication credentials
+         * @param skipSecurityChecks Whether to skip security validation
+         * @param clientDetails Client identification details for tracking
+         * @param refreshInterval Duration after which cached configuration is
+         *   stale
+         * @return A new DefaultConfigurationCache instance
+         */
+        @JvmStatic
+        fun create(
+            dmUrl: String,
+            tokenCredential: TokenCredential,
+            skipSecurityChecks: Boolean,
+            clientDetails: ClientDetails,
+            refreshInterval: Duration,
+        ): DefaultConfigurationCache =
+            DefaultConfigurationCache(
+                refreshInterval = refreshInterval,
+                dmUrl = dmUrl,
+                tokenCredential = tokenCredential,
+                skipSecurityChecks = skipSecurityChecks,
+                clientDetails = clientDetails,
+            )
+    }
+
     init {
         if (
             configurationProvider == null &&

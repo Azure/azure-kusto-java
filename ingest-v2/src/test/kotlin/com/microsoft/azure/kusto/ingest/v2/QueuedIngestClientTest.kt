@@ -412,47 +412,6 @@ class QueuedIngestClientTest :
             logger.info(
                 "Large file upload completed: $largeSucceeded succeeded",
             )
-
-            // Batch upload (5 files)
-            logger.info("Testing batch upload (5 files)")
-            val batchSources =
-                (1..5).map { i ->
-                    createTestStreamSource(
-                        1024 * i,
-                        "combined_batch_$i.json",
-                    )
-                }
-            val batchResponse =
-                queuedIngestClient.ingestAsync(
-                    database = database,
-                    table = targetTable,
-                    sources = batchSources,
-                    ingestRequestProperties =
-                    IngestRequestPropertiesBuilder.create()
-                        .withEnableTracking(true)
-                        .build(),
-                )
-            assertNotNull(batchResponse.ingestResponse.ingestionOperationId)
-            val batchStatus =
-                queuedIngestClient.pollUntilCompletion(
-                    database = database,
-                    table = targetTable,
-                    operationId =
-                    batchResponse.ingestResponse
-                        .ingestionOperationId,
-                    pollingInterval = pollInterval,
-                    timeout = pollTimeout,
-                )
-            val batchSucceeded =
-                batchStatus.details?.count {
-                    it.status == BlobStatus.Status.Succeeded
-                } ?: 0
-            assert(batchSucceeded == batchSources.size) {
-                "Expected all batch files to succeed"
-            }
-            logger.info(
-                "Batch upload completed: $batchSucceeded/${batchSources.size} succeeded",
-            )
         } catch (e: ConnectException) {
             assumeTrue(false, "Skipping test: ${e.message}")
         } catch (e: Exception) {
@@ -465,37 +424,43 @@ class QueuedIngestClientTest :
     }
 
     @Test
-    fun `E2E - parallel processing with maxConcurrency`() = runBlocking {
-        logger.info("E2E: Testing parallel processing with maxConcurrency=5")
+    fun `E2E - multi-blob batch ingestion`() = runBlocking {
+        logger.info("E2E: Testing multi-blob batch ingestion using BlobSource")
 
-        val queuedIngestClient = createTestClient(maxConcurrency = 5)
+        val queuedIngestClient = createTestClient()
 
-        val sources =
-            (1..10).map { i ->
-                createTestStreamSource(512 * 1024, "parallel_$i.json")
+        // Multi-source API only accepts BlobSource - blobs already exist in storage,
+        // no upload needed, all blob URLs are submitted in a single request.
+        val sampleJsonFiles =
+            listOf(
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+            )
+        // Use multijson to handle different JSON structures
+        val blobSources =
+            sampleJsonFiles.map { url ->
+                BlobSource(url, format = Format.multijson)
             }
 
         try {
-            val startTime = System.currentTimeMillis()
             val response =
                 queuedIngestClient.ingestAsync(
                     database = database,
                     table = targetTable,
-                    sources = sources,
+                    sources = blobSources,
                     ingestRequestProperties =
                     IngestRequestPropertiesBuilder.create()
                         .withEnableTracking(true)
                         .build(),
                 )
-            val uploadDuration = System.currentTimeMillis() - startTime
 
             val operationId =
                 assertValidIngestionResponse(
                     response,
-                    "E2E - parallel processing",
+                    "E2E - multi-blob batch ingestion",
                 )
             logger.info(
-                "Parallel upload submitted in ${uploadDuration}ms with operation ID: $operationId",
+                "Multi-blob batch submitted with operation ID: $operationId",
             )
 
             val finalStatus =
@@ -512,10 +477,10 @@ class QueuedIngestClientTest :
                     it.status == BlobStatus.Status.Succeeded
                 } ?: 0
             logger.info(
-                "Parallel upload: $succeededCount/${sources.size} succeeded (avg ${uploadDuration / sources.size}ms per file)",
+                "Multi-blob batch: $succeededCount/${blobSources.size} blobs succeeded",
             )
-            assert(succeededCount == sources.size) {
-                "Expected parallel uploads to succeed"
+            assert(succeededCount == blobSources.size) {
+                "Expected all blobs in batch to be ingested successfully"
             }
         } catch (e: ConnectException) {
             assumeTrue(false, "Skipping test: ${e.message}")
@@ -623,7 +588,7 @@ class QueuedIngestClientTest :
                     queuedIngestClient.ingestAsync(
                         database = database,
                         table = targetTable,
-                        sources = listOf(source),
+                        source = source,
                         ingestRequestProperties = irp,
                     )
 
@@ -772,48 +737,80 @@ class QueuedIngestClientTest :
     }
 
     @Test
+    fun `E2E - duplicate blob URLs should be rejected`(): Unit = runBlocking {
+        logger.info("E2E: Testing duplicate blob URL detection")
+
+        val client = createTestClient()
+
+        // Create sources with duplicate blob URLs (same URL used multiple times)
+        val duplicateBlobUrl =
+            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
+        val sources =
+            listOf(
+                BlobSource(duplicateBlobUrl, format = Format.json),
+                BlobSource(
+                    "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+                    format = Format.json,
+                ),
+                // Duplicate!
+                BlobSource(duplicateBlobUrl, format = Format.json),
+            )
+
+        logger.info(
+            "Ingesting ${sources.size} blob sources with duplicate URLs (should fail)",
+        )
+        val exception =
+            assertThrows<IngestClientException> {
+                client.ingestAsync(
+                    database = database,
+                    table = targetTable,
+                    sources = sources,
+                    ingestRequestProperties =
+                    IngestRequestPropertiesBuilder.create()
+                        .withEnableTracking(true)
+                        .build(),
+                )
+            }
+        assertNotNull(
+            exception,
+            "Duplicate blob URLs should throw IngestClientException",
+        )
+        assert(
+            exception.message?.contains(
+                "Duplicate blob sources detected",
+            ) == true,
+        ) {
+            "Exception message should indicate duplicate blob sources. Got: ${exception.message}"
+        }
+        logger.info(
+            "Duplicate blob URL detection test passed: ${exception.message}",
+        )
+    }
+
+    @Test
     fun `E2E - format mismatch and mixed format batch`(): Unit = runBlocking {
         logger.info("E2E: Testing format mismatch detection with mixed formats")
 
         val client = createTestClient()
 
-        val jsonContent =
-            """{"name":"test","value":123,"timestamp":"2024-01-01"}"""
-        val csvContent =
-            """name,value,timestamp
-test,123,2024-01-01
-test2,456,2024-01-02"""
-
         val sources =
             listOf(
-                StreamSource(
-                    stream =
-                    ByteArrayInputStream(
-                        jsonContent.toByteArray(),
-                    ),
+                BlobSource(
+                    "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
                     format = Format.json,
-                    sourceCompression = CompressionType.NONE,
                 ),
-                StreamSource(
-                    stream =
-                    ByteArrayInputStream(
-                        csvContent.toByteArray(),
-                    ),
+                BlobSource(
+                    "https://kustosamplefiles.blob.core.windows.net/csvsamplefiles/simple.csv",
                     format = Format.csv,
-                    sourceCompression = CompressionType.NONE,
                 ),
-                StreamSource(
-                    stream =
-                    ByteArrayInputStream(
-                        jsonContent.toByteArray(),
-                    ),
+                BlobSource(
+                    "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
                     format = Format.json,
-                    sourceCompression = CompressionType.NONE,
                 ),
             )
 
         logger.info(
-            "Uploading ${sources.size} sources with mixed formats (JSON and CSV)",
+            "Ingesting ${sources.size} blob sources with mixed formats (JSON and CSV)",
         )
         val exception =
             assertThrows<IngestClientException> {
@@ -831,6 +828,9 @@ test2,456,2024-01-02"""
             exception,
             "Mixed formats are not permitted for ingestion",
         )
+        assert(exception.message?.contains("same format") == true) {
+            "Exception message should indicate format mismatch. Got: ${exception.message}"
+        }
     }
 
     @ParameterizedTest(
@@ -890,11 +890,12 @@ test2,456,2024-01-02"""
                 .withEnableTracking(true)
                 .build()
 
+        // Use single-source API for LocalSource
         val ingestionResponse =
             queuedIngestClient.ingestAsync(
                 database = database,
                 table = targetTable,
-                sources = listOf(source),
+                source = source,
                 ingestRequestProperties = properties,
             )
 
