@@ -1,9 +1,8 @@
 package com.microsoft.azure.kusto.quickstart;
 
 import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.AzureCliCredentialBuilder;
-import com.azure.identity.ChainedTokenCredential;
-import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -735,7 +734,7 @@ public class SampleApp {
         }
 
         System.out.println("Running ingest-v2 quickstart sample...");
-        ChainedTokenCredential credential = buildIngestV2Credential(ingestV2Config);
+        TokenCredential credential = buildIngestV2Credential(ingestV2Config);
 
         try (QueuedIngestClient queuedIngestClient = QueuedIngestClientBuilder.create(clusterPath)
                 .withAuthentication(credential)
@@ -757,25 +756,23 @@ public class SampleApp {
         }
     }
 
-    private static ChainedTokenCredential buildIngestV2Credential(@NotNull IngestV2QuickstartConfig config) {
+    private static TokenCredential buildIngestV2Credential(@NotNull IngestV2QuickstartConfig config) {
         AuthenticationModeOptions mode = config.getAuthModeOverride();
         if (mode == null) {
             mode = AuthenticationModeOptions.USER_PROMPT;
         }
-        ChainedTokenCredentialBuilder builder = new ChainedTokenCredentialBuilder();
         if (mode == AuthenticationModeOptions.APP_KEY) {
             if (StringUtils.isBlank(config.getAppId()) || StringUtils.isBlank(config.getAppKey()) || StringUtils.isBlank(config.getTenantId())) {
                 Utils.errorHandler("AppKey authentication requires 'APP_ID', 'APP_KEY', and 'APP_TENANT' environment variables or ingestV2 overrides.");
             }
-            builder.addFirst(new ClientSecretCredentialBuilder()
+            return new ClientSecretCredentialBuilder()
                     .clientId(config.getAppId())
                     .clientSecret(config.getAppKey())
                     .tenantId(config.getTenantId())
-                    .build());
+                    .build();
         } else {
-            builder.addFirst(new AzureCliCredentialBuilder().build());
+            return new AzureCliCredentialBuilder().build();
         }
-        return builder.build();
     }
 
     private static @NotNull List<CompletableFuture<Void>> ingestV2FromStreams(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
@@ -835,7 +832,7 @@ public class SampleApp {
                                                                            @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued batch ingestion: Upload local files to blob, then ingest (ingest-v2) ===");
         String clusterPath = ingestV2Config.getClusterPath();
-        ChainedTokenCredential credential = buildIngestV2Credential(ingestV2Config);
+        TokenCredential credential = buildIngestV2Credential(ingestV2Config);
 
         ConfigurationCache configCache = DefaultConfigurationCache.create(
                 clusterPath,
