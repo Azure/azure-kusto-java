@@ -46,13 +46,6 @@ interface ICustomUploader : Closeable {
 }
 
 /**
- * Extension function to convert [ICustomUploader] to [IUploader].
- *
- * Kotlin users can use this as: `myCustomUploader.asUploader()`
- */
-fun ICustomUploader.asUploader(): IUploader = CustomUploaderAdapter(this)
-
-/**
  * Static helper methods for [ICustomUploader].
  *
  * Provides Java-friendly static methods to work with custom uploaders.
