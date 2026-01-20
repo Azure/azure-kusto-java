@@ -73,8 +73,8 @@ class DefaultConfigurationCache(
         /**
          * Creates a DefaultConfigurationCache for Java callers.
          *
-         * This factory method provides a convenient way to create a cache from Java
-         * without dealing with Kotlin named parameters.
+         * This factory method provides a convenient way to create a cache from
+         * Java without dealing with Kotlin named parameters.
          *
          * @param dmUrl Data management endpoint URL
          * @param tokenCredential Authentication credentials
@@ -94,13 +94,15 @@ class DefaultConfigurationCache(
             )
 
         /**
-         * Creates a DefaultConfigurationCache with all options for Java callers.
+         * Creates a DefaultConfigurationCache with all options for Java
+         * callers.
          *
          * @param dmUrl Data management endpoint URL
          * @param tokenCredential Authentication credentials
          * @param skipSecurityChecks Whether to skip security validation
          * @param clientDetails Client identification details for tracking
-         * @param refreshInterval Duration after which cached configuration is stale
+         * @param refreshInterval Duration after which cached configuration is
+         *   stale
          * @return A new DefaultConfigurationCache instance
          */
         @JvmStatic

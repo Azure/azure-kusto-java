@@ -13,9 +13,8 @@ import java.util.concurrent.CompletableFuture
  * Java-compatible interface for creating custom uploaders.
  *
  * This interface uses [CompletableFuture] instead of Kotlin coroutines,
- * allowing Java developers to implement custom upload logic without
- * needing to understand Kotlin suspend functions.
- *
+ * allowing Java developers to implement custom upload logic without needing to
+ * understand Kotlin suspend functions.
  */
 interface ICustomUploader : Closeable {
     /**
@@ -24,9 +23,7 @@ interface ICustomUploader : Closeable {
      */
     fun getIgnoreSizeLimit(): Boolean
 
-    /**
-     * Sets whether to ignore the max data size limit.
-     */
+    /** Sets whether to ignore the max data size limit. */
     fun setIgnoreSizeLimit(value: Boolean)
 
     /**
@@ -43,8 +40,9 @@ interface ICustomUploader : Closeable {
      * @param localSources List of the local sources to upload.
      * @return A CompletableFuture that completes with the upload results.
      */
-    fun uploadManyAsync(localSources: List<LocalSource>): CompletableFuture<UploadResults>
-
+    fun uploadManyAsync(
+        localSources: List<LocalSource>,
+    ): CompletableFuture<UploadResults>
 }
 
 /**
@@ -64,29 +62,34 @@ object CustomUploaderHelper {
      * Wraps an [ICustomUploader] with an adapter to create an [IUploader].
      *
      * This is the Java-friendly way to convert a custom uploader:
-     *
      */
     @JvmStatic
-    fun asUploader(customUploader: ICustomUploader): IUploader = CustomUploaderAdapter(customUploader)
+    fun asUploader(customUploader: ICustomUploader): IUploader =
+        CustomUploaderAdapter(customUploader)
 }
 
 /**
- * Adapter that wraps an [ICustomUploader] to implement the [IUploader] interface.
+ * Adapter that wraps an [ICustomUploader] to implement the [IUploader]
+ * interface.
  *
- * This allows Java-implemented uploaders to be used anywhere an [IUploader] is expected,
- * such as with QueuedIngestClient or ManagedStreamingIngestClient.
- *
+ * This allows Java-implemented uploaders to be used anywhere an [IUploader] is
+ * expected, such as with QueuedIngestClient or ManagedStreamingIngestClient.
  */
-class CustomUploaderAdapter(private val customUploader: ICustomUploader) : IUploader {
+class CustomUploaderAdapter(private val customUploader: ICustomUploader) :
+    IUploader {
     override var ignoreSizeLimit: Boolean
         get() = customUploader.getIgnoreSizeLimit()
-        set(value) { customUploader.setIgnoreSizeLimit(value) }
+        set(value) {
+            customUploader.setIgnoreSizeLimit(value)
+        }
 
     override suspend fun uploadAsync(local: LocalSource): BlobSource {
         return customUploader.uploadAsync(local).await()
     }
 
-    override suspend fun uploadManyAsync(localSources: List<LocalSource>): UploadResults {
+    override suspend fun uploadManyAsync(
+        localSources: List<LocalSource>,
+    ): UploadResults {
         return customUploader.uploadManyAsync(localSources).await()
     }
 

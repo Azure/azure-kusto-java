@@ -71,12 +71,12 @@ internal constructor(
     private val logger = LoggerFactory.getLogger(QueuedIngestClient::class.java)
 
     /**
-     * Ingests data from multiple blob sources with the given properties. This is the
-     * suspend function for Kotlin callers.
+     * Ingests data from multiple blob sources with the given properties. This
+     * is the suspend function for Kotlin callers.
      *
-     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to already
-     * exist in blob storage, so no upload is performed - the request is sent directly
-     * to the Data Management service.
+     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to
+     * already exist in blob storage, so no upload is performed - the request is
+     * sent directly to the Data Management service.
      */
     override suspend fun ingestAsync(
         database: String,
@@ -109,12 +109,12 @@ internal constructor(
         )
 
     /**
-     * Ingests data from multiple blob sources with the given properties. This is the
-     * Java-friendly version that returns a CompletableFuture.
+     * Ingests data from multiple blob sources with the given properties. This
+     * is the Java-friendly version that returns a CompletableFuture.
      *
-     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to already
-     * exist in blob storage, so no upload is performed - the request is sent directly
-     * to the Data Management service.
+     * Multi-blob ingestion only supports [BlobSource]. The blobs are assumed to
+     * already exist in blob storage, so no upload is performed - the request is
+     * sent directly to the Data Management service.
      */
     @JvmName("ingestAsync")
     fun ingestAsyncJava(
@@ -205,8 +205,8 @@ internal constructor(
     /**
      * Internal implementation of ingestAsync for multiple blob sources.
      *
-     * This method only accepts [BlobSource] - no upload is performed.
-     * The blobs are assumed to already exist in blob storage.
+     * This method only accepts [BlobSource] - no upload is performed. The blobs
+     * are assumed to already exist in blob storage.
      */
     private suspend fun ingestAsyncInternal(
         database: String,
@@ -237,14 +237,14 @@ internal constructor(
                 differentFormatBlob.joinToString(", "),
             )
             throw IngestClientException(
-                message = "All blobs in the request must have the same format. Received formats: $differentFormatBlob",
+                message =
+                "All blobs in the request must have the same format. Received formats: $differentFormatBlob",
             )
         }
 
         // Check for duplicate blob URLs
         val duplicates =
-            sources
-                .groupBy { sanitizeBlobUrl(it.blobPath) }
+            sources.groupBy { sanitizeBlobUrl(it.blobPath) }
                 .filter { it.value.size > 1 }
 
         if (duplicates.isNotEmpty()) {
@@ -257,7 +257,8 @@ internal constructor(
                     "{Url: $url, Source Ids: [$sourceIds]}"
                 }
             throw IngestClientException(
-                message = "Duplicate blob sources detected in the request: [$duplicateInfo]",
+                message =
+                "Duplicate blob sources detected in the request: [$duplicateInfo]",
             )
         }
 
@@ -347,7 +348,8 @@ internal constructor(
             }
             else -> {
                 throw IngestClientException(
-                    message = "Unsupported ingestion source type: ${source::class.simpleName}",
+                    message =
+                    "Unsupported ingestion source type: ${source::class.simpleName}",
                 )
             }
         }

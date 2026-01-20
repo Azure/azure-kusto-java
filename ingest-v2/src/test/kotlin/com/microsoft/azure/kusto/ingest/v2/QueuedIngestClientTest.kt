@@ -431,16 +431,15 @@ class QueuedIngestClientTest :
 
         // Multi-source API only accepts BlobSource - blobs already exist in storage,
         // no upload needed, all blob URLs are submitted in a single request.
-        val sampleJsonFiles = listOf(
-            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
-            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
-        )
+        val sampleJsonFiles =
+            listOf(
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json",
+                "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+            )
+        // Use multijson to handle different JSON structures
         val blobSources =
             sampleJsonFiles.map { url ->
-                BlobSource(
-                    url,
-                    format = Format.multijson, // Use multijson to handle different JSON structures
-                )
+                BlobSource(url, format = Format.multijson)
             }
 
         try {
@@ -744,12 +743,17 @@ class QueuedIngestClientTest :
         val client = createTestClient()
 
         // Create sources with duplicate blob URLs (same URL used multiple times)
-        val duplicateBlobUrl = "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
+        val duplicateBlobUrl =
+            "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/simple.json"
         val sources =
             listOf(
                 BlobSource(duplicateBlobUrl, format = Format.json),
-                BlobSource("https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json", format = Format.json),
-                BlobSource(duplicateBlobUrl, format = Format.json), // Duplicate!
+                BlobSource(
+                    "https://kustosamplefiles.blob.core.windows.net/jsonsamplefiles/multilined.json",
+                    format = Format.json,
+                ),
+                // Duplicate!
+                BlobSource(duplicateBlobUrl, format = Format.json),
             )
 
         logger.info(
@@ -767,11 +771,20 @@ class QueuedIngestClientTest :
                         .build(),
                 )
             }
-        assertNotNull(exception, "Duplicate blob URLs should throw IngestClientException")
-        assert(exception.message?.contains("Duplicate blob sources detected") == true) {
+        assertNotNull(
+            exception,
+            "Duplicate blob URLs should throw IngestClientException",
+        )
+        assert(
+            exception.message?.contains(
+                "Duplicate blob sources detected",
+            ) == true,
+        ) {
             "Exception message should indicate duplicate blob sources. Got: ${exception.message}"
         }
-        logger.info("Duplicate blob URL detection test passed: ${exception.message}")
+        logger.info(
+            "Duplicate blob URL detection test passed: ${exception.message}",
+        )
     }
 
     @Test

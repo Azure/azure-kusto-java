@@ -389,52 +389,78 @@ abstract class ContainerUploaderBase(
         )
         // TODO check and validate failure scenarios
         // Use semaphore for true streaming parallelism
-        // This allows up to maxConcurrency concurrent uploads, starting new ones as soon as slots are available
+        // This allows up to maxConcurrency concurrent uploads, starting new ones as soon as slots
+        // are available
         val semaphore = Semaphore(maxConcurrency)
-        
-        // Launch all uploads concurrently, but semaphore limits actual concurrent execution
-        val results = localSources.map { source ->
-            async {
-                semaphore.withPermit {
-                    val startedAt = Instant.now(Clock.systemUTC())
-                    try {
-                        val blobSource = uploadAsync(source)
-                        val completedAt = Instant.now(Clock.systemUTC())
-                        UploadResult.Success(
-                            sourceName = source.name,
-                            startedAt = startedAt,
-                            completedAt = completedAt,
-                            blobUrl = blobSource.blobPath,
-                            sizeBytes = source.size() ?: -1,
-                        )
-                    } catch (e: Exception) {
-                        val completedAt = Instant.now(Clock.systemUTC())
-                        val errorCode = when {
-                            e.message?.contains("size") == true ->
-                                UploadErrorCode.SOURCE_SIZE_LIMIT_EXCEEDED
-                            e.message?.contains("readable") == true ->
-                                UploadErrorCode.SOURCE_NOT_READABLE
-                            e.message?.contains("empty") == true ->
-                                UploadErrorCode.SOURCE_IS_EMPTY
-                            e.message?.contains("container") == true ->
-                                UploadErrorCode.NO_CONTAINERS_AVAILABLE
-                            else ->
-                                UploadErrorCode.UPLOAD_FAILED
-                        }
 
-                        UploadResult.Failure(
-                            sourceName = source.name,
-                            startedAt = startedAt,
-                            completedAt = completedAt,
-                            errorCode = errorCode,
-                            errorMessage = e.message ?: "Upload failed",
-                            exception = e,
-                            isPermanent = e is IngestException && e.isPermanent == true,
-                        )
+        // Launch all uploads concurrently, but semaphore limits actual concurrent execution
+        val results =
+            localSources
+                .map { source ->
+                    async {
+                        semaphore.withPermit {
+                            val startedAt =
+                                Instant.now(Clock.systemUTC())
+                            try {
+                                val blobSource = uploadAsync(source)
+                                val completedAt =
+                                    Instant.now(Clock.systemUTC())
+                                UploadResult.Success(
+                                    sourceName = source.name,
+                                    startedAt = startedAt,
+                                    completedAt = completedAt,
+                                    blobUrl = blobSource.blobPath,
+                                    sizeBytes = source.size() ?: -1,
+                                )
+                            } catch (e: Exception) {
+                                val completedAt =
+                                    Instant.now(Clock.systemUTC())
+                                val errorCode =
+                                    when {
+                                        e.message?.contains(
+                                            "size",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_SIZE_LIMIT_EXCEEDED
+                                        e.message?.contains(
+                                            "readable",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_NOT_READABLE
+                                        e.message?.contains(
+                                            "empty",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .SOURCE_IS_EMPTY
+                                        e.message?.contains(
+                                            "container",
+                                        ) == true ->
+                                            UploadErrorCode
+                                                .NO_CONTAINERS_AVAILABLE
+                                        else ->
+                                            UploadErrorCode
+                                                .UPLOAD_FAILED
+                                    }
+
+                                UploadResult.Failure(
+                                    sourceName = source.name,
+                                    startedAt = startedAt,
+                                    completedAt = completedAt,
+                                    errorCode = errorCode,
+                                    errorMessage =
+                                    e.message
+                                        ?: "Upload failed",
+                                    exception = e,
+                                    isPermanent =
+                                    e is IngestException &&
+                                        e.isPermanent ==
+                                        true,
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }.awaitAll()
+                .awaitAll()
 
         val successes = results.filterIsInstance<UploadResult.Success>()
         val failures = results.filterIsInstance<UploadResult.Failure>()
@@ -701,21 +727,20 @@ abstract class ContainerUploaderBase(
     }
 
     /**
-     * Uploads the specified local source asynchronously.
-     * This is the Java-compatible version that returns a CompletableFuture.
+     * Uploads the specified local source asynchronously. This is the
+     * Java-compatible version that returns a CompletableFuture.
      *
      * @param local The local source to upload.
-     * @return A CompletableFuture that will complete with the uploaded blob source.
+     * @return A CompletableFuture that will complete with the uploaded blob
+     *   source.
      */
     @JvmName("uploadAsync")
     fun uploadAsyncJava(local: LocalSource): CompletableFuture<BlobSource> =
-        CoroutineScope(Dispatchers.IO).future {
-            uploadAsync(local)
-        }
+        CoroutineScope(Dispatchers.IO).future { uploadAsync(local) }
 
     /**
-     * Uploads the specified local sources asynchronously.
-     * This is the Java-compatible version that returns a CompletableFuture.
+     * Uploads the specified local sources asynchronously. This is the
+     * Java-compatible version that returns a CompletableFuture.
      *
      * @param localSources List of the local sources to upload.
      * @return A CompletableFuture that will complete with the upload results.
