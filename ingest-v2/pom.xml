@@ -183,6 +183,10 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
             </plugin>
             <!-- Copy WellKnownKustoEndpoints.json from data module to target/classes -->
             <!-- This keeps the source tree clean and ensures the file is always from data module -->
