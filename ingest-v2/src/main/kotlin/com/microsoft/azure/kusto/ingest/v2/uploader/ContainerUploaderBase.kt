@@ -123,7 +123,7 @@ abstract class ContainerUploaderBase(
         }
 
         // Compress stream if needed (for non-binary, non-compressed formats)
-        val (uploadStream, effectiveCompressionType, compressionJob) =
+        val preparedStream =
             if (local.shouldCompress) {
                 logger.debug(
                     "Auto-compressing stream for {} (format: {}, original compression: {})",
@@ -137,13 +137,17 @@ abstract class ContainerUploaderBase(
                     name,
                     availableSize,
                 )
-                Triple(
-                    compressResult.stream,
-                    CompressionType.GZIP,
-                    compressResult.compressionJob,
+                PreparedUploadStream(
+                    stream = compressResult.stream,
+                    compressionType = CompressionType.GZIP,
+                    compressionJob = compressResult.compressionJob,
                 )
             } else {
-                Triple(originalStream, local.compressionType, null)
+                PreparedUploadStream(
+                    stream = originalStream,
+                    compressionType = local.compressionType,
+                    compressionJob = null,
+                )
             }
 
         // Upload with retry policy and container cycling
@@ -151,13 +155,13 @@ abstract class ContainerUploaderBase(
             uploadWithRetries(
                 local = local,
                 name = name,
-                stream = uploadStream,
+                stream = preparedStream.stream,
                 containers = containers,
-                effectiveCompressionType = effectiveCompressionType,
+                effectiveCompressionType = preparedStream.compressionType,
             )
                 .also {
                     // Ensure compression job completes successfully
-                    compressionJob?.await()
+                    preparedStream.compressionJob?.await()
                     logger.debug(
                         "Compression job completed successfully for {}",
                         name,
@@ -165,7 +169,7 @@ abstract class ContainerUploaderBase(
                 }
         } catch (e: Exception) {
             // Cancel compression job if upload fails
-            compressionJob?.cancel()
+            preparedStream.compressionJob?.cancel()
             throw e
         }
     }
@@ -260,6 +264,16 @@ abstract class ContainerUploaderBase(
     private data class CompressedStreamResult(
         val stream: InputStream,
         val compressionJob: kotlinx.coroutines.Deferred<Long>,
+    )
+
+    /**
+     * Helper class to hold prepared upload stream with its compression type
+     * and optional compression job.
+     */
+    private data class PreparedUploadStream(
+        val stream: InputStream,
+        val compressionType: CompressionType,
+        val compressionJob: kotlinx.coroutines.Deferred<Long>?,
     )
 
     /**

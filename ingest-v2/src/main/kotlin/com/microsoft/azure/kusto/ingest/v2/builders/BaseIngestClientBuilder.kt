@@ -8,6 +8,7 @@ import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.uploader.IUploader
 import com.microsoft.azure.kusto.ingest.v2.uploader.ManagedUploader
 
@@ -17,7 +18,7 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var clientDetails: ClientDetails? = null
 
     // Fabric Private Link support
-    protected var s2sTokenProvider: (suspend () -> Pair<String, String>)? = null
+    protected var s2sTokenProvider: (suspend () -> S2SToken)? = null
     protected var s2sFabricPrivateLinkAccessContext: String? = null
 
     // Added properties for ingestion endpoint and authentication
@@ -60,7 +61,7 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
      * @return This builder instance for method chaining
      */
     fun withFabricPrivateLink(
-        s2sTokenProvider: suspend () -> Pair<String, String>,
+        s2sTokenProvider: suspend () -> S2SToken,
         s2sFabricPrivateLinkAccessContext: String,
     ): T {
         require(s2sFabricPrivateLinkAccessContext.isNotBlank()) {

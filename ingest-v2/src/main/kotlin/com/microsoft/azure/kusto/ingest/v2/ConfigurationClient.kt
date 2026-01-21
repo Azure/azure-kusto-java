@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.infrastructure.HttpResponse
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import io.ktor.http.HttpStatusCode
@@ -16,12 +17,16 @@ class ConfigurationClient(
     override val tokenCredential: TokenCredential,
     override val skipSecurityChecks: Boolean = false,
     override val clientDetails: ClientDetails,
+    override val s2sTokenProvider: (suspend () -> S2SToken)? = null,
+    override val s2sFabricPrivateLinkAccessContext: String? = null,
 ) :
     KustoBaseApiClient(
         dmUrl,
         tokenCredential,
         skipSecurityChecks,
         clientDetails,
+        s2sTokenProvider = s2sTokenProvider,
+        s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext,
     ) {
     private val logger =
         LoggerFactory.getLogger(ConfigurationClient::class.java)

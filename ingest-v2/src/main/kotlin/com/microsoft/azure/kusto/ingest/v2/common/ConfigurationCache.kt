@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL
 import com.microsoft.azure.kusto.ingest.v2.CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS
 import com.microsoft.azure.kusto.ingest.v2.ConfigurationClient
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
@@ -69,6 +70,8 @@ class DefaultConfigurationCache(
         CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS,
     val clientDetails: ClientDetails,
     val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
+    val s2sTokenProvider: (suspend () -> S2SToken)? = null,
+    val s2sFabricPrivateLinkAccessContext: String? = null,
 ) : ConfigurationCache {
     companion object {
         /**
@@ -146,6 +149,8 @@ class DefaultConfigurationCache(
                     tokenCredential!!,
                     skipSecurityChecks!!,
                     clientDetails,
+                    s2sTokenProvider,
+                    s2sFabricPrivateLinkAccessContext,
                 )
                     .getConfigurationDetails()
             }
