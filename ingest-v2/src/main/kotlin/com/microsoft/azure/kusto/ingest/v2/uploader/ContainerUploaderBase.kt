@@ -54,7 +54,7 @@ abstract class ContainerUploaderBase(
     private val retryPolicy: IngestRetryPolicy,
     private val maxConcurrency: Int,
     private val maxDataSize: Long,
-    private val configurationCache: ConfigurationCache,
+    protected val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod,
     private val tokenCredential: TokenCredential?,
 ) : IUploader {
@@ -112,7 +112,7 @@ abstract class ContainerUploaderBase(
         }
 
         // Get containers from configuration
-        val containers = selectContainers(configurationCache, uploadMethod)
+        val containers = selectContainers(uploadMethod)
 
         if (containers.isEmpty()) {
             logger.error("No containers available for upload")
@@ -278,7 +278,10 @@ abstract class ContainerUploaderBase(
         // Select container using incrementing counter for round-robin distribution
         // Note: Math.floorMod handles negative values correctly if overflow occurs
         var containerIndex =
-            Math.floorMod(containerIndexCounter.getAndIncrement(), containers.size)
+            Math.floorMod(
+                containerIndexCounter.getAndIncrement(),
+                containers.size,
+            )
 
         logger.debug(
             "Starting upload with {} containers, round-robin index: {}",
@@ -390,7 +393,8 @@ abstract class ContainerUploaderBase(
         )
         // TODO check and validate failure scenarios
         // Use semaphore for true streaming parallelism
-        // This allows up to effectiveMaxConcurrency concurrent uploads, starting new ones as soon as slots
+        // This allows up to effectiveMaxConcurrency concurrent uploads, starting new ones as soon
+        // as slots
         // are available
         val semaphore = Semaphore(effectiveMaxConcurrency)
 
@@ -755,17 +759,14 @@ abstract class ContainerUploaderBase(
         }
 
     /**
-     * Selects the appropriate containers for upload based on the provided
-     * configuration cache and upload method.
+     * Selects the appropriate containers for upload based on the uploader's
+     * configuration cache and the specified upload method.
      *
-     * @param configurationCache The configuration cache to use for selecting
-     *   containers.
      * @param uploadMethod The upload method to consider when selecting
      *   containers.
      * @return A list of selected container information.
      */
     abstract suspend fun selectContainers(
-        configurationCache: ConfigurationCache,
         uploadMethod: UploadMethod,
     ): List<ExtendedContainerInfo>
 }

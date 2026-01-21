@@ -11,6 +11,7 @@ import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
 import java.lang.AutoCloseable
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.min
 
 /**
  * Interface for caching configuration data.
@@ -150,25 +151,101 @@ class DefaultConfigurationCache(
             }
 
     /**
-     * Holds both the configuration and its refresh timestamp atomically. This
-     * prevents race conditions between checking expiration and updating.
+     * Holds the configuration, its refresh timestamp, and the effective refresh
+     * interval atomically. This prevents race conditions between checking
+     * expiration and updating, and ensures we use the correct refresh interval
+     * from when the config was fetched.
      */
     private data class CachedData(
         val configuration: ConfigurationResponse,
         val timestamp: Long,
+        val refreshInterval: Long,
     )
 
     private val cache = AtomicReference<CachedData?>(null)
 
+    /**
+     * Parses a .NET TimeSpan format string to a Java Duration.
+     *
+     * Supports formats:
+     * - HH:mm:ss (e.g., "01:00:00" = 1 hour)
+     * - d.HH:mm:ss (e.g., "1.02:30:00" = 1 day, 2 hours, 30 minutes)
+     * - HH:mm:ss.fffffff (with fractional seconds)
+     *
+     * @param timeSpan The TimeSpan string to parse
+     * @return The parsed Duration, or null if parsing fails
+     */
+    private fun parseTimeSpanToDuration(timeSpan: String): Duration? {
+        return try {
+            // Split by '.' to handle days (format: "d.HH:mm:ss")
+            val parts = timeSpan.split('.')
+            val timePart = if (parts.size > 1) parts[1] else parts[0]
+            val days = if (parts.size > 1) parts[0].toLongOrNull() ?: 0L else 0L
+
+            // Split time part by ':' to get hours, minutes, seconds
+            val timeParts = timePart.split(':')
+            if (timeParts.size < 3) return null
+
+            val hours = timeParts[0].toLongOrNull() ?: return null
+            val minutes = timeParts[1].toLongOrNull() ?: return null
+
+            // Handle fractional seconds (e.g., "30.1234567")
+            val secondsPart = timeParts[2]
+            val secondsValue = secondsPart.toDoubleOrNull() ?: return null
+
+            // Build duration
+            var duration =
+                Duration.ofDays(days)
+                    .plusHours(hours)
+                    .plusMinutes(minutes)
+                    .plusSeconds(secondsValue.toLong())
+
+            // Add fractional seconds if present
+            val fractionalSeconds = (secondsValue - secondsValue.toLong())
+            if (fractionalSeconds > 0) {
+                duration =
+                    duration.plusMillis((fractionalSeconds * 1000).toLong())
+            }
+
+            duration
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Helper function to calculate effective refresh interval from a
+     * configuration response. If the configuration specifies a refresh
+     * interval, use the minimum of that and the default. Otherwise, use the
+     * default refresh interval.
+     */
+    private fun calculateEffectiveRefreshInterval(
+        config: ConfigurationResponse?,
+    ): Long {
+        val configRefreshInterval = config?.containerSettings?.refreshInterval
+        return if (configRefreshInterval?.isNotEmpty() == true) {
+            val parsedDuration = parseTimeSpanToDuration(configRefreshInterval)
+            if (parsedDuration != null) {
+                min(this.refreshInterval.toMillis(), parsedDuration.toMillis())
+            } else {
+                // If parsing fails, log warning and use default
+                this.refreshInterval.toMillis()
+            }
+        } else {
+            this.refreshInterval.toMillis()
+        }
+    }
+
     override suspend fun getConfiguration(): ConfigurationResponse {
         val currentTime = System.currentTimeMillis()
-        val cached = cache.get()
+        val cachedData = cache.get()
 
-        // Check if we need to refresh
+        // Check if we need to refresh based on the effective refresh interval
+        // stored with the cached data
         val needsRefresh =
-            cached == null ||
-                (currentTime - cached.timestamp) >=
-                refreshInterval.toMillis()
+            cachedData == null ||
+                (currentTime - cachedData.timestamp) >=
+                cachedData.refreshInterval
 
         if (needsRefresh) {
             // Attempt to refresh - only one thread will succeed
@@ -176,19 +253,27 @@ class DefaultConfigurationCache(
                 runCatching { provider() }
                     .getOrElse {
                         // If fetch fails, return cached if available, otherwise rethrow
-                        cached?.configuration ?: throw it
+                        cachedData?.configuration ?: throw it
                     }
+
+            // Calculate effective refresh interval from the NEW configuration
+            val newEffectiveRefreshInterval =
+                calculateEffectiveRefreshInterval(newConfig)
 
             // Atomically update if still needed (prevents thundering herd)
             cache.updateAndGet { current ->
-                val currentTimestamp = current?.timestamp ?: 0
-                // Only update if current is null or still stale
+                // Only update if current is null or still stale based on its
+                // stored effective interval
                 if (
                     current == null ||
-                    (currentTime - currentTimestamp) >=
-                    refreshInterval.toMillis()
+                    (currentTime - current.timestamp) >=
+                    current.refreshInterval
                 ) {
-                    CachedData(newConfig, currentTime)
+                    CachedData(
+                        newConfig,
+                        currentTime,
+                        newEffectiveRefreshInterval,
+                    )
                 } else {
                     // Another thread already refreshed
                     current
