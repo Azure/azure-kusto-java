@@ -7,6 +7,7 @@ import com.azure.core.credential.TokenRequestContext
 import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
 import com.microsoft.azure.kusto.ingest.v2.auth.endpoints.KustoTrustedEndpoints
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.plugins.DefaultRequest
@@ -33,7 +34,7 @@ open class KustoBaseApiClient(
     open val skipSecurityChecks: Boolean = false,
     open val clientDetails: ClientDetails,
     open val clientRequestIdPrefix: String = "KIC.execute",
-    open val s2sTokenProvider: (suspend () -> Pair<String, String>)? = null,
+    open val s2sTokenProvider: (suspend () -> S2SToken)? = null,
     open val s2sFabricPrivateLinkAccessContext: String? = null,
 ) {
     private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
@@ -133,10 +134,10 @@ open class KustoBaseApiClient(
                     onRequest { request, _ ->
                         try {
                             // Get S2S token
-                            val (token, scheme) = provider()
+                            val s2sToken = provider()
                             request.headers.append(
                                 "x-ms-s2s-actor-authorization",
-                                "$scheme $token",
+                                s2sToken.toHeaderValue(),
                             )
 
                             // Add Fabric Private Link access context header
