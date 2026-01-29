@@ -80,7 +80,7 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             // Ingest data
             logger.info("Ingesting data via streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             if (useIngestRequestProperties) {
@@ -139,7 +139,7 @@ public class StreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     .build() : null;
 
             logger.info("Ingesting compressed data...");
-            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             if (useIngestRequestProperties) {

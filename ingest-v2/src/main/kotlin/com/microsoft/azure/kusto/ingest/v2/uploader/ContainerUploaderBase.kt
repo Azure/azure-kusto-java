@@ -46,7 +46,6 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.GZIPOutputStream
 
 /** Represents an abstract base class for uploaders to storage containers. */
@@ -64,12 +63,6 @@ abstract class ContainerUploaderBase(
 
     private val effectiveMaxConcurrency: Int =
         minOf(maxConcurrency, Runtime.getRuntime().availableProcessors())
-
-    /**
-     * Atomic counter for round-robin container selection. Increments on each
-     * upload to distribute load evenly across containers.
-     */
-    private val containerIndexCounter = AtomicInteger(0)
 
     override var ignoreSizeLimit: Boolean = false
 
@@ -277,25 +270,25 @@ abstract class ContainerUploaderBase(
     )
 
     /**
-     * Uploads a stream with retry logic and container cycling. Uses an
-     * incrementing counter (mod container count) for round-robin container
-     * selection, ensuring even load distribution across containers on each
-     * retry. For example, with 2 containers and 3 retries: 0->1->0 or 1->0->1
+     * Uploads a stream with retry logic and container cycling. Uses the
+     * shared counter from the RoundRobinContainerList for round-robin container
+     * selection, ensuring even load distribution across containers across all
+     * uploaders sharing the same ConfigurationCache.
+     * For example, with 2 containers and uploaders A and B:
+     * - A's 1st upload uses container 0
+     * - B's 1st upload uses container 1
+     * - A's 2nd upload uses container 0 (cycles back)
      */
     private suspend fun uploadWithRetries(
         local: LocalSource,
         name: String,
         stream: InputStream,
-        containers: List<ExtendedContainerInfo>,
+        containers: RoundRobinContainerList,
         effectiveCompressionType: CompressionType = local.compressionType,
     ): BlobSource {
-        // Select container using incrementing counter for round-robin distribution
-        // Note: Math.floorMod handles negative values correctly if overflow occurs
-        var containerIndex =
-            Math.floorMod(
-                containerIndexCounter.getAndIncrement(),
-                containers.size,
-            )
+        // Select container using the shared counter from RoundRobinContainerList
+        // This ensures even distribution across all uploaders sharing the same cache
+        var containerIndex = containers.getNextStartIndex()
 
         logger.debug(
             "Starting upload with {} containers, round-robin index: {}",
@@ -776,11 +769,15 @@ abstract class ContainerUploaderBase(
      * Selects the appropriate containers for upload based on the uploader's
      * configuration cache and the specified upload method.
      *
+     * The returned RoundRobinContainerList contains a shared counter that
+     * enables even distribution of uploads across containers, even when
+     * multiple uploaders share the same ConfigurationCache.
+     *
      * @param uploadMethod The upload method to consider when selecting
      *   containers.
-     * @return A list of selected container information.
+     * @return A RoundRobinContainerList with shared counter for load distribution.
      */
     abstract suspend fun selectContainers(
         uploadMethod: UploadMethod,
-    ): List<ExtendedContainerInfo>
+    ): RoundRobinContainerList
 }

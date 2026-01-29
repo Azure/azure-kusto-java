@@ -23,11 +23,9 @@ private constructor(private val clusterUrl: String) :
     }
 
     fun build(): StreamingIngestClient {
-        setEndpoint(clusterUrl)
         requireNotNull(tokenCredential) {
             "Authentication is required. Call withAuthentication() before build()"
         }
-        validateParameters()
         val effectiveClientDetails =
             clientDetails ?: ClientDetails.createDefault()
         val apiClient =
@@ -39,11 +37,6 @@ private constructor(private val clusterUrl: String) :
             )
         return StreamingIngestClient(
             apiClient = apiClient,
-        ) // Assuming these are set in BaseIngestClientBuilder
-    }
-
-    private fun validateParameters() {
-        requireNotNull(ingestionEndpoint) { "Ingestion endpoint must be set." }
-        requireNotNull(authentication) { "Authentication must be set." }
+        )
     }
 }

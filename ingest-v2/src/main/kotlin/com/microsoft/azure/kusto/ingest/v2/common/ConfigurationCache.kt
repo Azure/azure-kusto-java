@@ -9,10 +9,60 @@ import com.microsoft.azure.kusto.ingest.v2.ConfigurationClient
 import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
 import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
+import com.microsoft.azure.kusto.ingest.v2.uploader.ExtendedContainerInfo
+import com.microsoft.azure.kusto.ingest.v2.uploader.RoundRobinContainerList
+import com.microsoft.azure.kusto.ingest.v2.uploader.UploadMethod
 import java.lang.AutoCloseable
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
+
+/**
+ * Wrapper around ConfigurationResponse that includes shared RoundRobinContainerList
+ * instances for even distribution of uploads across containers.
+ *
+ * This class holds the configuration response along with pre-created container lists
+ * that maintain their own atomic counters. All uploaders sharing the same cache
+ * will use the same RoundRobinContainerList instances, ensuring proper load
+ * distribution.
+ */
+class CachedConfigurationData(
+    val response: ConfigurationResponse,
+) {
+    /**
+     * Lazily initialized RoundRobinContainerList for storage containers.
+     * The list is created once and reused for all requests until the cache refreshes.
+     */
+    val storageContainerList: RoundRobinContainerList by lazy {
+        val containers = response.containerSettings?.containers
+        if (containers.isNullOrEmpty()) {
+            RoundRobinContainerList.empty()
+        } else {
+            RoundRobinContainerList.of(
+                containers.map { ExtendedContainerInfo(it, UploadMethod.STORAGE) }
+            )
+        }
+    }
+
+    /**
+     * Lazily initialized RoundRobinContainerList for lake containers.
+     * The list is created once and reused for all requests until the cache refreshes.
+     */
+    val lakeContainerList: RoundRobinContainerList by lazy {
+        val lakeFolders = response.containerSettings?.lakeFolders
+        if (lakeFolders.isNullOrEmpty()) {
+            RoundRobinContainerList.empty()
+        } else {
+            RoundRobinContainerList.of(
+                lakeFolders.map { ExtendedContainerInfo(it, UploadMethod.LAKE) }
+            )
+        }
+    }
+
+    // Delegate all ConfigurationResponse properties
+    val containerSettings get() = response.containerSettings
+    val ingestionSettings get() = response.ingestionSettings
+}
 
 /**
  * Interface for caching configuration data.
@@ -29,8 +79,12 @@ interface ConfigurationCache : AutoCloseable {
      * Gets the current configuration, refreshing it if necessary based on the
      * refresh interval. This method may return cached data if the cache is
      * still valid.
+     *
+     * The returned CachedConfigurationData includes shared RoundRobinContainerList
+     * instances that provide even distribution of uploads across containers for
+     * all uploaders sharing this cache.
      */
-    suspend fun getConfiguration(): ConfigurationResponse
+    suspend fun getConfiguration(): CachedConfigurationData
 
     override fun close()
 }
@@ -160,9 +214,12 @@ class DefaultConfigurationCache(
      * interval atomically. This prevents race conditions between checking
      * expiration and updating, and ensures we use the correct refresh interval
      * from when the config was fetched.
+     *
+     * The CachedConfigurationData wrapper includes pre-created RoundRobinContainerList
+     * instances that are shared by all uploaders using this cache.
      */
     private data class CachedData(
-        val configuration: ConfigurationResponse,
+        val configuration: CachedConfigurationData,
         val timestamp: Long,
         val refreshInterval: Long,
     )
@@ -225,7 +282,7 @@ class DefaultConfigurationCache(
      * default refresh interval.
      */
     private fun calculateEffectiveRefreshInterval(
-        config: ConfigurationResponse?,
+        config: CachedConfigurationData?,
     ): Long {
         val configRefreshInterval = config?.containerSettings?.refreshInterval
         return if (configRefreshInterval?.isNotEmpty() == true) {
@@ -241,7 +298,7 @@ class DefaultConfigurationCache(
         }
     }
 
-    override suspend fun getConfiguration(): ConfigurationResponse {
+    override suspend fun getConfiguration(): CachedConfigurationData {
         val currentTime = System.currentTimeMillis()
         val cachedData = cache.get()
 
@@ -254,12 +311,16 @@ class DefaultConfigurationCache(
 
         if (needsRefresh) {
             // Attempt to refresh - only one thread will succeed
-            val newConfig =
+            val newConfigResponse =
                 runCatching { provider() }
                     .getOrElse {
                         // If fetch fails, return cached if available, otherwise rethrow
-                        cachedData?.configuration ?: throw it
+                        cachedData?.configuration?.response ?: throw it
                     }
+
+            // Wrap the response in CachedConfigurationData to create shared
+            // RoundRobinContainerList instances
+            val newConfig = CachedConfigurationData(newConfigResponse)
 
             // Calculate effective refresh interval from the NEW configuration
             val newEffectiveRefreshInterval =

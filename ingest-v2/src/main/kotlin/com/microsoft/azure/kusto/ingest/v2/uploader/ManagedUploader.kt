@@ -41,12 +41,13 @@ internal constructor(
 
     override suspend fun selectContainers(
         uploadMethod: UploadMethod,
-    ): List<ExtendedContainerInfo> {
+    ): RoundRobinContainerList {
         // This method is delegated to and this calls getConfiguration again to ensure fresh data is
         // retrieved
         // or cached data is used as appropriate.
+        val configuration = configurationCache.getConfiguration()
         val containerSettings =
-            configurationCache.getConfiguration().containerSettings
+            configuration.containerSettings
                 ?: throw IngestException(
                     "No container settings available",
                     isPermanent = true,
@@ -112,23 +113,19 @@ internal constructor(
                         UploadMethod.LAKE
                     }
             }
+
+        // Get the appropriate RoundRobinContainerList from the configuration cache
+        // The cache maintains shared counters for each container type to ensure
+        // even distribution across all uploaders sharing the same cache
         return when {
             effectiveMethod == UploadMethod.LAKE && hasLake ->
-                containerSettings.lakeFolders.map {
-                    ExtendedContainerInfo(it, UploadMethod.LAKE)
-                }
+                configuration.lakeContainerList
             effectiveMethod == UploadMethod.STORAGE && hasStorage ->
-                containerSettings.containers.map {
-                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
-                }
+                configuration.storageContainerList
             hasStorage ->
-                containerSettings.containers.map {
-                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
-                }
+                configuration.storageContainerList
             else ->
-                containerSettings.lakeFolders!!.map {
-                    ExtendedContainerInfo(it, UploadMethod.LAKE)
-                }
+                configuration.lakeContainerList
         }
     }
 

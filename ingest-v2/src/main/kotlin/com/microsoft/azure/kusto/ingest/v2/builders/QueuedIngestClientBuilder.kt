@@ -58,7 +58,6 @@ class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
     }
 
     fun build(): QueuedIngestClient {
-        setEndpoint(dmUrl)
         requireNotNull(tokenCredential) {
             "Authentication is required. Call withAuthentication() before build()"
         }

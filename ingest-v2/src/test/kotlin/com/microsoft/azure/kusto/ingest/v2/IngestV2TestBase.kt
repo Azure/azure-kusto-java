@@ -32,7 +32,7 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val oneLakeFolder: String? = System.getenv("ONE_LAKE_FOLDER")
     protected val targetTestFormat = Format.json
     protected val engineEndpoint: String =
-        dmEndpoint.replace("https://ingest-", "https://")
+        IngestClientBase.getQueryEndpoint(dmEndpoint) ?: dmEndpoint
     lateinit var targetTable: String
     protected val columnNamesToTypes: Map<String, String> =
         mapOf(

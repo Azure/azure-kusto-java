@@ -84,7 +84,7 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
 
             // Queue data for ingestion
             logger.info("Queueing data for ingestion...");
-            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database, targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             if(useIngestRequestProperties) {
@@ -104,7 +104,7 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
                 );
 
                 // Get initial status
-                StatusResponse initialStatus = client.getOperationDetailsAsync(operation).get();
+                StatusResponse initialStatus = client.getOperationDetailsAsyncJava(operation).get();
                 assertNotNull(initialStatus, "Initial status should not be null");
                 logger.info("Initial status retrieved");
 
@@ -166,7 +166,7 @@ public class QueuedIngestClientJavaTest extends IngestV2JavaTestBase {
                     .build();
 
             logger.info("Queueing file for ingestion...");
-            ExtendedIngestResponse response = client.ingestAsync(database, targetTable,fileSource, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database, targetTable,fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
             logger.info("File queued. Operation ID: {}",

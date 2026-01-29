@@ -83,7 +83,7 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
 
             // Ingest data (should use streaming for small data)
             logger.info("Ingesting small data via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
             if (useIngestRequestProperties) {
@@ -157,7 +157,7 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     .build() : null;
 
             logger.info("Ingesting larger data via managed streaming (may trigger fallback)...");
-            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,source, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database,targetTable,source, properties).get();
 
             assertNotNull(response, "Response should not be null");
 
@@ -230,7 +230,7 @@ public class ManagedStreamingIngestClientJavaTest extends IngestV2JavaTestBase {
                     .build() : null;
 
             logger.info("Ingesting file via managed streaming...");
-            ExtendedIngestResponse response = client.ingestAsync(database,targetTable,fileSource, properties).get();
+            ExtendedIngestResponse response = client.ingestAsyncJava(database,targetTable,fileSource, properties).get();
 
             assertNotNull(response, "Response should not be null");
             if (useIngestRequestProperties) {
