@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.uploader
 
+import com.microsoft.azure.kusto.ingest.v2.common.CachedConfigurationData
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
 import com.microsoft.azure.kusto.ingest.v2.models.ConfigurationResponse
@@ -72,7 +73,7 @@ class ManagedUploaderTest {
         override val refreshInterval: Duration
             get() = Duration.ofHours(1)
 
-        override suspend fun getConfiguration(): ConfigurationResponse {
+        override suspend fun getConfiguration(): CachedConfigurationData {
             val resourcesDirectory = "src/test/resources/"
             val fileName = "config-response.json"
             val configContent =
@@ -87,7 +88,7 @@ class ManagedUploaderTest {
 
             assertNotNull(configurationResponse)
             assertNotNull(configurationResponse.containerSettings)
-            return configurationResponse
+            return CachedConfigurationData(configurationResponse)
         }
 
         override fun close() {

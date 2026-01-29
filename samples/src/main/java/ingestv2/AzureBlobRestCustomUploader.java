@@ -8,6 +8,7 @@ import com.azure.identity.ChainedTokenCredential;
 import com.azure.identity.ChainedTokenCredentialBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.kusto.data.StringUtils;
+import com.microsoft.azure.kusto.ingest.v2.IngestClientBase;
 import com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource;
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
@@ -297,7 +298,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("    .build();");
             System.out.println();
             System.out.println("// 5. Ingest - the custom uploader handles the upload!");
-            System.out.println("client.ingestAsync(fileSource, properties).join();");
+            System.out.println("client.ingestAsyncJava(fileSource, properties).join();");
             System.out.println("```");
             return;
         }
@@ -330,12 +331,9 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
         }
         
         // Build the ingest URL (DM endpoint)
-        // The correct pattern: https://cluster.region.kusto.windows.net -> https://ingest-cluster.region.kusto.windows.net
-        String dmUrl = engineEndpoint;
-        if (engineEndpoint.startsWith("https://")) {
-            dmUrl = engineEndpoint.replace("https://", "https://ingest-");
-        } else if (engineEndpoint.startsWith("http://")) {
-            dmUrl = engineEndpoint.replace("http://", "http://ingest-");
+        String dmUrl = IngestClientBase.getIngestionEndpoint(engineEndpoint);
+        if (dmUrl == null) {
+            dmUrl = engineEndpoint; // Fallback if transformation not applicable
         }
         System.out.println("DM Endpoint: " + dmUrl);
         
@@ -397,7 +395,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("   (This will use the custom uploader to upload to Azure Blob Storage!)");
             
             // Perform ingestion - the custom uploader handles the upload!
-            var response = queuedIngestClient.ingestAsync(database, table, fileSource, properties).get();
+            var response = queuedIngestClient.ingestAsyncJava(database, table, fileSource, properties).get();
             
             System.out.println("\n5. Ingestion queued successfully!");
             System.out.println("   Operation ID: " + response.getIngestResponse().getIngestionOperationId());
@@ -415,7 +413,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
                 
                 System.out.println("\n6. Ingesting JSON file with mapping: " + resourcesDirectory + "dataset.json");
                 
-                var jsonResponse = queuedIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
+                var jsonResponse = queuedIngestClient.ingestAsyncJava(database, table, jsonFileSource, jsonProperties).get();
                 
                 System.out.println("   JSON Ingestion queued successfully!");
                 System.out.println("   Operation ID: " + jsonResponse.getIngestResponse().getIngestionOperationId());
@@ -433,7 +431,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             
             System.out.println("\n7. Ingesting from stream (CSV data)");
             
-            var streamResponse = queuedIngestClient.ingestAsync(database, table,streamSource, streamProperties).get();
+            var streamResponse = queuedIngestClient.ingestAsyncJava(database, table,streamSource, streamProperties).get();
             
             System.out.println("   Stream Ingestion queued successfully!");
             System.out.println("   Operation ID: " + streamResponse.getIngestResponse().getIngestionOperationId());
@@ -444,7 +442,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("  1. AzureBlobRestCustomUploader implements ICustomUploader");
             System.out.println("  2. CustomUploaderHelper.asUploader() converts to IUploader");
             System.out.println("  3. QueuedIngestClientBuilder.withUploader() configures the custom uploader");
-            System.out.println("  4. client.ingestAsync() internally uses the custom uploader!");
+            System.out.println("  4. client.ingestAsyncJava() internally uses the custom uploader!");
             System.out.println();
             System.out.println("The same pattern works for any other source such as S3/GCP - just implement ICustomUploader!");
             

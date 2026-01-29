@@ -107,7 +107,7 @@ public class StreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting CSV data from string...");
-        ExtendedIngestResponse ingestResponse = streamingIngestClient.ingestAsync(database, table, csvStreamSource, csvProperties).get();
+        ExtendedIngestResponse ingestResponse = streamingIngestClient.ingestAsyncJava(database, table, csvStreamSource, csvProperties).get();
         System.out.println(
                 "CSV ingestion completed. Operation ID: "
                         + ingestResponse.getIngestResponse().getIngestionOperationId());
@@ -123,7 +123,7 @@ public class StreamingIngestV2 {
                 UUID.randomUUID(),
                 false);
         System.out.println("Ingesting compressed CSV file...");
-        ExtendedIngestResponse compressedResponse = streamingIngestClient.ingestAsync(database, table, compressedStreamSource, csvProperties).get();
+        ExtendedIngestResponse compressedResponse = streamingIngestClient.ingestAsyncJava(database, table, compressedStreamSource, csvProperties).get();
         System.out.println(
                 "Compressed CSV ingestion completed. Operation ID: "
                         + compressedResponse.getIngestResponse().getIngestionOperationId());
@@ -144,7 +144,7 @@ public class StreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsync(database, table, jsonStreamSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsyncJava(database, table, jsonStreamSource, jsonProperties).get();
         System.out.println(
                 "JSON ingestion completed. Operation ID: "
                         + jsonResponse.getIngestResponse().getIngestionOperationId());
@@ -174,7 +174,7 @@ public class StreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting CSV file...");
-        ExtendedIngestResponse csvResponse = streamingIngestClient.ingestAsync(database, table, csvFileSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = streamingIngestClient.ingestAsyncJava(database, table, csvFileSource, csvProperties).get();
         System.out.println(
                 "CSV file ingestion completed. Operation ID: "
                         + csvResponse.getIngestResponse().getIngestionOperationId());
@@ -192,7 +192,7 @@ public class StreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting compressed JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = streamingIngestClient.ingestAsyncJava(database, table, jsonFileSource, jsonProperties).get();
         System.out.println(
                 "Compressed JSON file ingestion completed. Operation ID: "
                         + jsonResponse.getIngestResponse().getIngestionOperationId());

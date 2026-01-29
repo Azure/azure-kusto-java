@@ -3,6 +3,7 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
+import com.microsoft.azure.kusto.ingest.v2.IngestClientBase
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
@@ -21,11 +22,6 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var s2sTokenProvider: (suspend () -> S2SToken)? = null
     protected var s2sFabricPrivateLinkAccessContext: String? = null
 
-    // Added properties for ingestion endpoint and authentication
-    protected var ingestionEndpoint: String? = null
-    protected var clusterEndpoint: String? = null
-    protected var authentication: TokenCredential? = null
-
     protected var maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY
     protected var maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
     protected var ignoreFileSize: Boolean = false
@@ -37,7 +33,6 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
 
     fun withAuthentication(credential: TokenCredential): T {
         this.tokenCredential = credential
-        this.authentication = credential // Set authentication
         return self()
     }
 
@@ -169,39 +164,34 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             .build()
     }
 
-    protected fun setEndpoint(endpoint: String) {
-        this.ingestionEndpoint = normalizeAndCheckDmUrl(endpoint)
-        this.clusterEndpoint = normalizeAndCheckEngineUrl(endpoint)
-    }
-
     companion object {
+        /**
+         * Converts an ingestion endpoint URL to a query/engine endpoint URL by
+         * removing the "ingest-" prefix.
+         *
+         * Special URLs (localhost, IP addresses, onebox.dev.kusto.windows.net)
+         * are returned unchanged.
+         *
+         * @param clusterUrl The ingestion endpoint URL to convert
+         * @return The query endpoint URL without "ingest-" prefix
+         */
         protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
-            val normalizedUrl =
-                if (clusterUrl.matches(Regex("https://ingest-[^/]+.*"))) {
-                    // If the URL starts with https://ingest-, remove ingest-
-                    clusterUrl.replace(
-                        Regex("https://ingest-([^/]+)"),
-                        "https://$1",
-                    )
-                } else {
-                    clusterUrl
-                }
-            return normalizedUrl
+            return IngestClientBase.getQueryEndpoint(clusterUrl) ?: clusterUrl
         }
 
+        /**
+         * Converts a cluster URL to an ingestion endpoint URL by adding the
+         * "ingest-" prefix.
+         *
+         * Special URLs (localhost, IP addresses, onebox.dev.kusto.windows.net)
+         * are returned unchanged to support local development and testing.
+         *
+         * @param dmUrl The cluster URL to convert
+         * @return The ingestion endpoint URL with "ingest-" prefix
+         */
         @JvmStatic
         protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
-            val normalizedUrl =
-                if (dmUrl.matches(Regex("https://(?!ingest-)[^/]+.*"))) {
-                    // If the URL starts with https:// and does not already have ingest-, add it
-                    dmUrl.replace(
-                        Regex("https://([^/]+)"),
-                        "https://ingest-$1",
-                    )
-                } else {
-                    dmUrl
-                }
-            return normalizedUrl
+            return IngestClientBase.getIngestionEndpoint(dmUrl) ?: dmUrl
         }
     }
 }

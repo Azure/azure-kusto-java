@@ -784,7 +784,7 @@ public class SampleApp {
         String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
         InputStream csvStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
         StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), false);
-        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvSource, csvProps)
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), csvSource, csvProps)
                 .thenCompose(response -> {
                     closeQuietly(csvStream);
                     System.out.println("CSV stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
@@ -794,7 +794,7 @@ public class SampleApp {
         InputStream jsonStream = Files.newInputStream(resolveQuickstartPath("dataset.json"));
         StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), false);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
-        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonSource, jsonProps)
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), jsonSource, jsonProps)
                 .thenCompose(response -> {
                     closeQuietly(jsonStream);
                     System.out.println("JSON stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
@@ -811,7 +811,7 @@ public class SampleApp {
 
         IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
         FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
-        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), csvFileSource, csvProps)
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), csvFileSource, csvProps)
                 .thenCompose(response -> {
                     System.out.println("CSV file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV File");
@@ -819,7 +819,7 @@ public class SampleApp {
 
         FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE);
         IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
-        futures.add(queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), jsonFileSource, jsonProps)
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), jsonFileSource, jsonProps)
                 .thenCompose(response -> {
                     System.out.println("JSON file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
                     return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "JSON File");
@@ -894,7 +894,7 @@ public class SampleApp {
                     }
 
                     System.out.println("Ingesting " + blobSources.size() + " blobs as a batch...");
-                    return queuedIngestClient.ingestAsync(config.getDatabaseName(), config.getTableName(), blobSources, props)
+                    return queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), blobSources, props)
                             .thenCompose(response -> {
                                 System.out.println("Batch ingestion queued. Operation ID: "
                                         + response.getIngestResponse().getIngestionOperationId());
@@ -935,14 +935,14 @@ public class SampleApp {
         Duration pollTimeout = Duration.ofMinutes(ingestV2Config.getPollingTimeoutMinutes());
 
         System.out.println("\n--- Tracking " + operationName + " ---");
-        return queuedIngestClient.getOperationDetailsAsync(operation)
+        return queuedIngestClient.getOperationDetailsAsyncJava(operation)
                 .thenCompose(initialDetails -> {
                     System.out.println("[" + operationName + "] Initial Operation Details:");
                     printIngestV2StatusResponse(initialDetails);
                     System.out.println("[" + operationName + "] Polling for completion...");
                     return queuedIngestClient.pollForCompletion(operation, pollInterval, pollTimeout);
                 })
-                .thenCompose(fin -> queuedIngestClient.getOperationDetailsAsync(operation))
+                .thenCompose(fin -> queuedIngestClient.getOperationDetailsAsyncJava(operation))
                 .thenAccept(finalDetails -> {
                     System.out.println("[" + operationName + "] Final Operation Details:");
                     printIngestV2StatusResponse(finalDetails);
