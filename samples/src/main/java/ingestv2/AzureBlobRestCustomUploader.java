@@ -46,10 +46,37 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * 2. Uses standard HTTP PUT to upload blobs (same approach works for S3/GCS)
  * 3. Returns BlobSource with the uploaded blob URL for ingestion
  * 
- *  ICustomUploader pattern works end-to-end and can be adapted for:
+ * ICustomUploader pattern works end-to-end and can be adapted for:
  * - AWS S3 (use AWS SDK or S3 REST API)
  * - Google Cloud Storage (use GCS SDK or REST API)
  * - Any HTTP-based blob storage
+ * 
+ * <h3>Java Interoperability</h3>
+ * 
+ * The IUploader interface (obtained via {@code CustomUploaderHelper.asUploader()})
+ * provides Java-friendly methods that return {@link java.util.concurrent.CompletableFuture}:
+ * <ul>
+ *   <li>{@code uploadAsyncJava(LocalSource)} &rarr; {@code CompletableFuture<BlobSource>}</li>
+ *   <li>{@code uploadManyAsyncJava(List<LocalSource>)} &rarr; {@code CompletableFuture<UploadResults>}</li>
+ * </ul>
+ * 
+ * This allows Java users to program to the {@code IUploader} interface directly
+ * without needing Kotlin coroutine support:
+ * <pre>{@code
+ * ICustomUploader custom = new AzureBlobRestCustomUploader(containerUrl);
+ * IUploader uploader = CustomUploaderHelper.asUploader(custom);
+ * 
+ * // Use Java-friendly methods directly on IUploader:
+ * CompletableFuture<BlobSource> result = uploader.uploadAsyncJava(localSource);
+ * CompletableFuture<UploadResults> batchResult = uploader.uploadManyAsyncJava(localSources);
+ * 
+ * // Or pass to a client builder:
+ * QueuedIngestClient client = QueuedIngestClientBuilder.create(dmUrl)
+ *     .withAuthentication(credential)
+ *     .withUploader(uploader, true)
+ *     .build();
+ * client.ingestAsyncJava(database, table, fileSource, properties).join();
+ * }</pre>
  */
 public class AzureBlobRestCustomUploader implements ICustomUploader {
     
@@ -291,6 +318,10 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("// 3. Convert to IUploader using CustomUploaderHelper");
             System.out.println("IUploader uploader = CustomUploaderHelper.asUploader(customUploader);");
             System.out.println();
+            System.out.println("// 3a. (Optional) Use IUploader Java-friendly methods directly:");
+            System.out.println("//   CompletableFuture<BlobSource> result = uploader.uploadAsyncJava(localSource);");
+            System.out.println("//   CompletableFuture<UploadResults> batch = uploader.uploadManyAsyncJava(sources);");
+            System.out.println();
             System.out.println("// 4. Create QueuedIngestClient with the custom uploader");
             System.out.println("QueuedIngestClient client = QueuedIngestClientBuilder.create(dmUrl)");
             System.out.println("    .withAuthentication(credential)");
@@ -441,10 +472,12 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("Key Integration Points:");
             System.out.println("  1. AzureBlobRestCustomUploader implements ICustomUploader");
             System.out.println("  2. CustomUploaderHelper.asUploader() converts to IUploader");
-            System.out.println("  3. QueuedIngestClientBuilder.withUploader() configures the custom uploader");
-            System.out.println("  4. client.ingestAsyncJava() internally uses the custom uploader!");
+            System.out.println("  3. IUploader now has Java-friendly methods: uploadAsyncJava(), uploadManyAsyncJava()");
+            System.out.println("  4. QueuedIngestClientBuilder.withUploader() configures the custom uploader");
+            System.out.println("  5. client.ingestAsyncJava() internally uses the custom uploader!");
             System.out.println();
             System.out.println("The same pattern works for any other source such as S3/GCP - just implement ICustomUploader!");
+            System.out.println("Java users can also program to the IUploader interface directly using uploadAsyncJava()/uploadManyAsyncJava().");
             
         } catch (Exception e) {
             System.err.println("Error during ingestion: " + e.getMessage());

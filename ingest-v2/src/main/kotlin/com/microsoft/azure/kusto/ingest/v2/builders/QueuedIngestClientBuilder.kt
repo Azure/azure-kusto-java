@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.builders
 
+import com.microsoft.azure.kusto.ingest.v2.IngestClientBase
 import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache
@@ -18,7 +19,9 @@ class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
         fun create(dmUrl: String): QueuedIngestClientBuilder {
             require(dmUrl.isNotBlank()) { "Data Ingestion URI cannot be blank" }
             // Make sure to convert it to ingest-url if user passed engine-url
-            return QueuedIngestClientBuilder(normalizeAndCheckDmUrl(dmUrl))
+            return QueuedIngestClientBuilder(
+                IngestClientBase.getIngestionEndpoint(dmUrl) ?: dmUrl,
+            )
         }
     }
 

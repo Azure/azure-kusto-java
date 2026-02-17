@@ -23,7 +23,7 @@ class ClientDetailsTest {
     }
 
     @Test
-    fun `getApplicationForTracing returns provided value when not null`() {
+    fun `effectiveApplicationForTracing returns provided value when not null`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = "TestApp",
@@ -31,11 +31,11 @@ class ClientDetailsTest {
                 clientVersionForTracing = null,
             )
 
-        assertEquals("TestApp", clientDetails.getApplicationForTracing())
+        assertEquals("TestApp", clientDetails.effectiveApplicationForTracing)
     }
 
     @Test
-    fun `getApplicationForTracing returns default when null`() {
+    fun `effectiveApplicationForTracing returns default when null`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = null,
@@ -43,13 +43,13 @@ class ClientDetailsTest {
                 clientVersionForTracing = null,
             )
 
-        val result = clientDetails.getApplicationForTracing()
+        val result = clientDetails.effectiveApplicationForTracing
         assertNotNull(result)
         assertFalse(result.isBlank())
     }
 
     @Test
-    fun `getUserNameForTracing returns provided value when not null`() {
+    fun `effectiveUserNameForTracing returns provided value when not null`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = "TestApp",
@@ -57,11 +57,11 @@ class ClientDetailsTest {
                 clientVersionForTracing = null,
             )
 
-        assertEquals("TestUser", clientDetails.getUserNameForTracing())
+        assertEquals("TestUser", clientDetails.effectiveUserNameForTracing)
     }
 
     @Test
-    fun `getUserNameForTracing returns default when null`() {
+    fun `effectiveUserNameForTracing returns default when null`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = "TestApp",
@@ -69,12 +69,12 @@ class ClientDetailsTest {
                 clientVersionForTracing = null,
             )
 
-        val result = clientDetails.getUserNameForTracing()
+        val result = clientDetails.effectiveUserNameForTracing
         assertNotNull(result)
     }
 
     @Test
-    fun `getClientVersionForTracing returns default version when null`() {
+    fun `effectiveClientVersionForTracing returns default version when null`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = "TestApp",
@@ -82,14 +82,14 @@ class ClientDetailsTest {
                 clientVersionForTracing = null,
             )
 
-        val version = clientDetails.getClientVersionForTracing()
+        val version = clientDetails.effectiveClientVersionForTracing
         assertNotNull(version)
         assertTrue(version.contains("Kusto.Java.Client.V2"))
         assertTrue(version.contains("Runtime"))
     }
 
     @Test
-    fun `getClientVersionForTracing appends custom version when provided`() {
+    fun `effectiveClientVersionForTracing appends custom version when provided`() {
         val clientDetails =
             ClientDetails(
                 applicationForTracing = "TestApp",
@@ -97,7 +97,7 @@ class ClientDetailsTest {
                 clientVersionForTracing = "CustomVersion:1.0.0",
             )
 
-        val version = clientDetails.getClientVersionForTracing()
+        val version = clientDetails.effectiveClientVersionForTracing
         assertNotNull(version)
         assertTrue(version.contains("Kusto.Java.Client.V2"))
         assertTrue(version.contains("CustomVersion:1.0.0"))

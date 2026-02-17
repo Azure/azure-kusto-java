@@ -192,7 +192,6 @@ internal constructor(
      * @return CompletableFuture that completes with the final StatusResponse
      *   when ingestion is completed
      */
-    @JvmName("pollForCompletion")
     fun pollForCompletion(
         operation: IngestionOperation,
         pollingInterval: Duration,

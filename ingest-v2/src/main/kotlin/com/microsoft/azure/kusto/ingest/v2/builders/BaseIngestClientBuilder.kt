@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2.builders
 
 import com.azure.core.credential.TokenCredential
-import com.microsoft.azure.kusto.ingest.v2.IngestClientBase
 import com.microsoft.azure.kusto.ingest.v2.KustoBaseApiClient
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_CONCURRENCY
 import com.microsoft.azure.kusto.ingest.v2.UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
@@ -164,34 +163,4 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             .build()
     }
 
-    companion object {
-        /**
-         * Converts an ingestion endpoint URL to a query/engine endpoint URL by
-         * removing the "ingest-" prefix.
-         *
-         * Special URLs (localhost, IP addresses, onebox.dev.kusto.windows.net)
-         * are returned unchanged.
-         *
-         * @param clusterUrl The ingestion endpoint URL to convert
-         * @return The query endpoint URL without "ingest-" prefix
-         */
-        protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
-            return IngestClientBase.getQueryEndpoint(clusterUrl) ?: clusterUrl
-        }
-
-        /**
-         * Converts a cluster URL to an ingestion endpoint URL by adding the
-         * "ingest-" prefix.
-         *
-         * Special URLs (localhost, IP addresses, onebox.dev.kusto.windows.net)
-         * are returned unchanged to support local development and testing.
-         *
-         * @param dmUrl The cluster URL to convert
-         * @return The ingestion endpoint URL with "ingest-" prefix
-         */
-        @JvmStatic
-        protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
-            return IngestClientBase.getIngestionEndpoint(dmUrl) ?: dmUrl
-        }
-    }
 }

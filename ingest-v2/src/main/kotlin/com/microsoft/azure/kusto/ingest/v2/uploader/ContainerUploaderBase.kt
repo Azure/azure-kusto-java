@@ -746,8 +746,7 @@ abstract class ContainerUploaderBase(
      * @return A CompletableFuture that will complete with the uploaded blob
      *   source.
      */
-    @JvmName("uploadAsync")
-    fun uploadAsyncJava(local: LocalSource): CompletableFuture<BlobSource> =
+    override fun uploadAsyncJava(local: LocalSource): CompletableFuture<BlobSource> =
         CoroutineScope(Dispatchers.IO).future { uploadAsync(local) }
 
     /**
@@ -757,8 +756,7 @@ abstract class ContainerUploaderBase(
      * @param localSources List of the local sources to upload.
      * @return A CompletableFuture that will complete with the upload results.
      */
-    @JvmName("uploadManyAsync")
-    fun uploadManyAsyncJava(
+    override fun uploadManyAsyncJava(
         localSources: List<LocalSource>,
     ): CompletableFuture<UploadResults> =
         CoroutineScope(Dispatchers.IO).future {

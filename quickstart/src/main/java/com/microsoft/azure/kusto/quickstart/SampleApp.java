@@ -864,7 +864,7 @@ public class SampleApp {
 
         System.out.println("Uploading " + localSources.size() + " files to blob storage...");
 
-        return uploader.uploadManyAsync(localSources)
+        return uploader.uploadManyAsyncJava(localSources)
                 .thenCompose(uploadResults -> {
                     System.out.println("Upload completed:");
                     System.out.println("  Successes: " + uploadResults.getSuccesses().size());

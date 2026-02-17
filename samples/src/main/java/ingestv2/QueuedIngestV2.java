@@ -449,7 +449,7 @@ public class QueuedIngestV2 {
 
             // Step 4: Upload all local files to blob storage
             System.out.println("Uploading files to blob storage...");
-            var uploadResults = uploader.uploadManyAsync(localSources).get(5, TimeUnit.MINUTES);
+            var uploadResults = uploader.uploadManyAsyncJava(localSources).get(5, TimeUnit.MINUTES);
 
             System.out.println("Upload completed:");
             System.out.println("  Successes: " + uploadResults.getSuccesses().size());
