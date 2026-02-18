@@ -54,7 +54,7 @@ open class KustoBaseApiClient(
     }
 
     val engineUrl: String
-        get() = dmUrl.replace(Regex("https://ingest-"), "https://")
+        get() = IngestClientBase.getQueryEndpoint(dmUrl) ?: dmUrl
 
     val api: DefaultApi by lazy {
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
@@ -64,11 +64,11 @@ open class KustoBaseApiClient(
         config.install(DefaultRequest) {
             header("Content-Type", ContentType.Application.Json.toString())
             clientDetails.let { details ->
-                header("x-ms-app", details.getApplicationForTracing())
-                header("x-ms-user", details.getUserNameForTracing())
+                header("x-ms-app", details.effectiveApplicationForTracing)
+                header("x-ms-user", details.effectiveUserNameForTracing)
                 header(
                     "x-ms-client-version",
-                    details.getClientVersionForTracing(),
+                    details.effectiveClientVersionForTracing,
                 )
             }
 

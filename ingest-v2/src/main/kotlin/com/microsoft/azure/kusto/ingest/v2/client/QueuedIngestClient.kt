@@ -116,8 +116,7 @@ internal constructor(
      * already exist in blob storage, so no upload is performed - the request is
      * sent directly to the Data Management service.
      */
-    @JvmName("ingestAsync")
-    fun ingestAsyncJava(
+    override fun ingestAsyncJava(
         database: String,
         table: String,
         sources: List<BlobSource>,
@@ -136,8 +135,7 @@ internal constructor(
      * Ingests data from a single source with the given properties. This is the
      * Java-friendly version that returns a CompletableFuture.
      */
-    @JvmName("ingestAsync")
-    fun ingestAsyncJava(
+    override fun ingestAsyncJava(
         database: String,
         table: String,
         source: IngestionSource,
@@ -156,8 +154,7 @@ internal constructor(
      * Gets the operation summary for the specified ingestion operation. This is
      * the Java-friendly version that returns a CompletableFuture.
      */
-    @JvmName("getOperationSummaryAsync")
-    fun getOperationSummaryAsyncJava(
+    override fun getOperationSummaryAsyncJava(
         operation: IngestionOperation,
     ): CompletableFuture<Status> =
         CoroutineScope(Dispatchers.IO).future {
@@ -168,12 +165,21 @@ internal constructor(
      * Gets the detailed operation status for the specified ingestion operation.
      * This is the Java-friendly version that returns a CompletableFuture.
      */
-    @JvmName("getOperationDetailsAsync")
-    fun getOperationDetailsAsyncJava(
+    override fun getOperationDetailsAsyncJava(
         operation: IngestionOperation,
     ): CompletableFuture<StatusResponse> =
         CoroutineScope(Dispatchers.IO).future {
             getOperationDetailsAsync(operation)
+        }
+
+    /**
+     * Returns the maximum number of sources that can be ingested in a single
+     * call to [ingestAsync]. This is the Java-friendly version that returns a
+     * CompletableFuture.
+     */
+    override fun getMaxSourcesPerMultiIngestJava(): CompletableFuture<Int> =
+        CoroutineScope(Dispatchers.IO).future {
+            getMaxSourcesPerMultiIngest()
         }
 
     /**
@@ -186,7 +192,6 @@ internal constructor(
      * @return CompletableFuture that completes with the final StatusResponse
      *   when ingestion is completed
      */
-    @JvmName("pollForCompletion")
     fun pollForCompletion(
         operation: IngestionOperation,
         pollingInterval: Duration,

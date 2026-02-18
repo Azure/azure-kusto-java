@@ -51,8 +51,9 @@ public abstract class IngestV2JavaTestBase {
         if (this.dmEndpoint == null) {
             throw new IllegalArgumentException("DM_CONNECTION_STRING environment variable is not set");
         }
-        
-        this.engineEndpoint = dmEndpoint.replace("https://ingest-", "https://");
+
+        String queryEndpoint = IngestClientBase.getQueryEndpoint(dmEndpoint);
+        this.engineEndpoint = queryEndpoint != null ? queryEndpoint : dmEndpoint;
         
 
         // Define table schema

@@ -100,15 +100,16 @@ class ConfigurationClientTest :
             )
             val config = defaultCachedConfig.getConfiguration()
             assertNotNull(config, "Configuration should not be null")
+            val containerSettings = config.containerSettings
             assertNotNull(
-                config.containerSettings,
+                containerSettings,
                 "ContainerSettings should not be null",
             )
             assertNotNull(
-                config.containerSettings.preferredUploadMethod,
+                containerSettings!!.preferredUploadMethod,
                 "Preferred upload should not be null",
             )
-            config.containerSettings.containers?.forEach { containerInfo ->
+            containerSettings.containers?.forEach { containerInfo ->
                 run {
                     assertNotNull(
                         containerInfo.path,

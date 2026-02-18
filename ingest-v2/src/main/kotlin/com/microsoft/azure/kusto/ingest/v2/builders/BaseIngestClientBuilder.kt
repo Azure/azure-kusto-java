@@ -21,11 +21,6 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
     protected var s2sTokenProvider: (suspend () -> S2SToken)? = null
     protected var s2sFabricPrivateLinkAccessContext: String? = null
 
-    // Added properties for ingestion endpoint and authentication
-    protected var ingestionEndpoint: String? = null
-    protected var clusterEndpoint: String? = null
-    protected var authentication: TokenCredential? = null
-
     protected var maxConcurrency: Int = UPLOAD_CONTAINER_MAX_CONCURRENCY
     protected var maxDataSize: Long = UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES
     protected var ignoreFileSize: Boolean = false
@@ -37,7 +32,6 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
 
     fun withAuthentication(credential: TokenCredential): T {
         this.tokenCredential = credential
-        this.authentication = credential // Set authentication
         return self()
     }
 
@@ -169,39 +163,4 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             .build()
     }
 
-    protected fun setEndpoint(endpoint: String) {
-        this.ingestionEndpoint = normalizeAndCheckDmUrl(endpoint)
-        this.clusterEndpoint = normalizeAndCheckEngineUrl(endpoint)
-    }
-
-    companion object {
-        protected fun normalizeAndCheckEngineUrl(clusterUrl: String): String {
-            val normalizedUrl =
-                if (clusterUrl.matches(Regex("https://ingest-[^/]+.*"))) {
-                    // If the URL starts with https://ingest-, remove ingest-
-                    clusterUrl.replace(
-                        Regex("https://ingest-([^/]+)"),
-                        "https://$1",
-                    )
-                } else {
-                    clusterUrl
-                }
-            return normalizedUrl
-        }
-
-        @JvmStatic
-        protected fun normalizeAndCheckDmUrl(dmUrl: String): String {
-            val normalizedUrl =
-                if (dmUrl.matches(Regex("https://(?!ingest-)[^/]+.*"))) {
-                    // If the URL starts with https:// and does not already have ingest-, add it
-                    dmUrl.replace(
-                        Regex("https://([^/]+)"),
-                        "https://ingest-$1",
-                    )
-                } else {
-                    dmUrl
-                }
-            return normalizedUrl
-        }
-    }
 }

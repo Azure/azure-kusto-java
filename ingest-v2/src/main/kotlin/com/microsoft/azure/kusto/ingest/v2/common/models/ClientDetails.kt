@@ -9,6 +9,34 @@ data class ClientDetails(
     val userNameForTracing: String?,
     val clientVersionForTracing: String?,
 ) {
+    /**
+     * Returns the application name for tracing, falling back to the process
+     * name if not provided.
+     */
+    val effectiveApplicationForTracing: String
+        get() = applicationForTracing ?: getProcessName()
+
+    /**
+     * Returns the user name for tracing, falling back to the system user if
+     * not provided.
+     */
+    val effectiveUserNameForTracing: String
+        get() = userNameForTracing ?: getUserName()
+
+    /**
+     * Returns the client version string for tracing, always including the
+     * default SDK version and appending any custom version if provided.
+     */
+    val effectiveClientVersionForTracing: String
+        get() {
+            val defaultVersion = getDefaultVersion()
+            return if (clientVersionForTracing != null) {
+                "$defaultVersion|$clientVersionForTracing"
+            } else {
+                defaultVersion
+            }
+        }
+
     companion object {
         const val NONE = "[none]"
         const val DEFAULT_APP_NAME = "Kusto.Java.Client.V2"
@@ -174,23 +202,4 @@ data class ClientDetails(
         }
     }
 
-    @JvmName("getApplicationForTracingOrDefault")
-    fun getApplicationForTracing(): String {
-        return applicationForTracing ?: getProcessName()
-    }
-
-    @JvmName("getUserNameForTracingOrDefault")
-    fun getUserNameForTracing(): String {
-        return userNameForTracing ?: getUserName()
-    }
-
-    @JvmName("getClientVersionForTracingOrDefault")
-    fun getClientVersionForTracing(): String {
-        val defaultVersion = getDefaultVersion()
-        return if (clientVersionForTracing != null) {
-            "$defaultVersion|$clientVersionForTracing"
-        } else {
-            defaultVersion
-        }
-    }
 }

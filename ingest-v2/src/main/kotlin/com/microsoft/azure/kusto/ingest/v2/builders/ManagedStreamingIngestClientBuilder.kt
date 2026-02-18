@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 package com.microsoft.azure.kusto.ingest.v2.builders
 
+import com.microsoft.azure.kusto.ingest.v2.IngestClientBase
 import com.microsoft.azure.kusto.ingest.v2.client.ManagedStreamingIngestClient
 import com.microsoft.azure.kusto.ingest.v2.client.policy.DefaultManagedStreamingPolicy.Companion.DEFAULT_MANAGED_STREAMING_POLICY
 import com.microsoft.azure.kusto.ingest.v2.client.policy.ManagedStreamingPolicy
@@ -21,7 +22,7 @@ private constructor(private val dmUrl: String) :
         fun create(dmUrl: String): ManagedStreamingIngestClientBuilder {
             require(dmUrl.isNotBlank()) { "Data Ingestion URI cannot be blank" }
             return ManagedStreamingIngestClientBuilder(
-                normalizeAndCheckDmUrl(dmUrl),
+                IngestClientBase.getIngestionEndpoint(dmUrl) ?: dmUrl,
             )
         }
     }
@@ -73,11 +74,9 @@ private constructor(private val dmUrl: String) :
             QueuedIngestClientBuilder.create(this.dmUrl)
                 .withConfiguration(effectiveConfiguration)
                 .withClientDetails(
-                    effectiveClientDetails
-                        .getApplicationForTracing(),
-                    effectiveClientDetails
-                        .getClientVersionForTracing(),
-                    effectiveClientDetails.getUserNameForTracing(),
+                    effectiveClientDetails.effectiveApplicationForTracing,
+                    effectiveClientDetails.effectiveClientVersionForTracing,
+                    effectiveClientDetails.effectiveUserNameForTracing,
                 )
                 .withAuthentication(this.tokenCredential!!)
                 .withUploader(effectiveUploader, closeUploader)
@@ -99,11 +98,9 @@ private constructor(private val dmUrl: String) :
         val streamingIngestClient =
             StreamingIngestClientBuilder.create(this.dmUrl)
                 .withClientDetails(
-                    effectiveClientDetails
-                        .getApplicationForTracing(),
-                    effectiveClientDetails
-                        .getClientVersionForTracing(),
-                    effectiveClientDetails.getUserNameForTracing(),
+                    effectiveClientDetails.effectiveApplicationForTracing,
+                    effectiveClientDetails.effectiveClientVersionForTracing,
+                    effectiveClientDetails.effectiveUserNameForTracing,
                 )
                 .withAuthentication(this.tokenCredential!!)
                 .apply {

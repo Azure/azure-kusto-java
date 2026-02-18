@@ -136,7 +136,7 @@ public class ManagedStreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting small CSV data from string...");
-        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsync(database, table, csvStreamSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsyncJava(database, table, csvStreamSource, csvProperties).get();
         printIngestionResult("CSV String", csvResponse);
 
         // Example 2: Ingest from compressed CSV file
@@ -152,7 +152,7 @@ public class ManagedStreamingIngestV2 {
 
         System.out.println("Ingesting compressed CSV file...");
         ExtendedIngestResponse compressedResponse = managedStreamingIngestClient
-                .ingestAsync(database, table, compressedStreamSource, csvProperties)
+                .ingestAsyncJava(database, table, compressedStreamSource, csvProperties)
                 .get();
         printIngestionResult("Compressed CSV", compressedResponse);
         compressedCsvStream.close();
@@ -173,7 +173,7 @@ public class ManagedStreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsync(database, table, jsonStreamSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsyncJava(database, table, jsonStreamSource, jsonProperties).get();
         printIngestionResult("JSON with Mapping", jsonResponse);
         jsonStream.close();
     }
@@ -200,7 +200,7 @@ public class ManagedStreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting CSV file...");
-        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsync(database, table, csvFileSource, csvProperties).get();
+        ExtendedIngestResponse csvResponse = managedStreamingIngestClient.ingestAsyncJava(database, table, csvFileSource, csvProperties).get();
         printIngestionResult("CSV File", csvResponse);
 
         // Example 2: Ingest compressed JSON file with mapping
@@ -217,7 +217,7 @@ public class ManagedStreamingIngestV2 {
                 .build();
 
         System.out.println("Ingesting compressed JSON file with mapping...");
-        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsync(database, table, jsonFileSource, jsonProperties).get();
+        ExtendedIngestResponse jsonResponse = managedStreamingIngestClient.ingestAsyncJava(database, table, jsonFileSource, jsonProperties).get();
         printIngestionResult("Compressed JSON File", jsonResponse);
     }
 
@@ -274,7 +274,7 @@ public class ManagedStreamingIngestV2 {
         System.out.println("(Watch for fallback log messages from ManagedStreamingIngestClient)");
         System.out.println();
 
-        ExtendedIngestResponse response = managedStreamingIngestClient.ingestAsync(database, table, largeStreamSource, properties).get();
+        ExtendedIngestResponse response = managedStreamingIngestClient.ingestAsyncJava(database, table, largeStreamSource, properties).get();
         printIngestionResult("Large Data Ingestion", response);
 
         // The large data should trigger queued fallback
@@ -290,7 +290,7 @@ public class ManagedStreamingIngestV2 {
                     response.getIngestionType());
 
             // Get initial operation details
-            CompletableFuture<StatusResponse> detailsFuture = managedStreamingIngestClient.getOperationDetailsAsync(operation);
+            CompletableFuture<StatusResponse> detailsFuture = managedStreamingIngestClient.getOperationDetailsAsyncJava(operation);
             StatusResponse details = detailsFuture.get();
             printStatusResponse("Initial Status", details);
 
@@ -416,7 +416,7 @@ public class ManagedStreamingIngestV2 {
         long intervalMillis = pollingInterval.toMillis();
 
         while (System.currentTimeMillis() - startTime < timeoutMillis) {
-            StatusResponse status = managedStreamingIngestClient.getOperationDetailsAsync(operation).get();
+            StatusResponse status = managedStreamingIngestClient.getOperationDetailsAsyncJava(operation).get();
 
             // Check if completed (no more in-progress items)
             Status summary = status.getStatus();
@@ -438,7 +438,7 @@ public class ManagedStreamingIngestV2 {
 
         // Timeout reached, return latest status
         System.out.println("Polling timeout reached. Returning latest status.");
-        return managedStreamingIngestClient.getOperationDetailsAsync(operation).get();
+        return managedStreamingIngestClient.getOperationDetailsAsyncJava(operation).get();
     }
 
     /** Prints the ingestion result including which method (streaming or queued) was used. */

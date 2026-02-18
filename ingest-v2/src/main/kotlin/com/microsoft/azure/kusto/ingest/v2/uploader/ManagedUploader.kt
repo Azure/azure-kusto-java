@@ -41,12 +41,12 @@ internal constructor(
 
     override suspend fun selectContainers(
         uploadMethod: UploadMethod,
-    ): List<ExtendedContainerInfo> {
+    ): RoundRobinContainerList {
         // This method is delegated to and this calls getConfiguration again to ensure fresh data is
-        // retrieved
-        // or cached data is used as appropriate.
+        // retrieved or cached data is used as appropriate.
+        val configuration = configurationCache.getConfiguration()
         val containerSettings =
-            configurationCache.getConfiguration().containerSettings
+            configuration.containerSettings
                 ?: throw IngestException(
                     "No container settings available",
                     isPermanent = true,
@@ -54,81 +54,58 @@ internal constructor(
         val hasStorage = !containerSettings.containers.isNullOrEmpty()
         val hasLake = !containerSettings.lakeFolders.isNullOrEmpty()
 
+        logger.debug(
+            "Selecting containers: preferred upload method: {}, has storage containers: {}, has lake folders: {}",
+            uploadMethod,
+            hasStorage,
+            hasLake,
+        )
+
+        // No containers available at all
         if (!hasStorage && !hasLake) {
             throw IngestException("No containers available", isPermanent = true)
         }
 
-        // Determine effective upload method
+        // Only lake containers available
+        if (!hasStorage) {
+            logger.debug("Only lake containers available, using lake folders")
+            return configuration.lakeContainerList
+        }
+
+        // Only storage containers available
+        if (!hasLake) {
+            logger.debug("Only storage containers available, using storage containers")
+            return configuration.storageContainerList
+        }
+
+        // Both types available - determine effective upload method.
+        // If user specified DEFAULT, use the server's preferred method (defaulting to Storage).
+        // Otherwise, use the user's explicit choice directly.
         val effectiveMethod =
-            when (uploadMethod) {
-                UploadMethod.DEFAULT -> {
-                    // Use server's preferred upload method if available
-                    val serverPreference =
-                        containerSettings.preferredUploadMethod
-                    when {
-                        serverPreference.equals(
-                            "Storage",
-                            ignoreCase = true,
-                        ) && hasStorage -> {
-                            logger.debug(
-                                "Using server preferred upload method: Storage",
-                            )
-                            UploadMethod.STORAGE
-                        }
-                        serverPreference.equals(
-                            "Lake",
-                            ignoreCase = true,
-                        ) && hasLake -> {
-                            logger.debug(
-                                "Using server preferred upload method: Lake",
-                            )
-                            UploadMethod.LAKE
-                        }
-                        // Fallback: prefer Storage if available, otherwise Lake
-                        hasStorage -> {
-                            logger.debug(
-                                "No server preference or unavailable, defaulting to Storage",
-                            )
-                            UploadMethod.STORAGE
-                        }
-                        else -> {
-                            logger.debug(
-                                "No server preference or unavailable, defaulting to Lake",
-                            )
-                            UploadMethod.LAKE
-                        }
-                    }
+            if (uploadMethod == UploadMethod.DEFAULT) {
+                val serverPreference = containerSettings.preferredUploadMethod
+                if (serverPreference.equals("Lake", ignoreCase = true)) {
+                    UploadMethod.LAKE
+                } else {
+                    UploadMethod.STORAGE
                 }
-                UploadMethod.LAKE ->
-                    if (hasLake) {
-                        UploadMethod.LAKE
-                    } else {
-                        UploadMethod.STORAGE
-                    }
-                UploadMethod.STORAGE ->
-                    if (hasStorage) {
-                        UploadMethod.STORAGE
-                    } else {
-                        UploadMethod.LAKE
-                    }
+            } else {
+                uploadMethod
             }
-        return when {
-            effectiveMethod == UploadMethod.LAKE && hasLake ->
-                containerSettings.lakeFolders.map {
-                    ExtendedContainerInfo(it, UploadMethod.LAKE)
-                }
-            effectiveMethod == UploadMethod.STORAGE && hasStorage ->
-                containerSettings.containers.map {
-                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
-                }
-            hasStorage ->
-                containerSettings.containers.map {
-                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
-                }
-            else ->
-                containerSettings.lakeFolders!!.map {
-                    ExtendedContainerInfo(it, UploadMethod.LAKE)
-                }
+
+        logger.debug(
+            "Selected {} containers based on effective method: {}",
+            if (effectiveMethod == UploadMethod.LAKE) "lake" else "storage",
+            effectiveMethod,
+        )
+
+        // Return the appropriate RoundRobinContainerList from the configuration cache.
+        // The cache maintains shared counters for each container type to ensure
+        // even distribution across all uploaders sharing the same cache.
+        return if (effectiveMethod == UploadMethod.LAKE) {
+            configuration.lakeContainerList
+        } else {
+            configuration.storageContainerList
         }
     }
 

@@ -126,8 +126,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      * @return A CompletableFuture that completes with an
      *   ExtendedIngestResponse.
      */
-    @JvmName("ingestAsync")
-    fun ingestAsyncJava(
+    override fun ingestAsyncJava(
         database: String,
         table: String,
         source: IngestionSource,
@@ -152,8 +151,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      * @param operation The ingestion operation to get the status for.
      * @return A CompletableFuture that completes with a Status object.
      */
-    @JvmName("getOperationSummaryAsync")
-    fun getOperationSummaryAsyncJava(
+    override fun getOperationSummaryAsyncJava(
         operation: IngestionOperation,
     ): CompletableFuture<Status> =
         CoroutineScope(Dispatchers.IO).future {
@@ -170,8 +168,7 @@ internal constructor(private val apiClient: KustoBaseApiClient) : IngestClient {
      * @param operation The ingestion operation to get the details for.
      * @return A CompletableFuture that completes with a StatusResponse object.
      */
-    @JvmName("getOperationDetailsAsync")
-    fun getOperationDetailsAsyncJava(
+    override fun getOperationDetailsAsyncJava(
         operation: IngestionOperation,
     ): CompletableFuture<StatusResponse> =
         CoroutineScope(Dispatchers.IO).future {
