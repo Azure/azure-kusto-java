@@ -77,8 +77,9 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
                 .trimIndent()
         adminClusterClient =
             ClientFactory.createClient(
-                ConnectionStringBuilder.createWithAzureCli(
+                ConnectionStringBuilder.createWithTokenCredential(
                     engineEndpoint,
+                    tokenProvider,
                 ),
             )
         adminClusterClient.executeMgmt(database, createTableScript)

@@ -116,9 +116,10 @@ public abstract class IngestV2JavaTestBase {
         }
         mappingBuilder.append("\n]```");
         
-        // Create admin client
+        // Create admin client using the shared CachingTokenCredential to prevent
+        // concurrent az subprocess invocations from parallel test threads
         adminClusterClient = ClientFactory.createClient(
-            ConnectionStringBuilder.createWithAzureCli(engineEndpoint)
+            ConnectionStringBuilder.createWithTokenCredential(engineEndpoint, tokenProvider)
         );
         
         // Execute table creation and mapping
