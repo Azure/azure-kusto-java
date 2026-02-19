@@ -60,24 +60,61 @@ open class KustoBaseApiClient(
         DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
     }
 
+    /**
+     * Retrieves a bearer token using the configured TokenCredential.
+     * This method is protected to allow testing of token refresh logic.
+     *
+     * @param tokenRequestContext The token request context with scopes
+     * @return BearerTokens containing the access token
+     */
+    protected open suspend fun getBearerToken(tokenRequestContext: TokenRequestContext): BearerTokens {
+        return try {
+            // Use suspendCancellableCoroutine to convert Mono to suspend function
+            suspendCancellableCoroutine { continuation ->
+                tokenCredential
+                    .getToken(tokenRequestContext)
+                    .subscribe(
+                        { accessToken ->
+                            val bearerTokens =
+                                BearerTokens(
+                                    accessToken = accessToken.token,
+                                    refreshToken = null,
+                                )
+                            continuation.resume(bearerTokens)
+                        },
+                        { error ->
+                            continuation.resumeWithException(error)
+                        },
+                    )
+            }
+        } catch (e: Exception) {
+            // Handle token retrieval errors
+            logger.error(
+                "Error retrieving access token: ${e.message}",
+                e,
+            )
+            throw e
+        }
+    }
+
     private fun getClientConfig(config: HttpClientConfig<*>) {
         config.install(DefaultRequest) {
-            header("Content-Type", ContentType.Application.Json.toString())
+            header(HEADER_CONTENT_TYPE, ContentType.Application.Json.toString())
             clientDetails.let { details ->
-                header("x-ms-app", details.effectiveApplicationForTracing)
-                header("x-ms-user", details.effectiveUserNameForTracing)
+                header(HEADER_MS_APP, details.effectiveApplicationForTracing)
+                header(HEADER_MS_USER, details.effectiveUserNameForTracing)
                 header(
-                    "x-ms-client-version",
+                    HEADER_MS_CLIENT_VERSION,
                     details.effectiveClientVersionForTracing,
                 )
             }
 
             // Generate unique client request ID for tracing (format: prefix;uuid)
             val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
-            header("x-ms-client-request-id", clientRequestId)
-            header("x-ms-version", KUSTO_API_VERSION)
-            header("Connection", "keep-alive")
-            header("Accept", ContentType.Application.Json.toString())
+            header(HEADER_MS_CLIENT_REQUEST_ID, clientRequestId)
+            header(HEADER_MS_VERSION, KUSTO_API_VERSION)
+            header(HEADER_CONNECTION, "keep-alive")
+            header(HEADER_ACCEPT, ContentType.Application.Json.toString())
         }
         val trc = TokenRequestContext().addScopes("$dmUrl/.default")
         config.install(Auth) {
@@ -87,41 +124,7 @@ open class KustoBaseApiClient(
                     null
                 }
                 refreshTokens {
-                    try {
-                        // Use suspendCancellableCoroutine to convert Mono to suspend function
-                        suspendCancellableCoroutine { continuation ->
-                            tokenCredential
-                                .getToken(trc)
-                                .subscribe(
-                                    { accessToken ->
-                                        val bearerTokens =
-                                            BearerTokens(
-                                                accessToken =
-                                                accessToken
-                                                    .token,
-                                                refreshToken =
-                                                null,
-                                            )
-                                        continuation.resume(
-                                            bearerTokens,
-                                        )
-                                    },
-                                    { error ->
-                                        continuation
-                                            .resumeWithException(
-                                                error,
-                                            )
-                                    },
-                                )
-                        }
-                    } catch (e: Exception) {
-                        // Handle token retrieval errors
-                        logger.error(
-                            "Error retrieving access token: ${e.message}",
-                            e,
-                        )
-                        throw e
-                    }
+                    getBearerToken(trc)
                 }
             }
         }
@@ -137,7 +140,7 @@ open class KustoBaseApiClient(
                             // Get S2S token
                             val s2sToken = provider()
                             request.headers.append(
-                                "x-ms-s2s-actor-authorization",
+                                HEADER_MS_S2S_ACTOR_AUTHORIZATION,
                                 s2sToken.toHeaderValue(),
                             )
 
@@ -145,7 +148,7 @@ open class KustoBaseApiClient(
                             s2sFabricPrivateLinkAccessContext?.let { context,
                                 ->
                                 request.headers.append(
-                                    "x-ms-fabric-s2s-access-context",
+                                    HEADER_MS_FABRIC_S2S_ACCESS_CONTEXT,
                                     context,
                                 )
                             }

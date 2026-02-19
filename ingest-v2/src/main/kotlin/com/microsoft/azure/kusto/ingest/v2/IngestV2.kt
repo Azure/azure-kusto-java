@@ -75,3 +75,16 @@ const val MANAGED_STREAMING_RETRY_JITTER_MS: Long = 1000
 
 const val STREAM_COMPRESSION_BUFFER_SIZE_BYTES: Int = 64 * 1024
 const val STREAM_PIPE_BUFFER_SIZE_BYTES: Int = 1024 * 1024
+
+// HTTP Header Names
+const val HEADER_CONTENT_TYPE = "Content-Type"
+const val HEADER_MS_APP = "x-ms-app"
+const val HEADER_MS_USER = "x-ms-user"
+const val HEADER_MS_CLIENT_VERSION = "x-ms-client-version"
+const val HEADER_MS_CLIENT_REQUEST_ID = "x-ms-client-request-id"
+const val HEADER_MS_VERSION = "x-ms-version"
+const val HEADER_CONNECTION = "Connection"
+const val HEADER_ACCEPT = "Accept"
+const val HEADER_MS_S2S_ACTOR_AUTHORIZATION = "x-ms-s2s-actor-authorization"
+const val HEADER_MS_FABRIC_S2S_ACCESS_CONTEXT = "x-ms-fabric-s2s-access-context"
+
