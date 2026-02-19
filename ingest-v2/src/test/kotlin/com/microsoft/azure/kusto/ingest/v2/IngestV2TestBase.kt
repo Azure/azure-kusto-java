@@ -3,7 +3,6 @@
 package com.microsoft.azure.kusto.ingest.v2
 
 import com.azure.core.credential.TokenCredential
-import com.azure.identity.AzureCliCredentialBuilder
 import com.microsoft.azure.kusto.data.Client
 import com.microsoft.azure.kusto.data.ClientFactory
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder
@@ -21,8 +20,11 @@ import kotlin.test.assertTrue
 
 abstract class IngestV2TestBase(testClass: Class<*>) {
     protected val logger: Logger = LoggerFactory.getLogger(testClass)
-    protected val tokenProvider: TokenCredential =
-        AzureCliCredentialBuilder().build()
+
+    // Shared across all test class instances via CachingTokenCredential singleton.
+    // Ensures az account get-access-token is invoked only once per scope.
+    protected val tokenProvider: TokenCredential = CachingTokenCredential.INSTANCE
+
     protected val database = System.getenv("TEST_DATABASE") ?: "e2e"
     protected val dmEndpoint: String =
         System.getenv("DM_CONNECTION_STRING")

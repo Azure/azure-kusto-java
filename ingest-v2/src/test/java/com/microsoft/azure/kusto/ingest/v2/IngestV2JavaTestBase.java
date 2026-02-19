@@ -4,7 +4,6 @@
 package com.microsoft.azure.kusto.ingest.v2;
 
 import com.azure.core.credential.TokenCredential;
-import com.azure.identity.AzureCliCredentialBuilder;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.KustoResultSetTable;
@@ -40,7 +39,8 @@ public abstract class IngestV2JavaTestBase {
 
     public IngestV2JavaTestBase(Class<?> testClass) {
         this.logger = LoggerFactory.getLogger(testClass);
-        this.tokenProvider = new AzureCliCredentialBuilder().build();
+        // Reuse the shared CachingTokenCredential singleton to prevent multiple concurrent requests to fetch token from azcli
+        this.tokenProvider = CachingTokenCredential.INSTANCE;
         
         // Get configuration from environment variables
         this.database = System.getenv("TEST_DATABASE") != null 
