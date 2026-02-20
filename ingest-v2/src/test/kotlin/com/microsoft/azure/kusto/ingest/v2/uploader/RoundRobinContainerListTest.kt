@@ -25,8 +25,10 @@ class RoundRobinContainerListTest {
     private fun createContainers(count: Int): List<ExtendedContainerInfo> =
         (0 until count).map { i ->
             ExtendedContainerInfo(
-                ContainerInfo("https://storage$i.blob.core.windows.net/container$i"),
-                UploadMethod.STORAGE
+                ContainerInfo(
+                    "https://storage$i.blob.core.windows.net/container$i",
+                ),
+                UploadMethod.STORAGE,
             )
         }
 
@@ -96,11 +98,16 @@ class RoundRobinContainerListTest {
         val list = RoundRobinContainerList.of(containers)
 
         // Simulate sequential uploads from different uploaders
-        val uploaderAIndex1 = list.getNextStartIndex() // Uploader A's 1st upload
-        val uploaderBIndex1 = list.getNextStartIndex() // Uploader B's 1st upload
-        val uploaderCIndex1 = list.getNextStartIndex() // Uploader C's 1st upload
-        val uploaderAIndex2 = list.getNextStartIndex() // Uploader A's 2nd upload
-        val uploaderBIndex2 = list.getNextStartIndex() // Uploader B's 2nd upload
+        val uploaderAIndex1 =
+            list.getNextStartIndex() // Uploader A's 1st upload
+        val uploaderBIndex1 =
+            list.getNextStartIndex() // Uploader B's 1st upload
+        val uploaderCIndex1 =
+            list.getNextStartIndex() // Uploader C's 1st upload
+        val uploaderAIndex2 =
+            list.getNextStartIndex() // Uploader A's 2nd upload
+        val uploaderBIndex2 =
+            list.getNextStartIndex() // Uploader B's 2nd upload
 
         // Each should get a different starting index (cycling)
         assertEquals(0, uploaderAIndex1)
@@ -121,27 +128,36 @@ class RoundRobinContainerListTest {
 
         // Simulate 1000 concurrent uploads
         val numConcurrentUploads = 1000
-        val jobs = (0 until numConcurrentUploads).map {
-            async(Dispatchers.Default) {
-                val index = list.getNextStartIndex()
-                containerSelectionCounts.compute(index) { _, count -> (count ?: 0) + 1 }
+        val jobs =
+            (0 until numConcurrentUploads).map {
+                async(Dispatchers.Default) {
+                    val index = list.getNextStartIndex()
+                    containerSelectionCounts.compute(index) { _, count ->
+                        (count ?: 0) + 1
+                    }
+                }
             }
-        }
         jobs.awaitAll()
 
         // Verify distribution is even (each container should have ~250 selections)
         val expectedPerContainer = numConcurrentUploads / containers.size
-        val tolerance = expectedPerContainer * 0.1 // 10% tolerance for timing variations
+        val tolerance =
+            expectedPerContainer *
+                0.1 // 10% tolerance for timing variations
 
         containerSelectionCounts.forEach { (index, count) ->
             assertTrue(
-                count >= expectedPerContainer - tolerance && count <= expectedPerContainer + tolerance,
-                "Container $index was selected $count times, expected around $expectedPerContainer"
+                count >= expectedPerContainer - tolerance &&
+                    count <= expectedPerContainer + tolerance,
+                "Container $index was selected $count times, expected around $expectedPerContainer",
             )
         }
 
         // Total should equal numConcurrentUploads
-        assertEquals(numConcurrentUploads, containerSelectionCounts.values.sum())
+        assertEquals(
+            numConcurrentUploads,
+            containerSelectionCounts.values.sum(),
+        )
     }
 
     @Test
@@ -192,7 +208,7 @@ class RoundRobinContainerListTest {
 
         // list2's counter should still be at 0
         assertEquals(0, list2.getNextStartIndex())
-        
+
         // Verify list1 continues from where it left off
         assertEquals(0, list1.getNextStartIndex()) // wraps back to 0
     }
@@ -202,28 +218,48 @@ class RoundRobinContainerListTest {
         // This test specifically validates the fix for the reported issue:
         // "if uploader A and uploader B (sharing the same configurationcache) upload,
         // they will both use storage 0 first"
-        
+
         val containers = createContainers(4)
         val sharedList = RoundRobinContainerList.of(containers)
 
         // Simulate Uploader A's first upload
         val uploaderAFirst = sharedList.getNextStartIndex()
-        assertEquals(0, uploaderAFirst, "Uploader A's first upload should use container 0")
+        assertEquals(
+            0,
+            uploaderAFirst,
+            "Uploader A's first upload should use container 0",
+        )
 
         // Simulate Uploader B's first upload (SHOULD use container 1, not 0!)
         val uploaderBFirst = sharedList.getNextStartIndex()
-        assertEquals(1, uploaderBFirst, "Uploader B's first upload should use container 1, NOT 0")
+        assertEquals(
+            1,
+            uploaderBFirst,
+            "Uploader B's first upload should use container 1, NOT 0",
+        )
 
         // Simulate Uploader A's second upload
         val uploaderASecond = sharedList.getNextStartIndex()
-        assertEquals(2, uploaderASecond, "Uploader A's second upload should use container 2")
+        assertEquals(
+            2,
+            uploaderASecond,
+            "Uploader A's second upload should use container 2",
+        )
 
         // Simulate Uploader B's second upload
         val uploaderBSecond = sharedList.getNextStartIndex()
-        assertEquals(3, uploaderBSecond, "Uploader B's second upload should use container 3")
+        assertEquals(
+            3,
+            uploaderBSecond,
+            "Uploader B's second upload should use container 3",
+        )
 
         // Back to container 0
         val uploaderCFirst = sharedList.getNextStartIndex()
-        assertEquals(0, uploaderCFirst, "Uploader C's first upload should wrap back to container 0")
+        assertEquals(
+            0,
+            uploaderCFirst,
+            "Uploader C's first upload should wrap back to container 0",
+        )
     }
 }

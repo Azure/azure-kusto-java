@@ -74,7 +74,9 @@ internal constructor(
 
         // Only storage containers available
         if (!hasLake) {
-            logger.debug("Only storage containers available, using storage containers")
+            logger.debug(
+                "Only storage containers available, using storage containers",
+            )
             return configuration.storageContainerList
         }
 
@@ -83,7 +85,8 @@ internal constructor(
         // Otherwise, use the user's explicit choice directly.
         val effectiveMethod =
             if (uploadMethod == UploadMethod.DEFAULT) {
-                val serverPreference = containerSettings.preferredUploadMethod
+                val serverPreference =
+                    containerSettings.preferredUploadMethod
                 if (serverPreference.equals("Lake", ignoreCase = true)) {
                     UploadMethod.LAKE
                 } else {
