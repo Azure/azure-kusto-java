@@ -50,20 +50,14 @@ class IngestClientBaseTest {
                     "https://192.168.1.1",
                     "https://192.168.1.1",
                 ),
-                Arguments.of(
-                    "https://127.0.0.1",
-                    "https://127.0.0.1",
-                ),
+                Arguments.of("https://127.0.0.1", "https://127.0.0.1"),
                 // IPv6 addresses should NOT get prefix
                 Arguments.of(
                     "https://[2345:0425:2CA1:0000:0000:0567:5673:23b5]",
                     "https://[2345:0425:2CA1:0000:0000:0567:5673:23b5]",
                 ),
                 // Localhost should NOT get prefix
-                Arguments.of(
-                    "https://localhost",
-                    "https://localhost",
-                ),
+                Arguments.of("https://localhost", "https://localhost"),
                 // Onebox dev should NOT get prefix
                 Arguments.of(
                     "https://onebox.dev.kusto.windows.net",
@@ -85,14 +79,8 @@ class IngestClientBaseTest {
                     "https://testendpoint.dev.kusto.windows.net",
                 ),
                 // Reserved hostnames should return unchanged
-                Arguments.of(
-                    "https://localhost",
-                    "https://localhost",
-                ),
-                Arguments.of(
-                    "https://127.0.0.1",
-                    "https://127.0.0.1",
-                ),
+                Arguments.of("https://localhost", "https://localhost"),
+                Arguments.of("https://127.0.0.1", "https://127.0.0.1"),
                 Arguments.of(
                     "https://onebox.dev.kusto.windows.net",
                     "https://onebox.dev.kusto.windows.net",
@@ -149,7 +137,9 @@ class IngestClientBaseTest {
     @Test
     fun `isReservedHostname for localhost should return true`() {
         assertTrue(IngestClientBase.isReservedHostname("https://localhost"))
-        assertTrue(IngestClientBase.isReservedHostname("https://localhost:8080"))
+        assertTrue(
+            IngestClientBase.isReservedHostname("https://localhost:8080"),
+        )
         assertTrue(
             IngestClientBase.isReservedHostname("https://localhost/path"),
         )
@@ -207,13 +197,17 @@ class IngestClientBaseTest {
             IngestClientBase.isReservedHostname("https://376.568.1564.1564"),
         )
         assertFalse(
-            IngestClientBase.isReservedHostname("https://192.shouldwork.1.1"),
+            IngestClientBase.isReservedHostname(
+                "https://192.shouldwork.1.1",
+            ),
         )
     }
 
     @Test
     fun `isReservedHostname for non-absolute URI should return true`() {
         assertTrue(IngestClientBase.isReservedHostname("not-a-valid-uri"))
-        assertTrue(IngestClientBase.isReservedHostname("test.kusto.windows.net"))
+        assertTrue(
+            IngestClientBase.isReservedHostname("test.kusto.windows.net"),
+        )
     }
 }

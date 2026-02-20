@@ -58,7 +58,7 @@ private constructor(private val dmUrl: String) :
                     clientDetails = effectiveClientDetails,
                     s2sTokenProvider = this.s2sTokenProvider,
                     s2sFabricPrivateLinkAccessContext =
-                        this.s2sFabricPrivateLinkAccessContext,
+                    this.s2sFabricPrivateLinkAccessContext,
                 )
 
         val effectiveUploader =
@@ -74,9 +74,12 @@ private constructor(private val dmUrl: String) :
             QueuedIngestClientBuilder.create(this.dmUrl)
                 .withConfiguration(effectiveConfiguration)
                 .withClientDetails(
-                    effectiveClientDetails.effectiveApplicationForTracing,
-                    effectiveClientDetails.effectiveClientVersionForTracing,
-                    effectiveClientDetails.effectiveUserNameForTracing,
+                    effectiveClientDetails
+                        .effectiveApplicationForTracing,
+                    effectiveClientDetails
+                        .effectiveClientVersionForTracing,
+                    effectiveClientDetails
+                        .effectiveUserNameForTracing,
                 )
                 .withAuthentication(this.tokenCredential!!)
                 .withUploader(effectiveUploader, closeUploader)
@@ -98,9 +101,12 @@ private constructor(private val dmUrl: String) :
         val streamingIngestClient =
             StreamingIngestClientBuilder.create(this.dmUrl)
                 .withClientDetails(
-                    effectiveClientDetails.effectiveApplicationForTracing,
-                    effectiveClientDetails.effectiveClientVersionForTracing,
-                    effectiveClientDetails.effectiveUserNameForTracing,
+                    effectiveClientDetails
+                        .effectiveApplicationForTracing,
+                    effectiveClientDetails
+                        .effectiveClientVersionForTracing,
+                    effectiveClientDetails
+                        .effectiveUserNameForTracing,
                 )
                 .withAuthentication(this.tokenCredential!!)
                 .apply {

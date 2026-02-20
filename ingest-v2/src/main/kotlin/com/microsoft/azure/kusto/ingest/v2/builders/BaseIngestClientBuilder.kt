@@ -162,5 +162,4 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             .apply { tokenCredential?.let { withTokenCredential(it) } }
             .build()
     }
-
 }
