@@ -27,7 +27,8 @@ object IngestClientBase {
      */
     @JvmStatic
     fun getIngestionEndpoint(clusterUrl: String?): String? {
-        if (clusterUrl == null ||
+        if (
+            clusterUrl == null ||
             clusterUrl.contains(INGEST_PREFIX) ||
             isReservedHostname(clusterUrl)
         ) {
@@ -114,7 +115,8 @@ object IngestClientBase {
      * This method validates that the string consists of exactly 4 octets, each
      * being a number between 0 and 255.
      *
-     * @param address The string to check (may include port like "127.0.0.1:8080")
+     * @param address The string to check (may include port like
+     *   "127.0.0.1:8080")
      * @return true if the string is a valid IPv4 address, false otherwise
      */
     private fun isIPv4Address(address: String): Boolean {

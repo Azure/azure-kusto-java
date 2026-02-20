@@ -150,7 +150,8 @@ abstract class ContainerUploaderBase(
                 name = name,
                 stream = preparedStream.stream,
                 containers = containers,
-                effectiveCompressionType = preparedStream.compressionType,
+                effectiveCompressionType =
+                preparedStream.compressionType,
             )
                 .also {
                     // Ensure compression job completes successfully
@@ -260,8 +261,8 @@ abstract class ContainerUploaderBase(
     )
 
     /**
-     * Helper class to hold prepared upload stream with its compression type
-     * and optional compression job.
+     * Helper class to hold prepared upload stream with its compression type and
+     * optional compression job.
      */
     private data class PreparedUploadStream(
         val stream: InputStream,
@@ -270,11 +271,11 @@ abstract class ContainerUploaderBase(
     )
 
     /**
-     * Uploads a stream with retry logic and container cycling. Uses the
-     * shared counter from the RoundRobinContainerList for round-robin container
+     * Uploads a stream with retry logic and container cycling. Uses the shared
+     * counter from the RoundRobinContainerList for round-robin container
      * selection, ensuring even load distribution across containers across all
-     * uploaders sharing the same ConfigurationCache.
-     * For example, with 2 containers and uploaders A and B:
+     * uploaders sharing the same ConfigurationCache. For example, with 2
+     * containers and uploaders A and B:
      * - A's 1st upload uses container 0
      * - B's 1st upload uses container 1
      * - A's 2nd upload uses container 0 (cycles back)
@@ -746,7 +747,9 @@ abstract class ContainerUploaderBase(
      * @return A CompletableFuture that will complete with the uploaded blob
      *   source.
      */
-    override fun uploadAsyncJava(local: LocalSource): CompletableFuture<BlobSource> =
+    override fun uploadAsyncJava(
+        local: LocalSource,
+    ): CompletableFuture<BlobSource> =
         CoroutineScope(Dispatchers.IO).future { uploadAsync(local) }
 
     /**
@@ -773,7 +776,8 @@ abstract class ContainerUploaderBase(
      *
      * @param uploadMethod The upload method to consider when selecting
      *   containers.
-     * @return A RoundRobinContainerList with shared counter for load distribution.
+     * @return A RoundRobinContainerList with shared counter for load
+     *   distribution.
      */
     abstract suspend fun selectContainers(
         uploadMethod: UploadMethod,

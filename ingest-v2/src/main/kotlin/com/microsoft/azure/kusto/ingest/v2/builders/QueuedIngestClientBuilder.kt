@@ -75,7 +75,7 @@ class QueuedIngestClientBuilder private constructor(private val dmUrl: String) :
                     clientDetails = effectiveClientDetails,
                     s2sTokenProvider = this.s2sTokenProvider,
                     s2sFabricPrivateLinkAccessContext =
-                        this.s2sFabricPrivateLinkAccessContext,
+                    this.s2sFabricPrivateLinkAccessContext,
                 )
         val apiClient =
             createApiClient(

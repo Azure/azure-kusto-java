@@ -36,8 +36,6 @@ private constructor(private val clusterUrl: String) :
                 effectiveClientDetails,
                 this.skipSecurityChecks,
             )
-        return StreamingIngestClient(
-            apiClient = apiClient,
-        )
+        return StreamingIngestClient(apiClient = apiClient)
     }
 }

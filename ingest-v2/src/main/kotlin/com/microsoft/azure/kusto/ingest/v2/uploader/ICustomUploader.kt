@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture
  * `uploadManyAsyncJava`), so it can be used from either language.
  *
  * **Example (Java):**
+ *
  * ```java
  * ICustomUploader custom = new MyCustomUploader(...);
  * IUploader uploader = CustomUploaderHelper.asUploader(custom);
@@ -82,6 +83,7 @@ interface ICustomUploader : Closeable {
  * Provides Java-friendly static methods to work with custom uploaders.
  *
  * **Example (Java):**
+ *
  * ```java
  * ICustomUploader custom = new MyCustomUploader(...);
  * IUploader uploader = CustomUploaderHelper.asUploader(custom);
@@ -141,7 +143,9 @@ class CustomUploaderAdapter(private val customUploader: ICustomUploader) :
     override fun uploadManyAsyncJava(
         localSources: List<LocalSource>,
     ): CompletableFuture<UploadResults> =
-        CoroutineScope(Dispatchers.IO).future { uploadManyAsync(localSources) }
+        CoroutineScope(Dispatchers.IO).future {
+            uploadManyAsync(localSources)
+        }
 
     override fun close() {
         customUploader.close()

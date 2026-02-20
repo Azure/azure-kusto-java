@@ -185,12 +185,7 @@ internal constructor(
         ingestRequestProperties: IngestRequestProperties?,
     ): CompletableFuture<ExtendedIngestResponse> =
         CoroutineScope(Dispatchers.IO).future {
-            ingestAsync(
-                database,
-                table,
-                source,
-                ingestRequestProperties,
-            )
+            ingestAsync(database, table, source, ingestRequestProperties)
         }
 
     /**

@@ -17,14 +17,14 @@ import java.util.concurrent.CompletableFuture
  * - **Kotlin suspend functions** (`uploadAsync`, `uploadManyAsync`) — for
  *   Kotlin coroutine-based callers.
  * - **Java-friendly methods** (`uploadAsyncJava`, `uploadManyAsyncJava`) —
- *   returning [CompletableFuture] for Java callers who want to program to
- *   this interface.
+ *   returning [CompletableFuture] for Java callers who want to program to this
+ *   interface.
  *
- * **For Java developers** who want to implement their own uploader, there
- * are two options:
+ * **For Java developers** who want to implement their own uploader, there are
+ * two options:
  * 1. **Recommended:** Implement [ICustomUploader] (pure Java, uses
- *    [CompletableFuture]), then wrap it using
- *    [CustomUploaderHelper.asUploader] to get an [IUploader].
+ *    [CompletableFuture]), then wrap it using [CustomUploaderHelper.asUploader]
+ *    to get an [IUploader].
  * 2. **Direct implementation:** Implement [IUploader] directly if you are
  *    comfortable with Kotlin suspend functions in your Java project.
  *

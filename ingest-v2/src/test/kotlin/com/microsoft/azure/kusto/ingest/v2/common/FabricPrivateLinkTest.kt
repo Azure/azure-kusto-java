@@ -123,7 +123,10 @@ class FabricPrivateLinkTest {
             )
         assertNotNull(client)
         assertEquals(mockS2sTokenProvider, client.s2sTokenProvider)
-        assertEquals(testAccessContext, client.s2sFabricPrivateLinkAccessContext)
+        assertEquals(
+            testAccessContext,
+            client.s2sFabricPrivateLinkAccessContext,
+        )
     }
 
     @Test
@@ -147,7 +150,10 @@ class FabricPrivateLinkTest {
         val builder =
             QueuedIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
 
         assertNotNull(builder)
     }
@@ -157,7 +163,10 @@ class FabricPrivateLinkTest {
         val client =
             QueuedIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
                 .build()
 
         assertNotNull(client)
@@ -167,9 +176,11 @@ class FabricPrivateLinkTest {
     fun `QueuedIngestClientBuilder should chain withFabricPrivateLink correctly`() {
         val builder = QueuedIngestClientBuilder.create(validDmUrl)
         val result =
-            builder
-                .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+            builder.withAuthentication(mockTokenCredential)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
                 .withMaxConcurrency(5)
                 .skipSecurityChecks()
 
@@ -183,7 +194,10 @@ class FabricPrivateLinkTest {
         val builder =
             StreamingIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
 
         assertNotNull(builder)
     }
@@ -193,7 +207,10 @@ class FabricPrivateLinkTest {
         val client =
             StreamingIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
                 .build()
 
         assertNotNull(client)
@@ -206,7 +223,10 @@ class FabricPrivateLinkTest {
         val builder =
             ManagedStreamingIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
 
         assertNotNull(builder)
     }
@@ -216,7 +236,10 @@ class FabricPrivateLinkTest {
         val client =
             ManagedStreamingIngestClientBuilder.create(validDmUrl)
                 .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
                 .build()
 
         assertNotNull(client)
@@ -226,9 +249,11 @@ class FabricPrivateLinkTest {
     fun `ManagedStreamingIngestClientBuilder should chain withFabricPrivateLink correctly`() {
         val builder = ManagedStreamingIngestClientBuilder.create(validDmUrl)
         val result =
-            builder
-                .withAuthentication(mockTokenCredential)
-                .withFabricPrivateLink(mockS2sTokenProvider, testAccessContext)
+            builder.withAuthentication(mockTokenCredential)
+                .withFabricPrivateLink(
+                    mockS2sTokenProvider,
+                    testAccessContext,
+                )
                 .skipSecurityChecks()
 
         assertEquals(builder, result)
@@ -242,7 +267,10 @@ class FabricPrivateLinkTest {
             val s2sToken = mockS2sTokenProvider()
             assertEquals(testS2SScheme, s2sToken.scheme)
             assertEquals(testS2SToken, s2sToken.token)
-            assertEquals("$testS2SScheme $testS2SToken", s2sToken.toHeaderValue())
+            assertEquals(
+                "$testS2SScheme $testS2SToken",
+                s2sToken.toHeaderValue(),
+            )
         }
     }
 
@@ -263,9 +291,7 @@ class FabricPrivateLinkTest {
                 s2sFabricPrivateLinkAccessContext = testAccessContext,
             )
 
-        runBlocking {
-            cache.getConfiguration()
-        }
+        runBlocking { cache.getConfiguration() }
 
         assertEquals(true, providerCalled)
     }
