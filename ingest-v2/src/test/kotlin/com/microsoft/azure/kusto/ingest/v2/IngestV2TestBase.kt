@@ -23,7 +23,8 @@ abstract class IngestV2TestBase(testClass: Class<*>) {
 
     // Shared across all test class instances via CachingTokenCredential singleton.
     // Ensures az account get-access-token is invoked only once per scope.
-    protected val tokenProvider: TokenCredential = CachingTokenCredential.INSTANCE
+    protected val tokenProvider: TokenCredential =
+        CachingTokenCredential.INSTANCE
 
     protected val database = System.getenv("TEST_DATABASE") ?: "e2e"
     protected val dmEndpoint: String =
