@@ -1,0 +1,89 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+package com.microsoft.azure.kusto.ingest.v2
+
+// Size of each block to upload to Azure Blob Storage (4 MB)
+const val UPLOAD_BLOCK_SIZE_BYTES: Long = 4 * 1024 * 1024
+
+// Maximum size for a single upload operation to Azure Blob Storage (256 MB)
+const val UPLOAD_MAX_SINGLE_SIZE_BYTES: Long = 256 * 1024 * 1024
+
+// Request timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_REQUEST_TIMEOUT_MS: Long = 60_000
+
+// Connection timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_CONNECT_TIMEOUT_MS: Long = 60_000
+
+// Socket timeout in milliseconds for Kusto API HTTP requests
+const val KUSTO_API_SOCKET_TIMEOUT_MS: Long = 60_000
+
+// Kusto API version used in HTTP requests
+const val KUSTO_API_VERSION = "2024-12-12"
+
+// Default refresh interval for configuration cache (1 hour)
+const val CONFIG_CACHE_DEFAULT_REFRESH_INTERVAL_HOURS: Long = 1
+
+// Default value for skipSecurityChecks if not provided
+const val CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS: Boolean = false
+
+// Default interval between retries for SimpleRetryPolicy (10 seconds)
+const val INGEST_RETRY_POLICY_DEFAULT_INTERVAL_SECONDS: Long = 10
+
+// Default total number of retries for SimpleRetryPolicy
+const val INGEST_RETRY_POLICY_DEFAULT_TOTAL_RETRIES: Int = 3
+
+// Default timeout for blob upload operations (1 hour)
+const val BLOB_UPLOAD_TIMEOUT_HOURS: Long = 1
+
+// Default retry intervals for CustomRetryPolicy (1s, 3s, 7s)
+val INGEST_RETRY_POLICY_CUSTOM_INTERVALS: Array<Long> = arrayOf(1, 3, 7)
+
+// Number of blobs to upload in a single batch
+const val MAX_BLOBS_PER_BATCH: Int = 70
+
+// Default maximum data size for blob upload operations (4GB)
+const val UPLOAD_CONTAINER_MAX_DATA_SIZE_BYTES: Long = 4L * 1024 * 1024 * 1024
+
+// Default maximum concurrency for blob upload operations
+const val UPLOAD_CONTAINER_MAX_CONCURRENCY: Int = 4
+
+const val STREAMING_MAX_REQ_BODY_SIZE = 10 * 1024 * 1024 // 10 MB
+
+// Managed Streaming Policy Defaults
+
+// Default value for continueWhenStreamingIngestionUnavailable in ManagedStreamingPolicy
+// When false, the client will fail if streaming ingestion is unavailable
+const val MANAGED_STREAMING_CONTINUE_WHEN_UNAVAILABLE_DEFAULT: Boolean = false
+
+// Default data size factor for ManagedStreamingPolicy
+// Factor used to determine size threshold for queued ingestion (1.0 = no adjustment)
+const val MANAGED_STREAMING_DATA_SIZE_FACTOR_DEFAULT: Double = 1.0
+
+// Default throttle backoff period in seconds for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming is throttled
+const val MANAGED_STREAMING_THROTTLE_BACKOFF_SECONDS: Long = 10
+
+// Default time until resuming streaming ingestion in minutes for ManagedStreamingPolicy
+// How long to use queued ingestion after streaming becomes unavailable
+const val MANAGED_STREAMING_RESUME_TIME_MINUTES: Long = 15
+
+// Default retry delays for ManagedStreamingPolicy (in seconds): 1s, 2s, 4s
+val MANAGED_STREAMING_RETRY_DELAYS_SECONDS: Array<Long> = arrayOf(1, 2, 4)
+
+// Maximum jitter to add to retry delays in milliseconds
+const val MANAGED_STREAMING_RETRY_JITTER_MS: Long = 1000
+
+const val STREAM_COMPRESSION_BUFFER_SIZE_BYTES: Int = 64 * 1024
+const val STREAM_PIPE_BUFFER_SIZE_BYTES: Int = 1024 * 1024
+
+// HTTP Header Names
+const val HEADER_CONTENT_TYPE = "Content-Type"
+const val HEADER_MS_APP = "x-ms-app"
+const val HEADER_MS_USER = "x-ms-user"
+const val HEADER_MS_CLIENT_VERSION = "x-ms-client-version"
+const val HEADER_MS_CLIENT_REQUEST_ID = "x-ms-client-request-id"
+const val HEADER_MS_VERSION = "x-ms-version"
+const val HEADER_CONNECTION = "Connection"
+const val HEADER_ACCEPT = "Accept"
+const val HEADER_MS_S2S_ACTOR_AUTHORIZATION = "x-ms-s2s-actor-authorization"
+const val HEADER_MS_FABRIC_S2S_ACCESS_CONTEXT = "x-ms-fabric-s2s-access-context"
