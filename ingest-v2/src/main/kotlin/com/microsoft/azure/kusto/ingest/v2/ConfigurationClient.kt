@@ -26,7 +26,8 @@ class ConfigurationClient(
         skipSecurityChecks,
         clientDetails,
         s2sTokenProvider = s2sTokenProvider,
-        s2sFabricPrivateLinkAccessContext = s2sFabricPrivateLinkAccessContext,
+        s2sFabricPrivateLinkAccessContext =
+        s2sFabricPrivateLinkAccessContext,
     ) {
     private val logger =
         LoggerFactory.getLogger(ConfigurationClient::class.java)

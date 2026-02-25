@@ -31,15 +31,20 @@ import java.time.OffsetDateTime
 class ManagedUploaderTest {
 
     companion object {
-        private val STORAGE_CONTAINER = ContainerInfo(
-            path = "https://somecontainer.z11.blob.storage.azure.net/trdwvweg9nfnngghb1eey-20260108-ingestdata-e5c334ee145d4b4-0?sv=keys"
-        )
-        private val LAKE_CONTAINER = ContainerInfo(
-            path = "https://alakefolder.onelake.fabric.microsoft.com/17a97d10-a17f-4d72-8f38-858aac992978/bb9c26d4-4f99-44b5-9614-3ebb037f3510/Ingestions/20260108-lakedata"
-        )
+        private val STORAGE_CONTAINER =
+            ContainerInfo(
+                path =
+                "https://somecontainer.z11.blob.storage.azure.net/trdwvweg9nfnngghb1eey-20260108-ingestdata-e5c334ee145d4b4-0?sv=keys",
+            )
+        private val LAKE_CONTAINER =
+            ContainerInfo(
+                path =
+                "https://alakefolder.onelake.fabric.microsoft.com/17a97d10-a17f-4d72-8f38-858aac992978/bb9c26d4-4f99-44b5-9614-3ebb037f3510/Ingestions/20260108-lakedata",
+            )
     }
 
-    // ===== Both containers available (from config-response.json with preferredUploadMethod=Lake) =====
+    // ===== Both containers available (from config-response.json with preferredUploadMethod=Lake)
+    // =====
 
     @ParameterizedTest(name = "PreferredUploadMethod={0}")
     @CsvSource("DEFAULT", "STORAGE", "LAKE")
@@ -84,23 +89,29 @@ class ManagedUploaderTest {
 
     @ParameterizedTest(name = "OnlyStorage_PreferredUploadMethod={0}")
     @CsvSource("DEFAULT", "STORAGE", "LAKE")
-    fun selectContainers_onlyStorageAvailable_returnsStorage(preferredUploadMethod: String): Unit = runBlocking {
+    fun selectContainers_onlyStorageAvailable_returnsStorage(
+        preferredUploadMethod: String,
+    ): Unit = runBlocking {
         val uploadMethod = UploadMethod.valueOf(preferredUploadMethod)
-        val cache = buildCache(
-            containers = listOf(STORAGE_CONTAINER),
-            lakeFolders = null,
-            preferredUploadMethod = "Storage",
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = listOf(STORAGE_CONTAINER),
+                lakeFolders = null,
+                preferredUploadMethod = "Storage",
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
         val selectedContainers = managedUploader.selectContainers(uploadMethod)
 
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
         selectedContainers.forEach {
-            assertTrue(it.containerInfo.path?.contains("somecontainer") ?: false)
+            assertTrue(
+                it.containerInfo.path?.contains("somecontainer") ?: false,
+            )
             assertTrue(it.uploadMethod == UploadMethod.STORAGE)
         }
     }
@@ -109,16 +120,20 @@ class ManagedUploaderTest {
 
     @ParameterizedTest(name = "OnlyLake_PreferredUploadMethod={0}")
     @CsvSource("DEFAULT", "STORAGE", "LAKE")
-    fun selectContainers_onlyLakeAvailable_returnsLake(preferredUploadMethod: String): Unit = runBlocking {
+    fun selectContainers_onlyLakeAvailable_returnsLake(
+        preferredUploadMethod: String,
+    ): Unit = runBlocking {
         val uploadMethod = UploadMethod.valueOf(preferredUploadMethod)
-        val cache = buildCache(
-            containers = null,
-            lakeFolders = listOf(LAKE_CONTAINER),
-            preferredUploadMethod = "Lake",
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = null,
+                lakeFolders = listOf(LAKE_CONTAINER),
+                preferredUploadMethod = "Lake",
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
         val selectedContainers = managedUploader.selectContainers(uploadMethod)
 
@@ -134,18 +149,21 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_noContainersAvailable_throws(): Unit = runBlocking {
-        val cache = buildCache(
-            containers = null,
-            lakeFolders = null,
-            preferredUploadMethod = null,
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = null,
+                lakeFolders = null,
+                preferredUploadMethod = null,
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val exception = assertThrows<IngestException> {
-            managedUploader.selectContainers(UploadMethod.DEFAULT)
-        }
+        val exception =
+            assertThrows<IngestException> {
+                managedUploader.selectContainers(UploadMethod.DEFAULT)
+            }
         assertTrue(exception.isPermanent == true)
     }
 
@@ -153,21 +171,28 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_noContainerSettings_throws(): Unit = runBlocking {
-        val cache = InlineConfigurationCache(
-            CachedConfigurationData(
-                ConfigurationResponse(
-                    containerSettings = null,
-                    ingestionSettings = IngestionSettings(maxBlobsPerBatch = 20, maxDataSize = 6442450944),
-                )
+        val cache =
+            InlineConfigurationCache(
+                CachedConfigurationData(
+                    ConfigurationResponse(
+                        containerSettings = null,
+                        ingestionSettings =
+                        IngestionSettings(
+                            maxBlobsPerBatch = 20,
+                            maxDataSize = 6442450944,
+                        ),
+                    ),
+                ),
             )
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val exception = assertThrows<IngestException> {
-            managedUploader.selectContainers(UploadMethod.DEFAULT)
-        }
+        val exception =
+            assertThrows<IngestException> {
+                managedUploader.selectContainers(UploadMethod.DEFAULT)
+            }
         assertTrue(exception.isPermanent == true)
     }
 
@@ -175,21 +200,26 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_bothAvailable_serverPrefersStorage_defaultUsesStorage(): Unit = runBlocking {
-        val cache = buildCache(
-            containers = listOf(STORAGE_CONTAINER),
-            lakeFolders = listOf(LAKE_CONTAINER),
-            preferredUploadMethod = "Storage",
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = listOf(STORAGE_CONTAINER),
+                lakeFolders = listOf(LAKE_CONTAINER),
+                preferredUploadMethod = "Storage",
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val selectedContainers = managedUploader.selectContainers(UploadMethod.DEFAULT)
+        val selectedContainers =
+            managedUploader.selectContainers(UploadMethod.DEFAULT)
 
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
         selectedContainers.forEach {
-            assertTrue(it.containerInfo.path?.contains("somecontainer") ?: false)
+            assertTrue(
+                it.containerInfo.path?.contains("somecontainer") ?: false,
+            )
             assertTrue(it.uploadMethod == UploadMethod.STORAGE)
         }
     }
@@ -198,21 +228,26 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_bothAvailable_serverPreferenceNull_defaultUsesStorage(): Unit = runBlocking {
-        val cache = buildCache(
-            containers = listOf(STORAGE_CONTAINER),
-            lakeFolders = listOf(LAKE_CONTAINER),
-            preferredUploadMethod = null,
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = listOf(STORAGE_CONTAINER),
+                lakeFolders = listOf(LAKE_CONTAINER),
+                preferredUploadMethod = null,
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val selectedContainers = managedUploader.selectContainers(UploadMethod.DEFAULT)
+        val selectedContainers =
+            managedUploader.selectContainers(UploadMethod.DEFAULT)
 
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
         selectedContainers.forEach {
-            assertTrue(it.containerInfo.path?.contains("somecontainer") ?: false)
+            assertTrue(
+                it.containerInfo.path?.contains("somecontainer") ?: false,
+            )
             assertTrue(it.uploadMethod == UploadMethod.STORAGE)
         }
     }
@@ -221,16 +256,19 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_bothAvailable_serverPrefersStorage_explicitLakeUsesLake(): Unit = runBlocking {
-        val cache = buildCache(
-            containers = listOf(STORAGE_CONTAINER),
-            lakeFolders = listOf(LAKE_CONTAINER),
-            preferredUploadMethod = "Storage",
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = listOf(STORAGE_CONTAINER),
+                lakeFolders = listOf(LAKE_CONTAINER),
+                preferredUploadMethod = "Storage",
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val selectedContainers = managedUploader.selectContainers(UploadMethod.LAKE)
+        val selectedContainers =
+            managedUploader.selectContainers(UploadMethod.LAKE)
 
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
@@ -244,21 +282,26 @@ class ManagedUploaderTest {
 
     @Test
     fun selectContainers_bothAvailable_serverPrefersLake_explicitStorageUsesStorage(): Unit = runBlocking {
-        val cache = buildCache(
-            containers = listOf(STORAGE_CONTAINER),
-            lakeFolders = listOf(LAKE_CONTAINER),
-            preferredUploadMethod = "Lake",
-        )
-        val managedUploader = ManagedUploaderBuilder.create()
-            .withConfigurationCache(cache)
-            .build()
+        val cache =
+            buildCache(
+                containers = listOf(STORAGE_CONTAINER),
+                lakeFolders = listOf(LAKE_CONTAINER),
+                preferredUploadMethod = "Lake",
+            )
+        val managedUploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(cache)
+                .build()
 
-        val selectedContainers = managedUploader.selectContainers(UploadMethod.STORAGE)
+        val selectedContainers =
+            managedUploader.selectContainers(UploadMethod.STORAGE)
 
         assertNotNull(selectedContainers)
         assertTrue(selectedContainers.isNotEmpty())
         selectedContainers.forEach {
-            assertTrue(it.containerInfo.path?.contains("somecontainer") ?: false)
+            assertTrue(
+                it.containerInfo.path?.contains("somecontainer") ?: false,
+            )
             assertTrue(it.uploadMethod == UploadMethod.STORAGE)
         }
     }
@@ -273,18 +316,21 @@ class ManagedUploaderTest {
         return InlineConfigurationCache(
             CachedConfigurationData(
                 ConfigurationResponse(
-                    containerSettings = ContainerSettings(
+                    containerSettings =
+                    ContainerSettings(
                         containers = containers,
                         lakeFolders = lakeFolders,
                         refreshInterval = "01:00:00",
-                        preferredUploadMethod = preferredUploadMethod,
+                        preferredUploadMethod =
+                        preferredUploadMethod,
                     ),
-                    ingestionSettings = IngestionSettings(
+                    ingestionSettings =
+                    IngestionSettings(
                         maxBlobsPerBatch = 20,
                         maxDataSize = 6442450944,
                     ),
-                )
-            )
+                ),
+            ),
         )
     }
 
@@ -292,7 +338,9 @@ class ManagedUploaderTest {
         private val data: CachedConfigurationData,
     ) : ConfigurationCache {
         override val refreshInterval: Duration = Duration.ofHours(1)
+
         override suspend fun getConfiguration(): CachedConfigurationData = data
+
         override fun close() {}
     }
 

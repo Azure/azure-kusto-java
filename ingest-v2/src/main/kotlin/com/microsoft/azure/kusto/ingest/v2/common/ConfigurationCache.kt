@@ -18,20 +18,20 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.min
 
 /**
- * Wrapper around ConfigurationResponse that includes shared RoundRobinContainerList
- * instances for even distribution of uploads across containers.
+ * Wrapper around ConfigurationResponse that includes shared
+ * RoundRobinContainerList instances for even distribution of uploads across
+ * containers.
  *
- * This class holds the configuration response along with pre-created container lists
- * that maintain their own atomic counters. All uploaders sharing the same cache
- * will use the same RoundRobinContainerList instances, ensuring proper load
- * distribution.
+ * This class holds the configuration response along with pre-created container
+ * lists that maintain their own atomic counters. All uploaders sharing the same
+ * cache will use the same RoundRobinContainerList instances, ensuring proper
+ * load distribution.
  */
-class CachedConfigurationData(
-    val response: ConfigurationResponse,
-) {
+class CachedConfigurationData(val response: ConfigurationResponse) {
     /**
-     * Lazily initialized RoundRobinContainerList for storage containers.
-     * The list is created once and reused for all requests until the cache refreshes.
+     * Lazily initialized RoundRobinContainerList for storage containers. The
+     * list is created once and reused for all requests until the cache
+     * refreshes.
      */
     val storageContainerList: RoundRobinContainerList by lazy {
         val containers = response.containerSettings?.containers
@@ -39,14 +39,16 @@ class CachedConfigurationData(
             RoundRobinContainerList.empty()
         } else {
             RoundRobinContainerList.of(
-                containers.map { ExtendedContainerInfo(it, UploadMethod.STORAGE) }
+                containers.map {
+                    ExtendedContainerInfo(it, UploadMethod.STORAGE)
+                },
             )
         }
     }
 
     /**
-     * Lazily initialized RoundRobinContainerList for lake containers.
-     * The list is created once and reused for all requests until the cache refreshes.
+     * Lazily initialized RoundRobinContainerList for lake containers. The list
+     * is created once and reused for all requests until the cache refreshes.
      */
     val lakeContainerList: RoundRobinContainerList by lazy {
         val lakeFolders = response.containerSettings?.lakeFolders
@@ -54,14 +56,19 @@ class CachedConfigurationData(
             RoundRobinContainerList.empty()
         } else {
             RoundRobinContainerList.of(
-                lakeFolders.map { ExtendedContainerInfo(it, UploadMethod.LAKE) }
+                lakeFolders.map {
+                    ExtendedContainerInfo(it, UploadMethod.LAKE)
+                },
             )
         }
     }
 
     // Delegate all ConfigurationResponse properties
-    val containerSettings get() = response.containerSettings
-    val ingestionSettings get() = response.ingestionSettings
+    val containerSettings
+        get() = response.containerSettings
+
+    val ingestionSettings
+        get() = response.ingestionSettings
 }
 
 /**
@@ -80,9 +87,9 @@ interface ConfigurationCache : AutoCloseable {
      * refresh interval. This method may return cached data if the cache is
      * still valid.
      *
-     * The returned CachedConfigurationData includes shared RoundRobinContainerList
-     * instances that provide even distribution of uploads across containers for
-     * all uploaders sharing this cache.
+     * The returned CachedConfigurationData includes shared
+     * RoundRobinContainerList instances that provide even distribution of
+     * uploads across containers for all uploaders sharing this cache.
      */
     suspend fun getConfiguration(): CachedConfigurationData
 
@@ -123,7 +130,8 @@ class DefaultConfigurationCache(
     val skipSecurityChecks: Boolean? =
         CONFIG_CACHE_DEFAULT_SKIP_SECURITY_CHECKS,
     val clientDetails: ClientDetails,
-    val configurationProvider: (suspend () -> ConfigurationResponse)? = null,
+    val configurationProvider: (suspend () -> ConfigurationResponse)? =
+        null,
     val s2sTokenProvider: (suspend () -> S2SToken)? = null,
     val s2sFabricPrivateLinkAccessContext: String? = null,
 ) : ConfigurationCache {
@@ -215,8 +223,9 @@ class DefaultConfigurationCache(
      * expiration and updating, and ensures we use the correct refresh interval
      * from when the config was fetched.
      *
-     * The CachedConfigurationData wrapper includes pre-created RoundRobinContainerList
-     * instances that are shared by all uploaders using this cache.
+     * The CachedConfigurationData wrapper includes pre-created
+     * RoundRobinContainerList instances that are shared by all uploaders using
+     * this cache.
      */
     private data class CachedData(
         val configuration: CachedConfigurationData,

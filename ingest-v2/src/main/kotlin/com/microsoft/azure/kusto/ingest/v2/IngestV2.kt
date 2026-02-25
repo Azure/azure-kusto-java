@@ -87,4 +87,3 @@ const val HEADER_CONNECTION = "Connection"
 const val HEADER_ACCEPT = "Accept"
 const val HEADER_MS_S2S_ACTOR_AUTHORIZATION = "x-ms-s2s-actor-authorization"
 const val HEADER_MS_FABRIC_S2S_ACCESS_CONTEXT = "x-ms-fabric-s2s-access-context"
-

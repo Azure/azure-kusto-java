@@ -17,8 +17,8 @@ data class ClientDetails(
         get() = applicationForTracing ?: getProcessName()
 
     /**
-     * Returns the user name for tracing, falling back to the system user if
-     * not provided.
+     * Returns the user name for tracing, falling back to the system user if not
+     * provided.
      */
     val effectiveUserNameForTracing: String
         get() = userNameForTracing ?: getUserName()
@@ -201,5 +201,4 @@ data class ClientDetails(
             )
         }
     }
-
 }

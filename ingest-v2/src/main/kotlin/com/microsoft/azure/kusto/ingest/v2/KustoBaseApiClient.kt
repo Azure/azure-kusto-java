@@ -61,13 +61,15 @@ open class KustoBaseApiClient(
     }
 
     /**
-     * Retrieves a bearer token using the configured TokenCredential.
-     * This method is protected to allow testing of token refresh logic.
+     * Retrieves a bearer token using the configured TokenCredential. This
+     * method is protected to allow testing of token refresh logic.
      *
      * @param tokenRequestContext The token request context with scopes
      * @return BearerTokens containing the access token
      */
-    protected open suspend fun getBearerToken(tokenRequestContext: TokenRequestContext): BearerTokens {
+    protected open suspend fun getBearerToken(
+        tokenRequestContext: TokenRequestContext,
+    ): BearerTokens {
         return try {
             // Use suspendCancellableCoroutine to convert Mono to suspend function
             suspendCancellableCoroutine { continuation ->
@@ -77,7 +79,8 @@ open class KustoBaseApiClient(
                         { accessToken ->
                             val bearerTokens =
                                 BearerTokens(
-                                    accessToken = accessToken.token,
+                                    accessToken =
+                                    accessToken.token,
                                     refreshToken = null,
                                 )
                             continuation.resume(bearerTokens)
@@ -89,10 +92,7 @@ open class KustoBaseApiClient(
             }
         } catch (e: Exception) {
             // Handle token retrieval errors
-            logger.error(
-                "Error retrieving access token: ${e.message}",
-                e,
-            )
+            logger.error("Error retrieving access token: ${e.message}", e)
             throw e
         }
     }
@@ -123,9 +123,7 @@ open class KustoBaseApiClient(
                     // Always null so refreshTokens is always called
                     null
                 }
-                refreshTokens {
-                    getBearerToken(trc)
-                }
+                refreshTokens { getBearerToken(trc) }
             }
         }
 
