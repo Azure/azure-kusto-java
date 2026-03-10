@@ -226,7 +226,6 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
      *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        //options.put(OPTION_SERVER_TIMEOUT, adjustTimeoutToServiceLimits(timeoutInMs));
         Long adjusted = adjustTimeoutToServiceLimits(timeoutInMs);
         options.put(OPTION_SERVER_TIMEOUT, adjusted != null ? getTimeoutAsCslTimespan(adjusted) : null);
     }
