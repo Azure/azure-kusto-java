@@ -223,10 +223,11 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     /**
      * Sets the amount of time a query may execute on the service before it times out.
      * @param timeoutInMs number of milliseconds before timeout.
-     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
+     *                    Value must be between 1 second and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
     public void setTimeoutInMilliSec(Long timeoutInMs) {
-        options.put(OPTION_SERVER_TIMEOUT, adjustTimeoutToServiceLimits(timeoutInMs));
+        Long adjusted = adjustTimeoutToServiceLimits(timeoutInMs);
+        options.put(OPTION_SERVER_TIMEOUT, adjusted != null ? getTimeoutAsCslTimespan(adjusted) : null);
     }
 
     private static Long adjustTimeoutToServiceLimits(Long timeoutInMs) {
@@ -359,7 +360,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
     /**
      * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
      * @param timeoutObj amount of time before timeout, which may be a Long, String or Integer.
-     *                    Value must be between 1 minute and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
+     *                    Value must be between 1 second and 1 hour, and so value below the minimum or above the maximum will be adjusted accordingly.
      */
     String getTimeoutAsCslTimespan(Object timeoutObj) {
         Long timeoutInMilliSec = getTimeoutInMilliSec(timeoutObj);
@@ -374,7 +375,7 @@ public class ClientRequestProperties implements Serializable, TraceableAttribute
 
     /**
      * Gets the amount of time a query may execute on the service before it times out, formatted as a KQL timespan.
-     * Value must be between 1 minute and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
+     * Value must be between 1 second and 1 hour, and so if the value had been set below the minimum or above the maximum, the value returned will be adjusted accordingly.
      */
     String getTimeoutAsCslTimespan() {
         return getTimeoutAsCslTimespan(getOption(OPTION_SERVER_TIMEOUT));
