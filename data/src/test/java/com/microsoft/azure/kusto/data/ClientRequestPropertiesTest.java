@@ -60,7 +60,6 @@ class ClientRequestPropertiesTest {
 
         clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
-        // Fix: setTimeoutInMilliSec now stores a timespan string, not a Long
         Assertions.assertEquals(clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT), expectedTimespan);
         Assertions.assertEquals(clientRequestProperties.getTimeoutAsCslTimespan(), expectedTimespan);
     }
