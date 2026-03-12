@@ -37,12 +37,18 @@ import java.util.concurrent.TimeUnit;
 public class StreamingQuery {
     public static void main(String[] args) {
         try {
+            String appId = System.getProperty("appId");
+            String appKey = System.getProperty("appKey");
+            String appTenant = System.getProperty("appTenant");
+            String clusterPath = System.getProperty("clusterPath");
+            boolean useAppKeys = appId != null && appKey != null && appTenant != null;
+
             // 1. Build connection string
-            ConnectionStringBuilder csb = ConnectionStringBuilder.createWithAadApplicationCredentials(
-                    System.getProperty("clusterPath"),
-                    System.getProperty("appId"),
-                    System.getProperty("appKey"),
-                    System.getProperty("appTenant"));
+            ConnectionStringBuilder csb = useAppKeys ? ConnectionStringBuilder.createWithAadApplicationCredentials(
+                    clusterPath,
+                    appId,
+                    appKey,
+                    appTenant) : ConnectionStringBuilder.createWithAzureCli(clusterPath);
 
             HttpClientProperties properties = HttpClientProperties.builder()
                     .keepAlive(true)
