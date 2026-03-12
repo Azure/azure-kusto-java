@@ -1,9 +1,12 @@
 package com.microsoft.azure.kusto.quickstart;
 
 import com.azure.core.tracing.opentelemetry.OpenTelemetryTracer;
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.AzureCliCredentialBuilder;
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.microsoft.azure.kusto.data.Client;
 import com.microsoft.azure.kusto.data.ClientFactory;
 import com.microsoft.azure.kusto.data.StringUtils;
@@ -13,6 +16,25 @@ import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestClientFactory;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
+import com.microsoft.azure.kusto.ingest.v2.builders.QueuedIngestClientBuilder;
+import com.microsoft.azure.kusto.ingest.v2.client.IngestionOperation;
+import com.microsoft.azure.kusto.ingest.v2.client.QueuedIngestClient;
+import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache;
+import com.microsoft.azure.kusto.ingest.v2.common.DefaultConfigurationCache;
+import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy;
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails;
+import com.microsoft.azure.kusto.ingest.v2.common.models.ExtendedIngestResponse;
+import com.microsoft.azure.kusto.ingest.v2.common.models.IngestRequestPropertiesBuilder;
+import com.microsoft.azure.kusto.ingest.v2.models.*;
+import com.microsoft.azure.kusto.ingest.v2.source.BlobSource;
+import com.microsoft.azure.kusto.ingest.v2.source.CompressionType;
+import com.microsoft.azure.kusto.ingest.v2.source.FileSource;
+import com.microsoft.azure.kusto.ingest.v2.source.LocalSource;
+import com.microsoft.azure.kusto.ingest.v2.source.StreamSource;
+import com.microsoft.azure.kusto.ingest.v2.uploader.ManagedUploader;
+import com.microsoft.azure.kusto.ingest.v2.uploader.UploadMethod;
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResult;
+import com.microsoft.azure.kusto.ingest.v2.uploader.models.UploadResults;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.exporters.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
@@ -21,12 +43,22 @@ import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
 import io.opentelemetry.semconv.ResourceAttributes;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Scanner;
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS;
 
 /**
  * SourceType - represents the type of files used for ingestion
@@ -40,7 +72,7 @@ enum SourceType {
         this.source = source;
     }
 
-    public static SourceType valueOfLabel(String label) {
+    public static @Nullable SourceType valueOfLabel(String label) {
         for (SourceType e : values()) {
             if (e.source.equals(label)) {
                 return e;
@@ -49,7 +81,6 @@ enum SourceType {
         return null;
     }
 }
-
 /**
  * AuthenticationModeOptions - represents the different options to authenticate to the system
  */
@@ -161,19 +192,13 @@ class ConfigJson {
     private boolean alterTable;
     private boolean queryData;
     private boolean ingestData;
-    /// Recommended default: UserPrompt
-    /// Some auth modes require additional environment variables to be set in order to work (see usage in generate_connection_string function).
-    /// Managed Identity Authentication only works when running as an Azure service (webapp, function, etc.)
     private AuthenticationModeOptions authenticationMode;
-    /// Recommended default: True
-    /// Toggle to False to execute this script "unattended"
     private boolean waitForUser;
-    /// Ignores the first record in a "X-separated value" type file
     private boolean ignoreFirstRecord;
-    /// Sleep time to allow for queued ingestion to complete.
     private int waitForIngestSeconds;
-    /// Optional - Customized ingestion batching policy
     private String batchingPolicy;
+    private boolean useIngestV2Sample;
+    private IngestV2QuickstartConfig ingestV2Config;
 
     public boolean isUseExistingTable() {
         return useExistingTable;
@@ -239,6 +264,17 @@ class ConfigJson {
         return batchingPolicy;
     }
 
+    public boolean isUseIngestV2Sample() {
+        return useIngestV2Sample;
+    }
+
+    public IngestV2QuickstartConfig getIngestV2Config() {
+        if (ingestV2Config == null) {
+            ingestV2Config = new IngestV2QuickstartConfig();
+        }
+        return ingestV2Config;
+    }
+
     @Override
     public String toString() {
         return "ConfigJson{" +
@@ -258,7 +294,105 @@ class ConfigJson {
                 ", \nignoreFirstRecord=" + ignoreFirstRecord +
                 ", \nwaitForIngestSeconds=" + waitForIngestSeconds +
                 ", \nbatchingPolicy='" + batchingPolicy + '\'' +
+                ", \nuseIngestV2Sample=" + useIngestV2Sample +
+                ", \ningestV2Config=" + ingestV2Config +
                 "}\n";
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+class IngestV2QuickstartConfig {
+    private String clusterPath;
+    private final boolean trackingEnabled = true;
+    private final int maxConcurrency = 10;
+    private final int pollingIntervalSeconds = 30;
+    private final int pollingTimeoutMinutes = 2;
+    private final int overallTimeoutMinutes = 5;
+
+    private AuthenticationModeOptions authModeOverride;
+    private String appId;
+    private String appKey;
+    private String tenantId;
+    private String dataMappingName;
+
+    void applyDefaultsFromRoot(ConfigJson root) {
+        if (StringUtils.isBlank(clusterPath)) {
+            clusterPath = root.getKustoUri();
+        }
+        if (authModeOverride == null) {
+            authModeOverride = root.getAuthenticationMode();
+        }
+        if (authModeOverride == AuthenticationModeOptions.APP_KEY) {
+            if (StringUtils.isBlank(appId)) {
+                appId = System.getenv("APP_ID");
+            }
+            if (StringUtils.isBlank(appKey)) {
+                appKey = System.getenv("APP_KEY");
+            }
+            if (StringUtils.isBlank(tenantId)) {
+                tenantId = System.getenv("APP_TENANT");
+            }
+        }
+    }
+
+    public String getClusterPath() {
+        return clusterPath;
+    }
+
+    public AuthenticationModeOptions getAuthModeOverride() {
+        return authModeOverride;
+    }
+
+    public String getAppId() {
+        return appId;
+    }
+
+    public String getAppKey() {
+        return appKey;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public String getDataMappingName() {
+        return dataMappingName;
+    }
+
+    public boolean isTrackingEnabled() {
+        return trackingEnabled;
+    }
+
+    public int getMaxConcurrency() {
+        return maxConcurrency;
+    }
+
+    public int getPollingIntervalSeconds() {
+        return pollingIntervalSeconds;
+    }
+
+    public int getPollingTimeoutMinutes() {
+        return pollingTimeoutMinutes;
+    }
+
+    public int getOverallTimeoutMinutes() {
+        return overallTimeoutMinutes;
+    }
+
+    @Override
+    public String toString() {
+        return "IngestV2QuickstartConfig{" +
+                "clusterPath='" + clusterPath + '\'' +
+                ", authMode='" + authModeOverride + '\'' +
+                ", appId='" + appId + '\'' +
+                ", tenantId='" + tenantId + '\'' +
+                ", dataMappingName='" + dataMappingName + '\'' +
+                ", trackingEnabled=" + trackingEnabled +
+                ", maxConcurrency=" + maxConcurrency +
+                ", pollingIntervalSeconds=" + pollingIntervalSeconds +
+                ", pollingTimeoutMinutes=" + pollingTimeoutMinutes +
+                ", overallTimeoutMinutes=" + overallTimeoutMinutes +
+                '}';
     }
 }
 
@@ -270,9 +404,7 @@ class ConfigJson {
  * adapting the code to your needs.
  */
 public class SampleApp {
-    // TODO (config):
-    // If this quickstart app was downloaded from OneClick, kusto_sample_config.json should be pre-populated with your cluster's details.
-    // If this quickstart app was downloaded from GitHub, edit kusto_sample_config.json and modify the cluster URL and database fields appropriately.
+    private static final String CONFIG_ENV_OVERRIDE = "KUSTO_SAMPLE_CONFIG_PATH";
     private static final String configFileName = "quickstart/kusto_sample_config.json";
     private static int step = 1;
     private static boolean waitForUser;
@@ -288,11 +420,19 @@ public class SampleApp {
     private static void runSampleApp() {
         System.out.println("Kusto sample app is starting...");
         ConfigJson config = loadConfigs();
+        IngestV2QuickstartConfig ingestV2Config = config.getIngestV2Config();
+        ingestV2Config.applyDefaultsFromRoot(config);
         waitForUser = config.isWaitForUser();
 
         if (config.getAuthenticationMode() == AuthenticationModeOptions.USER_PROMPT) {
             waitForUserToProceed("You will be prompted *twice* for credentials during this script. Please return to the console after authenticating.");
         }
+
+        if (config.isUseIngestV2Sample()) {
+            runIngestV2Sample(config);
+            return;
+        }
+
         try {
             IngestClient ingestClient = IngestClientFactory.createClient(Utils.Authentication.generateConnectionString(config.getIngestUri(),
                     config.getAuthenticationMode()));
@@ -344,16 +484,14 @@ public class SampleApp {
      */
     @NotNull
     private static ConfigJson loadConfigs() {
-        File configFile = new File(".\\" + SampleApp.configFileName);
+        Path configPath = locateConfigFile();
         try {
-            ObjectMapper mapper = com.microsoft.azure.kusto.data.Utils.getObjectMapper();
-            mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS, true);
-            return mapper.readValue(configFile, ConfigJson.class);
-
+            ObjectMapper mapper = JsonMapper.builder().configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true).build();
+            return mapper.readValue(configPath.toFile(), ConfigJson.class);
         } catch (Exception e) {
-            Utils.errorHandler(String.format("Couldn't read config file from file '%s'", SampleApp.configFileName), e);
+            Utils.errorHandler(String.format("Couldn't read config file from file '%s'", configPath), e);
         }
-        return new ConfigJson(); // Note: will never reach here.
+        return new ConfigJson();
     }
 
     /**
@@ -405,10 +543,6 @@ public class SampleApp {
         // For more information about customizing the ingestion batching policy, see:
         // https://docs.microsoft.com/azure/data-explorer/kusto/management/batchingpolicy
         // TODO: Change if needed. Disabled to prevent an existing batching policy from being unintentionally changed
-        if (false && config.getBatchingPolicy() != null) {
-            waitForUserToProceed(String.format("Alter the batching policy for table '%s.%s'", config.getDatabaseName(), config.getTableName()));
-            alterBatchingPolicy(kustoClient, config.getDatabaseName(), config.getTableName(), config.getBatchingPolicy());
-        }
     }
 
     /**
@@ -590,5 +724,332 @@ public class SampleApp {
 
         waitForUserToProceed(String.format("Get sample (2 records) of %sdata:", optionalPostIngestionPrompt));
         queryFirstTwoRows(kustoClient, databaseName, tableName);
+    }
+
+    private static void runIngestV2Sample(@NotNull ConfigJson config) {
+        IngestV2QuickstartConfig ingestV2Config = config.getIngestV2Config();
+        String clusterPath = ingestV2Config.getClusterPath();
+        if (StringUtils.isBlank(clusterPath)) {
+            Utils.errorHandler("'kustoUri' must be provided to use the ingest-v2 sample.");
+        }
+
+        System.out.println("Running ingest-v2 quickstart sample...");
+        TokenCredential credential = buildIngestV2Credential(ingestV2Config);
+
+        try (QueuedIngestClient queuedIngestClient = QueuedIngestClientBuilder.create(clusterPath)
+                .withAuthentication(credential)
+                .withMaxConcurrency(ingestV2Config.getMaxConcurrency())
+                .build()) {
+            List<CompletableFuture<Void>> operations = new ArrayList<>();
+            operations.addAll(ingestV2FromStreams(config, ingestV2Config, queuedIngestClient));
+            operations.addAll(ingestV2FromFiles(config, ingestV2Config, queuedIngestClient));
+            operations.add(ingestV2BatchIngestion(config, ingestV2Config, queuedIngestClient));
+
+            CompletableFuture<Void> combined = CompletableFuture.allOf(operations.toArray(new CompletableFuture[0]));
+            combined.get(ingestV2Config.getOverallTimeoutMinutes(), TimeUnit.MINUTES);
+            System.out.println("All ingest-v2 operations completed successfully!");
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            Utils.errorHandler("Error running ingest-v2 quickstart sample", e);
+        }
+    }
+
+    private static TokenCredential buildIngestV2Credential(@NotNull IngestV2QuickstartConfig config) {
+        AuthenticationModeOptions mode = config.getAuthModeOverride();
+        if (mode == null) {
+            mode = AuthenticationModeOptions.USER_PROMPT;
+        }
+        if (mode == AuthenticationModeOptions.APP_KEY) {
+            if (StringUtils.isBlank(config.getAppId()) || StringUtils.isBlank(config.getAppKey()) || StringUtils.isBlank(config.getTenantId())) {
+                Utils.errorHandler("AppKey authentication requires 'APP_ID', 'APP_KEY', and 'APP_TENANT' environment variables or ingestV2 overrides.");
+            }
+            return new ClientSecretCredentialBuilder()
+                    .clientId(config.getAppId())
+                    .clientSecret(config.getAppKey())
+                    .tenantId(config.getTenantId())
+                    .build();
+        } else {
+            return new AzureCliCredentialBuilder().build();
+        }
+    }
+
+    private static @NotNull List<CompletableFuture<Void>> ingestV2FromStreams(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+            @NotNull QueuedIngestClient queuedIngestClient) throws IOException {
+        System.out.println("\n=== Queued ingestion from streams (ingest-v2) ===");
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
+        String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream csvStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
+        StreamSource csvSource = new StreamSource(csvStream, Format.csv, CompressionType.NONE, UUID.randomUUID(), false);
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), csvSource, csvProps)
+                .thenCompose(response -> {
+                    closeQuietly(csvStream);
+                    System.out.println("CSV stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
+                    return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV Stream");
+                }));
+
+        InputStream jsonStream = Files.newInputStream(resolveQuickstartPath("dataset.json"));
+        StreamSource jsonSource = new StreamSource(jsonStream, Format.json, CompressionType.NONE, UUID.randomUUID(), false);
+        IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), jsonSource, jsonProps)
+                .thenCompose(response -> {
+                    closeQuietly(jsonStream);
+                    System.out.println("JSON stream ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
+                    return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "JSON Stream");
+                }));
+
+        return futures;
+    }
+
+    private static @NotNull List<CompletableFuture<Void>> ingestV2FromFiles(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+            @NotNull QueuedIngestClient queuedIngestClient) {
+        System.out.println("\n=== Queued ingestion from files (ingest-v2) ===");
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        IngestRequestProperties csvProps = buildIngestV2RequestProperties(config, ingestV2Config, null);
+        FileSource csvFileSource = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), csvFileSource, csvProps)
+                .thenCompose(response -> {
+                    System.out.println("CSV file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
+                    return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "CSV File");
+                }));
+
+        FileSource jsonFileSource = new FileSource(resolveQuickstartPath("dataset.json"), Format.json, UUID.randomUUID(), CompressionType.NONE);
+        IngestRequestProperties jsonProps = buildIngestV2RequestProperties(config, ingestV2Config, ingestV2Config.getDataMappingName());
+        futures.add(queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), jsonFileSource, jsonProps)
+                .thenCompose(response -> {
+                    System.out.println("JSON file ingestion queued. Operation ID: " + response.getIngestResponse().getIngestionOperationId());
+                    return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "JSON File");
+                }));
+
+        return futures;
+    }
+
+    private static @NotNull CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
+                                                                           @NotNull QueuedIngestClient queuedIngestClient) {
+        System.out.println("\n=== Queued batch ingestion: Upload local files to blob, then ingest (ingest-v2) ===");
+        String clusterPath = ingestV2Config.getClusterPath();
+        TokenCredential credential = buildIngestV2Credential(ingestV2Config);
+
+        ConfigurationCache configCache = DefaultConfigurationCache.create(
+                clusterPath,
+                credential,
+                new ClientDetails("SampleApp", "1.0", "quickstart-sample"));
+
+        ManagedUploader uploader = ManagedUploader.builder()
+                .withConfigurationCache(configCache)
+                .withRetryPolicy(new SimpleRetryPolicy())
+                .withMaxConcurrency(ingestV2Config.getMaxConcurrency())
+                .withMaxDataSize(4L * 1024 * 1024 * 1024) // 4GB max size
+                .withUploadMethod(UploadMethod.STORAGE)
+                .withTokenCredential(credential)
+                .build();
+
+        System.out.println("ManagedUploader created for batch upload");
+
+        FileSource source1 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        FileSource source2 = new FileSource(resolveQuickstartPath("dataset.csv"), Format.csv, UUID.randomUUID(), CompressionType.NONE);
+        List<LocalSource> localSources = Arrays.asList(source1, source2);
+
+        System.out.println("Prepared " + localSources.size() + " local files for upload:");
+        for (LocalSource source : localSources) {
+            System.out.println("  - " + source.getName() + " (format: " + source.getFormat() + ")");
+        }
+
+        IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);
+
+
+        System.out.println("Uploading " + localSources.size() + " files to blob storage...");
+
+        return uploader.uploadManyAsyncJava(localSources)
+                .thenCompose(uploadResults -> {
+                    System.out.println("Upload completed:");
+                    System.out.println("  Successes: " + uploadResults.getSuccesses().size());
+                    System.out.println("  Failures: " + uploadResults.getFailures().size());
+
+                    for (UploadResult.Failure failure : uploadResults.getFailures()) {
+                        System.err.println("  Upload failed for " + failure.getSourceName()
+                                + ": " + failure.getErrorMessage());
+                    }
+
+                    List<BlobSource> blobSources = new ArrayList<>();
+                    for (UploadResult.Success success : uploadResults.getSuccesses()) {
+                        System.out.println("  Uploaded: " + success.getSourceName()
+                                + " -> " + success.getBlobUrl().split("\\?")[0]); // Hide SAS token in log
+
+                        BlobSource blobSource = new BlobSource(
+                                success.getBlobUrl(),
+                                Format.csv,  // All our files are CSV format
+                                UUID.randomUUID(),
+                                CompressionType.GZIP);
+                        blobSources.add(blobSource);
+                    }
+
+                    if (blobSources.isEmpty()) {
+                        return CompletableFuture.<Void>failedFuture(
+                                new RuntimeException("All uploads failed - nothing to ingest"));
+                    }
+
+                    System.out.println("Ingesting " + blobSources.size() + " blobs as a batch...");
+                    return queuedIngestClient.ingestAsyncJava(config.getDatabaseName(), config.getTableName(), blobSources, props)
+                            .thenCompose(response -> {
+                                System.out.println("Batch ingestion queued. Operation ID: "
+                                        + response.getIngestResponse().getIngestionOperationId());
+                                System.out.println("Number of sources in batch: " + blobSources.size());
+                                return trackIngestV2Operation(config, ingestV2Config, queuedIngestClient, response, "Batch Upload & Ingest");
+                            });
+                })
+                .whenComplete((unused, throwable) -> {
+                    uploader.close();
+                    System.out.println("ManagedUploader closed");
+                });
+    }
+
+    private static @NotNull IngestRequestProperties buildIngestV2RequestProperties(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config,
+            String mappingName) {
+        IngestRequestPropertiesBuilder builder = IngestRequestPropertiesBuilder
+                .create()
+                .withEnableTracking(ingestV2Config.isTrackingEnabled());
+        if (StringUtils.isNotBlank(mappingName)) {
+            // Only JSON samples are shown in the sample
+            com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping mapping = new com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping(
+                    mappingName,
+                    com.microsoft.azure.kusto.ingest.v2.common.models.mapping.IngestionMapping.IngestionMappingType.JSON);
+            builder.withIngestionMapping(mapping);
+        }
+        return builder.build();
+    }
+
+    private static @NotNull CompletableFuture<Void> trackIngestV2Operation(@NotNull ConfigJson config, @NotNull IngestV2QuickstartConfig ingestV2Config,
+            @NotNull QueuedIngestClient queuedIngestClient, @NotNull ExtendedIngestResponse response, String operationName) {
+        IngestionOperation operation = new IngestionOperation(
+                Objects.requireNonNull(response.getIngestResponse().getIngestionOperationId()),
+                config.getDatabaseName(),
+                config.getTableName(),
+                response.getIngestionType());
+
+        Duration pollInterval = Duration.ofSeconds(ingestV2Config.getPollingIntervalSeconds());
+        Duration pollTimeout = Duration.ofMinutes(ingestV2Config.getPollingTimeoutMinutes());
+
+        System.out.println("\n--- Tracking " + operationName + " ---");
+        return queuedIngestClient.getOperationDetailsAsyncJava(operation)
+                .thenCompose(initialDetails -> {
+                    System.out.println("[" + operationName + "] Initial Operation Details:");
+                    printIngestV2StatusResponse(initialDetails);
+                    System.out.println("[" + operationName + "] Polling for completion...");
+                    return queuedIngestClient.pollForCompletion(operation, pollInterval, pollTimeout);
+                })
+                .thenCompose(fin -> queuedIngestClient.getOperationDetailsAsyncJava(operation))
+                .thenAccept(finalDetails -> {
+                    System.out.println("[" + operationName + "] Final Operation Details:");
+                    printIngestV2StatusResponse(finalDetails);
+                    System.out.println("[" + operationName + "] Operation tracking completed.\n");
+                })
+                .exceptionally(error -> {
+                    System.err.println("[" + operationName + "] Error tracking operation: " + error.getMessage());
+                    error.printStackTrace();
+                    return null;
+                });
+    }
+
+    private static void printIngestV2StatusResponse(StatusResponse statusResponse) {
+        if (statusResponse == null) {
+            System.out.println("  Status: null");
+            return;
+        }
+        Status status = statusResponse.getStatus();
+        if (status != null) {
+            System.out.println("  Summary:");
+            System.out.println("    In Progress: " + status.getInProgress());
+            System.out.println("    Succeeded: " + status.getSucceeded());
+            System.out.println("    Failed: " + status.getFailed());
+            System.out.println("    Canceled: " + status.getCanceled());
+        }
+        List<BlobStatus> details = statusResponse.getDetails();
+        if (details != null && !details.isEmpty()) {
+            System.out.println("  Blob Details:");
+            for (int i = 0; i < details.size(); i++) {
+                BlobStatus blobStatus = details.get(i);
+                System.out.println("    Blob " + (i + 1) + ":");
+                System.out.println("      Source ID: " + blobStatus.getSourceId());
+                System.out.println("      Status: " + blobStatus.getStatus());
+                if (blobStatus.getDetails() != null) {
+                    System.out.println("      Details: " + blobStatus.getDetails());
+                }
+                if (blobStatus.getErrorCode() != null) {
+                    System.out.println("      Error Code: " + blobStatus.getErrorCode());
+                }
+                if (blobStatus.getFailureStatus() != null) {
+                    System.out.println("      Failure Status: " + blobStatus.getFailureStatus());
+                }
+            }
+        }
+    }
+
+    private static @NotNull Path resolveQuickstartPath(String fileName) {
+        Path preferred = Paths.get("quickstart", fileName);
+        if (Files.exists(preferred)) {
+            return preferred;
+        }
+        return Paths.get(fileName);
+    }
+
+    private static void closeQuietly(InputStream closeable) {
+        if (closeable == null) {
+            return;
+        }
+        try {
+            closeable.close();
+        } catch (IOException e) {
+            System.err.println("Failed to close resource: " + e.getMessage());
+        }
+    }
+
+    private static Path locateConfigFile() {
+        List<Path> candidates = new ArrayList<>();
+        String override = System.getenv(CONFIG_ENV_OVERRIDE);
+        if (StringUtils.isNotBlank(override)) {
+            candidates.add(Paths.get(override));
+        }
+        Path relative = Paths.get(configFileName);
+        candidates.add(relative);
+        candidates.add(Paths.get(System.getProperty("user.dir", ".")).resolve(relative));
+        try {
+            Path jarLocation = Paths.get(SampleApp.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path jarDir = jarLocation.getParent();
+            if (jarDir != null) {
+                candidates.add(jarDir.resolve(relative));
+                Path parent = jarDir.getParent();
+                if (parent != null) {
+                    candidates.add(parent.resolve(relative));
+                }
+            }
+        } catch (URISyntaxException ignored) {
+            // Fall through to default locations
+        }
+
+        return candidates.stream()
+                .map(Path::normalize)
+                .map(SampleApp::expandWithWorkingDirectory)
+                .filter(Files::exists)
+                .findFirst()
+                .orElseGet(() -> {
+                    Utils.errorHandler(String.format(
+                            "Couldn't find config file '%s'. Provide it next to the jar, pass an absolute path, or set %s.",
+                            configFileName,
+                            CONFIG_ENV_OVERRIDE));
+                    return relative;
+                });
+    }
+
+    private static Path expandWithWorkingDirectory(Path path) {
+        if (Files.exists(path)) {
+            return path;
+        }
+        Path justFileName = Paths.get(path.getFileName().toString());
+        return Files.exists(justFileName) ? justFileName : path;
     }
 }

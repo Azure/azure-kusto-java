@@ -1,0 +1,188 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+package com.microsoft.azure.kusto.ingest.v2
+
+import com.azure.core.credential.TokenCredential
+import com.azure.core.credential.TokenRequestContext
+import com.microsoft.azure.kusto.ingest.v2.apis.DefaultApi
+import com.microsoft.azure.kusto.ingest.v2.auth.endpoints.KustoTrustedEndpoints
+import com.microsoft.azure.kusto.ingest.v2.common.models.ClientDetails
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
+import com.microsoft.azure.kusto.ingest.v2.common.serialization.OffsetDateTimeSerializer
+import io.ktor.client.HttpClientConfig
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
+import io.ktor.http.ContentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import org.slf4j.LoggerFactory
+import java.time.OffsetDateTime
+import java.util.UUID
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+
+open class KustoBaseApiClient(
+    open val dmUrl: String,
+    open val tokenCredential: TokenCredential,
+    open val skipSecurityChecks: Boolean = false,
+    open val clientDetails: ClientDetails,
+    open val clientRequestIdPrefix: String = "KIC.execute",
+    open val s2sTokenProvider: (suspend () -> S2SToken)? = null,
+    open val s2sFabricPrivateLinkAccessContext: String? = null,
+) {
+    private val logger = LoggerFactory.getLogger(KustoBaseApiClient::class.java)
+
+    init {
+        // Validate endpoint is trusted unless security checks are skipped
+        // Note: dmUrl might be empty/null in some test scenarios (e.g., mocked clients)
+        // The null check is required for Java interop - Java callers can pass null despite Kotlin's
+        // non-null type
+        if (!skipSecurityChecks && dmUrl != null && dmUrl.isNotBlank()) {
+            KustoTrustedEndpoints.validateTrustedEndpoint(dmUrl)
+        }
+    }
+
+    protected val setupConfig: (HttpClientConfig<*>) -> Unit = { config ->
+        getClientConfig(config)
+    }
+
+    val engineUrl: String
+        get() = IngestClientBase.getQueryEndpoint(dmUrl) ?: dmUrl
+
+    val api: DefaultApi by lazy {
+        DefaultApi(baseUrl = dmUrl, httpClientConfig = setupConfig)
+    }
+
+    /**
+     * Retrieves a bearer token using the configured TokenCredential. This
+     * method is protected to allow testing of token refresh logic.
+     *
+     * @param tokenRequestContext The token request context with scopes
+     * @return BearerTokens containing the access token
+     */
+    protected open suspend fun getBearerToken(
+        tokenRequestContext: TokenRequestContext,
+    ): BearerTokens {
+        return try {
+            // Use suspendCancellableCoroutine to convert Mono to suspend function
+            suspendCancellableCoroutine { continuation ->
+                tokenCredential
+                    .getToken(tokenRequestContext)
+                    .subscribe(
+                        { accessToken ->
+                            val bearerTokens =
+                                BearerTokens(
+                                    accessToken =
+                                    accessToken.token,
+                                    refreshToken = null,
+                                )
+                            continuation.resume(bearerTokens)
+                        },
+                        { error ->
+                            continuation.resumeWithException(error)
+                        },
+                    )
+            }
+        } catch (e: Exception) {
+            // Handle token retrieval errors
+            logger.error("Error retrieving access token: ${e.message}", e)
+            throw e
+        }
+    }
+
+    private fun getClientConfig(config: HttpClientConfig<*>) {
+        config.install(DefaultRequest) {
+            header(HEADER_CONTENT_TYPE, ContentType.Application.Json.toString())
+            clientDetails.let { details ->
+                header(HEADER_MS_APP, details.effectiveApplicationForTracing)
+                header(HEADER_MS_USER, details.effectiveUserNameForTracing)
+                header(
+                    HEADER_MS_CLIENT_VERSION,
+                    details.effectiveClientVersionForTracing,
+                )
+            }
+
+            // Generate unique client request ID for tracing (format: prefix;uuid)
+            val clientRequestId = "$clientRequestIdPrefix;${UUID.randomUUID()}"
+            header(HEADER_MS_CLIENT_REQUEST_ID, clientRequestId)
+            header(HEADER_MS_VERSION, KUSTO_API_VERSION)
+            header(HEADER_CONNECTION, "keep-alive")
+            header(HEADER_ACCEPT, ContentType.Application.Json.toString())
+        }
+        val trc = TokenRequestContext().addScopes("$dmUrl/.default")
+        config.install(Auth) {
+            bearer {
+                loadTokens {
+                    // Always null so refreshTokens is always called
+                    null
+                }
+                refreshTokens { getBearerToken(trc) }
+            }
+        }
+
+        // Add S2S authorization and Fabric Private Link headers using request interceptor
+        s2sTokenProvider?.let { provider ->
+            config.install(
+                io.ktor.client.plugins.api.createClientPlugin(
+                    "S2SAuthPlugin",
+                ) {
+                    onRequest { request, _ ->
+                        try {
+                            // Get S2S token
+                            val s2sToken = provider()
+                            request.headers.append(
+                                HEADER_MS_S2S_ACTOR_AUTHORIZATION,
+                                s2sToken.toHeaderValue(),
+                            )
+
+                            // Add Fabric Private Link access context header
+                            s2sFabricPrivateLinkAccessContext?.let { context,
+                                ->
+                                request.headers.append(
+                                    HEADER_MS_FABRIC_S2S_ACCESS_CONTEXT,
+                                    context,
+                                )
+                            }
+                        } catch (e: Exception) {
+                            logger.error(
+                                "Error retrieving S2S token: ${e.message}",
+                                e,
+                            )
+                            throw e
+                        }
+                    }
+                },
+            )
+        }
+        config.install(ContentNegotiation) {
+            json(
+                Json {
+                    ignoreUnknownKeys = true
+                    serializersModule = SerializersModule {
+                        contextual(
+                            OffsetDateTime::class,
+                            OffsetDateTimeSerializer,
+                        )
+                    }
+                    // Optionally add other settings if needed:
+                    isLenient = true
+                    // allowSpecialFloatingPointValues = true
+                    // useArrayPolymorphism = true
+                },
+            )
+        }
+        /* TODO Check what these settings should be */
+        config.install(HttpTimeout) {
+            requestTimeoutMillis = KUSTO_API_REQUEST_TIMEOUT_MS
+            connectTimeoutMillis = KUSTO_API_CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = KUSTO_API_SOCKET_TIMEOUT_MS
+        }
+    }
+}
