@@ -5,12 +5,12 @@ package com.microsoft.azure.kusto.data;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
 
 import org.jetbrains.annotations.NotNull;
 
@@ -146,6 +146,31 @@ class ClientImpl extends BaseClient {
             KustoRequest kr = new KustoRequest(command, database == null ? defaultDatabaseName : database, properties);
             return executeWithTimeout(kr, ".executeToJsonResultAsync");
         });
+    }
+
+    @Override
+    public KustoResponseDataSetV2 executeQuery(String database, String query, ClientRequestProperties properties, KustoStreamingQueryOptions options) {
+        return executeQueryAsync(database, query, properties, options).block();
+    }
+
+    @Override
+    public Mono<KustoResponseDataSetV2> executeQueryAsync(String database, String query, ClientRequestProperties properties,
+            KustoStreamingQueryOptions options) {
+        Ensure.argIsNotNull(options, "options");
+        return executeStreamingQueryAsync(database == null ? defaultDatabaseName : database, query, properties)
+                .map(inputStream -> {
+                    try {
+                        KustoResponseDataSetV2 dataSet = new KustoResponseDataSetV2(inputStream);
+                        if (options.hasBatchRowCount()) {
+                            dataSet.setDefaultBatchRowCount(options.getMaxBatchRowCount());
+                        }
+                        return dataSet;
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                })
+                .onErrorMap(UncheckedIOException.class,
+                        e -> new DataClientException(clusterUrl, "Failed to parse streaming query response: " + e.getMessage(), e));
     }
 
     private Mono<KustoOperationResult> executeAsync(String database, String command, ClientRequestProperties properties, CommandType commandType) {

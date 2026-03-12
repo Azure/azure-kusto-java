@@ -153,4 +153,36 @@ public interface Client {
      * @return A {@link Mono} emitting the result of the query as a JSON string.
      */
     Mono<String> executeToJsonResultAsync(String database, String command, ClientRequestProperties properties);
+
+    /**
+     * Executes a query and returns a streaming V2 response that can be iterated row-by-row
+     * without loading the entire result set into memory.
+     * <p>
+     * The caller is responsible for closing the returned {@link KustoResponseDataSetV2} to release
+     * the underlying stream resources.
+     *
+     * @param database The name of the database.
+     * @param query The query to execute.
+     * @param properties Additional request properties (may be null).
+     * @param options Streaming query options controlling response handling.
+     * @return A {@link KustoResponseDataSetV2} for streaming row-by-row iteration.
+     * @throws DataServiceException If there is an error from the service.
+     * @throws DataClientException If there is an error on the client side.
+     * @see KustoStreamingQueryOptions
+     * @see StreamingDataTable
+     */
+    KustoResponseDataSetV2 executeQuery(String database, String query, ClientRequestProperties properties, KustoStreamingQueryOptions options)
+            throws DataServiceException, DataClientException;
+
+    /**
+     * Executes a query asynchronously and returns a streaming V2 response.
+     *
+     * @param database The name of the database.
+     * @param query The query to execute.
+     * @param properties Additional request properties (may be null).
+     * @param options Streaming query options controlling response handling.
+     * @return A {@link Mono} emitting a {@link KustoResponseDataSetV2} for streaming iteration.
+     * @see KustoStreamingQueryOptions
+     */
+    Mono<KustoResponseDataSetV2> executeQueryAsync(String database, String query, ClientRequestProperties properties, KustoStreamingQueryOptions options);
 }
