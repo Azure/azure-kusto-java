@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[BREAKING] Minimum Java version requirement updated to Java 11.** Previous versions supported Java 8. 
   Starting with version 8.0.0, Java 11 or later is required to use this SDK.
 
+## [7.0.6] - 2026-03-11
+
+### Fixed
+- Fixed `servertimeout` option being overriden from timespan string to numeric long value when reusing `ClientRequestProperties` across queries.
+
 ## [7.0.5] - 2025-12-24
 
 ### Fixed

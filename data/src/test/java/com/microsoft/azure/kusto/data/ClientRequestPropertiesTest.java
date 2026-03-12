@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import static com.microsoft.azure.kusto.data.ClientRequestProperties.OPTION_SERVER_TIMEOUT;
 
 class ClientRequestPropertiesTest {
@@ -58,7 +60,7 @@ class ClientRequestPropertiesTest {
 
         clientRequestProperties.setTimeoutInMilliSec(serverTimeoutOptionMillis);
         Assertions.assertEquals(clientRequestProperties.getTimeoutInMilliSec(), expectedMillis);
-        Assertions.assertEquals(clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT), expectedMillis);
+        Assertions.assertEquals(clientRequestProperties.getOption(OPTION_SERVER_TIMEOUT), expectedTimespan);
         Assertions.assertEquals(clientRequestProperties.getTimeoutAsCslTimespan(), expectedTimespan);
     }
 
@@ -255,6 +257,46 @@ class ClientRequestPropertiesTest {
         String timeString = "23:59:35.9853375";
         String result = new CslTimespanFormat(timeString).toString();
         Assertions.assertEquals("time(" + timeString + ")", result);
+    }
+
+    @Test
+    @DisplayName("setTimeoutInMilliSec fix: stores timespan string, round-trips correctly, serializes as text")
+    void setTimeoutInMilliSecFixValidation() throws JsonProcessingException {
+        ClientRequestProperties crp = new ClientRequestProperties();
+
+        // Stores as String timespan, not Long
+        crp.setTimeoutInMilliSec(600000L);
+        Assertions.assertInstanceOf(String.class, crp.getOption(OPTION_SERVER_TIMEOUT));
+        Assertions.assertEquals("00:10:00", crp.getOption(OPTION_SERVER_TIMEOUT));
+
+        // Millis round-trip is lossless
+        Assertions.assertEquals(600000L, crp.getTimeoutInMilliSec());
+
+        // JSON serializes as text, not number
+        JsonNode node = crp.toJson().get("Options").get(OPTION_SERVER_TIMEOUT);
+        Assertions.assertTrue(node.isTextual());
+        Assertions.assertFalse(node.isNumber());
+
+        // null stays null
+        crp.setTimeoutInMilliSec(null);
+        Assertions.assertNull(crp.getOption(OPTION_SERVER_TIMEOUT));
+
+        // Repeated set/get cycles don't drift
+        crp.setOption(OPTION_SERVER_TIMEOUT, "00:10:00");
+        for (int i = 0; i < 5; i++) {
+            crp.setTimeoutInMilliSec(crp.getTimeoutInMilliSec());
+        }
+        Assertions.assertEquals("00:10:00", crp.getOption(OPTION_SERVER_TIMEOUT));
+        Assertions.assertEquals(600000L, crp.getTimeoutInMilliSec());
+
+        // CRP reuse keeps string in payload (the original bug scenario)
+        String payload = crp.toString();
+        Assertions.assertTrue(payload.contains("\"servertimeout\":\"00:10:00\""));
+        Assertions.assertFalse(payload.contains("\"servertimeout\":600000"));
+
+        // fromString round-trip preserves value
+        ClientRequestProperties crp2 = ClientRequestProperties.fromString(crp.toString());
+        Assertions.assertEquals(600000L, crp2.getTimeoutInMilliSec());
     }
 
     @Test
