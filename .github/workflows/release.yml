@@ -98,6 +98,7 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
             staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}.jar
+            staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}-jar-with-dependencies.jar
             staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}-javadoc.jar
             staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}-sources.jar
             staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}.pom
