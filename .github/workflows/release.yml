@@ -20,15 +20,15 @@ on:
         upload_to_maven:
             description: 'Upload to Maven'
             required: false
-            default: false
+            default: 'false'
         github_release:
             description: 'Create Github release'
             required: false
-            default: false
+            default: 'false'
         upload_to_azure:
             description: 'Upload to Azure storage'
             required: false
-            default: false
+            default: 'false'
 
 jobs:
   release:
@@ -65,16 +65,22 @@ jobs:
           CI_EXECUTION: 1
       - name: Get version
         id: get_version
-        run: echo ::set-output name=VERSION::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        run: echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+      - name: Get ingest-v2 version
+        id: get_ingest_v2_version
+        run: echo "INGEST_V2_VERSION=$(mvn help:evaluate -pl ingest-v2 -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
       - name: Move artifacts to staging
         run: |
           version=${{ steps.get_version.outputs.VERSION }}
+          v2version=${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}
           mkdir staging
           cp data/target/*.jar staging
           cp ingest/target/*.jar staging
+          cp ingest-v2/target/*.jar staging
           cp quickstart/target/*.jar staging
           cp data/.flattened-pom.xml staging/kusto-data-$version.pom
           cp ingest/.flattened-pom.xml staging/kusto-ingest-$version.pom
+          cp ingest-v2/.flattened-pom.xml staging/kusto-ingest-v2-$v2version.pom
       - name: Github Release
         uses: docker://antonyurchenko/git-release:v6
         env:
@@ -91,6 +97,10 @@ jobs:
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-javadoc.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}-sources.jar
             staging/kusto-ingest-${{ steps.get_version.outputs.VERSION }}.pom
+            staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}.jar
+            staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}-javadoc.jar
+            staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}-sources.jar
+            staging/kusto-ingest-v2-${{ steps.get_ingest_v2_version.outputs.INGEST_V2_VERSION }}.pom
         continue-on-error: true
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.github_release == 'true') }}
       - name: Azure login for azuresdkpartnerdrops SA
@@ -116,4 +126,3 @@ jobs:
           azure-pipeline-name: 'java - partner-release'
           azure-template-parameters:  '{"BlobPath": "kusto/java/${{ steps.get_version.outputs.VERSION }}"}'
         if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.upload_to_maven == 'true') }}
-
