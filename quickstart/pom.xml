@@ -41,7 +41,7 @@
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <json.version>20201115</json.version>
         <ingest-v2.revision>0.0.1-beta</ingest-v2.revision>
-        <azure-identity.version>1.18.1</azure-identity.version>
+        <azure-identity.version>1.18.2</azure-identity.version>
     </properties>
 
     <build>
