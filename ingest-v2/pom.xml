@@ -10,6 +10,7 @@
         EventHouse on Fabric
     </description>
     <properties>
+        <azure-bom-version>1.3.6</azure-bom-version>
         <awaitility.version>4.3.0</awaitility.version>
         <kotlin.code.style>official</kotlin.code.style>
         <kotlin.version>2.2.10</kotlin.version>
