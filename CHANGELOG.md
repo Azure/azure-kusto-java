@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.7] - 2026-04-28
+
+### Fixed
+- Fixed double-application of the 30-second client grace period on every request.
+  In v7.0.6 a 30s grace was added in `ClientImpl.determineTimeout`, but `BaseClient.getContextTimeout`
+  was already adding the same 30s buffer (`EXTRA_TIMEOUT_FOR_CLIENT_SIDE`). The effective HTTP-client
+  timeout was `serverTimeout + 60s`; it is now restored to `serverTimeout + 30s`.
+
 ## [7.0.6] - 2026-03-11
 
 ### Fixed

@@ -45,7 +45,6 @@ class ClientImpl extends BaseClient {
     public static final String MGMT_ENDPOINT_VERSION = "v1";
     public static final String QUERY_ENDPOINT_VERSION = "v2";
     public static final String STREAMING_VERSION = "v1";
-    private static final Long CLIENT_GRACE_PERIOD_IN_MILLISECS = TimeUnit.SECONDS.toMillis(30);
     private static final Long COMMAND_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
     private static final Long QUERY_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(4);
     private static final Long STREAMING_INGEST_TIMEOUT_IN_MILLISECS = TimeUnit.MINUTES.toMillis(10);
@@ -412,7 +411,9 @@ class ClientImpl extends BaseClient {
                         "ClientImpl.executeStreamingQuery", updateAndGetExecuteTracingAttributes(kr.getDatabase(), properties)));
     }
 
-    private long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
+    // Package-private for testability. The 30s client-side grace is applied once in BaseClient.getContextTimeout
+    // (via EXTRA_TIMEOUT_FOR_CLIENT_SIDE); do not add it here as well or it will be applied twice.
+    long determineTimeout(ClientRequestProperties properties, CommandType commandType, String clusterUrl) {
         Object skipBoolean = properties.getOption(ClientRequestProperties.OPTION_NO_REQUEST_TIMEOUT);
         if (skipBoolean instanceof Boolean && (Boolean) skipBoolean) {
             return Long.MAX_VALUE;
@@ -440,7 +441,7 @@ class ClientImpl extends BaseClient {
         // If we set the timeout ourself, we need to update the server header
         properties.setTimeoutInMilliSec(timeoutMs);
 
-        return timeoutMs + CLIENT_GRACE_PERIOD_IN_MILLISECS;
+        return timeoutMs;
     }
 
     private Mono<String> getAuthorizationHeaderValueAsync() {
