@@ -40,6 +40,8 @@
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
         <slf4j.version>1.8.0-beta4</slf4j.version>
         <json.version>20201115</json.version>
+        <azure-identity.version>1.18.2</azure-identity.version>
+        <msal4j.version>1.24.1</msal4j.version>
     </properties>
 
     <build>
@@ -111,6 +113,11 @@
                 <version>1.31.0</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.microsoft.azure</groupId>
+                <artifactId>msal4j</artifactId>
+                <version>${msal4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
