@@ -1,15 +1,55 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
+import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class ClientTest {
+
+    @ParameterizedTest
+    @ValueSource(ints = {301, 302, 307, 308})
+    void testNoRedirectsClientFail(int code) throws IOException, URISyntaxException {
+        AtomicInteger redirectedRequests = new AtomicInteger();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            String path = exchange.getRequestURI().getPath();
+            int responseCode;
+            if (path.equals("/redirected")) {
+                redirectedRequests.incrementAndGet();
+                responseCode = 200;
+            } else if (path.equals("/v1/rest/auth/metadata")) {
+                responseCode = 404;
+            } else {
+                responseCode = code;
+                exchange.getResponseHeaders().set("Location", "/redirected");
+            }
+            exchange.sendResponseHeaders(responseCode, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String cluster = "http://127.0.0.1:" + server.getAddress().getPort();
+            Client client = ClientFactory.createClient(ConnectionStringBuilder.createWithAadAccessTokenAuthentication(cluster, "test-token"));
+            DataServiceException exception = Assertions.assertThrows(DataServiceException.class, () -> client.executeQuery("db", "table"));
+            Assertions.assertTrue(exception.getMessage().contains(Integer.toString(code)));
+            Assertions.assertFalse(exception.getMessage().contains("metadata"));
+            Assertions.assertEquals(0, redirectedRequests.get());
+        } finally {
+            server.stop(0);
+        }
+    }
 
     @Test
     @DisplayName("test url parsing")
