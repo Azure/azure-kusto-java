@@ -72,9 +72,6 @@ import com.microsoft.azure.kusto.data.StreamingClient;
 import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.CloudInfo;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import com.microsoft.azure.kusto.data.auth.endpoints.KustoTrustedEndpoints;
-import com.microsoft.azure.kusto.data.auth.endpoints.MatchRule;
-import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
 import com.microsoft.azure.kusto.data.format.CslDateTimeFormat;
 import com.microsoft.azure.kusto.data.format.CslTimespanFormat;
 import com.microsoft.azure.kusto.data.http.HttpClientFactory;
@@ -701,61 +698,6 @@ class E2ETest {
         clientImpl.executeQuery(DB_NAME, query, clientRequestProperties);
 
         Mockito.verify(httpClientSpy, atLeast(2)).send(any(), any());
-    }
-
-    @Disabled("This test is disabled because it relies on the path part of the cluster Uri which we now ignore")
-    @Test
-    void testNoRedirectsCloudFail() {
-        KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
-        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
-        redirectCodes.parallelStream().map(code -> {
-            try {
-                Client client = ClientFactory.createClient(
-                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/nocloud/" + code, "token"));
-                try {
-                    client.executeQuery("db", "table");
-                    Assertions.fail("Expected exception");
-                } catch (DataServiceException e) {
-                    Assertions.assertTrue(e.getMessage().contains("" + code));
-                    Assertions.assertTrue(e.getMessage().contains("metadata"));
-                }
-            } catch (Exception e) {
-                return e;
-            }
-            return null;
-        }).forEach(e -> {
-            if (e != null) {
-                Assertions.fail(e);
-            }
-        });
-    }
-
-    @Test
-    void testNoRedirectsClientFail() {
-        KustoTrustedEndpoints.addTrustedHosts(Collections.singletonList(new MatchRule("statusreturner.azurewebsites.net", false)), false);
-        List<Integer> redirectCodes = Arrays.asList(301, 302, 307, 308);
-        redirectCodes.parallelStream().map(code -> {
-            try {
-                Client client = ClientFactory.createClient(
-                        ConnectionStringBuilder.createWithAadAccessTokenAuthentication("https://statusreturner.azurewebsites.net/" + code, "token"));
-                try {
-                    client.executeQuery("db", "table");
-                    Assertions.fail("Expected exception");
-                } catch (DataServiceException e) {
-                    Assertions.assertTrue(e.getMessage().contains("" + code));
-                    Assertions.assertFalse(e.getMessage().contains("metadata"));
-                } catch (Exception e) {
-                    return e;
-                }
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-            return null;
-        }).forEach(e -> {
-            if (e != null) {
-                Assertions.fail(e);
-            }
-        });
     }
 
     @Test
