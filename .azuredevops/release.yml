@@ -44,6 +44,14 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
+  # Configure approvals/checks on the group and publishing connections.
+  # Required per destination:
+  # GitHub: GITHUB_SERVICE_CONNECTION
+  # Storage: AZURE_RELEASE_SERVICE_CONNECTION, AZURE_RELEASE_STORAGE_ACCOUNT,
+  #          AZURE_STORAGE_CONTAINER
+  # Maven: AZURE_RELEASE_SERVICE_CONNECTION, AZURE_PIPELINES_RELEASE_ORGANIZATION,
+  #        AZURE_PIPELINES_RELEASE_PROJECT
+  - group: azure-kusto-java-release
   - name: isTagPush
     value: $[and(ne(variables['Build.Reason'], 'Manual'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))]
 
@@ -51,8 +59,6 @@ jobs:
   - ${{ if eq(parameters.validateOnly, true) }}:
     - job: ValidateReleaseAuthentication
       displayName: Validate SDK authentication (read-only)
-      variables:
-        - group: azure-kusto-java-release
       steps:
         - checkout: none
 
@@ -175,14 +181,6 @@ jobs:
       dependsOn: PackageRelease
       condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToMaven, true) }}, ${{ eq(parameters.createGitHubRelease, true) }}, ${{ eq(parameters.uploadToAzure, true) }}))
       variables:
-        # Configure approvals/checks on the group and publishing connections.
-        # Required per destination:
-        # GitHub: GITHUB_SERVICE_CONNECTION
-        # Storage: AZURE_RELEASE_SERVICE_CONNECTION, AZURE_RELEASE_STORAGE_ACCOUNT,
-        #          AZURE_STORAGE_CONTAINER
-        # Maven: AZURE_RELEASE_SERVICE_CONNECTION, AZURE_PIPELINES_RELEASE_ORGANIZATION,
-        #        AZURE_PIPELINES_RELEASE_PROJECT
-        - group: azure-kusto-java-release
         - name: projectVersion
           value: $[ dependencies.PackageRelease.outputs['stageRelease.projectVersion'] ]
         - name: ingestV2Version
