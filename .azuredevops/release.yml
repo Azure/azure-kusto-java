@@ -1,0 +1,11 @@
+# Temporary Azure Pipelines release bootstrap for the Java SDK.
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - script: echo "Hello from Azure Pipelines release"
+    displayName: Hello world
