@@ -158,10 +158,10 @@ public class ConnectionStringBuilder {
             entries.put(KnownKeywords.USER_NAME_FOR_TRACING, userNameForTracing);
         }
         StringBuilder sb = new StringBuilder();
-        entries.forEach((key,value) -> sb.append(key.getCanonicalName())
-                        .append("=")
-                        .append((!showSecrets && key.isSecret()) ? SECRET_REPLACEMENT : value)
-                        .append(";"));
+        entries.forEach((key, value) -> sb.append(key.getCanonicalName())
+                .append("=")
+                .append((!showSecrets && key.isSecret()) ? SECRET_REPLACEMENT : value)
+                .append(";"));
 
         // Remove trailing semicolon if present
         String result = sb.toString();
@@ -631,7 +631,7 @@ public class ConnectionStringBuilder {
      *                         Example: "Kusto.MyConnector:{1.0.0}|App.{connector}:{0.5.3}|Kusto.MyField:{MyValue}"
      */
     public void setConnectorDetails(String name, String version, @Nullable String appName, @Nullable String appVersion, boolean sendUser,
-                                    @Nullable String overrideUser, Map<String, String> additionalFields) {
+            @Nullable String overrideUser, Map<String, String> additionalFields) {
         ClientDetails clientDetails = ClientDetails.fromConnectorDetails(name, version, sendUser, overrideUser, appName, appVersion, additionalFields);
         applicationNameForTracing = clientDetails.getApplicationForTracing();
         userNameForTracing = clientDetails.getUserNameForTracing();

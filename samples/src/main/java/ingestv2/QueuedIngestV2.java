@@ -140,10 +140,8 @@ public class QueuedIngestV2 {
         String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
 
         // Example 1: Ingest from in-memory CSV string
-        String csvData =
-                "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
-        InputStream csvInputStream =
-                new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
+        String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
+        InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
 
         try {
             StreamSource csvStreamSource = new StreamSource(csvInputStream, Format.csv);

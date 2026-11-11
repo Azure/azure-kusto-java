@@ -81,6 +81,7 @@ enum SourceType {
         return null;
     }
 }
+
 /**
  * AuthenticationModeOptions - represents the different options to authenticate to the system
  */
@@ -829,7 +830,7 @@ public class SampleApp {
     }
 
     private static @NotNull CompletableFuture<Void> ingestV2BatchIngestion(ConfigJson config, IngestV2QuickstartConfig ingestV2Config,
-                                                                           @NotNull QueuedIngestClient queuedIngestClient) {
+            @NotNull QueuedIngestClient queuedIngestClient) {
         System.out.println("\n=== Queued batch ingestion: Upload local files to blob, then ingest (ingest-v2) ===");
         String clusterPath = ingestV2Config.getClusterPath();
         TokenCredential credential = buildIngestV2Credential(ingestV2Config);
@@ -861,7 +862,6 @@ public class SampleApp {
 
         IngestRequestProperties props = buildIngestV2RequestProperties(config, ingestV2Config, null);
 
-
         System.out.println("Uploading " + localSources.size() + " files to blob storage...");
 
         return uploader.uploadManyAsyncJava(localSources)
@@ -882,7 +882,7 @@ public class SampleApp {
 
                         BlobSource blobSource = new BlobSource(
                                 success.getBlobUrl(),
-                                Format.csv,  // All our files are CSV format
+                                Format.csv, // All our files are CSV format
                                 UUID.randomUUID(),
                                 CompressionType.GZIP);
                         blobSources.add(blobSource);

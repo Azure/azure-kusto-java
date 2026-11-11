@@ -241,7 +241,6 @@ class UtilitiesTest {
                 arguments(TEST_STRING_WITH_MULTI_BYTE_CHARS, 5),
                 arguments(TEST_STRING_WITH_MULTI_BYTE_CHARS, 1024),
                 arguments("", 5),
-                arguments("Hello world, this is a simple test.", 5)
-        );
+                arguments("Hello world, this is a simple test.", 5));
     }
 }

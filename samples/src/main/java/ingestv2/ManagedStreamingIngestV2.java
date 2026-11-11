@@ -71,10 +71,10 @@ public class ManagedStreamingIngestV2 {
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
                 credential = new ClientSecretCredentialBuilder()
-                                        .clientId(appId)
-                                        .clientSecret(appKey)
-                                        .tenantId(tenant)
-                                        .build();
+                        .clientId(appId)
+                        .clientSecret(appKey)
+                        .tenantId(tenant)
+                        .build();
             } else {
                 credential = new AzureCliCredentialBuilder().build();
             }

@@ -69,12 +69,14 @@ class ResourceManagerTimerTest {
         final List<Date> refreshTimestamps = new ArrayList<>();
         AtomicBoolean gotHere = new AtomicBoolean(false);
         when(mockedClient.executeMgmtAsync(Commands.IDENTITY_GET_COMMAND))
-                .thenReturn(Mono.error(new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"))));
+                .thenReturn(Mono.error(
+                        new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error"))));
         when(mockedClient.executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND))
                 .thenAnswer(invocation -> {
                     refreshTimestamps.add(new Date());
                     gotHere.set(true);
-                    return Mono.error(new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error")));
+                    return Mono.error(
+                            new RuntimeException(BaseClient.createExceptionFromResponse("https://sample.kusto.windows.net", null, new Exception(), "error")));
                 });
 
         ResourceManager resourceManager = new ResourceManager(mockedClient, 1000L, 500L, null);
