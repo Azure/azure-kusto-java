@@ -17,6 +17,7 @@ jobs:
     # Fork PRs must not receive the variable group or Azure service connection.
     condition: and(succeeded(), or(ne(variables['Build.Reason'], 'PullRequest'), eq(variables['System.PullRequest.IsFork'], 'False')))
     strategy:
+      maxParallel: 1
       matrix:
         Java11:
           javaVersion: '11'
