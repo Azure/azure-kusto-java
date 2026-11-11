@@ -19,10 +19,6 @@ trigger:
 pr: none
 
 parameters:
-  - name: validateOnly
-    displayName: Validate SDK authentication only (no build or publishing)
-    type: boolean
-    default: false
   - name: sourceTag
     displayName: Tag to release (for example, refs/tags/v8.0.1)
     type: string
@@ -56,323 +52,285 @@ variables:
     value: $[and(ne(variables['Build.Reason'], 'Manual'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))]
 
 jobs:
-  - ${{ if eq(parameters.validateOnly, true) }}:
-    - job: ValidateReleaseAuthentication
-      displayName: Validate SDK authentication (read-only)
-      steps:
-        - checkout: none
+  - job: PackageRelease
+    displayName: Build and stage Java release
+    variables:
+      MAVEN_OPTS: -Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository
+    steps:
+      - checkout: self
+        clean: true
+        persistCredentials: false
+        fetchDepth: 0
 
-        - task: AzureCLI@2
-          displayName: Read Maven partner pipeline metadata
-          inputs:
-            azureSubscription: $(AZURE_RELEASE_SERVICE_CONNECTION)
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              set -euo pipefail
+      - bash: |
+          set -euo pipefail
 
-              pipeline_id="$(az rest \
-                --method get \
-                --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/build/definitions?api-version=7.1" \
-                --url-parameters 'name=java - partner-release' \
-                --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-                --query 'value[].id' \
-                --output tsv)"
-              if [[ ! "${pipeline_id}" =~ ^[1-9][0-9]*$ ]]; then
-                echo "Expected exactly one pipeline named 'java - partner-release' in ${RELEASE_PROJECT}; got IDs '${pipeline_id}'." >&2
-                exit 1
-              fi
+          if [[ "${BUILD_REASON}" == Manual && -n "${SOURCE_TAG}" ]]; then
+            release_tag="${SOURCE_TAG#refs/tags/}"
+          elif [[ "${BUILD_SOURCEBRANCH}" == refs/tags/* ]]; then
+            release_tag="${BUILD_SOURCEBRANCH#refs/tags/}"
+          else
+            echo "sourceTag is required when manually releasing from a branch." >&2
+            exit 1
+          fi
+          git check-ref-format "refs/tags/${release_tag}"
+          git fetch --no-tags origin "refs/tags/${release_tag}"
+          git checkout --detach FETCH_HEAD
 
-              az rest \
-                --method get \
-                --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/pipelines/${pipeline_id}?api-version=7.1" \
-                --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-                --query '{id:id,name:name}' \
-                --output json
-          env:
-            RELEASE_ORGANIZATION: $(AZURE_PIPELINES_RELEASE_ORGANIZATION)
-            RELEASE_PROJECT: $(AZURE_PIPELINES_RELEASE_PROJECT)
+          echo "##vso[task.setvariable variable=RELEASE_TAG]${release_tag}"
+        displayName: Check out the selected release tag
+        env:
+          SOURCE_TAG: ${{ parameters.sourceTag }}
 
-  - ${{ else }}:
-    - job: PackageRelease
-      displayName: Build and stage Java release
-      variables:
-        MAVEN_OPTS: -Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository
-      steps:
-        - checkout: self
-          clean: true
-          persistCredentials: false
-          fetchDepth: 0
+      - task: JavaToolInstaller@0
+        displayName: Use Java 11
+        inputs:
+          versionSpec: '11'
+          jdkArchitectureOption: x64
+          jdkSourceOption: PreInstalled
 
-        - bash: |
+      - task: Cache@2
+        displayName: Cache Maven dependencies
+        inputs:
+          key: 'maven | "$(Agent.OS)" | "11" | **/pom.xml'
+          restoreKeys: |
+            maven | "$(Agent.OS)" | "11"
+            maven | "$(Agent.OS)"
+          path: $(Pipeline.Workspace)/.m2/repository
+
+      - bash: mvn -B -ntp --update-snapshots -Dmaven.test.skip=true verify
+        displayName: Verify and package with tests skipped
+
+      - bash: |
+          set -euo pipefail
+
+          version="$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          v2version="$(mvn -B -ntp help:evaluate -pl ingest-v2 -Dexpression=project.version -q -DforceStdout)"
+
+          mkdir -p "${RELEASE_DIRECTORY}/staging"
+          cp data/target/*.jar ingest/target/*.jar ingest-v2/target/*.jar \
+            quickstart/target/*.jar "${RELEASE_DIRECTORY}/staging/"
+          cp data/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-data-${version}.pom"
+          cp ingest/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-ingest-${version}.pom"
+          cp ingest-v2/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-ingest-v2-${v2version}.pom"
+
+          if [[ -f CHANGELOG.md ]]; then
+            cp CHANGELOG.md "${RELEASE_DIRECTORY}/CHANGELOG.md"
+          fi
+
+          echo "##vso[task.setvariable variable=projectVersion;isOutput=true]${version}"
+          echo "##vso[task.setvariable variable=ingestV2Version;isOutput=true]${v2version}"
+          echo "##vso[task.setvariable variable=releaseTag;isOutput=true]${RELEASE_TAG}"
+          echo "##vso[task.setvariable variable=releaseCommit;isOutput=true]$(git rev-parse HEAD)"
+        name: stageRelease
+        displayName: Stage JARs, flattened POMs and release metadata
+        env:
+          RELEASE_TAG: $(RELEASE_TAG)
+          RELEASE_DIRECTORY: $(Build.ArtifactStagingDirectory)/release
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish staged release artifacts
+        inputs:
+          targetPath: $(Build.ArtifactStagingDirectory)/release
+          artifact: release
+
+  - job: PublishRelease
+    displayName: Publish Java release
+    dependsOn: PackageRelease
+    condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToMaven, true) }}, ${{ eq(parameters.createGitHubRelease, true) }}, ${{ eq(parameters.uploadToAzure, true) }}))
+    variables:
+      - name: projectVersion
+        value: $[ dependencies.PackageRelease.outputs['stageRelease.projectVersion'] ]
+      - name: ingestV2Version
+        value: $[ dependencies.PackageRelease.outputs['stageRelease.ingestV2Version'] ]
+      - name: releaseTag
+        value: $[ dependencies.PackageRelease.outputs['stageRelease.releaseTag'] ]
+      - name: releaseCommit
+        value: $[ dependencies.PackageRelease.outputs['stageRelease.releaseCommit'] ]
+      - name: releaseNotesReady
+        value: 'false'
+    steps:
+      - checkout: none
+
+      - task: DownloadPipelineArtifact@2
+        displayName: Download staged release artifacts
+        inputs:
+          artifact: release
+          targetPath: $(Pipeline.Workspace)/release
+
+      - task: GoTool@0
+        displayName: Use Go for the original changelog parser
+        condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
+        continueOnError: true
+        inputs:
+          version: '1.27.4'
+
+      - bash: |
+          set -euo pipefail
+
+          helper_directory="$(mktemp -d)"
+          trap 'rm -f -- "${helper_directory}/go.mod" "${helper_directory}/go.sum" "${helper_directory}/release-notes.go"; rmdir -- "${helper_directory}"' EXIT
+
+          # Reuse git-release:v6's pinned parser without adding a Go module to this repository.
+          release_source=https://raw.githubusercontent.com/anton-yurchenko/git-release/ec9c5b5c36b27eaffc628785b9183eae54601200
+          curl --fail --silent --show-error --location "${release_source}/go.mod" --output "${helper_directory}/go.mod"
+          curl --fail --silent --show-error --location "${release_source}/go.sum" --output "${helper_directory}/go.sum"
+
+          cat > "${helper_directory}/release-notes.go" <<'GO'
+          package main
+
+          import (
+            "fmt"
+            "os"
+            "regexp"
+            "strings"
+
+            changelog "github.com/anton-yurchenko/go-changelog"
+          )
+
+          func releaseNotes(tag, filename string) (string, error) {
+            if !regexp.MustCompile("^v?" + changelog.SemVerRegex + "$").MatchString(tag) {
+              return "", fmt.Errorf("GitHub release tag %q is not a semantic version", tag)
+            }
+            if _, err := os.Stat(filename); err != nil {
+              if os.IsNotExist(err) {
+                fmt.Fprintf(os.Stderr, "Warning: %s not found; creating the GitHub release without notes.\n", filename)
+                return "", nil
+              }
+              return "", fmt.Errorf("checking changelog: %w", err)
+            }
+            parser, err := changelog.NewParser(filename)
+            if err != nil {
+              return "", fmt.Errorf("loading changelog: %w", err)
+            }
+            changes, err := parser.Parse()
+            if err != nil {
+              return "", fmt.Errorf("parsing changelog: %w", err)
+            }
+            version := strings.TrimPrefix(tag, "v")
+            release := changes.GetRelease(version)
+            if release == nil {
+              return "", fmt.Errorf("changelog does not contain version %s", version)
+            }
+            if release.Changes == nil {
+              return "", fmt.Errorf("changelog does not contain changes for version %s", version)
+            }
+            return release.Changes.ToString(), nil
+          }
+
+          func main() {
+            notes, err := releaseNotes(os.Args[1], os.Args[2])
+            if err == nil {
+              err = os.WriteFile(os.Args[3], []byte(notes), 0644)
+            }
+            if err != nil {
+              fmt.Fprintf(os.Stderr, "Unable to prepare GitHub release notes: %v\n", err)
+              os.Exit(1)
+            }
+          }
+          GO
+
+          (
+            cd "${helper_directory}"
+            go run -mod=readonly release-notes.go "${RELEASE_TAG}" \
+              "${RELEASE_DIRECTORY}/CHANGELOG.md" "${RELEASE_DIRECTORY}/release-notes.md"
+          )
+
+          echo "##vso[task.setvariable variable=releaseNotesReady]true"
+        displayName: Validate GitHub tag and prepare original release notes
+        condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
+        continueOnError: true
+        env:
+          RELEASE_TAG: $(releaseTag)
+          RELEASE_DIRECTORY: $(Pipeline.Workspace)/release
+
+      - task: GitHubRelease@1
+        displayName: Create GitHub release
+        condition: and(succeeded(), eq(variables['releaseNotesReady'], 'true'), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
+        continueOnError: true
+        inputs:
+          gitHubConnection: $(GITHUB_SERVICE_CONNECTION)
+          repositoryName: Azure/azure-kusto-java
+          action: create
+          target: $(releaseCommit)
+          tagSource: userSpecifiedTag
+          tag: $(releaseTag)
+          title: $(releaseTag)
+          releaseNotesSource: filePath
+          releaseNotesFilePath: $(Pipeline.Workspace)/release/release-notes.md
+          isDraft: false
+          isPreRelease: false
+          assets: |
+            $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion).jar
+            $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-jar-with-dependencies.jar
+            $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-javadoc.jar
+            $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-sources.jar
+            $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion).pom
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion).jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-jar-with-dependencies.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-javadoc.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-sources.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion).pom
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version).jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-jar-with-dependencies.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-javadoc.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-sources.jar
+            $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version).pom
+          addChangeLog: false
+
+      - task: AzureCLI@2
+        displayName: Upload artifacts to Azure Storage
+        condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToAzure, true) }}))
+        inputs:
+          azureSubscription: $(AZURE_RELEASE_SERVICE_CONNECTION)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
             set -euo pipefail
 
-            if [[ "${BUILD_REASON}" == Manual && -n "${SOURCE_TAG}" ]]; then
-              release_tag="${SOURCE_TAG#refs/tags/}"
-            elif [[ "${BUILD_SOURCEBRANCH}" == refs/tags/* ]]; then
-              release_tag="${BUILD_SOURCEBRANCH#refs/tags/}"
-            else
-              echo "sourceTag is required when manually releasing from a branch." >&2
+            az storage blob upload-batch \
+              --account-name "${STORAGE_ACCOUNT}" \
+              --destination "${STORAGE_CONTAINER}/kusto/java/${PROJECT_VERSION}" \
+              --source "${RELEASE_DIRECTORY}/staging" \
+              --auth-mode login
+        env:
+          STORAGE_ACCOUNT: $(AZURE_RELEASE_STORAGE_ACCOUNT)
+          STORAGE_CONTAINER: $(AZURE_STORAGE_CONTAINER)
+          PROJECT_VERSION: $(projectVersion)
+          RELEASE_DIRECTORY: $(Pipeline.Workspace)/release
+
+      # As in GitHub, Maven publication queues the partner pipeline; it is not mvn deploy.
+      # If uploadToAzure is false, the versioned blobs must already exist.
+      - task: AzureCLI@2
+        displayName: Trigger Maven partner release
+        condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToMaven, true) }}))
+        inputs:
+          azureSubscription: $(AZURE_RELEASE_SERVICE_CONNECTION)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            set -euo pipefail
+
+            pipeline_id="$(az rest \
+              --method get \
+              --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/build/definitions?api-version=7.1" \
+              --url-parameters 'name=java - partner-release' \
+              --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+              --query 'value[].id' \
+              --output tsv)"
+            if [[ ! "${pipeline_id}" =~ ^[1-9][0-9]*$ ]]; then
+              echo "Expected exactly one pipeline named 'java - partner-release' in ${RELEASE_PROJECT}; got IDs '${pipeline_id}'." >&2
               exit 1
             fi
-            git check-ref-format "refs/tags/${release_tag}"
-            git fetch --no-tags origin "refs/tags/${release_tag}"
-            git checkout --detach FETCH_HEAD
 
-            echo "##vso[task.setvariable variable=RELEASE_TAG]${release_tag}"
-          displayName: Check out the selected release tag
-          env:
-            SOURCE_TAG: ${{ parameters.sourceTag }}
-
-        - task: JavaToolInstaller@0
-          displayName: Use Java 11
-          inputs:
-            versionSpec: '11'
-            jdkArchitectureOption: x64
-            jdkSourceOption: PreInstalled
-
-        - task: Cache@2
-          displayName: Cache Maven dependencies
-          inputs:
-            key: 'maven | "$(Agent.OS)" | "11" | **/pom.xml'
-            restoreKeys: |
-              maven | "$(Agent.OS)" | "11"
-              maven | "$(Agent.OS)"
-            path: $(Pipeline.Workspace)/.m2/repository
-
-        - bash: mvn -B -ntp --update-snapshots -Dmaven.test.skip=true verify
-          displayName: Verify and package with tests skipped
-
-        - bash: |
-            set -euo pipefail
-
-            version="$(mvn -B -ntp help:evaluate -Dexpression=project.version -q -DforceStdout)"
-            v2version="$(mvn -B -ntp help:evaluate -pl ingest-v2 -Dexpression=project.version -q -DforceStdout)"
-
-            mkdir -p "${RELEASE_DIRECTORY}/staging"
-            cp data/target/*.jar ingest/target/*.jar ingest-v2/target/*.jar \
-              quickstart/target/*.jar "${RELEASE_DIRECTORY}/staging/"
-            cp data/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-data-${version}.pom"
-            cp ingest/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-ingest-${version}.pom"
-            cp ingest-v2/.flattened-pom.xml "${RELEASE_DIRECTORY}/staging/kusto-ingest-v2-${v2version}.pom"
-
-            if [[ -f CHANGELOG.md ]]; then
-              cp CHANGELOG.md "${RELEASE_DIRECTORY}/CHANGELOG.md"
-            fi
-
-            echo "##vso[task.setvariable variable=projectVersion;isOutput=true]${version}"
-            echo "##vso[task.setvariable variable=ingestV2Version;isOutput=true]${v2version}"
-            echo "##vso[task.setvariable variable=releaseTag;isOutput=true]${RELEASE_TAG}"
-            echo "##vso[task.setvariable variable=releaseCommit;isOutput=true]$(git rev-parse HEAD)"
-          name: stageRelease
-          displayName: Stage JARs, flattened POMs and release metadata
-          env:
-            RELEASE_TAG: $(RELEASE_TAG)
-            RELEASE_DIRECTORY: $(Build.ArtifactStagingDirectory)/release
-
-        - task: PublishPipelineArtifact@1
-          displayName: Publish staged release artifacts
-          inputs:
-            targetPath: $(Build.ArtifactStagingDirectory)/release
-            artifact: release
-
-    - job: PublishRelease
-      displayName: Publish Java release
-      dependsOn: PackageRelease
-      condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToMaven, true) }}, ${{ eq(parameters.createGitHubRelease, true) }}, ${{ eq(parameters.uploadToAzure, true) }}))
-      variables:
-        - name: projectVersion
-          value: $[ dependencies.PackageRelease.outputs['stageRelease.projectVersion'] ]
-        - name: ingestV2Version
-          value: $[ dependencies.PackageRelease.outputs['stageRelease.ingestV2Version'] ]
-        - name: releaseTag
-          value: $[ dependencies.PackageRelease.outputs['stageRelease.releaseTag'] ]
-        - name: releaseCommit
-          value: $[ dependencies.PackageRelease.outputs['stageRelease.releaseCommit'] ]
-        - name: releaseNotesReady
-          value: 'false'
-      steps:
-        - checkout: none
-
-        - task: DownloadPipelineArtifact@2
-          displayName: Download staged release artifacts
-          inputs:
-            artifact: release
-            targetPath: $(Pipeline.Workspace)/release
-
-        - task: GoTool@0
-          displayName: Use Go for the original changelog parser
-          condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
-          continueOnError: true
-          inputs:
-            version: '1.27.4'
-
-        - bash: |
-            set -euo pipefail
-
-            helper_directory="$(mktemp -d)"
-            trap 'rm -f -- "${helper_directory}/go.mod" "${helper_directory}/go.sum" "${helper_directory}/release-notes.go"; rmdir -- "${helper_directory}"' EXIT
-
-            # Reuse git-release:v6's pinned parser without adding a Go module to this repository.
-            release_source=https://raw.githubusercontent.com/anton-yurchenko/git-release/ec9c5b5c36b27eaffc628785b9183eae54601200
-            curl --fail --silent --show-error --location "${release_source}/go.mod" --output "${helper_directory}/go.mod"
-            curl --fail --silent --show-error --location "${release_source}/go.sum" --output "${helper_directory}/go.sum"
-
-            cat > "${helper_directory}/release-notes.go" <<'GO'
-            package main
-
-            import (
-              "fmt"
-              "os"
-              "regexp"
-              "strings"
-
-              changelog "github.com/anton-yurchenko/go-changelog"
-            )
-
-            func releaseNotes(tag, filename string) (string, error) {
-              if !regexp.MustCompile("^v?" + changelog.SemVerRegex + "$").MatchString(tag) {
-                return "", fmt.Errorf("GitHub release tag %q is not a semantic version", tag)
-              }
-              if _, err := os.Stat(filename); err != nil {
-                if os.IsNotExist(err) {
-                  fmt.Fprintf(os.Stderr, "Warning: %s not found; creating the GitHub release without notes.\n", filename)
-                  return "", nil
-                }
-                return "", fmt.Errorf("checking changelog: %w", err)
-              }
-              parser, err := changelog.NewParser(filename)
-              if err != nil {
-                return "", fmt.Errorf("loading changelog: %w", err)
-              }
-              changes, err := parser.Parse()
-              if err != nil {
-                return "", fmt.Errorf("parsing changelog: %w", err)
-              }
-              version := strings.TrimPrefix(tag, "v")
-              release := changes.GetRelease(version)
-              if release == nil {
-                return "", fmt.Errorf("changelog does not contain version %s", version)
-              }
-              if release.Changes == nil {
-                return "", fmt.Errorf("changelog does not contain changes for version %s", version)
-              }
-              return release.Changes.ToString(), nil
-            }
-
-            func main() {
-              notes, err := releaseNotes(os.Args[1], os.Args[2])
-              if err == nil {
-                err = os.WriteFile(os.Args[3], []byte(notes), 0644)
-              }
-              if err != nil {
-                fmt.Fprintf(os.Stderr, "Unable to prepare GitHub release notes: %v\n", err)
-                os.Exit(1)
-              }
-            }
-            GO
-
-            (
-              cd "${helper_directory}"
-              go run -mod=readonly release-notes.go "${RELEASE_TAG}" \
-                "${RELEASE_DIRECTORY}/CHANGELOG.md" "${RELEASE_DIRECTORY}/release-notes.md"
-            )
-
-            echo "##vso[task.setvariable variable=releaseNotesReady]true"
-          displayName: Validate GitHub tag and prepare original release notes
-          condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
-          continueOnError: true
-          env:
-            RELEASE_TAG: $(releaseTag)
-            RELEASE_DIRECTORY: $(Pipeline.Workspace)/release
-
-        - task: GitHubRelease@1
-          displayName: Create GitHub release
-          condition: and(succeeded(), eq(variables['releaseNotesReady'], 'true'), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.createGitHubRelease, true) }}))
-          continueOnError: true
-          inputs:
-            gitHubConnection: $(GITHUB_SERVICE_CONNECTION)
-            repositoryName: Azure/azure-kusto-java
-            action: create
-            target: $(releaseCommit)
-            tagSource: userSpecifiedTag
-            tag: $(releaseTag)
-            title: $(releaseTag)
-            releaseNotesSource: filePath
-            releaseNotesFilePath: $(Pipeline.Workspace)/release/release-notes.md
-            isDraft: false
-            isPreRelease: false
-            assets: |
-              $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion).jar
-              $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-jar-with-dependencies.jar
-              $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-javadoc.jar
-              $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion)-sources.jar
-              $(Pipeline.Workspace)/release/staging/kusto-data-$(projectVersion).pom
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion).jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-jar-with-dependencies.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-javadoc.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion)-sources.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-$(projectVersion).pom
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version).jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-jar-with-dependencies.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-javadoc.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version)-sources.jar
-              $(Pipeline.Workspace)/release/staging/kusto-ingest-v2-$(ingestV2Version).pom
-            addChangeLog: false
-
-        - task: AzureCLI@2
-          displayName: Upload artifacts to Azure Storage
-          condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToAzure, true) }}))
-          inputs:
-            azureSubscription: $(AZURE_RELEASE_SERVICE_CONNECTION)
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              set -euo pipefail
-
-              az storage blob upload-batch \
-                --account-name "${STORAGE_ACCOUNT}" \
-                --destination "${STORAGE_CONTAINER}/kusto/java/${PROJECT_VERSION}" \
-                --source "${RELEASE_DIRECTORY}/staging" \
-                --auth-mode login
-          env:
-            STORAGE_ACCOUNT: $(AZURE_RELEASE_STORAGE_ACCOUNT)
-            STORAGE_CONTAINER: $(AZURE_STORAGE_CONTAINER)
-            PROJECT_VERSION: $(projectVersion)
-            RELEASE_DIRECTORY: $(Pipeline.Workspace)/release
-
-        # As in GitHub, Maven publication queues the partner pipeline; it is not mvn deploy.
-        # If uploadToAzure is false, the versioned blobs must already exist.
-        - task: AzureCLI@2
-          displayName: Trigger Maven partner release
-          condition: and(succeeded(), or(eq(variables['isTagPush'], 'True'), ${{ eq(parameters.uploadToMaven, true) }}))
-          inputs:
-            azureSubscription: $(AZURE_RELEASE_SERVICE_CONNECTION)
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              set -euo pipefail
-
-              pipeline_id="$(az rest \
-                --method get \
-                --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/build/definitions?api-version=7.1" \
-                --url-parameters 'name=java - partner-release' \
-                --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-                --query 'value[].id' \
-                --output tsv)"
-              if [[ ! "${pipeline_id}" =~ ^[1-9][0-9]*$ ]]; then
-                echo "Expected exactly one pipeline named 'java - partner-release' in ${RELEASE_PROJECT}; got IDs '${pipeline_id}'." >&2
-                exit 1
-              fi
-
-              az rest \
-                --method post \
-                --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/pipelines/${pipeline_id}/runs?api-version=7.1" \
-                --resource 499b84ac-1321-427f-aa17-267ca6975798 \
-                --body "{\"templateParameters\":{\"BlobPath\":\"kusto/java/${PROJECT_VERSION}\"}}" \
-                --query '{id:id,url:url}' \
-                --output json
-          env:
-            RELEASE_ORGANIZATION: $(AZURE_PIPELINES_RELEASE_ORGANIZATION)
-            RELEASE_PROJECT: $(AZURE_PIPELINES_RELEASE_PROJECT)
-            PROJECT_VERSION: $(projectVersion)
+            az rest \
+              --method post \
+              --url "${RELEASE_ORGANIZATION%/}/${RELEASE_PROJECT}/_apis/pipelines/${pipeline_id}/runs?api-version=7.1" \
+              --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+              --body "{\"templateParameters\":{\"BlobPath\":\"kusto/java/${PROJECT_VERSION}\"}}" \
+              --query '{id:id,url:url}' \
+              --output json
+        env:
+          RELEASE_ORGANIZATION: $(AZURE_PIPELINES_RELEASE_ORGANIZATION)
+          RELEASE_PROJECT: $(AZURE_PIPELINES_RELEASE_PROJECT)
+          PROJECT_VERSION: $(projectVersion)
