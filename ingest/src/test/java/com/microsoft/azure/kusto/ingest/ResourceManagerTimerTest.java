@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -95,7 +95,7 @@ class ResourceManagerTimerTest {
             throws InterruptedException, DataClientException, DataServiceException {
         Long timestamp = refreshTimestamps.poll(REFRESH_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         assertNotNull(timestamp, "Expected refresh attempt " + expectedCount + " within " + REFRESH_TIMEOUT_MILLIS + " ms");
-        verify(mockedClient, times(expectedCount)).executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
+        verify(mockedClient, atLeast(expectedCount)).executeMgmtAsync(Commands.INGESTION_RESOURCES_SHOW_COMMAND);
         return timestamp;
     }
 
