@@ -7,6 +7,7 @@ import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.SimpleRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 
 class ManagedUploader
 internal constructor(
@@ -17,6 +18,8 @@ internal constructor(
     uploadMethod: UploadMethod = UploadMethod.DEFAULT,
     ingestRetryPolicy: IngestRetryPolicy = SimpleRetryPolicy(),
     tokenCredential: TokenCredential? = null,
+    s2sTokenProvider: (suspend () -> S2SToken)? = null,
+    s2sFabricPrivateLinkAccessContext: String? = null,
 ) :
     ContainerUploaderBase(
         maxConcurrency = maxConcurrency,
@@ -25,6 +28,9 @@ internal constructor(
         uploadMethod = uploadMethod,
         retryPolicy = ingestRetryPolicy,
         tokenCredential = tokenCredential,
+        s2sTokenProvider = s2sTokenProvider,
+        s2sFabricPrivateLinkAccessContext =
+        s2sFabricPrivateLinkAccessContext,
     ) {
 
     companion object {

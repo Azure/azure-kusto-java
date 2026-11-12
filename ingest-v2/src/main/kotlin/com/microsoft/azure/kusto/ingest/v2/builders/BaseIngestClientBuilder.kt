@@ -160,6 +160,13 @@ abstract class BaseIngestClientBuilder<T : BaseIngestClientBuilder<T>> {
             .withMaxConcurrency(maxConcurrency)
             .withMaxDataSize(maxDataSize)
             .apply { tokenCredential?.let { withTokenCredential(it) } }
+            .apply {
+                s2sTokenProvider?.let { provider ->
+                    s2sFabricPrivateLinkAccessContext?.let { context ->
+                        withFabricPrivateLink(provider, context)
+                    }
+                }
+            }
             .build()
     }
 }

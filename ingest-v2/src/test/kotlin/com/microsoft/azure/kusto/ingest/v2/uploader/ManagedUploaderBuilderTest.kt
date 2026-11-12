@@ -5,6 +5,7 @@ package com.microsoft.azure.kusto.ingest.v2.uploader
 import com.azure.core.credential.TokenCredential
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -176,5 +177,28 @@ class ManagedUploaderBuilderTest {
                 .build()
 
         assertNotNull(uploader)
+    }
+
+    @Test
+    fun `withFabricPrivateLink with valid context should succeed`() {
+        val uploader =
+            ManagedUploaderBuilder.create()
+                .withConfigurationCache(mockConfigurationCache)
+                .withTokenCredential(mockTokenCredential)
+                .withFabricPrivateLink(
+                    { S2SToken.bearer("token") },
+                    "workspace-context",
+                )
+                .build()
+
+        assertNotNull(uploader)
+    }
+
+    @Test
+    fun `withFabricPrivateLink with blank context should throw exception`() {
+        val builder = ManagedUploaderBuilder.create()
+        assertThrows<IllegalArgumentException> {
+            builder.withFabricPrivateLink({ S2SToken.bearer("token") }, "  ")
+        }
     }
 }
