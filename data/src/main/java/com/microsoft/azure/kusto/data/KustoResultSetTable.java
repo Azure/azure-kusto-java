@@ -46,7 +46,7 @@ public class KustoResultSetTable {
     private static final DateTimeFormatter kustoDateTimeFormatter = new DateTimeFormatterBuilder().parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE_TIME).appendLiteral('Z').toFormatter();
 
-    private static final DateTimeFormatterBuilder  parseFormatterBuilder = new DateTimeFormatterBuilder()
+    private static final DateTimeFormatterBuilder parseFormatterBuilder = new DateTimeFormatterBuilder()
             .appendPattern("yyyy-MM-dd")
             .optionalStart().appendLiteral('T').optionalEnd() // Optional 'T' between date and time
             .appendPattern("HH:mm:") // Required time part

@@ -23,10 +23,10 @@ public class ClientDetails {
     }
 
     private static String unpackLazy(DefaultValues key) {
-        if(DefaultValues.DEFAULT_APPLICATION == key) {
+        if (DefaultValues.DEFAULT_APPLICATION == key) {
             return defaultValues.computeIfAbsent(key,
-                    k->UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command")));
-        } else if(DefaultValues.DEFAULT_USER == key) {
+                    k -> UriUtils.stripFileNameFromCommandLine(System.getProperty("sun.java.command")));
+        } else if (DefaultValues.DEFAULT_USER == key) {
             return defaultValues.computeIfAbsent(key, k -> {
                 String user = System.getProperty("user.name");
                 if (StringUtils.isBlank(user)) {
@@ -38,9 +38,9 @@ public class ClientDetails {
                 }
                 return StringUtils.isNotBlank(user) ? user : NONE;
             });
-        } else if(DefaultValues.DEFAULT_VERSION == key) {
+        } else if (DefaultValues.DEFAULT_VERSION == key) {
             return defaultValues.computeIfAbsent(key, k -> {
-                Map<String,String> baseMap = new LinkedHashMap<>();
+                Map<String, String> baseMap = new LinkedHashMap<>();
                 baseMap.put("Kusto.Java.Client", Utils.getPackageVersion());
                 baseMap.put(String.format("Runtime.%s", escapeField(getRuntime())), getJavaVersion());
                 return formatHeader(baseMap);
@@ -57,9 +57,8 @@ public class ClientDetails {
      * @return The formatted string, for example: "field1:{value1}|field2:{value2}"
      */
     private static String formatHeader(Map<String, String> args) {
-        return args.entrySet().stream().
-                filter(arg -> StringUtils.isNotBlank(arg.getKey())
-                        && StringUtils.isNotBlank(arg.getValue()))
+        return args.entrySet().stream().filter(arg -> StringUtils.isNotBlank(arg.getKey())
+                && StringUtils.isNotBlank(arg.getValue()))
                 .map(arg -> String.format("%s:%s", arg.getKey(), escapeField(arg.getValue())))
                 .collect(Collectors.joining("|"));
     }

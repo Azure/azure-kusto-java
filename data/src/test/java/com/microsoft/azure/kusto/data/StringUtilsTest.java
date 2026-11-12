@@ -83,12 +83,12 @@ class StringUtilsTest {
     @DisplayName("isNotBlank should match Apache Commons Lang3 specification examples")
     void isNotBlank_ApacheCommonsSpecificationExamples() {
         // Direct examples from Apache Commons Lang3 documentation:
-        // StringUtils.isNotBlank(null)      = false
-        // StringUtils.isNotBlank("")        = false
-        // StringUtils.isNotBlank(" ")       = false
-        // StringUtils.isNotBlank("bob")     = true
-        // StringUtils.isNotBlank("  bob  ") = true
-        
+        // StringUtils.isNotBlank(null) = false
+        // StringUtils.isNotBlank("") = false
+        // StringUtils.isNotBlank(" ") = false
+        // StringUtils.isNotBlank("bob") = true
+        // StringUtils.isNotBlank(" bob ") = true
+
         assertFalse(StringUtils.isNotBlank(null), "isNotBlank(null) should return false");
         assertFalse(StringUtils.isNotBlank(""), "isNotBlank(\"\") should return false");
         assertFalse(StringUtils.isNotBlank(" "), "isNotBlank(\" \") should return false");
@@ -102,18 +102,18 @@ class StringUtilsTest {
         // Test with String
         assertTrue(StringUtils.isNotBlank("hello"));
         assertFalse(StringUtils.isNotBlank("   "));
-        
+
         // Test with StringBuilder
         StringBuilder sb = new StringBuilder("world");
         assertTrue(StringUtils.isNotBlank(sb));
-        
+
         StringBuilder emptySb = new StringBuilder("   ");
         assertFalse(StringUtils.isNotBlank(emptySb));
-        
+
         // Test with StringBuffer
         StringBuffer sbuf = new StringBuffer("test");
         assertTrue(StringUtils.isNotBlank(sbuf));
-        
+
         StringBuffer emptyBuf = new StringBuffer();
         assertFalse(StringUtils.isNotBlank(emptyBuf));
     }
@@ -177,20 +177,20 @@ class StringUtilsTest {
 
     static Stream<Arguments> chopBasicTestCases() {
         return Stream.of(
-            Arguments.of("", ""), // Empty string returns empty
-            Arguments.of("ab", "a"),
-            Arguments.of("hello", "hell"),
-            Arguments.of("world!", "world"),
-            Arguments.of("  spaces  ", "  spaces "),
-            Arguments.of("tab\t", "tab"),
-            Arguments.of("123456", "12345"),
-            Arguments.of("abc", "ab"),
-            Arguments.of("test string", "test strin"),
-            Arguments.of("This is a longer test string", "This is a longer test strin"),
-            // Basic line ending handling (chop just removes last char)
-            Arguments.of("hello\n", "hello"),
-            Arguments.of("test\r", "test"),
-            Arguments.of("hello\r\n", "hello\r") // chop removes only the last char
+                Arguments.of("", ""), // Empty string returns empty
+                Arguments.of("ab", "a"),
+                Arguments.of("hello", "hell"),
+                Arguments.of("world!", "world"),
+                Arguments.of("  spaces  ", "  spaces "),
+                Arguments.of("tab\t", "tab"),
+                Arguments.of("123456", "12345"),
+                Arguments.of("abc", "ab"),
+                Arguments.of("test string", "test strin"),
+                Arguments.of("This is a longer test string", "This is a longer test strin"),
+                // Basic line ending handling (chop just removes last char)
+                Arguments.of("hello\n", "hello"),
+                Arguments.of("test\r", "test"),
+                Arguments.of("hello\r\n", "hello\r") // chop removes only the last char
         );
     }
 
@@ -201,30 +201,28 @@ class StringUtilsTest {
 
     static @NotNull Stream<Arguments> chopSpecialCharTestCases() {
         return Stream.of(
-            Arguments.of("quote\"", "quote"),
-            Arguments.of("slash\\", "slash"),
-            Arguments.of("percent%", "percent"),
-            Arguments.of("hash#", "hash"),
-            Arguments.of("dollar$", "dollar"),
-            Arguments.of("ampersand&", "ampersand"),
-            Arguments.of("asterisk*", "asterisk"),
-            Arguments.of("parenthesis(", "parenthesis"),
-            Arguments.of("bracket[", "bracket"),
-            Arguments.of("brace{", "brace")
-        );
+                Arguments.of("quote\"", "quote"),
+                Arguments.of("slash\\", "slash"),
+                Arguments.of("percent%", "percent"),
+                Arguments.of("hash#", "hash"),
+                Arguments.of("dollar$", "dollar"),
+                Arguments.of("ampersand&", "ampersand"),
+                Arguments.of("asterisk*", "asterisk"),
+                Arguments.of("parenthesis(", "parenthesis"),
+                Arguments.of("bracket[", "bracket"),
+                Arguments.of("brace{", "brace"));
     }
 
     static @NotNull Stream<Arguments> chopUnicodeTestCases() {
         return Stream.of(
-            Arguments.of("unicode€", "unicode"),
-            Arguments.of("café", "caf"),
-            Arguments.of("naïve", "naïv"),
-            Arguments.of("resumé", "resum"),
-            Arguments.of("señor", "seño"),
-            Arguments.of("北京", "北"),
-            Arguments.of("🌍world", "🌍worl"),
-            Arguments.of("te🚀st", "te🚀s")
-        );
+                Arguments.of("unicode€", "unicode"),
+                Arguments.of("café", "caf"),
+                Arguments.of("naïve", "naïv"),
+                Arguments.of("resumé", "resum"),
+                Arguments.of("señor", "seño"),
+                Arguments.of("北京", "北"),
+                Arguments.of("🌍world", "🌍worl"),
+                Arguments.of("te🚀st", "te🚀s"));
     }
 
     // ========== Tests for removeEndIgnoreCase() ==========
@@ -250,18 +248,18 @@ class StringUtilsTest {
 
     static Stream<Arguments> removeEndIgnoreCaseTestCases() {
         return Stream.of(
-            Arguments.of("hello.TXT", ".txt", "hello"),
-            Arguments.of("document.PDF", ".pdf", "document"),
-            Arguments.of("FILE.backup.TXT", ".txt", "FILE.backup"),
-            Arguments.of("hello", "LO", "hel"),
-            Arguments.of("HELLO", "hello", ""), // Case insensitive - full removal
-            Arguments.of("HeLLo", "llo", "He"),
-            Arguments.of("", "", ""),
-            Arguments.of("test", "", "test"), // Empty suffix
-            Arguments.of("ABC", "abc", ""), // Remove entire string
-            Arguments.of("abc", "XYZ", "abc"), // Suffix not present
-            Arguments.of("hello", "HELLO WORLD", "hello"), // Suffix longer than string
-            Arguments.of("AAAA", "aa", "AA") // Remove only from end, case insensitive
+                Arguments.of("hello.TXT", ".txt", "hello"),
+                Arguments.of("document.PDF", ".pdf", "document"),
+                Arguments.of("FILE.backup.TXT", ".txt", "FILE.backup"),
+                Arguments.of("hello", "LO", "hel"),
+                Arguments.of("HELLO", "hello", ""), // Case insensitive - full removal
+                Arguments.of("HeLLo", "llo", "He"),
+                Arguments.of("", "", ""),
+                Arguments.of("test", "", "test"), // Empty suffix
+                Arguments.of("ABC", "abc", ""), // Remove entire string
+                Arguments.of("abc", "XYZ", "abc"), // Suffix not present
+                Arguments.of("hello", "HELLO WORLD", "hello"), // Suffix longer than string
+                Arguments.of("AAAA", "aa", "AA") // Remove only from end, case insensitive
         );
     }
 
@@ -288,16 +286,16 @@ class StringUtilsTest {
 
     static Stream<Arguments> prependIfMissingTestCases() {
         return Stream.of(
-            Arguments.of("world", "hello ", "hello world"),
-            Arguments.of("hello world", "hello", "hello world"), // Already has prefix
-            Arguments.of("", "prefix", "prefix"),
-            Arguments.of("test", "", "test"), // Empty prefix
-            Arguments.of("http://example.com", "https://", "https://http://example.com"), // Different protocol
-            Arguments.of("https://example.com", "https://", "https://example.com"), // Already has prefix
-            Arguments.of("/path/to/file", "/", "/path/to/file"), // Already starts with prefix
-            Arguments.of("path/to/file", "/", "/path/to/file"), // Needs prefix
-            Arguments.of("ABC", "abc", "abcABC"), // Case sensitive
-            Arguments.of("abcDEF", "abc", "abcDEF") // Already has prefix
+                Arguments.of("world", "hello ", "hello world"),
+                Arguments.of("hello world", "hello", "hello world"), // Already has prefix
+                Arguments.of("", "prefix", "prefix"),
+                Arguments.of("test", "", "test"), // Empty prefix
+                Arguments.of("http://example.com", "https://", "https://http://example.com"), // Different protocol
+                Arguments.of("https://example.com", "https://", "https://example.com"), // Already has prefix
+                Arguments.of("/path/to/file", "/", "/path/to/file"), // Already starts with prefix
+                Arguments.of("path/to/file", "/", "/path/to/file"), // Needs prefix
+                Arguments.of("ABC", "abc", "abcABC"), // Case sensitive
+                Arguments.of("abcDEF", "abc", "abcDEF") // Already has prefix
         );
     }
 
@@ -319,13 +317,13 @@ class StringUtilsTest {
     @DisplayName("appendIfMissing should match Apache Commons Lang3 specification examples")
     void appendIfMissing_ApacheCommonsSpecificationExamples() {
         // Direct examples from Apache Commons Lang3 documentation:
-        // StringUtils.appendIfMissing(null, null)      = null
-        // StringUtils.appendIfMissing("abc", null)     = "abc"
-        // StringUtils.appendIfMissing("", "xyz")       = "xyz"
-        // StringUtils.appendIfMissing("abc", "xyz")    = "abcxyz"
+        // StringUtils.appendIfMissing(null, null) = null
+        // StringUtils.appendIfMissing("abc", null) = "abc"
+        // StringUtils.appendIfMissing("", "xyz") = "xyz"
+        // StringUtils.appendIfMissing("abc", "xyz") = "abcxyz"
         // StringUtils.appendIfMissing("abcxyz", "xyz") = "abcxyz"
         // StringUtils.appendIfMissing("abcXYZ", "xyz") = "abcXYZxyz"
-        
+
         assertNull(StringUtils.appendIfMissing(null, null), "appendIfMissing(null, null) should return null");
         assertEquals("abc", StringUtils.appendIfMissing("abc", null), "appendIfMissing(\"abc\", null) should return \"abc\"");
         assertEquals("xyz", StringUtils.appendIfMissing("", "xyz"), "appendIfMissing(\"\", \"xyz\") should return \"xyz\"");
@@ -338,27 +336,30 @@ class StringUtilsTest {
     @DisplayName("appendIfMissing should work with additional suffixes")
     void appendIfMissing_WithAdditionalSuffixes() {
         // Examples with additional suffixes from Apache Commons Lang3 documentation:
-        // StringUtils.appendIfMissing(null, null, null)       = null
-        // StringUtils.appendIfMissing("abc", null, null)      = "abc"
-        // StringUtils.appendIfMissing("", "xyz", null)        = "xyz"
+        // StringUtils.appendIfMissing(null, null, null) = null
+        // StringUtils.appendIfMissing("abc", null, null) = "abc"
+        // StringUtils.appendIfMissing("", "xyz", null) = "xyz"
         // StringUtils.appendIfMissing("abc", "xyz", new CharSequence[]{null}) = "abcxyz"
-        // StringUtils.appendIfMissing("abc", "xyz", "")       = "abc"
-        // StringUtils.appendIfMissing("abc", "xyz", "mno")    = "abcxyz"
+        // StringUtils.appendIfMissing("abc", "xyz", "") = "abc"
+        // StringUtils.appendIfMissing("abc", "xyz", "mno") = "abcxyz"
         // StringUtils.appendIfMissing("abcxyz", "xyz", "mno") = "abcxyz"
         // StringUtils.appendIfMissing("abcmno", "xyz", "mno") = "abcmno"
         // StringUtils.appendIfMissing("abcXYZ", "xyz", "mno") = "abcXYZxyz"
         // StringUtils.appendIfMissing("abcMNO", "xyz", "mno") = "abcMNOxyz"
-        
+
         assertNull(StringUtils.appendIfMissing(null, null, (CharSequence) null), "appendIfMissing(null, null, null) should return null");
         assertEquals("abc", StringUtils.appendIfMissing("abc", null, (CharSequence) null), "appendIfMissing(\"abc\", null, null) should return \"abc\"");
         assertEquals("xyz", StringUtils.appendIfMissing("", "xyz", (CharSequence) null), "appendIfMissing(\"\", \"xyz\", null) should return \"xyz\"");
-        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz", (CharSequence) null), "appendIfMissing(\"abc\", \"xyz\", null) should return \"abcxyz\"");
+        assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz", (CharSequence) null),
+                "appendIfMissing(\"abc\", \"xyz\", null) should return \"abcxyz\"");
         assertEquals("abc", StringUtils.appendIfMissing("abc", "xyz", ""), "appendIfMissing(\"abc\", \"xyz\", \"\") should return \"abc\"");
         assertEquals("abcxyz", StringUtils.appendIfMissing("abc", "xyz", "mno"), "appendIfMissing(\"abc\", \"xyz\", \"mno\") should return \"abcxyz\"");
         assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", "xyz", "mno"), "appendIfMissing(\"abcxyz\", \"xyz\", \"mno\") should return \"abcxyz\"");
         assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", "xyz", "mno"), "appendIfMissing(\"abcmno\", \"xyz\", \"mno\") should return \"abcmno\"");
-        assertEquals("abcXYZxyz", StringUtils.appendIfMissing("abcXYZ", "xyz", "mno"), "appendIfMissing(\"abcXYZ\", \"xyz\", \"mno\") should return \"abcXYZxyz\"");
-        assertEquals("abcMNOxyz", StringUtils.appendIfMissing("abcMNO", "xyz", "mno"), "appendIfMissing(\"abcMNO\", \"xyz\", \"mno\") should return \"abcMNOxyz\"");
+        assertEquals("abcXYZxyz", StringUtils.appendIfMissing("abcXYZ", "xyz", "mno"),
+                "appendIfMissing(\"abcXYZ\", \"xyz\", \"mno\") should return \"abcXYZxyz\"");
+        assertEquals("abcMNOxyz", StringUtils.appendIfMissing("abcMNO", "xyz", "mno"),
+                "appendIfMissing(\"abcMNO\", \"xyz\", \"mno\") should return \"abcMNOxyz\"");
     }
 
     @ParameterizedTest
@@ -370,16 +371,16 @@ class StringUtilsTest {
 
     static Stream<Arguments> appendIfMissingTestCases() {
         return Stream.of(
-            Arguments.of("hello", " world", "hello world"),
-            Arguments.of("hello world", "world", "hello world"), // Already has suffix
-            Arguments.of("", "suffix", "suffix"),
-            Arguments.of("test", "", "test"), // Empty suffix
-            Arguments.of("file", ".txt", "file.txt"),
-            Arguments.of("file.txt", ".txt", "file.txt"), // Already has suffix
-            Arguments.of("path/to/dir", "/", "path/to/dir/"), // Needs trailing slash
-            Arguments.of("path/to/dir/", "/", "path/to/dir/"), // Already has trailing slash
-            Arguments.of("ABC", "abc", "ABCabc"), // Case sensitive
-            Arguments.of("ABCabc", "abc", "ABCabc") // Already has suffix
+                Arguments.of("hello", " world", "hello world"),
+                Arguments.of("hello world", "world", "hello world"), // Already has suffix
+                Arguments.of("", "suffix", "suffix"),
+                Arguments.of("test", "", "test"), // Empty suffix
+                Arguments.of("file", ".txt", "file.txt"),
+                Arguments.of("file.txt", ".txt", "file.txt"), // Already has suffix
+                Arguments.of("path/to/dir", "/", "path/to/dir/"), // Needs trailing slash
+                Arguments.of("path/to/dir/", "/", "path/to/dir/"), // Already has trailing slash
+                Arguments.of("ABC", "abc", "ABCabc"), // Case sensitive
+                Arguments.of("ABCabc", "abc", "ABCabc") // Already has suffix
         );
     }
 
@@ -390,12 +391,12 @@ class StringUtilsTest {
         StringBuilder sb = new StringBuilder("xyz");
         assertEquals("abcxyz", StringUtils.appendIfMissing("abc", sb));
         assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", sb));
-        
+
         // Test with StringBuffer as suffix
         StringBuffer sbuf = new StringBuffer("mno");
         assertEquals("abcmno", StringUtils.appendIfMissing("abc", sbuf));
         assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", sbuf));
-        
+
         // Test with multiple CharSequence types as additional suffixes
         assertEquals("abcxyz", StringUtils.appendIfMissing("abcxyz", "abc", sb, sbuf));
         assertEquals("abcmno", StringUtils.appendIfMissing("abcmno", "abc", sb, sbuf));
@@ -433,13 +434,13 @@ class StringUtilsTest {
     @DisplayName("endsWithIgnoreCase should match Apache Commons Lang3 specification examples")
     void endsWithIgnoreCase_ApacheCommonsSpecificationExamples() {
         // examples from Apache Commons Lang3 documentation:
-        // StringUtils.endsWithIgnoreCase(null, null)      = true
-        // StringUtils.endsWithIgnoreCase(null, "def")     = false
-        // StringUtils.endsWithIgnoreCase("abcdef", null)  = false
+        // StringUtils.endsWithIgnoreCase(null, null) = true
+        // StringUtils.endsWithIgnoreCase(null, "def") = false
+        // StringUtils.endsWithIgnoreCase("abcdef", null) = false
         // StringUtils.endsWithIgnoreCase("abcdef", "def") = true
         // StringUtils.endsWithIgnoreCase("ABCDEF", "def") = true
         // StringUtils.endsWithIgnoreCase("ABCDEF", "cde") = false
-        
+
         assertTrue(StringUtils.endsWithIgnoreCase(null, null), "endsWithIgnoreCase(null, null) should return true");
         assertFalse(StringUtils.endsWithIgnoreCase(null, "def"), "endsWithIgnoreCase(null, \"def\") should return false");
         assertFalse(StringUtils.endsWithIgnoreCase("abcdef", null), "endsWithIgnoreCase(\"abcdef\", null) should return false");
@@ -453,18 +454,18 @@ class StringUtilsTest {
     void endsWithIgnoreCase_DifferentCharSequenceTypes() {
         // Test with String
         assertTrue(StringUtils.endsWithIgnoreCase("hello.TXT", ".txt"));
-        
+
         // Test with StringBuilder
         StringBuilder sb = new StringBuilder("document.PDF");
         assertTrue(StringUtils.endsWithIgnoreCase(sb, ".pdf"));
-        
+
         StringBuilder suffix = new StringBuilder(".HTML");
         assertTrue(StringUtils.endsWithIgnoreCase("index.html", suffix));
-        
+
         // Test with StringBuffer
         StringBuffer sbuf = new StringBuffer("file.XML");
         assertTrue(StringUtils.endsWithIgnoreCase(sbuf, ".xml"));
-        
+
         // Test with mixed types
         StringBuffer str = new StringBuffer("test.JSON");
         StringBuilder suf = new StringBuilder(".json");
@@ -473,24 +474,23 @@ class StringUtilsTest {
 
     static Stream<Arguments> endsWithIgnoreCaseTestCases() {
         return Stream.of(
-            Arguments.of("hello", "lo", true),
-            Arguments.of("hello", "LO", true),
-            Arguments.of("HELLO", "lo", true),
-            Arguments.of("hello", "hi", false),
-            Arguments.of("hello", "HI", false),
-            Arguments.of("file.txt", ".TXT", true),
-            Arguments.of("FILE.TXT", ".txt", true),
-            Arguments.of("document.pdf", ".PDF", true),
-            Arguments.of("image.jpg", ".png", false),
-            Arguments.of("", "", true),
-            Arguments.of("test", "", true),
-            Arguments.of("", "test", false),
-            Arguments.of("a", "a", true),
-            Arguments.of("A", "a", true),
-            Arguments.of("long string", "STRING", true),
-            Arguments.of("long string", "String", true),
-            Arguments.of("case sensitive", "SENSITIVE", true)
-        );
+                Arguments.of("hello", "lo", true),
+                Arguments.of("hello", "LO", true),
+                Arguments.of("HELLO", "lo", true),
+                Arguments.of("hello", "hi", false),
+                Arguments.of("hello", "HI", false),
+                Arguments.of("file.txt", ".TXT", true),
+                Arguments.of("FILE.TXT", ".txt", true),
+                Arguments.of("document.pdf", ".PDF", true),
+                Arguments.of("image.jpg", ".png", false),
+                Arguments.of("", "", true),
+                Arguments.of("test", "", true),
+                Arguments.of("", "test", false),
+                Arguments.of("a", "a", true),
+                Arguments.of("A", "a", true),
+                Arguments.of("long string", "STRING", true),
+                Arguments.of("long string", "String", true),
+                Arguments.of("case sensitive", "SENSITIVE", true));
     }
 
     // ========== Integration Tests ==========
@@ -499,12 +499,12 @@ class StringUtilsTest {
     @DisplayName("Test chaining multiple utility methods")
     void integrationTest_ChainingMethods_WorksCorrectly() {
         String input = "  hello.TXT  ";
-        
+
         // Test chaining: trim -> removeEndIgnoreCase -> prependIfMissing
         String trimmed = input.trim();
         String withoutExt = StringUtils.removeEndIgnoreCase(trimmed, ".txt");
         String withPrefix = StringUtils.prependIfMissing(withoutExt, "greeting_");
-        
+
         assertEquals("greeting_hello", withPrefix);
     }
 
@@ -513,10 +513,10 @@ class StringUtilsTest {
     void integrationTest_FilePathScenarios_WorksCorrectly() {
         // Scenario: Processing file paths
         String filepath = "/home/user/document.PDF";
-        
+
         assertTrue(StringUtils.endsWithIgnoreCase(filepath, ".pdf"));
         assertEquals("/home/user/document", StringUtils.removeEndIgnoreCase(filepath, ".PDF"));
-        
+
         String newPath = StringUtils.appendIfMissing(StringUtils.removeEndIgnoreCase(filepath, ".pdf"), ".txt");
         assertEquals("/home/user/document.txt", newPath);
     }
@@ -526,13 +526,13 @@ class StringUtilsTest {
     void integrationTest_UrlScenarios_WorksCorrectly() {
         // Scenario: Processing URLs
         String url = "example.com/api/data";
-        
+
         String httpsUrl = StringUtils.prependIfMissing(url, "https://");
         assertEquals("https://example.com/api/data", httpsUrl);
-        
+
         String urlWithSlash = StringUtils.appendIfMissing(httpsUrl, "/");
         assertEquals("https://example.com/api/data/", urlWithSlash);
-        
+
         assertFalse(StringUtils.isBlank(urlWithSlash));
         assertTrue(StringUtils.isNotBlank(urlWithSlash));
     }
@@ -545,12 +545,12 @@ class StringUtilsTest {
         assertFalse(StringUtils.isBlank(specialChars));
         assertTrue(StringUtils.isNotBlank(specialChars));
         assertFalse(StringUtils.isEmpty(specialChars));
-        
+
         // Test with unicode characters
         String unicode = "Hello 世界 🌍";
         assertEquals("Hello 世界 🌍.txt", StringUtils.appendIfMissing(unicode, ".txt"));
         assertEquals("prefix_Hello 世界 🌍", StringUtils.prependIfMissing(unicode, "prefix_"));
-        
+
         // Test very long strings
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 1000; i++) {
@@ -560,8 +560,6 @@ class StringUtilsTest {
         assertEquals(999, Objects.requireNonNull(StringUtils.chop(longString)).length());
         assertTrue(StringUtils.endsWithIgnoreCase(longString, "A"));
     }
-
-
 
     // ========== Tests for unescapeJava ==========
 
@@ -638,16 +636,16 @@ class StringUtilsTest {
     void unescapeJava_EdgeCases_HandlesCorrectly() {
         // Multiple backslashes
         assertEquals("\\\\", StringUtils.unescapeJava("\\\\\\\\"));
-        
+
         // Mixed valid and invalid escapes
         assertEquals("\\x\n\\y", StringUtils.unescapeJava("\\x\\n\\y"));
-        
+
         // Octal with maximum 3 digits
         assertEquals("A4", StringUtils.unescapeJava("\\1014")); // Should parse \\101 and leave '4'
-        
+
         // Unicode at end of string
         assertEquals("A", StringUtils.unescapeJava("\\u0041"));
-        
+
         // Invalid octal values
         assertEquals("\\999", StringUtils.unescapeJava("\\999")); // 999 > 255, should be treated as literal
     }
@@ -673,12 +671,11 @@ class StringUtilsTest {
         assertEquals("\f", StringUtils.unescapeJava("\\f"));
         assertEquals("'", StringUtils.unescapeJava("\\'"));
         assertEquals("/", StringUtils.unescapeJava("\\/")); // Should treat as literal
-        
+
         // Complex test case
         String complex = "He didn't say, \\\"Stop!\\\"";
         String expectedComplex = "He didn't say, \"Stop!\"";
         assertEquals(expectedComplex, StringUtils.unescapeJava(complex));
     }
-
 
 }

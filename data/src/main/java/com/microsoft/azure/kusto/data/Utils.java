@@ -124,16 +124,11 @@ public class Utils {
         final EmbeddedChannel decoder = new EmbeddedChannel(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
 
         /*
-         * A CompositeByteBuf is used to decode multibyte UTF-8 characters
-         * (e.g., 'ä', '€') that are split across network chunks and corrupted during decoding.
+         * A CompositeByteBuf is used to decode multibyte UTF-8 characters (e.g., 'ä', '€') that are split across network chunks and corrupted during decoding.
          *
-         * 1. Instead of decoding small chunks individually, we first decompress and
-         * accumulate all bytes into this single logical buffer.
-         * 2. It acts as a "zero-copy" wrapper around the multiple, smaller
-         * decompressed chunks. It doesn't copy them into one new array but simply
-         * holds references to them.
-         * 3. By decoding from this composite buffer only once at the very end, we
-         * guarantee the entire byte sequence is present, ensuring no characters are split.
+         * 1. Instead of decoding small chunks individually, we first decompress and accumulate all bytes into this single logical buffer. 2. It acts as a
+         * "zero-copy" wrapper around the multiple, smaller decompressed chunks. It doesn't copy them into one new array but simply holds references to them. 3.
+         * By decoding from this composite buffer only once at the very end, we guarantee the entire byte sequence is present, ensuring no characters are split.
          */
         final CompositeByteBuf composite = Unpooled.compositeBuffer();
 

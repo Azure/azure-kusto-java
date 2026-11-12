@@ -6,8 +6,6 @@ package com.microsoft.azure.kusto.data;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-
-
 public class Ensure {
 
     public static void stringIsNotBlank(String str, String varName) {

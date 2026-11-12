@@ -79,11 +79,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * }</pre>
  */
 public class AzureBlobRestCustomUploader implements ICustomUploader {
-    
-    private final String containerUrlWithSas;  // Container URL with SAS token from DM config
+
+    private final String containerUrlWithSas; // Container URL with SAS token from DM config
     private final ExecutorService executor;
     private boolean ignoreSizeLimit = false;
-    
+
     /**
      * Creates a custom uploader using a container URL with SAS token.
      * 
@@ -97,17 +97,17 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
         this.containerUrlWithSas = containerUrlWithSas;
         this.executor = Executors.newFixedThreadPool(4);
     }
-    
+
     @Override
     public boolean getIgnoreSizeLimit() {
         return ignoreSizeLimit;
     }
-    
+
     @Override
     public void setIgnoreSizeLimit(boolean value) {
         this.ignoreSizeLimit = value;
     }
-    
+
     @Override
     public CompletableFuture<BlobSource> uploadAsync(LocalSource local) {
         return CompletableFuture.supplyAsync(() -> {
@@ -118,47 +118,45 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             }
         }, executor);
     }
-    
+
     @Override
     public CompletableFuture<UploadResults> uploadManyAsync(List<? extends LocalSource> localSources) {
         return CompletableFuture.supplyAsync(() -> {
             List<UploadResult.Success> successes = new ArrayList<>();
             List<UploadResult.Failure> failures = new ArrayList<>();
-            
+
             for (LocalSource source : localSources) {
                 Instant startedAt = Instant.now();
                 try {
                     BlobSource result = uploadBlobUsingRest(source);
                     Long size = source.size();
                     successes.add(new UploadResult.Success(
-                        source.getName(),
-                        startedAt,
-                        Instant.now(),
-                        result.getBlobPath(),
-                        size != null ? size : -1
-                    ));
+                            source.getName(),
+                            startedAt,
+                            Instant.now(),
+                            result.getBlobPath(),
+                            size != null ? size : -1));
                 } catch (Exception e) {
                     failures.add(new UploadResult.Failure(
-                        source.getName(),
-                        startedAt,
-                        Instant.now(),
-                        UploadErrorCode.UPLOAD_FAILED,
-                        e.getMessage(),
-                        e,
-                        false
-                    ));
+                            source.getName(),
+                            startedAt,
+                            Instant.now(),
+                            UploadErrorCode.UPLOAD_FAILED,
+                            e.getMessage(),
+                            e,
+                            false));
                 }
             }
-            
+
             return new UploadResults(successes, failures);
         }, executor);
     }
-    
+
     @Override
     public void close() throws IOException {
         executor.shutdown();
     }
-    
+
     /**
      * Uploads a blob using HTTP PUT with SAS token authentication.
      * 
@@ -166,26 +164,26 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
      */
     private BlobSource uploadBlobUsingRest(LocalSource local) throws Exception {
         String blobName = generateBlobName(local);
-        
+
         // Read data from source using Kotlin's data() method
         byte[] data;
         try (InputStream inputStream = local.data()) {
             data = inputStream.readAllBytes();
         }
-        
+
         // Parse container URL and SAS
         String[] parts = containerUrlWithSas.split("\\?", 2);
         String containerUrl = parts[0];
         String sasToken = parts.length > 1 ? parts[1] : "";
-        
+
         // Build full blob URL with SAS
         String blobUrl = containerUrl + "/" + blobName;
         if (!sasToken.isEmpty()) {
             blobUrl += "?" + sasToken;
         }
-        
+
         System.out.println("Uploading to: " + containerUrl + "/" + blobName);
-        
+
         // Create HTTP PUT request
         URL url = new URL(blobUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -193,19 +191,19 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
         connection.setDoOutput(true);
         connection.setConnectTimeout(30000);
         connection.setReadTimeout(60000);
-        
+
         // Set required headers for Azure Blob REST API
         connection.setRequestProperty("x-ms-blob-type", "BlockBlob");
         connection.setRequestProperty("x-ms-version", "2021-06-08");
         connection.setRequestProperty("Content-Type", getContentType(local.getFormat()));
         connection.setRequestProperty("Content-Length", String.valueOf(data.length));
-        
+
         // Upload the data
         try (OutputStream out = connection.getOutputStream()) {
             out.write(data);
             out.flush();
         }
-        
+
         // Check response
         int responseCode = connection.getResponseCode();
         if (responseCode < 200 || responseCode >= 300) {
@@ -214,28 +212,27 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
                 if (errorStream != null) {
                     errorBody = new String(errorStream.readAllBytes(), StandardCharsets.UTF_8);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             throw new RuntimeException(
-                "Upload failed with status " + responseCode + ": " + errorBody
-            );
+                    "Upload failed with status " + responseCode + ": " + errorBody);
         }
-        
+
         System.out.println("Successfully uploaded blob: " + blobName + " (Status: " + responseCode + ", Size: " + data.length + " bytes)");
-        
+
         // Return BlobSource with the blob URL (including SAS for Kusto to access)
         String resultBlobUrl = containerUrl + "/" + blobName;
         if (!sasToken.isEmpty()) {
             resultBlobUrl += "?" + sasToken;
         }
-        
+
         return new BlobSource(
-            resultBlobUrl,
-            local.getFormat(),
-            local.getSourceId(),
-            local.getCompressionType()
-        );
+                resultBlobUrl,
+                local.getFormat(),
+                local.getSourceId(),
+                local.getCompressionType());
     }
-    
+
     private String generateBlobName(LocalSource source) {
         String name = source.getName();
         if (name == null || name.isEmpty()) {
@@ -247,50 +244,65 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
         }
         return "custom-upload/" + UUID.randomUUID().toString().substring(0, 8) + "_" + name;
     }
-    
+
     private String getExtension(Format format, CompressionType compression) {
         String formatExt;
         switch (format) {
-            case json: formatExt = ".json"; break;
-            case csv: formatExt = ".csv"; break;
-            case parquet: formatExt = ".parquet"; break;
-            case avro: formatExt = ".avro"; break;
-            case orc: formatExt = ".orc"; break;
-            default: formatExt = ".dat"; break;
+            case json:
+                formatExt = ".json";
+                break;
+            case csv:
+                formatExt = ".csv";
+                break;
+            case parquet:
+                formatExt = ".parquet";
+                break;
+            case avro:
+                formatExt = ".avro";
+                break;
+            case orc:
+                formatExt = ".orc";
+                break;
+            default:
+                formatExt = ".dat";
+                break;
         }
-        
+
         if (compression == CompressionType.GZIP) {
             return formatExt + ".gz";
         }
         return formatExt;
     }
-    
+
     private String getContentType(Format format) {
         switch (format) {
-            case json: return "application/json";
-            case csv: return "text/csv";
-            default: return "application/octet-stream";
+            case json:
+                return "application/json";
+            case csv:
+                return "text/csv";
+            default:
+                return "application/octet-stream";
         }
     }
-    
+
     // ==========================================
     // End-to-end demo using system properties (like other samples)
     // ==========================================
-    
+
     public static void main(String[] args) throws Exception {
         // Get configuration from system properties (consistent with other samples)
         String engineEndpoint = System.getProperty("clusterPath"); // "https://<cluster>.kusto.windows.net"
         String appId = System.getProperty("app-id");
         String appKey = System.getProperty("appKey");
         String tenant = System.getProperty("tenant");
-        
+
         String database = System.getProperty("dbName");
         String table = System.getProperty("tableName");
         String mapping = System.getProperty("dataMappingName");
-        
+
         // Container URL with SAS token (in production, get from DM config API)
         String containerUrlWithSas = System.getProperty("containerUrl");
-        
+
         if (engineEndpoint == null || engineEndpoint.isEmpty()) {
             System.out.println("=== Azure Blob REST Custom Uploader Demo ===");
             System.out.println();
@@ -333,14 +345,14 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println("```");
             return;
         }
-        
+
         System.out.println("=== Running End-to-End Azure Blob REST Custom Uploader Test ===");
         System.out.println("Engine Endpoint: " + engineEndpoint);
         System.out.println("Database: " + database);
         System.out.println("Table: " + table);
         System.out.println("Mapping: " + mapping);
         System.out.println("Container URL: " + (containerUrlWithSas != null ? "[provided]" : "[not provided - using default uploader]"));
-        
+
         // Create Azure AD credential
         ChainedTokenCredential credential;
         if (StringUtils.isNotBlank(appId)
@@ -360,51 +372,51 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
                     .addFirst(new AzureCliCredentialBuilder().build())
                     .build();
         }
-        
+
         // Build the ingest URL (DM endpoint)
         String dmUrl = IngestClientBase.getIngestionEndpoint(engineEndpoint);
         if (dmUrl == null) {
             dmUrl = engineEndpoint; // Fallback if transformation not applicable
         }
         System.out.println("DM Endpoint: " + dmUrl);
-        
+
         QueuedIngestClient queuedIngestClient = null;
         try {
             // Create the QueuedIngestClient with or without custom uploader
             QueuedIngestClientBuilder builder = QueuedIngestClientBuilder.create(dmUrl)
                     .withAuthentication(credential)
                     .withMaxConcurrency(10);
-            
+
             // If container URL is not provided, fetch it from the cluster's configuration API
             if (containerUrlWithSas == null || containerUrlWithSas.isEmpty()) {
                 System.out.println("\n1. Fetching container URL from Kusto cluster configuration API...");
                 containerUrlWithSas = fetchContainerUrlFromKustoConfig(dmUrl, credential);
                 System.out.println("   Retrieved container URL from cluster configuration");
             }
-            
+
             // Now create our custom uploader with the container URL
             if (containerUrlWithSas != null && !containerUrlWithSas.isEmpty()) {
                 System.out.println("\n2. Creating AzureBlobRestCustomUploader with container URL");
-                
+
                 // create the custom uploader
                 IUploader uploader = CustomUploaderHelper.asUploader(new AzureBlobRestCustomUploader(containerUrlWithSas));
-                
+
                 // Configure the builder to use our custom uploader
                 // true = client will manage the uploader lifecycle (close it when done)
                 builder.withUploader(uploader, true);
-                
+
                 System.out.println("   Custom uploader configured successfully!");
             } else {
                 System.out.println("\n2. No container URL available - using default managed uploader");
             }
-            
+
             // Build the client
             queuedIngestClient = builder.build();
             System.out.println("\n3. QueuedIngestClient created successfully");
-            
+
             // Demonstrate ingestion using a file source
             String resourcesDirectory = System.getProperty("user.dir") + "/samples/src/main/resources/";
-            
+
             // Try CSV file first
             FileSource fileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
 
@@ -421,13 +433,13 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
                         .withEnableTracking(true)
                         .build();
             }
-            
+
             System.out.println("\n4. Ingesting file: " + resourcesDirectory + "dataset.csv");
             System.out.println("   (This will use the custom uploader to upload to Azure Blob Storage!)");
-            
+
             // Perform ingestion - the custom uploader handles the upload!
             var response = queuedIngestClient.ingestAsyncJava(database, table, fileSource, properties).get();
-            
+
             System.out.println("\n5. Ingestion queued successfully!");
             System.out.println("   Operation ID: " + response.getIngestResponse().getIngestionOperationId());
             System.out.println("   Ingestion Type: " + response.getIngestionType());
@@ -436,37 +448,37 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             // Also demonstrate JSON ingestion with mapping
             if (mapping != null && !mapping.isEmpty()) {
                 FileSource jsonFileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.json"), Format.json);
-                
+
                 IngestRequestProperties jsonProperties = IngestRequestPropertiesBuilder.create()
                         .withIngestionMapping(jsonMapping)
                         .withEnableTracking(true)
                         .build();
-                
+
                 System.out.println("\n6. Ingesting JSON file with mapping: " + resourcesDirectory + "dataset.json");
-                
+
                 var jsonResponse = queuedIngestClient.ingestAsyncJava(database, table, jsonFileSource, jsonProperties).get();
-                
+
                 System.out.println("   JSON Ingestion queued successfully!");
                 System.out.println("   Operation ID: " + jsonResponse.getIngestResponse().getIngestionOperationId());
             }
-            
+
             // Demonstrate stream ingestion
             String csvData = "0,00000000-0000-0000-0001-020304050607,0,0,0,0,0,0,0,0,0,0,2014-01-01T01:01:01.0000000Z,Zero,\"Zero\",0,00:00:00,,null";
             InputStream csvInputStream = new ByteArrayInputStream(StandardCharsets.UTF_8.encode(csvData).array());
-            
+
             StreamSource streamSource = new StreamSource(csvInputStream, Format.csv);
-            
+
             IngestRequestProperties streamProperties = IngestRequestPropertiesBuilder.create()
                     .withEnableTracking(true)
                     .build();
-            
+
             System.out.println("\n7. Ingesting from stream (CSV data)");
-            
-            var streamResponse = queuedIngestClient.ingestAsyncJava(database, table,streamSource, streamProperties).get();
-            
+
+            var streamResponse = queuedIngestClient.ingestAsyncJava(database, table, streamSource, streamProperties).get();
+
             System.out.println("   Stream Ingestion queued successfully!");
             System.out.println("   Operation ID: " + streamResponse.getIngestResponse().getIngestionOperationId());
-            
+
             System.out.println("\n=== Azure Blob REST Custom Uploader Demo Complete ===");
             System.out.println();
             System.out.println("Key Integration Points:");
@@ -478,7 +490,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             System.out.println();
             System.out.println("The same pattern works for any other source such as S3/GCP - just implement ICustomUploader!");
             System.out.println("Java users can also program to the IUploader interface directly using uploadAsyncJava()/uploadManyAsyncJava().");
-            
+
         } catch (Exception e) {
             System.err.println("Error during ingestion: " + e.getMessage());
             e.printStackTrace();
@@ -488,7 +500,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
             }
         }
     }
-    
+
     /**
      * Fetches container URL with SAS token from Kusto cluster's configuration API.
      * 
@@ -502,17 +514,16 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
     private static String fetchContainerUrlFromKustoConfig(String dmUrl, TokenCredential credential) throws Exception {
         String configUrl = dmUrl + "/v1/rest/ingestion/configuration";
         System.out.println("   Fetching configuration from: " + configUrl);
-        
+
         // Get access token for the Kusto resource
         String scope = dmUrl + "/.default";
         com.azure.core.credential.AccessToken token = credential.getToken(
-            new com.azure.core.credential.TokenRequestContext().addScopes(scope)
-        ).block();
-        
+                new com.azure.core.credential.TokenRequestContext().addScopes(scope)).block();
+
         if (token == null) {
             throw new RuntimeException("Failed to get access token for " + scope);
         }
-        
+
         // Create HTTP GET request
         URL url = new URL(configUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -521,7 +532,7 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
         connection.setRequestProperty("Accept", "application/json");
         connection.setConnectTimeout(30000);
         connection.setReadTimeout(60000);
-        
+
         // Read response
         int responseCode = connection.getResponseCode();
         if (responseCode < 200 || responseCode >= 300) {
@@ -530,41 +541,41 @@ public class AzureBlobRestCustomUploader implements ICustomUploader {
                 if (errorStream != null) {
                     errorBody = new String(errorStream.readAllBytes(), StandardCharsets.UTF_8);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             throw new RuntimeException(
-                "Failed to get configuration from " + configUrl + " (status " + responseCode + "): " + errorBody
-            );
+                    "Failed to get configuration from " + configUrl + " (status " + responseCode + "): " + errorBody);
         }
-        
+
         String responseBody;
         try (InputStream inputStream = connection.getInputStream()) {
             responseBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
-        
+
         // Parse JSON response to get container URL
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(responseBody);
-        
+
         // Navigate: containerSettings -> containers -> [0] -> path
         JsonNode containerSettings = root.get("containerSettings");
         if (containerSettings == null) {
             System.out.println("   Warning: No containerSettings in configuration response");
             return null;
         }
-        
+
         JsonNode containers = containerSettings.get("containers");
         if (containers == null || !containers.isArray() || containers.isEmpty()) {
             System.out.println("   Warning: No containers in configuration response");
             return null;
         }
-        
+
         JsonNode firstContainer = containers.get(0);
         JsonNode path = firstContainer.get("path");
         if (path == null || path.isNull()) {
             System.out.println("   Warning: Container path is null");
             return null;
         }
-        
+
         String containerUrl = path.asText();
         System.out.println("   Found container: " + containerUrl.split("\\?")[0] + "?...");
         return containerUrl;

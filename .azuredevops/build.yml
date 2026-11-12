@@ -1,14 +1,94 @@
-# Temporary Azure Pipelines bootstrap for the Java SDK.
-
 trigger:
-  - master
+  branches:
+    include:
+      - master
 
 pr:
-  - master
+  branches:
+    include:
+      - '*'
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-  - script: echo "Hello from Azure Pipelines"
-    displayName: Hello world
+jobs:
+  - job: Build
+    displayName: Java
+    # Fork PRs must not receive the variable group or Azure service connection.
+    condition: and(succeeded(), or(ne(variables['Build.Reason'], 'PullRequest'), eq(variables['System.PullRequest.IsFork'], 'False')))
+    strategy:
+      matrix:
+        Java11:
+          javaVersion: '11'
+        Java17:
+          javaVersion: '17'
+        Java21:
+          javaVersion: '21'
+    variables:
+      # Configure DM_CONNECTION_STRING, ENGINE_CONNECTION_STRING and TEST_DATABASE
+      # and authorize this pipeline to use the group and service connection.
+      - group: azure-kusto-java-e2e
+      - name: MAVEN_OPTS
+        value: -Dmaven.repo.local=$(Pipeline.Workspace)/.m2/repository
+    steps:
+      - checkout: self
+        clean: true
+        persistCredentials: false
+
+      - task: JavaToolInstaller@0
+        displayName: Use Java $(javaVersion)
+        inputs:
+          versionSpec: $(javaVersion)
+          jdkArchitectureOption: x64
+          jdkSourceOption: PreInstalled
+
+      - task: Cache@2
+        displayName: Cache Maven dependencies
+        inputs:
+          key: 'maven | "$(Agent.OS)" | "$(javaVersion)" | **/pom.xml'
+          restoreKeys: |
+            maven | "$(Agent.OS)" | "$(javaVersion)"
+            maven | "$(Agent.OS)"
+          path: $(Pipeline.Workspace)/.m2/repository
+
+      - bash: mvn -B -ntp formatter:validate
+        displayName: Validate formatting
+        continueOnError: true
+
+      - task: AzureCLI@2
+        displayName: Run Maven verify with Azure authentication
+        inputs:
+          azureSubscription: kusto-connectors-arm-sc
+          scriptType: bash
+          scriptLocation: inlineScript
+          addSpnToEnvironment: true
+          inlineScript: |
+            set -euo pipefail
+            export APP_ID="$servicePrincipalId"
+            export TENANT_ID="$tenantId"
+            mvn -B -ntp verify
+        env:
+          DM_CONNECTION_STRING: $(DM_CONNECTION_STRING)
+          ENGINE_CONNECTION_STRING: $(ENGINE_CONNECTION_STRING)
+          TEST_DATABASE: $(TEST_DATABASE)
+          CI_EXECUTION: '1'
+
+      - task: PublishTestResults@2
+        displayName: Publish JUnit results
+        condition: always()
+        inputs:
+          testResultsFormat: JUnit
+          testResultsFiles: |
+            data/target/surefire-reports/*.xml
+            ingest/target/surefire-reports/*.xml
+            ingest-v2/target/surefire-reports/*.xml
+          testRunTitle: Java $(javaVersion)
+          failTaskOnFailedTests: true
+
+      # Azure coverage reports replace the GitHub workflow's Codecov upload.
+      - task: PublishCodeCoverageResults@2
+        displayName: Publish JaCoCo coverage
+        inputs:
+          summaryFileLocation: $(Build.SourcesDirectory)/**/target/site/jacoco/jacoco.xml
+          pathToSources: $(Build.SourcesDirectory)
+          failIfCoverageEmpty: true
