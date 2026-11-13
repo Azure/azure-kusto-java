@@ -11,14 +11,13 @@ class IngestionStatusTest {
     static Stream<Object[]> fromIdTestCases() {
         UUID uuid = UUID.randomUUID();
         return Stream.of(
-                //happy path
-                new Object[]{uuid.toString(), uuid},
-                new Object[]{uuid, uuid},
-                //edge cases
-                new Object[]{"", null},
-                new Object[]{null, null},
-                new Object[]{"not-a-uuid", null}
-        );
+                // happy path
+                new Object[] {uuid.toString(), uuid},
+                new Object[] {uuid, uuid},
+                // edge cases
+                new Object[] {"", null},
+                new Object[] {null, null},
+                new Object[] {"not-a-uuid", null});
     }
 
     @ParameterizedTest

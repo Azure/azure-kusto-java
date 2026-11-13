@@ -45,7 +45,7 @@ public class KustoResultSetTableDateTest {
     private static final String ISO_DATETIME_WITH_MILLIS = "2023-07-15T14:30:45.123Z";
     private static final String ISO_DATETIME_WITHOUT_FRACTIONS = "2023-07-15T14:30:45Z";
     private static final String KUSTO_DATETIME_FULL = "2023-07-15T14:30:45.1234567Z";
-    
+
     private static KustoResultSetTable tableWithDatetimeStrings;
     private static KustoResultSetTable tableWithLongValues;
     private static KustoResultSetTable tableWithNullValues;
@@ -57,18 +57,19 @@ public class KustoResultSetTableDateTest {
 
         // Setup table with datetime strings
         setupDatetimeStringTable(objectMapper);
-        
+
         // Setup table with long values
         setupLongValueTable(objectMapper);
-        
+
         // Setup table with null values
         setupNullValueTable(objectMapper);
-        
+
         // Setup table with various datetime formats
         setupVariousFormatsTable(objectMapper);
     }
 
-    private static void setupDatetimeStringTable(ObjectMapper objectMapper) throws JsonProcessingException, JsonPropertyMissingException, KustoServiceQueryError {
+    private static void setupDatetimeStringTable(ObjectMapper objectMapper)
+            throws JsonProcessingException, JsonPropertyMissingException, KustoServiceQueryError {
         String columns = "[ " +
                 "{ \"" + COLUMN_NAME_PROPERTY_NAME + "\": \"iso_with_nanos\", \"" + COLUMN_TYPE_PROPERTY_NAME + "\": \"datetime\" }, " +
                 "{ \"" + COLUMN_NAME_PROPERTY_NAME + "\": \"iso_with_millis\", \"" + COLUMN_TYPE_PROPERTY_NAME + "\": \"datetime\" }, " +
@@ -121,7 +122,8 @@ public class KustoResultSetTableDateTest {
         tableWithNullValues.first();
     }
 
-    private static void setupVariousFormatsTable(ObjectMapper objectMapper) throws JsonProcessingException, JsonPropertyMissingException, KustoServiceQueryError {
+    private static void setupVariousFormatsTable(ObjectMapper objectMapper)
+            throws JsonProcessingException, JsonPropertyMissingException, KustoServiceQueryError {
         String columns = "[ " +
                 "{ \"" + COLUMN_NAME_PROPERTY_NAME + "\": \"short_format\", \"" + COLUMN_TYPE_PROPERTY_NAME + "\": \"datetime\" }, " +
                 "{ \"" + COLUMN_NAME_PROPERTY_NAME + "\": \"long_format\", \"" + COLUMN_TYPE_PROPERTY_NAME + "\": \"datetime\" }, " +
@@ -130,10 +132,10 @@ public class KustoResultSetTableDateTest {
                 "]";
 
         ArrayNode row = objectMapper.createArrayNode();
-        row.add("2023-07-15T14:30:45Z");             // 20 chars - should use short formatter
-        row.add("2023-07-15T14:30:45.123456789Z");   // 30 chars - should use long formatter
-        row.add("2023-07-15T14:30:4Z");              // 19 chars - edge case
-        row.add("2023-07-15T14:30:45.12Z");          // 22 chars - edge case
+        row.add("2023-07-15T14:30:45Z"); // 20 chars - should use short formatter
+        row.add("2023-07-15T14:30:45.123456789Z"); // 30 chars - should use long formatter
+        row.add("2023-07-15T14:30:4Z"); // 19 chars - edge case
+        row.add("2023-07-15T14:30:45.12Z"); // 22 chars - edge case
 
         tableWithVariousFormats = new KustoResultSetTable(objectMapper.readTree("{\"" + TABLE_NAME_PROPERTY_NAME + "\":\"VariousFormats\"," +
                 "\"" + COLUMNS_PROPERTY_NAME + "\":" + columns + ",\"" + ROWS_PROPERTY_NAME + "\":" +
@@ -208,7 +210,7 @@ public class KustoResultSetTableDateTest {
 
         assertNotNull(utcDate);
         assertNotNull(pstDate);
-        
+
         // Both should represent the same moment in time but may have different string representations
         // The exact assertion depends on implementation, but they should not be null
     }
@@ -227,8 +229,8 @@ public class KustoResultSetTableDateTest {
     @Test
     public void testGetDate_FormatterBoundaryConditions() throws SQLException {
         // Test the boundary at length 21 (where formatter selection changes)
-        Date shortDate = tableWithVariousFormats.getDate(0);   // 20 chars
-        Date longDate = tableWithVariousFormats.getDate(1);    // 30 chars
+        Date shortDate = tableWithVariousFormats.getDate(0); // 20 chars
+        Date longDate = tableWithVariousFormats.getDate(1); // 30 chars
 
         assertNotNull(shortDate);
         assertNotNull(longDate);
@@ -261,10 +263,10 @@ public class KustoResultSetTableDateTest {
         // Convert KustoDateTime to Date for comparison
         Instant instant = kustoDateTime.atZone(ZoneOffset.UTC).toInstant();
         Date expectedDate = new Date(instant.toEpochMilli());
-        
+
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        
+
         assertEquals(date.toString(), sdf.format(expectedDate));
     }
 
@@ -272,7 +274,7 @@ public class KustoResultSetTableDateTest {
     public void testGetDate_WithUnsupportedColumnType_ThrowsException() {
         // This would require a different table setup with unsupported column types
         // For now, we'll test the existing error condition in the switch statement
-        
+
         // We can't easily test this without modifying the table structure
         // But the method should throw SQLException for unsupported types
         assertTrue(true); // Placeholder - would need custom table setup
@@ -289,7 +291,7 @@ public class KustoResultSetTableDateTest {
     public void testGetDate_PreservesBackwardCompatibility() throws SQLException {
         // Test that the new DateTimeFormatter implementation produces the same results
         // as the old FastDateFormat implementation would have
-        
+
         Date date1 = tableWithDatetimeStrings.getDate(0);
         Date date2 = tableWithDatetimeStrings.getDate(1);
         Date date3 = tableWithDatetimeStrings.getDate(2);
@@ -310,17 +312,17 @@ public class KustoResultSetTableDateTest {
     public void testGetDate_PerformanceWithVariousFormats() throws SQLException {
         // Simple performance test to ensure no major regressions
         long startTime = System.nanoTime();
-        
+
         for (int i = 0; i < 1000; i++) {
             tableWithDatetimeStrings.getDate(0);
             tableWithDatetimeStrings.getDate(1);
             tableWithDatetimeStrings.getDate(2);
             tableWithDatetimeStrings.getDate(3);
         }
-        
+
         long endTime = System.nanoTime();
         long durationMs = (endTime - startTime) / 1_000_000;
-        
+
         // Should complete within reasonable time (adjust threshold as needed)
         assertTrue(durationMs < 5000, "getDate operations took too long: " + durationMs + "ms");
     }

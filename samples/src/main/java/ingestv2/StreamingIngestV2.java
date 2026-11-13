@@ -55,10 +55,10 @@ public class StreamingIngestV2 {
                     && StringUtils.isNotBlank(appKey)
                     && StringUtils.isNotBlank(tenant)) {
                 credential = new ClientSecretCredentialBuilder()
-                                        .clientId(appId)
-                                        .clientSecret(appKey)
-                                        .tenantId(tenant)
-                                        .build();
+                        .clientId(appId)
+                        .clientSecret(appKey)
+                        .tenantId(tenant)
+                        .build();
             } else {
                 credential = new AzureCliCredentialBuilder().build();
             }
@@ -166,8 +166,7 @@ public class StreamingIngestV2 {
         // Example 1: Ingest CSV file using with defaults
         // Only providing required parameters: path and format
         // Defaults: sourceId=auto-generated, compression=auto-detected (NONE for .csv), baseName="dataset.csv"
-        FileSource csvFileSource =
-                new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
+        FileSource csvFileSource = new FileSource(Paths.get(resourcesDirectory + "dataset.csv"), Format.csv);
 
         IngestRequestProperties csvProperties = IngestRequestPropertiesBuilder.create()
                 .withEnableTracking(true)
