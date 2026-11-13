@@ -121,6 +121,12 @@ class QueuedIngestClientTest {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+    }
+
+    @Test
+    void ingestFromBlob_ExternalUrl_RawDataSizeIsUnknownInQueueMessage() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
+        queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
         verify(azureStorageClientMock, atLeastOnce()).postMessageToQueue(any(), message.capture());
         assertTrue(Utils.getObjectMapper().readTree(message.getValue()).path("rawDataSize").isNull());
