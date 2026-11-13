@@ -109,8 +109,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
         if (blobSourceInfo.getBlobExactSize() != null) {
             ingestionBlobInfo.setRawDataSize(blobSourceInfo.getBlobExactSize());
-        } else {
-            log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
         }
 
         Map<String, String> properties;
@@ -201,6 +199,9 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         return ResourceAlgorithms.uploadLocalFileWithRetriesAsync(resourceManager, azureStorageClient, file, blobName, shouldCompress)
                 .flatMap(blobPath -> {
                     BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromFile(blobPath, fileSourceInfo, sourceCompressionType, shouldCompress);
+                    if (sourceCompressionType == null) {
+                        warnIfUploadSizeMissing(blobSourceInfo);
+                    }
                     return ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
                 })
                 .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException("Failed to ingest from file", e));
@@ -248,6 +249,7 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                         throw new IngestionClientException(message);
                     }
                     BlobSourceInfo blobSourceInfo = BlobSourceInfo.fromStream(blobUploadedDetails.blobPath, blobUploadedDetails.size, streamSourceInfo);
+                    warnIfUploadSizeMissing(blobSourceInfo);
                     return ingestFromBlobAsync(blobSourceInfo, ingestionProperties);
                 })
                 .onErrorMap(BlobStorageException.class, e -> new IngestionServiceException("Failed to ingest from stream", e))
@@ -261,6 +263,13 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
                     }
                 });
 
+    }
+
+    private void warnIfUploadSizeMissing(BlobSourceInfo blobSourceInfo) {
+        if (blobSourceInfo.getBlobExactSize() == null) {
+            log.warn("SDK-uploaded blob '{}' is missing its expected size",
+                    SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath()));
+        }
     }
 
     @Override
