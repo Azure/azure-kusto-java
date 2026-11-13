@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Removed the misleading missing-raw-data-size warning during queued blob ingestion. Known sizes are still sent to the ingestion service.
+- Retained an upload-specific warning if an SDK-created blob unexpectedly loses its known size.
 
 ## [8.0.1] - 2026-04-28
 
