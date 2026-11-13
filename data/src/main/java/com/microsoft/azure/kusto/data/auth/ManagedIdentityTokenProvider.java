@@ -13,7 +13,8 @@ import java.net.URISyntaxException;
 public class ManagedIdentityTokenProvider extends AzureIdentityTokenProvider {
     private final String managedIdentityClientId;
 
-    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, @Nullable String managedIdentityClientId, @Nullable HttpClient httpClient) throws URISyntaxException {
+    public ManagedIdentityTokenProvider(@NotNull String clusterUrl, @Nullable String managedIdentityClientId,
+            @Nullable HttpClient httpClient) throws URISyntaxException {
         super(clusterUrl, httpClient);
         this.managedIdentityClientId = managedIdentityClientId;
     }

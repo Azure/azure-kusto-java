@@ -183,8 +183,6 @@ public class StringUtils {
         return str.toString().regionMatches(true, str.length() - suffix.length(), suffix.toString(), 0, suffix.length());
     }
 
-
-
     /**
      * Unescapes Java string escape sequences in the input string.
      * This method provides custom implementation to replace Apache Commons Text
