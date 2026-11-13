@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -25,10 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -110,6 +113,30 @@ class QueuedIngestClientTest {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
         assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(azureStorageClientMock, atLeastOnce()).postMessageToQueue(any(), message.capture());
+        assertTrue(Utils.getObjectMapper().readTree(message.getValue()).path("rawDataSize").isNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void ingestFromUpload_KnownSize_IsSentToQueue(boolean fromFile) throws Exception {
+        AzureStorageClient storageClient = mock(AzureStorageClient.class);
+        when(storageClient.postMessageToQueue(any(), anyString())).thenReturn(Mono.empty());
+        when(storageClient.uploadLocalFileToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.empty());
+        when(storageClient.uploadStreamToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.just(123));
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+
+        try (QueuedIngestClient client = new QueuedIngestClientImpl(resourceManagerMock, storageClient)) {
+            IngestionResult result = fromFile
+                    ? client.ingestFromFile(new FileSourceInfo(testFilePath), ingestionProperties)
+                    : client.ingestFromStream(new StreamSourceInfo(new ByteArrayInputStream(new byte[123])), ingestionProperties);
+
+            assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+            verify(storageClient).postMessageToQueue(any(), message.capture());
+            long expectedSize = fromFile ? Files.size(Path.of(testFilePath)) : 123L;
+            assertEquals(expectedSize, Utils.getObjectMapper().readTree(message.getValue()).path("rawDataSize").longValue());
+        }
     }
 
     @Test

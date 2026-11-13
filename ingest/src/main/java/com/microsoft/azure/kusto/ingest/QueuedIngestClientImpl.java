@@ -109,8 +109,6 @@ public class QueuedIngestClientImpl extends IngestClientBase implements QueuedIn
         String urlWithoutSecrets = SecurityUtils.removeSecretsFromUrl(blobSourceInfo.getBlobPath());
         if (blobSourceInfo.getBlobExactSize() != null) {
             ingestionBlobInfo.setRawDataSize(blobSourceInfo.getBlobExactSize());
-        } else {
-            log.warn("Blob '{}' was sent for ingestion without specifying its raw data size", urlWithoutSecrets);
         }
 
         Map<String, String> properties;
