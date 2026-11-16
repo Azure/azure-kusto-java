@@ -4,6 +4,7 @@
 package com.microsoft.azure.kusto.ingest;
 
 import com.azure.data.tables.models.TableEntity;
+import com.microsoft.azure.kusto.data.Utils;
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
 import com.microsoft.azure.kusto.ingest.IngestionProperties.DataFormat;
 import com.microsoft.azure.kusto.ingest.exceptions.IngestionClientException;
@@ -22,16 +23,24 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -56,10 +65,12 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ResourceLock(Resources.SYSTEM_ERR)
 class QueuedIngestClientTest {
     private static final ResourceManager resourceManagerMock = mock(ResourceManager.class);
     private static final AzureStorageClient azureStorageClientMock = mock(AzureStorageClient.class);
@@ -113,11 +124,85 @@ class QueuedIngestClientTest {
     }
 
     @Test
+    void ingestFromBlob_ExternalUrl_UnknownRawDataSizeDoesNotWarn() throws Exception {
+        BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream originalError = System.err;
+        try (PrintStream error = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setErr(error);
+            IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+            assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+        } finally {
+            System.setErr(originalError);
+        }
+
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(azureStorageClientMock, atLeastOnce()).postMessageToQueue(any(), message.capture());
+        assertTrue(Utils.getObjectMapper().readTree(message.getValue()).path("rawDataSize").isNull());
+        String logs = output.toString(StandardCharsets.UTF_8);
+        assertFalse(logs.contains("without specifying its raw data size"));
+        assertFalse(logs.contains("missing its expected size"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void ingestFromUpload_KnownSize_IsSentToQueue(boolean fromFile) throws Exception {
+        AzureStorageClient storageClient = mock(AzureStorageClient.class);
+        when(storageClient.postMessageToQueue(any(), anyString())).thenReturn(Mono.empty());
+        when(storageClient.uploadLocalFileToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.empty());
+        when(storageClient.uploadStreamToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.just(123));
+        ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+
+        try (QueuedIngestClient client = new QueuedIngestClientImpl(resourceManagerMock, storageClient)) {
+            IngestionResult result = fromFile
+                    ? client.ingestFromFile(new FileSourceInfo(testFilePath), ingestionProperties)
+                    : client.ingestFromStream(new StreamSourceInfo(new ByteArrayInputStream(new byte[123])), ingestionProperties);
+
+            assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+            verify(storageClient).postMessageToQueue(any(), message.capture());
+            long expectedSize = fromFile ? Files.size(Path.of(testFilePath)) : 123L;
+            assertEquals(expectedSize, Utils.getObjectMapper().readTree(message.getValue()).path("rawDataSize").longValue());
+        }
+    }
+
+    @Test
     void ingestFromBlob_IngestionReportMethodIsTable_NotEmptyIngestionStatus() throws Exception {
         BlobSourceInfo blobSourceInfo = new BlobSourceInfo("https://blobPath.blob.core.windows.net/container/blob");
         ingestionProperties.setReportMethod(IngestionProperties.IngestionReportMethod.TABLE);
 
         IngestionResult result = queuedIngestClient.ingestFromBlob(blobSourceInfo, ingestionProperties);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void ingestFromUpload_MissingExpectedSize_WarnsWithoutSecrets(boolean fromFile) throws Exception {
+        AzureStorageClient storageClient = mock(AzureStorageClient.class);
+        when(storageClient.postMessageToQueue(any(), anyString())).thenReturn(Mono.empty());
+        when(storageClient.uploadLocalFileToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.empty());
+        when(storageClient.uploadStreamToBlob(any(), anyString(), any(), anyBoolean())).thenReturn(Mono.just(123));
+        String blobUrl = "https://storage.blob.core.windows.net/container/upload.csv.gz";
+        BlobSourceInfo sourceWithoutSize = new BlobSourceInfo(blobUrl + "?sig=secret");
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream originalError = System.err;
+
+        try (QueuedIngestClient client = new QueuedIngestClientImpl(resourceManagerMock, storageClient);
+                MockedStatic<BlobSourceInfo> factories = mockStatic(BlobSourceInfo.class);
+                PrintStream error = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            factories.when(() -> BlobSourceInfo.fromFile(anyString(), any(), any(), anyBoolean())).thenReturn(sourceWithoutSize);
+            factories.when(() -> BlobSourceInfo.fromStream(anyString(), any(), any())).thenReturn(sourceWithoutSize);
+            System.setErr(error);
+            IngestionResult result = fromFile
+                    ? client.ingestFromFile(new FileSourceInfo(testFilePath), ingestionProperties)
+                    : client.ingestFromStream(new StreamSourceInfo(new ByteArrayInputStream(new byte[123])), ingestionProperties);
+            assertEquals(OperationStatus.Queued, result.getIngestionStatusCollectionAsync().block().get(0).status);
+        } finally {
+            System.setErr(originalError);
+        }
+
+        String logs = output.toString(StandardCharsets.UTF_8);
+        assertTrue(logs.contains("WARN"));
+        assertTrue(logs.contains("SDK-uploaded blob '" + blobUrl + "' is missing its expected size"));
+        assertFalse(logs.contains("sig=secret"));
     }
 
     @Test
