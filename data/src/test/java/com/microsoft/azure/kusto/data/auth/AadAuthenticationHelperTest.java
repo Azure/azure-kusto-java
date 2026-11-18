@@ -4,45 +4,41 @@
 package com.microsoft.azure.kusto.data.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.security.Security;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8DecryptorProviderBuilder;
-import org.bouncycastle.operator.InputDecryptorProvider;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
-import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.identity.InteractiveBrowserCredential;
 import com.microsoft.aad.msal4j.AuthenticationResultMetadata;
+import com.microsoft.aad.msal4j.ClientCredentialFactory;
+import com.microsoft.aad.msal4j.ClientCredentialParameters;
 import com.microsoft.aad.msal4j.IAccount;
 import com.microsoft.aad.msal4j.IAuthenticationResult;
+import com.microsoft.aad.msal4j.IClientCertificate;
+import com.microsoft.aad.msal4j.IConfidentialClientApplication;
 import com.microsoft.aad.msal4j.ITenantProfile;
 import com.microsoft.azure.kusto.data.exceptions.DataClientException;
 import com.microsoft.azure.kusto.data.exceptions.DataServiceException;
@@ -56,74 +52,44 @@ public class AadAuthenticationHelperTest {
     }
 
     @Test
-    @DisplayName("validate auth with certificate  throws exception when missing or invalid parameters")
-    void acquireWithClientCertificateNullKey() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException, URISyntaxException {
-        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
-
-        X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
-        PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
-
-        ConnectionStringBuilder csb = ConnectionStringBuilder
-                .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
-
-        MsalTokenProviderBase aadAuthenticationHelper = (MsalTokenProviderBase) TokenProviderFactory.createTokenProvider(csb, null);
+    @DisplayName("validate auth with certificate wraps token acquisition failures")
+    void acquireWithClientCertificateFailure() throws MalformedURLException, URISyntaxException {
+        IConfidentialClientApplication clientApplication = mock(IConfidentialClientApplication.class);
+        IllegalStateException tokenFailure = new IllegalStateException("Token acquisition failed");
+        when(clientApplication.acquireToken(any(ClientCredentialParameters.class)))
+                .thenReturn(CompletableFuture.failedFuture(tokenFailure));
+        ApplicationCertificateTokenProvider aadAuthenticationHelper = createCertificateTokenProvider(clientApplication);
 
         aadAuthenticationHelper.initialize().block();
         assertEquals("https://login.microsoftonline.com/organizations/", aadAuthenticationHelper.aadAuthorityUrl);
         assertEquals(new HashSet<>(Collections.singletonList("https://kusto.kusto.windows.net/.default")), aadAuthenticationHelper.scopes);
-        Assertions.assertThrows(DataServiceException.class,
+        DataServiceException exception = Assertions.assertThrows(DataServiceException.class,
                 aadAuthenticationHelper::acquireNewAccessToken);
+        assertSame(tokenFailure, exception.getCause().getCause());
     }
 
-    public static KeyCert readPem(String path, String password)
-            throws IOException, CertificateException, OperatorCreationException, PKCSException {
-
-        Security.addProvider(new BouncyCastleProvider());
-        PEMParser pemParser = new PEMParser(new FileReader(path));
-        PrivateKey privateKey = null;
-        X509Certificate cert = null;
-        Object object = pemParser.readObject();
-
-        while (object != null) {
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-            if (object instanceof X509CertificateHolder) {
-                cert = new JcaX509CertificateConverter().getCertificate((X509CertificateHolder) object);
-            }
-            if (object instanceof PKCS8EncryptedPrivateKeyInfo) {
-                PKCS8EncryptedPrivateKeyInfo pinfo = (PKCS8EncryptedPrivateKeyInfo) object;
-                InputDecryptorProvider provider = new JceOpenSSLPKCS8DecryptorProviderBuilder().build(password.toCharArray());
-                PrivateKeyInfo info = pinfo.decryptPrivateKeyInfo(provider);
-                privateKey = converter.getPrivateKey(info);
-            }
-            if (object instanceof PrivateKeyInfo) {
-                privateKey = converter.getPrivateKey((PrivateKeyInfo) object);
-            }
-            object = pemParser.readObject();
+    private static ApplicationCertificateTokenProvider createCertificateTokenProvider(IConfidentialClientApplication clientApplication)
+            throws MalformedURLException, URISyntaxException {
+        X509Certificate certificate = mock(X509Certificate.class);
+        PrivateKey privateKey = mock(PrivateKey.class);
+        IClientCertificate clientCertificate = mock(IClientCertificate.class);
+        ConnectionStringBuilder csb = ConnectionStringBuilder
+                .createWithAadApplicationCertificate("https://resource.uri", "client-id", certificate, privateKey);
+        try (MockedStatic<ClientCredentialFactory> credentialFactory = mockStatic(ClientCredentialFactory.class)) {
+            credentialFactory.when(() -> ClientCredentialFactory.createFromCertificate(privateKey, certificate))
+                    .thenReturn(clientCertificate);
+            ApplicationCertificateTokenProvider provider = spy((ApplicationCertificateTokenProvider) TokenProviderFactory.createTokenProvider(csb, null));
+            credentialFactory.verify(() -> ClientCredentialFactory.createFromCertificate(privateKey, certificate));
+            doReturn(clientApplication).when(provider).getClientApplication();
+            return provider;
         }
-
-        KeyCert keycert = new KeyCert(null, null);
-        keycert.setCertificate(cert);
-        keycert.setKey(privateKey);
-        pemParser.close();
-        return keycert;
     }
 
     @Test
     @DisplayName("validate cached token. Refresh if needed. Call regularly if no refresh token")
     void useCachedTokenAndRefreshWhenNeeded()
-            throws IOException, DataServiceException, URISyntaxException, CertificateException, OperatorCreationException, PKCSException, DataClientException {
-        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
-
-        X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
-        PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
-
-        ConnectionStringBuilder csb = ConnectionStringBuilder
-                .createWithAadApplicationCertificate("https://resource.uri", "client-id", x509Certificate, privateKey);
-
-        MsalTokenProviderBase aadAuthenticationHelperSpy = (MsalTokenProviderBase) spy(TokenProviderFactory.createTokenProvider(csb, null));
+            throws MalformedURLException, DataServiceException, URISyntaxException, DataClientException {
+        ApplicationCertificateTokenProvider aadAuthenticationHelperSpy = createCertificateTokenProvider(mock(IConfidentialClientApplication.class));
 
         IAuthenticationResult authenticationResult = new MockAuthenticationResult("firstToken", "firstToken",
                 new MockAccount("homeAccountId", "environment", "username", Collections.emptyMap()), "environment", "environment", new Date(),

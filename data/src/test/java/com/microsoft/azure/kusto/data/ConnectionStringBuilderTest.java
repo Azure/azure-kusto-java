@@ -4,20 +4,15 @@
 package com.microsoft.azure.kusto.data;
 
 import com.microsoft.azure.kusto.data.auth.ConnectionStringBuilder;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.pkcs.PKCSException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.security.PrivateKey;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-import static com.microsoft.azure.kusto.data.auth.AadAuthenticationHelperTest.readPem;
+import static org.mockito.Mockito.mock;
 
 class ConnectionStringBuilderTest {
     @Test
@@ -61,14 +56,9 @@ class ConnectionStringBuilderTest {
 
     @Test
     @DisplayName("validate createWithAadApplicationCertificate  throws IllegalArgumentException exception when missing or invalid parameters")
-    void createWithAadApplicationCertificate() throws CertificateException, OperatorCreationException,
-            PKCSException, IOException {
-
-        String certFilePath = Path.of("src", "test", "resources", "cert.cer").toString();
-        String privateKeyPath = Path.of("src", "test", "resources", "key.pem").toString();
-
-        X509Certificate x509Certificate = readPem(certFilePath, "basic").getCertificate();
-        PrivateKey privateKey = readPem(privateKeyPath, "basic").getKey();
+    void createWithAadApplicationCertificate() {
+        X509Certificate x509Certificate = mock(X509Certificate.class);
+        PrivateKey privateKey = mock(PrivateKey.class);
 
         // nullOrEmpty resourceUri
         Assertions.assertThrows(IllegalArgumentException.class,
