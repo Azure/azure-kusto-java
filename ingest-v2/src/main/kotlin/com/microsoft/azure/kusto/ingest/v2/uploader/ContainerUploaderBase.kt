@@ -19,6 +19,7 @@ import com.microsoft.azure.kusto.ingest.v2.UPLOAD_MAX_SINGLE_SIZE_BYTES
 import com.microsoft.azure.kusto.ingest.v2.common.ConfigurationCache
 import com.microsoft.azure.kusto.ingest.v2.common.IngestRetryPolicy
 import com.microsoft.azure.kusto.ingest.v2.common.exceptions.IngestException
+import com.microsoft.azure.kusto.ingest.v2.common.models.S2SToken
 import com.microsoft.azure.kusto.ingest.v2.source.BlobSource
 import com.microsoft.azure.kusto.ingest.v2.source.CompressionType
 import com.microsoft.azure.kusto.ingest.v2.source.LocalSource
@@ -56,10 +57,25 @@ abstract class ContainerUploaderBase(
     protected val configurationCache: ConfigurationCache,
     private val uploadMethod: UploadMethod,
     private val tokenCredential: TokenCredential?,
+    private val s2sTokenProvider: (suspend () -> S2SToken)? = null,
+    private val s2sFabricPrivateLinkAccessContext: String? = null,
 ) : IUploader {
 
     protected val logger: Logger =
         LoggerFactory.getLogger(ContainerUploaderBase::class.java)
+
+    /**
+     * Policy that injects S2S Fabric Private Link headers into OneLake upload
+     * requests. Created once and shared across uploads; null when no S2S token
+     * provider is configured.
+     */
+    private val s2sFabricPrivateLinkPolicy: S2SFabricPrivateLinkPolicy? =
+        s2sTokenProvider?.let {
+            S2SFabricPrivateLinkPolicy(
+                it,
+                s2sFabricPrivateLinkAccessContext,
+            )
+        }
 
     private val effectiveMaxConcurrency: Int =
         minOf(maxConcurrency, Runtime.getRuntime().availableProcessors())
@@ -656,6 +672,9 @@ abstract class ContainerUploaderBase(
                     DataLakeServiceClientBuilder()
                         .endpoint(serviceEndpoint)
                         .credential(tokenCredential)
+                        .apply {
+                            s2sFabricPrivateLinkPolicy?.let { addPolicy(it) }
+                        }
                         .buildClient()
 
                 val fileSystemClient =
@@ -672,6 +691,9 @@ abstract class ContainerUploaderBase(
                 val serviceClient =
                     DataLakeServiceClientBuilder()
                         .endpoint("$serviceEndpoint?$sas")
+                        .apply {
+                            s2sFabricPrivateLinkPolicy?.let { addPolicy(it) }
+                        }
                         .buildClient()
 
                 val fileSystemClient =
@@ -688,6 +710,9 @@ abstract class ContainerUploaderBase(
                 val serviceClient =
                     DataLakeServiceClientBuilder()
                         .endpoint(serviceEndpoint)
+                        .apply {
+                            s2sFabricPrivateLinkPolicy?.let { addPolicy(it) }
+                        }
                         .buildClient()
 
                 val fileSystemClient =
