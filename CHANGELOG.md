@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [8.0.2] - 2026-11-26
+
 ### Fixed
+- Added trusted Fabric Kusto endpoint suffixes for Bleu (`.kusto.fabric.sovcloud-api.fr`) and Delos (`.kusto.fabric.sovcloud-api.de`).
 - Removed the misleading missing-raw-data-size warning during queued blob ingestion. Known sizes are still sent to the ingestion service.
 - Retained an upload-specific warning if an SDK-created blob unexpectedly loses its known size.
 
