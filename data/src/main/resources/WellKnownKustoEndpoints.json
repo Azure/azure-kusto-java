@@ -96,7 +96,8 @@
     "https://login.sovcloud-identity.fr": {
       "AllowedKustoSuffixes": [
         ".kusto.sovcloud-api.fr",
-        ".kustomfa.sovcloud-api.fr"
+        ".kustomfa.sovcloud-api.fr",
+        ".kusto.fabric.sovcloud-api.fr"
       ],
       "AllowedKustoHostnames": [
         "adx.applicationinsights.azure.fr",
@@ -107,7 +108,8 @@
     "https://login.sovcloud-identity.de": {
       "AllowedKustoSuffixes": [
         ".kusto.sovcloud-api.de",
-        ".kustomfa.sovcloud-api.de"
+        ".kustomfa.sovcloud-api.de",
+        ".kusto.fabric.sovcloud-api.de"
       ],
       "AllowedKustoHostnames": [
         "adx.applicationinsights.azure.de",

@@ -185,12 +185,27 @@ public class WellKnownKustoEndpointsTests {
                 "https://rpe2e0422132101fct2.kusto.core.microsoft.scloud,https://login.microsoftonline.microsoft.scloud",
                 "https://abc.kusto.sovcloud-api.fr,https://login.sovcloud-identity.fr",
                 "https://efg.kusto.sovcloud-api.de,https://login.sovcloud-identity.de",
+                "https://abc.kusto.fabric.sovcloud-api.fr,https://login.sovcloud-identity.fr",
+                "https://efg.kusto.fabric.sovcloud-api.de,https://login.sovcloud-identity.de",
                 "https://hij.kusto.sovcloud-api.sg,https://login.sovcloud-identity.sg",
         }) {
             String[] clusterAndLoginEndpoint = c.split(",");
             validateEndpoint(clusterAndLoginEndpoint[0], clusterAndLoginEndpoint[1]);
             // Test case sensitivity
             validateEndpoint(clusterAndLoginEndpoint[0].toUpperCase(), clusterAndLoginEndpoint[1].toUpperCase());
+        }
+    }
+
+    @Test
+    public void wellKnownKustoEndpoints_SovereignFabricNegativeTest() throws URISyntaxException {
+        for (String country : new String[] {"fr", "de"}) {
+            String endpoint = "https://cluster.kusto.fabric.sovcloud-api." + country;
+            String loginEndpoint = "https://login.sovcloud-identity." + country;
+            String otherLoginEndpoint = "https://login.sovcloud-identity." + ("fr".equals(country) ? "de" : "fr");
+
+            checkEndpoint(endpoint, DEFAULT_PUBLIC_LOGIN_URL, true);
+            checkEndpoint(endpoint, otherLoginEndpoint, true);
+            checkEndpoint(endpoint + ".untrusted.example", loginEndpoint, true);
         }
     }
 
